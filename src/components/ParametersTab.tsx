@@ -51,7 +51,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
     <div className="space-y-6">
       {/* Parameter Cards */}
       <div className="grid md:grid-cols-2 gap-4">
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-primary" /> Implantação
@@ -62,7 +62,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Package className="w-4 h-4 text-primary" /> Produção
@@ -76,7 +76,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-primary" /> Tarifas por Saco
@@ -89,7 +89,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" /> Reajuste
@@ -114,7 +114,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
 
 function SummaryCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <Card className={highlight ? "bg-primary border-primary" : ""}>
+    <Card className={`transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${highlight ? "bg-primary border-primary" : ""}`}>
       <CardContent className="pt-4 pb-4">
         <p className={`text-xs font-medium mb-1 ${highlight ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{label}</p>
         <p className={`text-lg font-bold ${highlight ? "text-primary-foreground" : "text-foreground"}`}>{value}</p>
