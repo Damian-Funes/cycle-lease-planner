@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual, calcSomaFatores } from "@/lib/smartcycle";
 import { DollarSign, TrendingUp, Calendar, Calculator, Info } from "lucide-react";
@@ -8,13 +9,23 @@ interface Props {
   projection: YearProjection[];
 }
 
+function formatInputValue(value: number, decimals: number = 0): string {
+  return value.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function parseInputValue(text: string): number {
+  // Remove dots (thousand separator), replace comma with dot (decimal separator)
+  const cleaned = text.replace(/\./g, "").replace(",", ".");
+  return parseFloat(cleaned) || 0;
+}
+
 function ParamInput({
   label,
   value,
   onChange,
   prefix,
   suffix,
-  step,
+  decimals = 0,
   hint,
 }: {
   label: string;
@@ -22,20 +33,39 @@ function ParamInput({
   onChange: (v: number) => void;
   prefix?: string;
   suffix?: string;
-  step?: number;
+  decimals?: number;
   hint?: string;
 }) {
+  const [focused, setFocused] = useState(false);
+  const [rawText, setRawText] = useState("");
+
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setRawText(formatInputValue(value, decimals));
+  }, [value, decimals]);
+
+  const handleBlur = useCallback(() => {
+    setFocused(false);
+    onChange(parseInputValue(rawText));
+  }, [rawText, onChange]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setRawText(e.target.value);
+  }, []);
+
   return (
     <div className="space-y-1.5">
       <label className="text-sm font-medium text-muted-foreground">{label}</label>
       <div className="flex items-center gap-1">
         {prefix && <span className="text-sm text-muted-foreground">{prefix}</span>}
         <input
-          type="number"
-          value={value}
-          step={step || 1}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-          className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+          type="text"
+          inputMode="decimal"
+          value={focused ? rawText : formatInputValue(value, decimals)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onChange={handleChange}
+          className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-right"
         />
         {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
       </div>
@@ -67,7 +97,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ParamInput label="Valor Total (R$)" value={params.valorProjeto} onChange={(v) => onUpdate("valorProjeto", v)} step={0.01} prefix="R$" />
+            <ParamInput label="Valor Total (R$)" value={params.valorProjeto} onChange={(v) => onUpdate("valorProjeto", v)} decimals={2} prefix="R$" />
           </CardContent>
         </Card>
 
@@ -78,7 +108,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ParamInput label="Valor da Entrada (R$)" value={params.entrada} onChange={(v) => onUpdate("entrada", v)} step={0.01} prefix="R$" hint="Pago até a entrega da máquina" />
+            <ParamInput label="Valor da Entrada (R$)" value={params.entrada} onChange={(v) => onUpdate("entrada", v)} decimals={2} prefix="R$" hint="Pago até a entrega da máquina" />
           </CardContent>
         </Card>
 
@@ -111,9 +141,9 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ParamInput label="Fase 1 — Anos 1 a 5 (R$)" value={params.tarifaF1} onChange={(v) => onUpdate("tarifaF1", v)} prefix="R$" step={0.01} />
-            <ParamInput label="Fase 2 — Anos 6 a 10 (R$)" value={params.tarifaF2} onChange={(v) => onUpdate("tarifaF2", v)} prefix="R$" step={0.01} />
-            <ParamInput label="Excedente (R$)" value={params.tarifaExcedente} onChange={(v) => onUpdate("tarifaExcedente", v)} prefix="R$" step={0.01} />
+            <ParamInput label="Fase 1 — Anos 1 a 5 (R$)" value={params.tarifaF1} onChange={(v) => onUpdate("tarifaF1", v)} prefix="R$" decimals={2} />
+            <ParamInput label="Fase 2 — Anos 6 a 10 (R$)" value={params.tarifaF2} onChange={(v) => onUpdate("tarifaF2", v)} prefix="R$" decimals={2} />
+            <ParamInput label="Excedente (R$)" value={params.tarifaExcedente} onChange={(v) => onUpdate("tarifaExcedente", v)} prefix="R$" decimals={2} />
           </CardContent>
         </Card>
 
@@ -124,7 +154,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <ParamInput label="Reajuste anual estimado (%)" value={params.reajuste} onChange={(v) => onUpdate("reajuste", v)} suffix="%" step={0.1} />
+            <ParamInput label="Reajuste anual estimado (%)" value={params.reajuste} onChange={(v) => onUpdate("reajuste", v)} suffix="%" decimals={1} />
             <ParamInput label="Peso por Saco (kg)" value={params.pesoPorSaco} onChange={(v) => onUpdate("pesoPorSaco", v)} suffix="kg" />
             <ParamInput label="Volume Mínimo Fase 2 (% da Fase 1)" value={params.volumeMinF2Pct} onChange={(v) => onUpdate("volumeMinF2Pct", v)} suffix="%" />
           </CardContent>
