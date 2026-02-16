@@ -38,19 +38,19 @@ export default function ProposalTab({ params, projection }: Props) {
 
       {/* 3 highlight cards */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="text-center">
+        <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="pt-5 pb-4">
             <p className="text-xs text-muted-foreground mb-1">Implantação</p>
             <p className="text-lg font-bold text-foreground">{formatBRL(params.implantacao)}</p>
           </CardContent>
         </Card>
-        <Card className="text-center">
+        <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="pt-5 pb-4">
             <p className="text-xs text-muted-foreground mb-1">Mensalidade Ano 1</p>
             <p className="text-lg font-bold text-foreground">{formatBRL(mensalidadeF1)}</p>
           </CardContent>
         </Card>
-        <Card className="text-center">
+        <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="pt-5 pb-4">
             <p className="text-xs text-muted-foreground mb-1">Mensalidade Ano 6</p>
             <p className="text-lg font-bold text-foreground">{formatBRL(mensalidadeF2)}</p>
@@ -104,7 +104,7 @@ export default function ProposalTab({ params, projection }: Props) {
       </Card>
 
       {/* Total */}
-      <Card className="bg-primary border-primary">
+      <Card className="bg-primary border-primary transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
         <CardContent className="pt-6 pb-6 text-center">
           <p className="text-sm text-primary-foreground/80 mb-1">Valor Total Projetado em 10 Anos</p>
           <p className="text-3xl font-bold text-primary-foreground mb-4">{formatBRL(totalGeral)}</p>
@@ -132,7 +132,7 @@ function PhaseCard({ title, tarifaSaco, tarifaKg, volume, kgTotal, receita, colo
   title: string; tarifaSaco: number; tarifaKg: number; volume: number; kgTotal: number; receita: number; colorClass: string;
 }) {
   return (
-    <Card className={colorClass}>
+    <Card className={`transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${colorClass}`}>
       <CardContent className="pt-5 pb-4 space-y-2">
         <h3 className="font-semibold text-foreground">{title}</h3>
         <div className="grid grid-cols-2 gap-y-1 text-sm">

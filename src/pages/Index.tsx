@@ -56,13 +56,13 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="params">
+          <TabsContent value="params" className="animate-fade-in">
             <ParametersTab params={params} onUpdate={update} projection={projection} />
           </TabsContent>
-          <TabsContent value="projection">
+          <TabsContent value="projection" className="animate-fade-in">
             <ProjectionTab params={params} projection={projection} />
           </TabsContent>
-          <TabsContent value="proposal">
+          <TabsContent value="proposal" className="animate-fade-in">
             <ProposalTab params={params} projection={projection} />
           </TabsContent>
         </Tabs>
