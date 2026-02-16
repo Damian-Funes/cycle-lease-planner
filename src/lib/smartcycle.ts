@@ -47,11 +47,14 @@ export function calcDivida(p: SmartCycleParams): number {
   return p.valorProjeto - p.entrada;
 }
 
+export const VOLUME_MINIMO_PISO = 40000;
+
 export function calcVolumeMinimoAnual(p: SmartCycleParams): number {
   const divida = calcDivida(p);
   const somaFatores = calcSomaFatores(p.reajuste, 5);
   if (p.tarifaF1 <= 0 || somaFatores <= 0) return 0;
-  return Math.ceil(divida / (p.tarifaF1 * somaFatores));
+  const calculado = Math.ceil(divida / (p.tarifaF1 * somaFatores));
+  return Math.max(calculado, VOLUME_MINIMO_PISO);
 }
 
 export function calcProjection(p: SmartCycleParams): YearProjection[] {
