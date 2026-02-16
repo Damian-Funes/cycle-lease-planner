@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual, calcSomaFatores } from "@/lib/smartcycle";
+import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual, calcSomaFatores, VOLUME_MINIMO_PISO } from "@/lib/smartcycle";
 import { DollarSign, TrendingUp, Calendar, Calculator, Info } from "lucide-react";
 
 interface Props {
@@ -181,6 +181,11 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
             <div className="mt-2 p-2 bg-muted/50 rounded text-xs text-muted-foreground space-y-1">
               <p className="font-medium">Fórmula: Dívida ÷ (Tarifa F1 × Σ fatores reajuste 5 anos)</p>
               <p>{formatBRL(divida)} ÷ ({formatBRL(params.tarifaF1)} × {somaFatores.toFixed(4)}) = <strong>{formatNumber(volumeMin)} sacos/ano</strong></p>
+              {volumeMin === VOLUME_MINIMO_PISO && (
+                <p className="text-accent-foreground font-medium flex items-center gap-1">
+                  <Info className="w-3 h-3" /> Piso mínimo de {formatNumber(VOLUME_MINIMO_PISO)} sacos/ano aplicado
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
