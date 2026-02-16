@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SmartCycleParams, YearProjection, formatBRL, formatNumber } from "@/lib/smartcycle";
-import { DollarSign, TrendingUp, Calendar, Package } from "lucide-react";
+import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual, calcSomaFatores } from "@/lib/smartcycle";
+import { DollarSign, TrendingUp, Calendar, Calculator, Info } from "lucide-react";
 
 interface Props {
   params: SmartCycleParams;
@@ -15,6 +15,7 @@ function ParamInput({
   prefix,
   suffix,
   step,
+  hint,
 }: {
   label: string;
   value: number;
@@ -22,6 +23,7 @@ function ParamInput({
   prefix?: string;
   suffix?: string;
   step?: number;
+  hint?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -37,45 +39,71 @@ function ParamInput({
         />
         {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
       </div>
+      {hint && <p className="text-xs text-muted-foreground/70 flex items-center gap-1"><Info className="w-3 h-3" />{hint}</p>}
     </div>
   );
 }
 
 export default function ParametersTab({ params, onUpdate, projection }: Props) {
-  const mensalidadeF1 = (params.volumeMinAnual * params.tarifaF1) / 12;
-  const volumeF2 = Math.round(params.volumeMinAnual * (params.volumeMinF2Pct / 100));
+  const divida = calcDivida(params);
+  const volumeMin = calcVolumeMinimoAnual(params);
+  const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
+  const mensalidadeF1 = (volumeMin * params.tarifaF1) / 12;
   const mensalidadeF2 = (volumeF2 * params.tarifaF2) / 12;
-  const total10anos = params.implantacao + projection.reduce((s, r) => s + r.receitaAnual, 0);
+  const total10anos = params.entrada + projection.reduce((s, r) => s + r.receitaAnual, 0);
+  const somaFatores = calcSomaFatores(params.reajuste, 5);
+  const receitaMinF1 = projection.filter(r => r.fase === 1).reduce((s, r) => s + r.receitaAnual, 0);
+  const coberturaF1 = divida > 0 ? (receitaMinF1 / divida) * 100 : 0;
+  const entradaPct = params.valorProjeto > 0 ? (params.entrada / params.valorProjeto) * 100 : 0;
 
   return (
     <div className="space-y-6">
-      {/* Parameter Cards */}
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Valor do Projeto + Entrada + Dívida */}
+      <div className="grid md:grid-cols-3 gap-4">
         <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" /> Implantação
+              <DollarSign className="w-4 h-4 text-primary" /> Valor Total do Projeto
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ParamInput label="Valor da Implantação (R$)" value={params.implantacao} onChange={(v) => onUpdate("implantacao", v)} step={0.01} prefix="R$" />
+            <ParamInput label="Valor Total (R$)" value={params.valorProjeto} onChange={(v) => onUpdate("valorProjeto", v)} step={0.01} prefix="R$" />
           </CardContent>
         </Card>
 
         <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Package className="w-4 h-4 text-primary" /> Produção
+              <DollarSign className="w-4 h-4 text-primary" /> Entrada (Implantação)
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <ParamInput label="Volume Mínimo Anual (sacos)" value={params.volumeMinAnual} onChange={(v) => onUpdate("volumeMinAnual", v)} />
-            <ParamInput label="Peso por Saco (kg)" value={params.pesoPorSaco} onChange={(v) => onUpdate("pesoPorSaco", v)} suffix="kg" />
-            <ParamInput label="Produção Real Estimada (sacos/ano)" value={params.producaoReal} onChange={(v) => onUpdate("producaoReal", v)} />
-            <ParamInput label="Volume Mínimo Fase 2 (% da Fase 1)" value={params.volumeMinF2Pct} onChange={(v) => onUpdate("volumeMinF2Pct", v)} suffix="%" />
+          <CardContent>
+            <ParamInput label="Valor da Entrada (R$)" value={params.entrada} onChange={(v) => onUpdate("entrada", v)} step={0.01} prefix="R$" hint="Pago até a entrega da máquina" />
           </CardContent>
         </Card>
 
+        <Card className="border-primary/30 bg-secondary/50 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-primary" /> Dívida a Financiar
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-2xl font-bold text-foreground">{formatBRL(divida)}</p>
+            <p className="text-xs text-muted-foreground">Será paga em 5 anos pela tarifa por saco</p>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(coberturaF1, 100)}%` }} />
+              </div>
+              <span className="text-xs font-semibold text-primary">{coberturaF1.toFixed(1)}%</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Cobertura Fase 1</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tarifas + Reajuste + Produção */}
+      <div className="grid md:grid-cols-3 gap-4">
         <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -92,18 +120,45 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
         <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" /> Reajuste
+              <Calendar className="w-4 h-4 text-primary" /> Reajuste &amp; Peso
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <ParamInput label="Reajuste anual estimado (%)" value={params.reajuste} onChange={(v) => onUpdate("reajuste", v)} suffix="%" step={0.1} />
+            <ParamInput label="Peso por Saco (kg)" value={params.pesoPorSaco} onChange={(v) => onUpdate("pesoPorSaco", v)} suffix="kg" />
+            <ParamInput label="Volume Mínimo Fase 2 (% da Fase 1)" value={params.volumeMinF2Pct} onChange={(v) => onUpdate("volumeMinF2Pct", v)} suffix="%" />
+          </CardContent>
+        </Card>
+
+        {/* Volume Mínimo Calculado */}
+        <Card className="border-primary bg-secondary/30 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-primary" /> Volume Mínimo Calculado
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-y-2 text-sm">
+              <span className="text-muted-foreground">Fase 1 (sacos/ano)</span>
+              <span className="text-right font-bold">{formatNumber(volumeMin)}</span>
+              <span className="text-muted-foreground">Fase 1 (kg/ano)</span>
+              <span className="text-right font-bold">{formatNumber(volumeMin * params.pesoPorSaco)}</span>
+              <span className="text-muted-foreground">Fase 2 (sacos/ano)</span>
+              <span className="text-right font-bold">{formatNumber(volumeF2)}</span>
+              <span className="text-muted-foreground">Mensalidade Ano 1</span>
+              <span className="text-right font-bold text-primary">{formatBRL(mensalidadeF1)}</span>
+            </div>
+            <div className="mt-2 p-2 bg-muted/50 rounded text-xs text-muted-foreground space-y-1">
+              <p className="font-medium">Fórmula: Dívida ÷ (Tarifa F1 × Σ fatores reajuste 5 anos)</p>
+              <p>{formatBRL(divida)} ÷ ({formatBRL(params.tarifaF1)} × {somaFatores.toFixed(4)}) = <strong>{formatNumber(volumeMin)} sacos/ano</strong></p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard label="Implantação" value={formatBRL(params.implantacao)} />
+        <SummaryCard label={`Entrada (${entradaPct.toFixed(1)}% do projeto)`} value={formatBRL(params.entrada)} />
         <SummaryCard label="Mensalidade Fase 1 (Ano 1)" value={formatBRL(mensalidadeF1)} />
         <SummaryCard label="Mensalidade Fase 2 (Ano 6)" value={formatBRL(mensalidadeF2)} />
         <SummaryCard label="Total 10 Anos" value={formatBRL(total10anos)} highlight />
