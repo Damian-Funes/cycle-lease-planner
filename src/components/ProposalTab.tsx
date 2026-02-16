@@ -1,29 +1,33 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { SmartCycleParams, YearProjection, formatBRL, formatNumber } from "@/lib/smartcycle";
+import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual } from "@/lib/smartcycle";
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ArrowRight, ShoppingCart } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   params: SmartCycleParams;
   projection: YearProjection[];
+  onUpdate: (key: keyof SmartCycleParams, value: number | string) => void;
 }
 
-export default function ProposalTab({ params, projection }: Props) {
-  const mensalidadeF1 = (params.volumeMinAnual * params.tarifaF1) / 12;
-  const volumeF2 = Math.round(params.volumeMinAnual * (params.volumeMinF2Pct / 100));
+export default function ProposalTab({ params, projection, onUpdate }: Props) {
+  const volumeMin = calcVolumeMinimoAnual(params);
+  const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
+  const mensalidadeF1 = (volumeMin * params.tarifaF1) / 12;
   const mensalidadeF2 = (volumeF2 * params.tarifaF2) / 12;
   const subtotalF1 = projection.filter((r) => r.fase === 1).reduce((s, r) => s + r.receitaAnual, 0);
   const subtotalF2 = projection.filter((r) => r.fase === 2).reduce((s, r) => s + r.receitaAnual, 0);
-  const totalExcedente = projection.reduce((s, r) => s + r.receitaExcedente, 0);
-  const totalGeral = params.implantacao + subtotalF1 + subtotalF2;
+  const totalGeral = params.entrada + subtotalF1 + subtotalF2;
+  const divida = calcDivida(params);
 
   const tarifaKgF1 = params.pesoPorSaco > 0 ? params.tarifaF1 / params.pesoPorSaco : 0;
   const tarifaKgF2 = params.pesoPorSaco > 0 ? params.tarifaF2 / params.pesoPorSaco : 0;
-  const kgF1 = params.volumeMinAnual * params.pesoPorSaco;
+  const kgF1 = volumeMin * params.pesoPorSaco;
   const kgF2 = volumeF2 * params.pesoPorSaco;
+  const entradaPct = params.valorProjeto > 0 ? (params.entrada / params.valorProjeto) * 100 : 0;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 print:space-y-4">
+    <div className="max-w-3xl mx-auto space-y-6 print:space-y-4 animate-fade-in">
       {/* Header */}
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg">
@@ -36,18 +40,52 @@ export default function ProposalTab({ params, projection }: Props) {
         <p className="text-sm text-muted-foreground">Ciclo operacional de 10 anos</p>
       </div>
 
-      {/* 3 highlight cards */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Status + Observações */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">Status</label>
+          <Select value={params.status} onValueChange={(v) => onUpdate("status", v)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rascunho">Rascunho</SelectItem>
+              <SelectItem value="enviada">Enviada</SelectItem>
+              <SelectItem value="aprovada">Aprovada</SelectItem>
+              <SelectItem value="recusada">Recusada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">Observações</label>
+          <textarea
+            value={params.observacoes}
+            onChange={(e) => onUpdate("observacoes", e.target.value)}
+            placeholder="Anotações do comercial..."
+            className="w-full h-20 px-3 py-2 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+          />
+        </div>
+      </div>
+
+      {/* 4 highlight cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="pt-5 pb-4">
-            <p className="text-xs text-muted-foreground mb-1">Implantação</p>
-            <p className="text-lg font-bold text-foreground">{formatBRL(params.implantacao)}</p>
+            <p className="text-xs text-muted-foreground mb-1">Valor do Projeto</p>
+            <p className="text-lg font-bold text-foreground">{formatBRL(params.valorProjeto)}</p>
+          </CardContent>
+        </Card>
+        <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+          <CardContent className="pt-5 pb-4">
+            <p className="text-xs text-muted-foreground mb-1">Entrada ({entradaPct.toFixed(1)}%)</p>
+            <p className="text-lg font-bold text-foreground">{formatBRL(params.entrada)}</p>
           </CardContent>
         </Card>
         <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardContent className="pt-5 pb-4">
             <p className="text-xs text-muted-foreground mb-1">Mensalidade Ano 1</p>
             <p className="text-lg font-bold text-foreground">{formatBRL(mensalidadeF1)}</p>
+            <p className="text-[10px] text-muted-foreground">{formatNumber(volumeMin)} × {formatBRL(params.tarifaF1)} ÷ 12</p>
           </CardContent>
         </Card>
         <Card className="text-center transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
@@ -64,7 +102,7 @@ export default function ProposalTab({ params, projection }: Props) {
           title="Fase 1 — Anos 1 a 5"
           tarifaSaco={params.tarifaF1}
           tarifaKg={tarifaKgF1}
-          volume={params.volumeMinAnual}
+          volume={volumeMin}
           kgTotal={kgF1}
           receita={subtotalF1}
           colorClass="border-primary/30 bg-secondary/50"
@@ -85,8 +123,7 @@ export default function ProposalTab({ params, projection }: Props) {
         <CardContent className="pt-5 pb-4">
           <h3 className="font-semibold text-accent-foreground mb-2">📦 Política de Excedentes</h3>
           <p className="text-sm text-accent-foreground/80">
-            Volumes acima do mínimo contratado serão cobrados à tarifa de <strong>{formatBRL(params.tarifaExcedente)}/saco</strong>, com reajuste anual de {params.reajuste.toLocaleString("pt-BR")}%.
-            {totalExcedente > 0 && <> Receita estimada de excedentes: <strong>{formatBRL(totalExcedente)}</strong> no período.</>}
+            Volumes acima do mínimo contratado serão cobrados à tarifa de <strong>{formatBRL(params.tarifaExcedente)}/saco</strong> ({formatBRL(params.pesoPorSaco > 0 ? params.tarifaExcedente / params.pesoPorSaco : 0)}/kg), com reajuste anual de {params.reajuste.toLocaleString("pt-BR")}%.
           </p>
         </CardContent>
       </Card>
@@ -110,8 +147,8 @@ export default function ProposalTab({ params, projection }: Props) {
           <p className="text-3xl font-bold text-primary-foreground mb-4">{formatBRL(totalGeral)}</p>
           <div className="grid grid-cols-3 gap-4 text-primary-foreground/80 text-xs">
             <div>
-              <p>Implantação</p>
-              <p className="font-semibold text-primary-foreground">{formatBRL(params.implantacao)}</p>
+              <p>Entrada</p>
+              <p className="font-semibold text-primary-foreground">{formatBRL(params.entrada)}</p>
             </div>
             <div>
               <p>Fase 1</p>
