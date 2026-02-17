@@ -1,20 +1,27 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual } from "@/lib/smartcycle";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw, ArrowRight, ShoppingCart, Download } from "lucide-react";
+import { RefreshCw, ArrowRight, ShoppingCart, Download, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EquipmentTable from "./EquipmentTable";
 import { generateProposalPdf } from "@/lib/generatePdf";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Props {
   params: SmartCycleParams;
   projection: YearProjection[];
   onUpdate: (key: keyof SmartCycleParams, value: number | string) => void;
+  onSave?: () => Promise<void>;
+  savedId?: string | null;
 }
 
-export default function ProposalTab({ params, projection, onUpdate }: Props) {
+export default function ProposalTab({ params, projection, onUpdate, onSave, savedId }: Props) {
+  const [exporting, setExporting] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
   const volumeMin = calcVolumeMinimoAnual(params);
   const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
   const mensalidadeF1 = (volumeMin * params.tarifaF1) / 12;
@@ -29,6 +36,33 @@ export default function ProposalTab({ params, projection, onUpdate }: Props) {
   const kgF1 = volumeMin * params.pesoPorSaco;
   const kgF2 = volumeF2 * params.pesoPorSaco;
   const entradaPct = params.valorProjeto > 0 ? (params.entrada / params.valorProjeto) * 100 : 0;
+
+  const handleExportPdf = async () => {
+    // If proposal hasn't been saved yet (no number), prompt to save first
+    if (!params.numeroProposta && onSave) {
+      setSaveDialogOpen(true);
+      return;
+    }
+    setExporting(true);
+    try {
+      await generateProposalPdf(params, projection);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleSaveAndExport = async () => {
+    setSaveDialogOpen(false);
+    setExporting(true);
+    try {
+      if (onSave) await onSave();
+      // Small delay to let state update with the new numeroProposta
+      await new Promise(r => setTimeout(r, 300));
+      await generateProposalPdf(params, projection);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 print:space-y-4 animate-fade-in">
@@ -46,12 +80,31 @@ export default function ProposalTab({ params, projection, onUpdate }: Props) {
           <p className="text-sm text-muted-foreground">Ciclo operacional de 10 anos</p>
         </div>
         <Button
-          onClick={() => generateProposalPdf(params, projection)}
+          onClick={handleExportPdf}
+          disabled={exporting}
           className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
         >
-          <Download className="w-4 h-4" /> Exportar PDF
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Exportar PDF
         </Button>
       </div>
+
+      {/* Save before export dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Salvar proposta</DialogTitle>
+            <DialogDescription>
+              A proposta precisa ser salva antes de exportar o PDF para gerar o número automático. Deseja salvar agora?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveAndExport} className="gap-1">
+              Salvar e Exportar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Status + Observações */}
       <div className="grid md:grid-cols-2 gap-4">

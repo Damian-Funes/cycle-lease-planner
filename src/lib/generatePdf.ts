@@ -16,16 +16,35 @@ function fmtNum(v: number) {
   return v.toLocaleString("pt-BR");
 }
 
+function drawLogoFallback(doc: jsPDF, x: number, y: number) {
+  doc.setFillColor(5, 150, 105);
+  doc.roundedRect(x, y, 12, 12, 2, 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.text("LS", x + 6, y + 7.5, { align: "center" });
+  doc.setTextColor(5, 150, 105);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  doc.text("do Brasil", x + 14, y + 7.5);
+  doc.setTextColor(0, 0, 0);
+}
+
 function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | null) {
   const pageW = doc.internal.pageSize.getWidth();
 
-  // Add logo image (pre-processed via canvas for jsPDF compatibility)
+  // Add logo image or fallback
+  let logoRendered = false;
   if (logoDataUrl) {
     try {
       doc.addImage(logoDataUrl, "PNG", 14, 8, 28, 14);
+      logoRendered = true;
     } catch (e) {
       console.error("Logo addImage error:", e);
     }
+  }
+  if (!logoRendered) {
+    drawLogoFallback(doc, 14, 10);
   }
 
   const rightLines: string[] = [
@@ -80,9 +99,26 @@ const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
 async function preloadLogo(): Promise<string | null> {
+  // Try loading from Supabase Storage first
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/ls-logo.png`;
+    const result = await loadImageAsBase64(storageUrl);
+    if (result) return result;
+  }
+
+  // Fallback: try the inline base64
+  const result = await loadImageAsBase64(LS_LOGO_BASE64);
+  if (result) return result;
+
+  return null;
+}
+
+function loadImageAsBase64(src: string): Promise<string | null> {
   return new Promise((resolve) => {
     try {
       const img = new Image();
+      img.crossOrigin = "Anonymous";
       img.onload = () => {
         try {
           const canvas = document.createElement("canvas");
@@ -100,7 +136,7 @@ async function preloadLogo(): Promise<string | null> {
         }
       };
       img.onerror = () => resolve(null);
-      img.src = LS_LOGO_BASE64;
+      img.src = src;
     } catch {
       resolve(null);
     }

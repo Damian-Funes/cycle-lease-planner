@@ -190,7 +190,7 @@ const Index = () => {
             <ProjectionTab params={params} projection={projection} />
           </TabsContent>
           <TabsContent value="proposal" className="animate-fade-in">
-            <ProposalTab params={params} projection={projection} onUpdate={update} />
+            <ProposalTab params={params} projection={projection} onUpdate={update} onSave={handleSave} savedId={savedId} />
           </TabsContent>
         </Tabs>
       </main>
