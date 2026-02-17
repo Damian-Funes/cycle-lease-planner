@@ -1,28 +1,27 @@
 
 
-## Proteger Catalogo com Senha
+## Corrigir logo no PDF
 
-Quando o usuario clicar no botao "Catalogo de Equipamentos" na pagina principal, um modal de senha aparecera antes de permitir o acesso.
+O logo ja esta definido como base64 no codigo, mas o `addImage` do jsPDF pode falhar silenciosamente com certas imagens PNG. A solucao e pre-carregar a imagem em um `HTMLImageElement` ou usar um canvas intermediario para garantir que o jsPDF consiga processar.
 
-### Como vai funcionar
+### Alteracao em `src/lib/generatePdf.ts`
 
-1. O usuario clica no botao de Catalogo
-2. Um dialog aparece pedindo a senha
-3. Se a senha digitada for correta, o usuario e redirecionado para `/catalogo`
-4. Se errar, aparece uma mensagem de erro
-5. A senha sera armazenada no codigo como constante: `0LSdobrasil2026@`
-6. Uma vez autenticado, a sessao fica salva no `sessionStorage` para nao pedir senha novamente ate fechar o navegador
+1. Tornar a funcao `generatePdf` **async**
+2. Antes de gerar o PDF, pre-carregar o logo em um `Image()` do HTML e desenhar em um canvas temporario, convertendo para um data URL limpo (JPEG ou PNG re-renderizado)
+3. Passar essa imagem processada para `doc.addImage` em cada chamada de `addHeader`
+4. Manter o fallback de texto caso a imagem falhe
 
-### Alteracoes tecnicas
+Fluxo:
 
-**1. `src/pages/Index.tsx`**
-- Adicionar um componente de Dialog (modal) com campo de senha
-- Ao clicar no botao de Catalogo, abrir o modal em vez de navegar diretamente
-- Validar a senha digitada e redirecionar via `useNavigate` se correta
+```text
+base64 original --> new Image() --> canvas.drawImage() --> canvas.toDataURL("image/png") --> doc.addImage()
+```
 
-**2. `src/pages/Catalogo.tsx`**
-- Adicionar verificacao no `useEffect`: se nao houver flag de autenticacao no `sessionStorage`, redirecionar de volta para `/`
-- Isso impede acesso direto pela URL sem passar pela senha
+Isso resolve problemas comuns onde o jsPDF nao consegue decodificar o PNG original diretamente.
 
-A senha `0LSdobrasil2026@` sera hardcoded no frontend. Nao sera necessario backend adicional para isso.
+### Ajustes necessarios
+
+- `generatePdf` passa a ser `async` (retorna `Promise<void>`)
+- `addHeader` recebe um parametro adicional `logoImage: string | null` (a imagem ja processada)
+- O botao "Exportar PDF" no `ProposalTab.tsx` ja usa `await`, entao nao precisa de mudanca la
 
