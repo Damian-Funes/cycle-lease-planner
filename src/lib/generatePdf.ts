@@ -39,19 +39,8 @@ function drawLogoFallback(doc: jsPDF, x: number, y: number) {
 function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | null) {
   const pageW = doc.internal.pageSize.getWidth();
 
-  // Add logo image or fallback
-  let logoRendered = false;
-  if (logoDataUrl) {
-    try {
-      doc.addImage(logoDataUrl, "JPEG", 15, 10, 25, 12);
-      logoRendered = true;
-    } catch (e) {
-      console.error("Erro logo:", e);
-    }
-  }
-  if (!logoRendered) {
-    drawLogoFallback(doc, 14, 8);
-  }
+  // Draw logo using geometric shapes (reliable, no image loading issues)
+  drawLogoFallback(doc, 14, 8);
 
   const rightLines: string[] = [
     `NÚMERO: ${params.numeroProposta || "—"}`,
