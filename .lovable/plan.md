@@ -1,19 +1,28 @@
 
 
-## Ocultar Valores Individuais de Custo, Manter Apenas o Total da Entrada
+## Proteger Catalogo com Senha
 
-O comercial precisa ver o **valor total da entrada** (soma dos custos) para completar o "Valor Total do Projeto" e fazer as contas. Porem, os valores unitarios e subtotais por equipamento devem ficar ocultos.
+Quando o usuario clicar no botao "Catalogo de Equipamentos" na pagina principal, um modal de senha aparecera antes de permitir o acesso.
 
-### Alteracoes
+### Como vai funcionar
 
-**1. `src/components/EquipmentSelector.tsx` (aba Dimensionamento)**
-- Remover a coluna "Valor Unit." da tabela de itens
-- Remover a coluna "Subtotal" da tabela de itens
-- **Manter** o rodape "Custo Total (Entrada)" com o valor total calculado (o comercial precisa desse numero)
-- Ajustar o `colSpan` do rodape para refletir as colunas restantes (Codigo, Descricao, Qtd, Acao)
+1. O usuario clica no botao de Catalogo
+2. Um dialog aparece pedindo a senha
+3. Se a senha digitada for correta, o usuario e redirecionado para `/catalogo`
+4. Se errar, aparece uma mensagem de erro
+5. A senha sera armazenada no codigo como constante: `0LSdobrasil2026@`
+6. Uma vez autenticado, a sessao fica salva no `sessionStorage` para nao pedir senha novamente ate fechar o navegador
 
-**2. `src/components/EquipmentTable.tsx` (aba Resumo Proposta)**
-- Remover a coluna "Subtotal" da tabela
-- Remover o rodape "Custo Total (Entrada)" (o cliente nao deve ver custos)
-- Manter apenas: Codigo, Descricao e Qtd
+### Alteracoes tecnicas
+
+**1. `src/pages/Index.tsx`**
+- Adicionar um componente de Dialog (modal) com campo de senha
+- Ao clicar no botao de Catalogo, abrir o modal em vez de navegar diretamente
+- Validar a senha digitada e redirecionar via `useNavigate` se correta
+
+**2. `src/pages/Catalogo.tsx`**
+- Adicionar verificacao no `useEffect`: se nao houver flag de autenticacao no `sessionStorage`, redirecionar de volta para `/`
+- Isso impede acesso direto pela URL sem passar pela senha
+
+A senha `0LSdobrasil2026@` sera hardcoded no frontend. Nao sera necessario backend adicional para isso.
 
