@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento, ItemProjeto, calcEntrada } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
-import { Wrench, Plus, Trash2, AlertTriangle } from "lucide-react";
-
+import { Wrench, Plus, Trash2, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 interface Props {
   itens: ItemProjeto[];
   onItensChange: (itens: ItemProjeto[]) => void;
@@ -29,6 +30,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const [quantidade, setQuantidade] = useState(1);
   const [vpFocused, setVpFocused] = useState(false);
   const [vpRaw, setVpRaw] = useState("");
+  const [comboOpen, setComboOpen] = useState(false);
 
   useEffect(() => {
     supabase
@@ -102,18 +104,47 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
           <div className="flex gap-2 items-end flex-wrap">
             <div className="flex-1 min-w-[200px] space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Equipamento</label>
-              <Select value={selectedId} onValueChange={setSelectedId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um equipamento..." />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  {equipamentos.map((eq) => (
-                    <SelectItem key={eq.id} value={eq.id}>
-                      {eq.codigo} — {eq.descricao}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={comboOpen} onOpenChange={setComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={comboOpen}
+                    className="w-full justify-between h-9 font-normal"
+                  >
+                    {selectedId
+                      ? (() => {
+                          const eq = equipamentos.find((e) => e.id === selectedId);
+                          return eq ? `${eq.codigo} — ${eq.descricao}` : "Selecione...";
+                        })()
+                      : "Selecione um equipamento..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
+                  <Command>
+                    <CommandInput placeholder="Digite código ou descrição..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum equipamento encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {equipamentos.map((eq) => (
+                          <CommandItem
+                            key={eq.id}
+                            value={`${eq.codigo} ${eq.descricao}`}
+                            onSelect={() => {
+                              setSelectedId(eq.id);
+                              setComboOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedId === eq.id ? "opacity-100" : "opacity-0")} />
+                            {eq.codigo} — {eq.descricao}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="w-20 space-y-1">
               <label className="text-sm font-medium text-muted-foreground">Qtd</label>
