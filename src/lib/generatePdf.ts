@@ -1,7 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SmartCycleParams, YearProjection, calcDivida, calcVolumeMinimoAnual } from "./smartcycle";
-import { LS_LOGO_BASE64 } from "@/constants/ls-logo";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
@@ -39,8 +38,17 @@ function drawLogoFallback(doc: jsPDF, x: number, y: number) {
 function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | null) {
   const pageW = doc.internal.pageSize.getWidth();
 
-  // Draw logo using geometric shapes (reliable, no image loading issues)
-  drawLogoFallback(doc, 14, 8);
+  // Add logo image or fallback
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", 14, 6, 30, 16);
+    } catch (e) {
+      console.error("Erro ao adicionar logo:", e);
+      drawLogoFallback(doc, 14, 8);
+    }
+  } else {
+    drawLogoFallback(doc, 14, 8);
+  }
 
   const rightLines: string[] = [
     `NÚMERO: ${params.numeroProposta || "—"}`,
@@ -94,11 +102,42 @@ const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
 async function preloadLogo(): Promise<string | null> {
-  // Try the inline JPEG base64 directly (most reliable)
-  if (LS_LOGO_BASE64) {
-    return LS_LOGO_BASE64;
-  }
-  return null;
+  // Load the real logo from public folder via canvas to get a data URL
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL("image/png");
+            console.log("Logo carregado com sucesso, tamanho:", dataUrl.length);
+            resolve(dataUrl);
+          } else {
+            console.warn("Canvas context null");
+            resolve(null);
+          }
+        } catch (e) {
+          console.error("Erro ao converter logo para base64:", e);
+          resolve(null);
+        }
+      };
+      img.onerror = (e) => {
+        console.error("Erro ao carregar imagem do logo:", e);
+        resolve(null);
+      };
+      // Use relative path to public folder
+      img.src = "/ls-logo.png";
+    } catch (e) {
+      console.error("Erro geral preloadLogo:", e);
+      resolve(null);
+    }
+  });
 }
 
 function loadImageAsBase64(src: string): Promise<string | null> {
