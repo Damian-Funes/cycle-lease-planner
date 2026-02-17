@@ -21,7 +21,16 @@ function addHeader(doc: jsPDF, params: SmartCycleParams) {
   const pageW = doc.internal.pageSize.getWidth();
 
   // Add logo image
-  doc.addImage(LS_LOGO, "PNG", 14, 10, 30, 15);
+  try {
+    doc.addImage(LS_LOGO, "PNG", 14, 8, 28, 14);
+  } catch (e) {
+    // Fallback: draw text if image fails
+    doc.setFontSize(14);
+    doc.setTextColor(5, 150, 105);
+    doc.setFont(undefined as any, "bold");
+    doc.text("LS", 14, 18);
+    doc.setFont(undefined as any, "normal");
+  }
 
   // Build right column lines dynamically - only show filled fields
   const rightLines: string[] = [
@@ -96,10 +105,10 @@ export function generateProposalPdf(params: SmartCycleParams, projection: YearPr
   doc.text(introText, 14, y);
   y += 16;
 
-  // Only show ITEM, DESCRIPTION, QTD — no costs
+  // Only show ITEM, DESCRIPTION, QTD — no costs, no codes
   const equipRows = params.itensProjeto.map((item, i) => [
     String(i + 1),
-    item.descricao,
+    item.descricao.replace(/\s*\[.*?\]\s*/g, "").trim(),
     String(item.quantidade),
   ]);
 
@@ -188,6 +197,63 @@ export function generateProposalPdf(params: SmartCycleParams, projection: YearPr
   doc.setTextColor(...GREEN);
   doc.text("PROJEÇÃO FINANCEIRA — 10 ANOS", 14, y);
   y += 10;
+
+  // Bar chart using canvas
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 300;
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      const data = projection.map(r => r.receitaAnual);
+      const colors = projection.map(r => r.fase === 1 ? "#10b981" : "#6ee7b7");
+      const barWidth = 60;
+      const gap = 20;
+      const maxVal = Math.max(...data);
+      const chartHeight = 250;
+      const startX = 50;
+      const startY = 270;
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 800, 300);
+
+      data.forEach((val, i) => {
+        const barH = (val / maxVal) * chartHeight;
+        const x = startX + i * (barWidth + gap);
+        const yBar = startY - barH;
+        ctx.fillStyle = colors[i];
+        ctx.fillRect(x, yBar, barWidth, barH);
+        ctx.fillStyle = "#374151";
+        ctx.font = "11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(`Ano ${i + 1}`, x + barWidth / 2, startY + 15);
+        ctx.fillStyle = "#6b7280";
+        ctx.font = "9px Arial";
+        const valK = (val / 1000).toFixed(0) + "k";
+        ctx.fillText(valK, x + barWidth / 2, yBar - 5);
+      });
+
+      // Legend
+      ctx.fillStyle = "#10b981";
+      ctx.fillRect(250, 5, 12, 12);
+      ctx.fillStyle = "#374151";
+      ctx.font = "11px Arial";
+      ctx.textAlign = "left";
+      ctx.fillText("Fase 1", 267, 15);
+      ctx.fillStyle = "#6ee7b7";
+      ctx.fillRect(320, 5, 12, 12);
+      ctx.fillStyle = "#374151";
+      ctx.fillText("Fase 2", 337, 15);
+
+      const chartImage = canvas.toDataURL("image/png");
+      doc.addImage(chartImage, "PNG", 14, y, 180, 65);
+      y += 70;
+    }
+    document.body.removeChild(canvas);
+  } catch (e) {
+    // Skip chart if canvas fails
+  }
 
   const projRows = projection.map(r => [
     String(r.ano),
