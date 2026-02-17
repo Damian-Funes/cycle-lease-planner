@@ -1,29 +1,19 @@
 
 
-## Implementar Piso Minimo de 40.000 Sacos/Ano
+## Ocultar Valores Individuais de Custo, Manter Apenas o Total da Entrada
 
-### O que muda
+O comercial precisa ver o **valor total da entrada** (soma dos custos) para completar o "Valor Total do Projeto" e fazer as contas. Porem, os valores unitarios e subtotais por equipamento devem ficar ocultos.
 
-Atualmente, o volume minimo anual e calculado pela formula `Divida / (Tarifa F1 x Soma Fatores)`. Para maquinas pequenas (divida baixa), isso gera volumes muito baixos que nao compensam comercialmente.
+### Alteracoes
 
-A mudanca adiciona um **piso fixo de 40.000 sacos/ano**. O volume calculado pela formula continua existindo, mas se for menor que 40.000, o sistema usa 40.000.
+**1. `src/components/EquipmentSelector.tsx` (aba Dimensionamento)**
+- Remover a coluna "Valor Unit." da tabela de itens
+- Remover a coluna "Subtotal" da tabela de itens
+- **Manter** o rodape "Custo Total (Entrada)" com o valor total calculado (o comercial precisa desse numero)
+- Ajustar o `colSpan` do rodape para refletir as colunas restantes (Codigo, Descricao, Qtd, Acao)
 
-### Como funciona
-
-- Se a formula calcula 120.000 sacos -> usa 120.000 (acima do piso)
-- Se a formula calcula 25.000 sacos -> usa 40.000 (piso aplicado)
-
-Quando o piso e aplicado, a Cobertura Fase 1 ficara acima de 100%, significando que o cliente paga mais que a divida nos primeiros 5 anos -- o que e desejavel comercialmente para maquinas pequenas.
-
-### Alteracoes tecnicas
-
-**Arquivo: `src/lib/smartcycle.ts`**
-- Adicionar constante `VOLUME_MINIMO_PISO = 40000`
-- Na funcao `calcVolumeMinimoAnual`, aplicar `Math.max(resultado, VOLUME_MINIMO_PISO)` ao final do calculo
-
-**Arquivo: `src/components/ParametersTab.tsx`**
-- No card "Volume Minimo Calculado", quando o piso estiver ativo (volume calculado < 40.000), exibir um aviso sutil: "Piso minimo de 40.000 sacos/ano aplicado"
-- Isso ajuda o comercial a entender por que o volume nao muda mesmo alterando parametros em projetos pequenos
-
-Sao apenas 2 arquivos com mudancas minimas. Toda a logica de projecao 10 anos, proposta e Supabase continua funcionando normalmente, pois todas dependem da funcao `calcVolumeMinimoAnual`.
+**2. `src/components/EquipmentTable.tsx` (aba Resumo Proposta)**
+- Remover a coluna "Subtotal" da tabela
+- Remover o rodape "Custo Total (Entrada)" (o cliente nao deve ver custos)
+- Manter apenas: Codigo, Descricao e Qtd
 
