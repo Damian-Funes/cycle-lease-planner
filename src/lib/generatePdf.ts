@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SmartCycleParams, YearProjection, calcDivida, calcVolumeMinimoAnual } from "./smartcycle";
 import { LS_LOGO_BASE64 } from "@/constants/ls-logo";
+import lsLogoAsset from "@/assets/ls-logo.png";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
@@ -99,7 +100,11 @@ const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
 async function preloadLogo(): Promise<string | null> {
-  // Try loading from Supabase Storage first
+  // Try the bundled asset first (most reliable)
+  const fromAsset = await loadImageAsBase64(lsLogoAsset);
+  if (fromAsset) return fromAsset;
+
+  // Try loading from Supabase Storage
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   if (supabaseUrl) {
     const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/ls-logo.png`;
