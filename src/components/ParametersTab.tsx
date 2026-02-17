@@ -1,12 +1,15 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual, calcSomaFatores, VOLUME_MINIMO_PISO } from "@/lib/smartcycle";
+import { ItemProjeto } from "@/lib/equipamentos";
 import { DollarSign, TrendingUp, Calendar, Calculator, Info } from "lucide-react";
+import EquipmentSelector from "./EquipmentSelector";
 
 interface Props {
   params: SmartCycleParams;
   onUpdate: (key: keyof SmartCycleParams, value: number | string) => void;
   projection: YearProjection[];
+  onItensChange: (itens: ItemProjeto[]) => void;
 }
 
 function formatInputValue(value: number, decimals: number = 0): string {
@@ -14,44 +17,22 @@ function formatInputValue(value: number, decimals: number = 0): string {
 }
 
 function parseInputValue(text: string): number {
-  // Remove dots (thousand separator), replace comma with dot (decimal separator)
   const cleaned = text.replace(/\./g, "").replace(",", ".");
   return parseFloat(cleaned) || 0;
 }
 
 function ParamInput({
-  label,
-  value,
-  onChange,
-  prefix,
-  suffix,
-  decimals = 0,
-  hint,
+  label, value, onChange, prefix, suffix, decimals = 0, hint,
 }: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  prefix?: string;
-  suffix?: string;
-  decimals?: number;
-  hint?: string;
+  label: string; value: number; onChange: (v: number) => void;
+  prefix?: string; suffix?: string; decimals?: number; hint?: string;
 }) {
   const [focused, setFocused] = useState(false);
   const [rawText, setRawText] = useState("");
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-    setRawText(formatInputValue(value, decimals));
-  }, [value, decimals]);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-    onChange(parseInputValue(rawText));
-  }, [rawText, onChange]);
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setRawText(e.target.value);
-  }, []);
+  const handleFocus = useCallback(() => { setFocused(true); setRawText(formatInputValue(value, decimals)); }, [value, decimals]);
+  const handleBlur = useCallback(() => { setFocused(false); onChange(parseInputValue(rawText)); }, [rawText, onChange]);
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => { setRawText(e.target.value); }, []);
 
   return (
     <div className="space-y-1.5">
@@ -59,12 +40,9 @@ function ParamInput({
       <div className="flex items-center gap-1">
         {prefix && <span className="text-sm text-muted-foreground">{prefix}</span>}
         <input
-          type="text"
-          inputMode="decimal"
+          type="text" inputMode="decimal"
           value={focused ? rawText : formatInputValue(value, decimals)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onChange={handleChange}
+          onFocus={handleFocus} onBlur={handleBlur} onChange={handleChange}
           className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-right"
         />
         {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
@@ -74,7 +52,7 @@ function ParamInput({
   );
 }
 
-export default function ParametersTab({ params, onUpdate, projection }: Props) {
+export default function ParametersTab({ params, onUpdate, projection, onItensChange }: Props) {
   const divida = calcDivida(params);
   const volumeMin = calcVolumeMinimoAnual(params);
   const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
@@ -88,29 +66,16 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Valor do Projeto + Entrada + Dívida */}
+      {/* Composição do Projeto (equipamentos) + Dívida */}
       <div className="grid md:grid-cols-3 gap-4">
-        <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" /> Valor Total do Projeto
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ParamInput label="Valor Total (R$)" value={params.valorProjeto} onChange={(v) => onUpdate("valorProjeto", v)} decimals={2} prefix="R$" />
-          </CardContent>
-        </Card>
-
-        <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" /> Entrada (Implantação)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ParamInput label="Valor da Entrada (R$)" value={params.entrada} onChange={(v) => onUpdate("entrada", v)} decimals={2} prefix="R$" hint="Pago até a entrega da máquina" />
-          </CardContent>
-        </Card>
+        <div className="md:col-span-2">
+          <EquipmentSelector
+            itens={params.itensProjeto}
+            onItensChange={onItensChange}
+            valorProjeto={params.valorProjeto}
+            onValorProjetoChange={(v) => onUpdate("valorProjeto", v)}
+          />
+        </div>
 
         <Card className="border-primary/30 bg-secondary/50 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
@@ -132,7 +97,7 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
         </Card>
       </div>
 
-      {/* Tarifas + Reajuste + Produção */}
+      {/* Tarifas + Reajuste + Volume */}
       <div className="grid md:grid-cols-3 gap-4">
         <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
@@ -160,7 +125,6 @@ export default function ParametersTab({ params, onUpdate, projection }: Props) {
           </CardContent>
         </Card>
 
-        {/* Volume Mínimo Calculado */}
         <Card className="border-primary bg-secondary/30 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">

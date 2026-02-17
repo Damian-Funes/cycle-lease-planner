@@ -26,6 +26,7 @@ interface PropostaRow {
   total_10_anos: number;
   status: string;
   observacoes: string | null;
+  itens_projeto: any[] | null;
 }
 
 interface Props {
@@ -94,6 +95,7 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
       reajuste: Number(p.reajuste_anual),
       status: p.status || "rascunho",
       observacoes: p.observacoes || "",
+      itensProjeto: Array.isArray(p.itens_projeto) ? p.itens_projeto : [],
     };
     onLoad(params, p.id);
     onOpenChange(false);

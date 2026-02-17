@@ -1,3 +1,5 @@
+import { ItemProjeto } from "./equipamentos";
+
 export interface SmartCycleParams {
   clientName: string;
   valorProjeto: number;
@@ -10,6 +12,7 @@ export interface SmartCycleParams {
   reajuste: number;
   status: string;
   observacoes: string;
+  itensProjeto: ItemProjeto[];
 }
 
 export interface YearProjection {
@@ -24,7 +27,7 @@ export interface YearProjection {
 export const DEFAULT_PARAMS: SmartCycleParams = {
   clientName: "",
   valorProjeto: 5500000,
-  entrada: 2352756.99,
+  entrada: 0,
   pesoPorSaco: 40,
   volumeMinF2Pct: 50,
   tarifaF1: 5.0,
@@ -33,6 +36,7 @@ export const DEFAULT_PARAMS: SmartCycleParams = {
   reajuste: 5.5,
   status: "rascunho",
   observacoes: "",
+  itensProjeto: [],
 };
 
 export function calcSomaFatores(reajuste: number, anos: number = 5): number {
