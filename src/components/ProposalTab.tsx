@@ -1,9 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, calcVolumeMinimoAnual } from "@/lib/smartcycle";
 import { Separator } from "@/components/ui/separator";
-import { RefreshCw, ArrowRight, ShoppingCart } from "lucide-react";
+import { RefreshCw, ArrowRight, ShoppingCart, Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import EquipmentTable from "./EquipmentTable";
+import { generateProposalPdf } from "@/lib/generatePdf";
 
 interface Props {
   params: SmartCycleParams;
@@ -29,16 +32,25 @@ export default function ProposalTab({ params, projection, onUpdate }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 print:space-y-4 animate-fade-in">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg">
-          <span className="font-bold text-lg">LS</span>
-          <Separator orientation="vertical" className="h-5 bg-primary-foreground/30" />
-          <span className="font-semibold text-sm">SmartCycle</span>
+      {/* Header + Export */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="text-center flex-1 space-y-2">
+          <div className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg">
+            <span className="font-bold text-lg">LS</span>
+            <Separator orientation="vertical" className="h-5 bg-primary-foreground/30" />
+            <span className="font-semibold text-sm">SmartCycle</span>
+          </div>
+          <h2 className="text-2xl font-bold text-foreground">Proposta Comercial SmartCycle LS</h2>
+          {params.clientName && <p className="text-lg text-muted-foreground">Cliente: <strong className="text-foreground">{params.clientName}</strong></p>}
+          {params.numeroProposta && <p className="text-sm text-muted-foreground">Nº {params.numeroProposta}</p>}
+          <p className="text-sm text-muted-foreground">Ciclo operacional de 10 anos</p>
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Proposta Comercial SmartCycle LS</h2>
-        {params.clientName && <p className="text-lg text-muted-foreground">Cliente: <strong className="text-foreground">{params.clientName}</strong></p>}
-        <p className="text-sm text-muted-foreground">Ciclo operacional de 10 anos</p>
+        <Button
+          onClick={() => generateProposalPdf(params, projection)}
+          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          <Download className="w-4 h-4" /> Exportar PDF
+        </Button>
       </div>
 
       {/* Status + Observações */}
@@ -67,6 +79,43 @@ export default function ProposalTab({ params, projection, onUpdate }: Props) {
           />
         </div>
       </div>
+
+      {/* Dados do cliente para PDF */}
+      <Card>
+        <CardContent className="pt-5 pb-4 space-y-4">
+          <h3 className="font-semibold text-foreground text-sm">Dados do Cliente (para PDF)</h3>
+          <div className="grid md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Contato (At.: Sr(a).)</label>
+              <Input value={params.contatoNome} onChange={(e) => onUpdate("contatoNome", e.target.value)} placeholder="Nome do contato" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Endereço</label>
+              <Input value={params.clienteEndereco} onChange={(e) => onUpdate("clienteEndereco", e.target.value)} placeholder="Endereço do cliente" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Telefone</label>
+              <Input value={params.clienteTelefone} onChange={(e) => onUpdate("clienteTelefone", e.target.value)} placeholder="Telefone" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">CNPJ</label>
+              <Input value={params.clienteCnpj} onChange={(e) => onUpdate("clienteCnpj", e.target.value)} placeholder="CNPJ do cliente" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">E-mail</label>
+              <Input value={params.clienteEmail} onChange={(e) => onUpdate("clienteEmail", e.target.value)} placeholder="E-mail do cliente" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Local de entrega</label>
+              <Input value={params.localEntrega} onChange={(e) => onUpdate("localEntrega", e.target.value)} placeholder="Endereço de entrega" className="h-8 text-sm" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Validade (dias)</label>
+              <Input type="number" value={params.validadeDias} onChange={(e) => onUpdate("validadeDias", Number(e.target.value))} className="h-8 text-sm w-24" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Equipamentos do Projeto */}
       <EquipmentTable itens={params.itensProjeto} />

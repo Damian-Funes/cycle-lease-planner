@@ -45,6 +45,28 @@ const Index = () => {
       return;
     }
     setSaving(true);
+
+    // Auto-generate numero_proposta on first save
+    let numeroProposta = params.numeroProposta;
+    if (!numeroProposta) {
+      const year = new Date().getFullYear();
+      const prefix = `SC${year}-`;
+      const { data: lastProp } = await supabase
+        .from("propostas")
+        .select("numero_proposta")
+        .like("numero_proposta", `${prefix}%`)
+        .order("numero_proposta", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      let seq = 1;
+      if (lastProp?.numero_proposta) {
+        const lastSeq = parseInt(lastProp.numero_proposta.replace(prefix, ""), 10);
+        if (!isNaN(lastSeq)) seq = lastSeq + 1;
+      }
+      numeroProposta = `${prefix}${String(seq).padStart(3, "0")}`;
+      setParams(prev => ({ ...prev, numeroProposta }));
+    }
+
     const volumeMin = calcVolumeMinimoAnual(params);
     const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
     const divida = calcDivida(params);
@@ -70,6 +92,14 @@ const Index = () => {
       status: params.status,
       observacoes: params.observacoes || null,
       itens_projeto: params.itensProjeto as any,
+      contato_nome: params.contatoNome || null,
+      cliente_endereco: params.clienteEndereco || null,
+      cliente_telefone: params.clienteTelefone || null,
+      cliente_cnpj: params.clienteCnpj || null,
+      cliente_email: params.clienteEmail || null,
+      validade_dias: params.validadeDias,
+      local_entrega: params.localEntrega || null,
+      numero_proposta: numeroProposta || null,
     };
 
     let error;
