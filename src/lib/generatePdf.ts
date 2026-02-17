@@ -41,7 +41,7 @@ function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | n
   // Add logo image or fallback
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, "PNG", 14, 6, 30, 16);
+      doc.addImage(logoDataUrl, "PNG", 14, 6, 35, 22);
     } catch (e) {
       console.error("Erro ao adicionar logo:", e);
       drawLogoFallback(doc, 14, 8);
@@ -61,7 +61,7 @@ function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | n
   if (params.clienteEmail) rightLines.push(`E-MAIL: ${params.clienteEmail}`);
 
   autoTable(doc, {
-    startY: 24,
+    startY: 30,
     theme: "grid",
     styles: { fontSize: 7, cellPadding: 2 },
     headStyles: { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold", fontSize: 8 },
