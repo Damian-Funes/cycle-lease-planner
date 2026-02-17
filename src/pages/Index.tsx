@@ -7,17 +7,26 @@ import ParametersTab from "@/components/ParametersTab";
 import ProjectionTab from "@/components/ProjectionTab";
 import ProposalTab from "@/components/ProposalTab";
 import PropostasModal from "@/components/PropostasModal";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package } from "lucide-react";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const Index = () => {
   const [params, setParams] = useState<SmartCycleParams>(DEFAULT_PARAMS);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [catalogoDialogOpen, setCatalogoDialogOpen] = useState(false);
+  const [senha, setSenha] = useState("");
+  const [senhaError, setSenhaError] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const CATALOGO_SENHA = "0LSdobrasil2026@";
 
   const projection = useMemo(() => calcProjection(params), [params]);
 
@@ -115,11 +124,17 @@ const Index = () => {
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Link to="/catalogo">
-              <Button size="sm" variant="ghost" className="gap-1">
-                <Package className="w-4 h-4" /> Catálogo
-              </Button>
-            </Link>
+            <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
+              if (sessionStorage.getItem("catalogo_auth") === "true") {
+                navigate("/catalogo");
+              } else {
+                setSenha("");
+                setSenhaError(false);
+                setCatalogoDialogOpen(true);
+              }
+            }}>
+              <Package className="w-4 h-4" /> Catálogo
+            </Button>
           </div>
         </div>
       </header>
@@ -151,6 +166,41 @@ const Index = () => {
       </main>
 
       <PropostasModal open={modalOpen} onOpenChange={setModalOpen} onLoad={handleLoad} />
+
+      <Dialog open={catalogoDialogOpen} onOpenChange={setCatalogoDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-4 h-4" /> Acesso ao Catálogo
+            </DialogTitle>
+            <DialogDescription>Digite a senha para acessar o catálogo de equipamentos.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (senha === CATALOGO_SENHA) {
+              sessionStorage.setItem("catalogo_auth", "true");
+              setCatalogoDialogOpen(false);
+              navigate("/catalogo");
+            } else {
+              setSenhaError(true);
+            }
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="catalogo-senha">Senha</Label>
+              <Input
+                id="catalogo-senha"
+                type="password"
+                value={senha}
+                onChange={(e) => { setSenha(e.target.value); setSenhaError(false); }}
+                placeholder="Digite a senha"
+                autoFocus
+              />
+              {senhaError && <p className="text-sm text-destructive">Senha incorreta.</p>}
+            </div>
+            <Button type="submit" className="w-full">Acessar</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

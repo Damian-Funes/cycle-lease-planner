@@ -6,9 +6,10 @@ import { Equipamento } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
 import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Catalogo() {
+  const navigate = useNavigate();
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
@@ -17,8 +18,12 @@ export default function Catalogo() {
   const { toast } = useToast();
 
   useEffect(() => {
+    if (sessionStorage.getItem("catalogo_auth") !== "true") {
+      navigate("/", { replace: true });
+      return;
+    }
     fetchAll();
-  }, []);
+  }, [navigate]);
 
   async function fetchAll() {
     setLoading(true);
