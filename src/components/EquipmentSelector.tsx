@@ -15,13 +15,18 @@ interface Props {
   onValorProjetoChange: (v: number) => void;
 }
 
-function formatInputValue(value: number, decimals: number = 2): string {
-  return value.toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+function formatLiveInput(value: string): string {
+  // Remove tudo que não é dígito
+  const digits = value.replace(/\D/g, "");
+  if (digits === "") return "";
+  // Converte para número e formata com separadores pt-BR (sem decimais)
+  const num = parseInt(digits, 10);
+  return num.toLocaleString("pt-BR");
 }
 
-function parseInputValue(text: string): number {
-  const cleaned = text.replace(/\./g, "").replace(",", ".");
-  return parseFloat(cleaned) || 0;
+function parseLiveInput(text: string): number {
+  const digits = text.replace(/\D/g, "");
+  return parseInt(digits, 10) || 0;
 }
 
 export default function EquipmentSelector({ itens, onItensChange, valorProjeto, onValorProjetoChange }: Props) {
@@ -219,11 +224,11 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
               <span className="text-sm text-muted-foreground">R$</span>
               <input
                 type="text"
-                inputMode="decimal"
-                value={vpFocused ? vpRaw : formatInputValue(valorProjeto)}
-                onFocus={() => { setVpFocused(true); setVpRaw(formatInputValue(valorProjeto)); }}
-                onBlur={() => { setVpFocused(false); onValorProjetoChange(parseInputValue(vpRaw)); }}
-                onChange={(e) => setVpRaw(e.target.value)}
+                inputMode="numeric"
+                value={vpFocused ? vpRaw : valorProjeto > 0 ? valorProjeto.toLocaleString("pt-BR") : ""}
+                onFocus={() => { setVpFocused(true); setVpRaw(valorProjeto > 0 ? valorProjeto.toLocaleString("pt-BR") : ""); }}
+                onBlur={() => { setVpFocused(false); onValorProjetoChange(parseLiveInput(vpRaw)); }}
+                onChange={(e) => { const formatted = formatLiveInput(e.target.value); setVpRaw(formatted); }}
                 className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-right"
               />
             </div>
