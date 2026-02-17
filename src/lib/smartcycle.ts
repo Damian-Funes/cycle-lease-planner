@@ -13,6 +13,14 @@ export interface SmartCycleParams {
   status: string;
   observacoes: string;
   itensProjeto: ItemProjeto[];
+  contatoNome: string;
+  clienteEndereco: string;
+  clienteTelefone: string;
+  clienteCnpj: string;
+  clienteEmail: string;
+  validadeDias: number;
+  localEntrega: string;
+  numeroProposta: string;
 }
 
 export interface YearProjection {
@@ -37,6 +45,14 @@ export const DEFAULT_PARAMS: SmartCycleParams = {
   status: "rascunho",
   observacoes: "",
   itensProjeto: [],
+  contatoNome: "",
+  clienteEndereco: "",
+  clienteTelefone: "",
+  clienteCnpj: "",
+  clienteEmail: "",
+  validadeDias: 10,
+  localEntrega: "",
+  numeroProposta: "",
 };
 
 export function calcSomaFatores(reajuste: number, anos: number = 5): number {

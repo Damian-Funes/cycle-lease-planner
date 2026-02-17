@@ -27,6 +27,14 @@ interface PropostaRow {
   status: string;
   observacoes: string | null;
   itens_projeto: any[] | null;
+  contato_nome: string | null;
+  cliente_endereco: string | null;
+  cliente_telefone: string | null;
+  cliente_cnpj: string | null;
+  cliente_email: string | null;
+  validade_dias: number | null;
+  local_entrega: string | null;
+  numero_proposta: string | null;
 }
 
 interface Props {
@@ -96,6 +104,14 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
       status: p.status || "rascunho",
       observacoes: p.observacoes || "",
       itensProjeto: Array.isArray(p.itens_projeto) ? p.itens_projeto : [],
+      contatoNome: p.contato_nome || "",
+      clienteEndereco: p.cliente_endereco || "",
+      clienteTelefone: p.cliente_telefone || "",
+      clienteCnpj: p.cliente_cnpj || "",
+      clienteEmail: p.cliente_email || "",
+      validadeDias: p.validade_dias ?? 10,
+      localEntrega: p.local_entrega || "",
+      numeroProposta: p.numero_proposta || "",
     };
     onLoad(params, p.id);
     onOpenChange(false);

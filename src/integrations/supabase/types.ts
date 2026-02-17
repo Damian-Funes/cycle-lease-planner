@@ -43,14 +43,21 @@ export type Database = {
       }
       propostas: {
         Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          contato_nome: string | null
           created_at: string
           divida: number
           entrada: number
           id: string
           itens_projeto: Json | null
+          local_entrega: string | null
           mensalidade_f1: number
           mensalidade_f2: number
           nome_cliente: string
+          numero_proposta: string | null
           observacoes: string | null
           peso_saco: number
           reajuste_anual: number
@@ -60,19 +67,27 @@ export type Database = {
           tarifa_f2: number
           total_10_anos: number
           updated_at: string
+          validade_dias: number | null
           valor_projeto: number
           vol_min_f2_pct: number
           volume_minimo_calculado: number
         }
         Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          contato_nome?: string | null
           created_at?: string
           divida: number
           entrada: number
           id?: string
           itens_projeto?: Json | null
+          local_entrega?: string | null
           mensalidade_f1: number
           mensalidade_f2: number
           nome_cliente: string
+          numero_proposta?: string | null
           observacoes?: string | null
           peso_saco?: number
           reajuste_anual: number
@@ -82,19 +97,27 @@ export type Database = {
           tarifa_f2: number
           total_10_anos: number
           updated_at?: string
+          validade_dias?: number | null
           valor_projeto: number
           vol_min_f2_pct?: number
           volume_minimo_calculado: number
         }
         Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          contato_nome?: string | null
           created_at?: string
           divida?: number
           entrada?: number
           id?: string
           itens_projeto?: Json | null
+          local_entrega?: string | null
           mensalidade_f1?: number
           mensalidade_f2?: number
           nome_cliente?: string
+          numero_proposta?: string | null
           observacoes?: string | null
           peso_saco?: number
           reajuste_anual?: number
@@ -104,6 +127,7 @@ export type Database = {
           tarifa_f2?: number
           total_10_anos?: number
           updated_at?: string
+          validade_dias?: number | null
           valor_projeto?: number
           vol_min_f2_pct?: number
           volume_minimo_calculado?: number
