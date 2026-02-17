@@ -2,13 +2,15 @@ import { useState, useMemo, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_PARAMS, SmartCycleParams, calcProjection, calcVolumeMinimoAnual, calcDivida } from "@/lib/smartcycle";
+import { ItemProjeto, calcEntrada } from "@/lib/equipamentos";
 import ParametersTab from "@/components/ParametersTab";
 import ProjectionTab from "@/components/ProjectionTab";
 import ProposalTab from "@/components/ProposalTab";
 import PropostasModal from "@/components/PropostasModal";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2 } from "lucide-react";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [params, setParams] = useState<SmartCycleParams>(DEFAULT_PARAMS);
@@ -22,6 +24,11 @@ const Index = () => {
   const update = (key: keyof SmartCycleParams, value: number | string) => {
     setParams((prev) => ({ ...prev, [key]: value }));
   };
+
+  const updateItens = useCallback((itens: ItemProjeto[]) => {
+    const entrada = calcEntrada(itens);
+    setParams((prev) => ({ ...prev, itensProjeto: itens, entrada }));
+  }, []);
 
   const handleSave = useCallback(async () => {
     if (!params.clientName.trim()) {
@@ -53,6 +60,7 @@ const Index = () => {
       total_10_anos: total10anos,
       status: params.status,
       observacoes: params.observacoes || null,
+      itens_projeto: params.itensProjeto as any,
     };
 
     let error;
@@ -81,7 +89,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
@@ -108,11 +115,15 @@ const Index = () => {
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
+            <Link to="/catalogo">
+              <Button size="sm" variant="ghost" className="gap-1">
+                <Package className="w-4 h-4" /> Catálogo
+              </Button>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Content */}
       <main className="container max-w-6xl mx-auto px-4 py-6">
         <Tabs defaultValue="params" className="space-y-6">
           <TabsList className="bg-card border w-full justify-start gap-1 h-auto p-1 flex-wrap">
@@ -128,7 +139,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="params" className="animate-fade-in">
-            <ParametersTab params={params} onUpdate={update} projection={projection} />
+            <ParametersTab params={params} onUpdate={update} projection={projection} onItensChange={updateItens} />
           </TabsContent>
           <TabsContent value="projection" className="animate-fade-in">
             <ProjectionTab params={params} projection={projection} />

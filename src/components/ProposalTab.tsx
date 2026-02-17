@@ -3,6 +3,7 @@ import { SmartCycleParams, YearProjection, formatBRL, formatNumber, calcDivida, 
 import { Separator } from "@/components/ui/separator";
 import { RefreshCw, ArrowRight, ShoppingCart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import EquipmentTable from "./EquipmentTable";
 
 interface Props {
   params: SmartCycleParams;
@@ -66,6 +67,9 @@ export default function ProposalTab({ params, projection, onUpdate }: Props) {
           />
         </div>
       </div>
+
+      {/* Equipamentos do Projeto */}
+      <EquipmentTable itens={params.itensProjeto} />
 
       {/* 4 highlight cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

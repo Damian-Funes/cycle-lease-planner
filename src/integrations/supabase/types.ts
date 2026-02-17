@@ -14,12 +14,40 @@ export type Database = {
   }
   public: {
     Tables: {
+      equipamentos: {
+        Row: {
+          ativo: boolean | null
+          codigo: string
+          created_at: string | null
+          descricao: string
+          id: string
+          valor_custo: number
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          valor_custo: number
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          valor_custo?: number
+        }
+        Relationships: []
+      }
       propostas: {
         Row: {
           created_at: string
           divida: number
           entrada: number
           id: string
+          itens_projeto: Json | null
           mensalidade_f1: number
           mensalidade_f2: number
           nome_cliente: string
@@ -41,6 +69,7 @@ export type Database = {
           divida: number
           entrada: number
           id?: string
+          itens_projeto?: Json | null
           mensalidade_f1: number
           mensalidade_f2: number
           nome_cliente: string
@@ -62,6 +91,7 @@ export type Database = {
           divida?: number
           entrada?: number
           id?: string
+          itens_projeto?: Json | null
           mensalidade_f1?: number
           mensalidade_f2?: number
           nome_cliente?: string
