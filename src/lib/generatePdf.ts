@@ -2,7 +2,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SmartCycleParams, YearProjection, calcDivida, calcVolumeMinimoAnual } from "./smartcycle";
 import { LS_LOGO_BASE64 } from "@/constants/ls-logo";
-import lsLogoAsset from "@/assets/ls-logo.png";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
@@ -18,16 +17,22 @@ function fmtNum(v: number) {
 }
 
 function drawLogoFallback(doc: jsPDF, x: number, y: number) {
-  doc.setFillColor(5, 150, 105);
-  doc.roundedRect(x, y, 12, 12, 2, 2, "F");
+  // Retângulo azul escuro
+  doc.setFillColor(0, 82, 136);
+  doc.roundedRect(x, y, 20, 10, 1, 1, "F");
+  // "LS" branco
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8);
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text("LS", x + 6, y + 7.5, { align: "center" });
-  doc.setTextColor(5, 150, 105);
-  doc.setFontSize(7);
+  doc.text("LS", x + 5, y + 7);
+  // Arco verde
+  doc.setFillColor(0, 128, 64);
+  doc.circle(x + 16, y + 6, 3, "F");
+  // "do Brasil" azul
+  doc.setTextColor(0, 82, 136);
+  doc.setFontSize(6);
   doc.setFont("helvetica", "normal");
-  doc.text("do Brasil", x + 14, y + 7.5);
+  doc.text("do Brasil", x + 3, y + 13);
   doc.setTextColor(0, 0, 0);
 }
 
@@ -38,14 +43,14 @@ function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | n
   let logoRendered = false;
   if (logoDataUrl) {
     try {
-      doc.addImage(logoDataUrl, "PNG", 14, 8, 28, 14);
+      doc.addImage(logoDataUrl, "JPEG", 15, 10, 25, 12);
       logoRendered = true;
     } catch (e) {
-      console.error("Logo addImage error:", e);
+      console.error("Erro logo:", e);
     }
   }
   if (!logoRendered) {
-    drawLogoFallback(doc, 14, 10);
+    drawLogoFallback(doc, 14, 8);
   }
 
   const rightLines: string[] = [
@@ -100,22 +105,10 @@ const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
 async function preloadLogo(): Promise<string | null> {
-  // Try the bundled asset first (most reliable)
-  const fromAsset = await loadImageAsBase64(lsLogoAsset);
-  if (fromAsset) return fromAsset;
-
-  // Try loading from Supabase Storage
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (supabaseUrl) {
-    const storageUrl = `${supabaseUrl}/storage/v1/object/public/assets/ls-logo.png`;
-    const result = await loadImageAsBase64(storageUrl);
-    if (result) return result;
+  // Try the inline JPEG base64 directly (most reliable)
+  if (LS_LOGO_BASE64) {
+    return LS_LOGO_BASE64;
   }
-
-  // Fallback: try the inline base64
-  const result = await loadImageAsBase64(LS_LOGO_BASE64);
-  if (result) return result;
-
   return null;
 }
 
