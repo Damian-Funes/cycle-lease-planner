@@ -169,9 +169,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                   <tr className="bg-muted/50 text-muted-foreground">
                     <th className="text-left p-2 font-medium">Código</th>
                     <th className="text-left p-2 font-medium hidden sm:table-cell">Descrição</th>
-                    <th className="text-right p-2 font-medium">Valor Unit.</th>
                     <th className="text-center p-2 font-medium w-20">Qtd</th>
-                    <th className="text-right p-2 font-medium">Subtotal</th>
                     <th className="p-2 w-10"></th>
                   </tr>
                 </thead>
@@ -180,7 +178,6 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                     <tr key={item.equipamento_id} className="border-t hover:bg-muted/30 transition-colors">
                       <td className="p-2 font-medium">{item.codigo}</td>
                       <td className="p-2 text-muted-foreground hidden sm:table-cell">{item.descricao}</td>
-                      <td className="p-2 text-right">{formatBRL(item.valor_custo)}</td>
                       <td className="p-2 text-center">
                         <input
                           type="number"
@@ -190,7 +187,6 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                           className="w-16 h-7 px-1 rounded border bg-background text-sm text-center focus:outline-none focus:ring-1 focus:ring-ring"
                         />
                       </td>
-                      <td className="p-2 text-right font-semibold">{formatBRL(item.subtotal)}</td>
                       <td className="p-2">
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemove(idx)}>
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -201,7 +197,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-secondary/50">
-                    <td colSpan={4} className="p-2 font-semibold text-right">Custo Total (Entrada):</td>
+                    <td colSpan={2} className="p-2 font-semibold text-right">Custo Total (Entrada):</td>
                     <td className="p-2 text-right font-bold text-primary text-base">{formatBRL(entrada)}</td>
                     <td></td>
                   </tr>

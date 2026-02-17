@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ItemProjeto, calcEntrada } from "@/lib/equipamentos";
-import { formatBRL } from "@/lib/smartcycle";
+import { ItemProjeto } from "@/lib/equipamentos";
 import { Package } from "lucide-react";
 
 interface Props {
@@ -9,7 +8,6 @@ interface Props {
 
 export default function EquipmentTable({ itens }: Props) {
   if (itens.length === 0) return null;
-  const entrada = calcEntrada(itens);
 
   return (
     <Card className="transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
@@ -26,7 +24,6 @@ export default function EquipmentTable({ itens }: Props) {
                 <th className="text-left p-2 font-medium">Código</th>
                 <th className="text-left p-2 font-medium">Descrição</th>
                 <th className="text-center p-2 font-medium">Qtd</th>
-                <th className="text-right p-2 font-medium">Subtotal</th>
               </tr>
             </thead>
             <tbody>
@@ -35,16 +32,9 @@ export default function EquipmentTable({ itens }: Props) {
                   <td className="p-2 font-medium">{item.codigo}</td>
                   <td className="p-2 text-muted-foreground">{item.descricao}</td>
                   <td className="p-2 text-center">{item.quantidade}</td>
-                  <td className="p-2 text-right font-semibold">{formatBRL(item.subtotal)}</td>
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="border-t bg-secondary/50">
-                <td colSpan={3} className="p-2 font-semibold text-right">Custo Total (Entrada):</td>
-                <td className="p-2 text-right font-bold text-primary">{formatBRL(entrada)}</td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </CardContent>
