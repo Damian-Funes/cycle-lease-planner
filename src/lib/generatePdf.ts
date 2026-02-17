@@ -64,7 +64,7 @@ function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | n
   if (params.clienteEmail) rightLines.push(`E-MAIL: ${params.clienteEmail}`);
 
   autoTable(doc, {
-    startY: 10,
+    startY: 24,
     theme: "grid",
     styles: { fontSize: 7, cellPadding: 2 },
     headStyles: { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold", fontSize: 8 },
