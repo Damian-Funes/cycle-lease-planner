@@ -17,14 +17,22 @@ function fmtNum(v: number) {
   return v.toLocaleString("pt-BR");
 }
 
-function addHeader(doc: jsPDF, params: SmartCycleParams) {
+function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | null) {
   const pageW = doc.internal.pageSize.getWidth();
 
-  // Add logo image
-  try {
-    doc.addImage(LS_LOGO, "PNG", 14, 8, 28, 14);
-  } catch (e) {
-    // Fallback: draw text if image fails
+  // Add logo image (pre-processed via canvas)
+  if (logoDataUrl) {
+    try {
+      doc.addImage(logoDataUrl, "PNG", 14, 8, 28, 14);
+    } catch (e) {
+      // Fallback: draw text if image fails
+      doc.setFontSize(14);
+      doc.setTextColor(5, 150, 105);
+      doc.setFont(undefined as any, "bold");
+      doc.text("LS", 14, 18);
+      doc.setFont(undefined as any, "normal");
+    }
+  } else {
     doc.setFontSize(14);
     doc.setTextColor(5, 150, 105);
     doc.setFont(undefined as any, "bold");
@@ -83,7 +91,36 @@ const baseStyles = { fontSize: 9, cellPadding: 4 };
 const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold" as const, fontSize: 10 };
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
-export function generateProposalPdf(params: SmartCycleParams, projection: YearProjection[]) {
+async function preloadLogo(): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/png"));
+          } else {
+            resolve(null);
+          }
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = LS_LOGO;
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+export async function generateProposalPdf(params: SmartCycleParams, projection: YearProjection[]) {
+  const logoDataUrl = await preloadLogo();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const volumeMin = calcVolumeMinimoAnual(params);
@@ -96,7 +133,7 @@ export function generateProposalPdf(params: SmartCycleParams, projection: YearPr
   const mensF2 = (volumeF2 * params.tarifaF2) / 12;
 
   // ===== PAGE 1: Equipamentos (SEM valores de custo) =====
-  addHeader(doc, params);
+  addHeader(doc, params, logoDataUrl);
   let y = getLastY(doc) + 15;
 
   doc.setFontSize(10);
@@ -133,7 +170,7 @@ export function generateProposalPdf(params: SmartCycleParams, projection: YearPr
 
   // ===== PAGE 2: Modelo SmartCycle =====
   doc.addPage();
-  addHeader(doc, params);
+  addHeader(doc, params, logoDataUrl);
   y = getLastY(doc) + 15;
 
   doc.setFontSize(13);
@@ -190,7 +227,7 @@ export function generateProposalPdf(params: SmartCycleParams, projection: YearPr
 
   // ===== PAGE 3: Projeção 10 anos =====
   doc.addPage();
-  addHeader(doc, params);
+  addHeader(doc, params, logoDataUrl);
   y = getLastY(doc) + 15;
 
   doc.setFontSize(13);
@@ -293,7 +330,7 @@ export function generateProposalPdf(params: SmartCycleParams, projection: YearPr
 
   // ===== PAGE 4: Resumo + Condições + Assinatura =====
   doc.addPage();
-  addHeader(doc, params);
+  addHeader(doc, params, logoDataUrl);
   y = getLastY(doc) + 15;
 
   doc.setFontSize(13);
