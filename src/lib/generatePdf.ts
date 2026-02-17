@@ -72,7 +72,7 @@ function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | n
     head: [["LS DO BRASIL", "FORMULÁRIO SMARTCYCLE"]],
     body: [
       [
-        "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nR. Almerinda Silveira Coelho - Nº 6773\nMaringá-PR CEP 87.035-497\nTE: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
+        "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTE: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
         rightLines.join("\n"),
       ],
     ],
@@ -85,7 +85,7 @@ function addFooter(doc: jsPDF) {
   doc.setFontSize(6);
   doc.setTextColor(100);
   doc.text(
-    "(+55) 44 3040.6098  |  administrativo@lsdobrasil.com.br  |  Rua Almerinda Silveira Coelho, 6773 - Novo Alvorada, 87035-497 - Maringá, PR",
+    "(+55) 44 3040.6098  |  administrativo@lsdobrasil.com.br  |  Av. Marcelo Messias Busiquia, 197 - Parque Industrial II, 87065-006 - Maringá, PR",
     pageW / 2,
     pageH - 8,
     { align: "center" }
@@ -288,7 +288,7 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   try {
     const canvas = document.createElement("canvas");
     canvas.width = 720;
-    canvas.height = 220;
+    canvas.height = 300;
     document.body.appendChild(canvas);
     const ctx = canvas.getContext("2d");
     if (ctx) {
@@ -297,12 +297,12 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
       const barWidth = 48;
       const gap = 20;
       const maxVal = Math.max(...data);
-      const chartHeight = 170;
+      const chartHeight = 210;
       const startX = 35;
-      const startY = 195;
+      const startY = 260;
 
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, 720, 220);
+      ctx.fillRect(0, 0, 720, 300);
 
       data.forEach((val, i) => {
         const barH = maxVal > 0 ? (val / maxVal) * chartHeight : 0;
@@ -333,8 +333,8 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
       ctx.fillText("Fase 2", 307, 13);
 
       const chartImage = canvas.toDataURL("image/png");
-      doc.addImage(chartImage, "PNG", 14, y, 170, 45);
-      y += 48;
+      doc.addImage(chartImage, "PNG", 14, y, 170, 60);
+      y += 63;
     }
     document.body.removeChild(canvas);
   } catch (e) {
@@ -456,18 +456,7 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   doc.text(`VALIDADE DA OFERTA: ${params.validadeDias} dias.`, 14, y); y += 5;
   doc.text(`LUGAR DE ENTREGA: ${params.localEntrega || params.clienteEndereco || "A definir"}`, 14, y); y += 14;
 
-  // Signature
-  const sigX = 14;
-  doc.setDrawColor(150);
-  doc.line(sigX, y, sigX + 70, y);
-  y += 5;
-  doc.setFontSize(10);
-  doc.setTextColor(30);
-  doc.text("Damian Funes", sigX, y); y += 5;
-  doc.setFontSize(9);
-  doc.text("Dto. Comercial", sigX, y); y += 5;
-  doc.text("Cel: +55 (44) 99818-7930", sigX, y); y += 5;
-  doc.text("damian.funes@ls-arg.com", sigX, y);
+  // Signature removed per client request
 
   addFooter(doc);
 
