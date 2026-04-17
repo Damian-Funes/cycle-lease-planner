@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
-import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X } from "lucide-react";
+import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -15,7 +15,14 @@ export default function Catalogo() {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({ codigo: "", descricao: "", valor_custo: "", valor_venda: "" });
   const [saving, setSaving] = useState(false);
+  const [busca, setBusca] = useState("");
   const { toast } = useToast();
+
+  const equipamentosFiltrados = equipamentos.filter((eq) => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return true;
+    return eq.codigo.toLowerCase().includes(q) || eq.descricao.toLowerCase().includes(q);
+  });
 
   useEffect(() => {
     if (sessionStorage.getItem("catalogo_auth") !== "true") {
@@ -113,6 +120,16 @@ export default function Catalogo() {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-6 space-y-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por código ou descrição..."
+            className="w-full h-10 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
         {/* Edit/New form */}
         {editing && (
           <Card className="border-primary">
@@ -174,8 +191,8 @@ export default function Catalogo() {
         {/* List */}
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
-        ) : equipamentos.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">Nenhum equipamento cadastrado.</p>
+        ) : equipamentosFiltrados.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12">{busca ? "Nenhum equipamento encontrado." : "Nenhum equipamento cadastrado."}</p>
         ) : (
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
@@ -190,7 +207,7 @@ export default function Catalogo() {
                 </tr>
               </thead>
               <tbody>
-                {equipamentos.map((eq) => (
+                {equipamentosFiltrados.map((eq) => (
                   <tr key={eq.id} className={`border-t transition-colors ${eq.ativo ? "hover:bg-muted/30" : "opacity-50"}`}>
                     <td className="p-3 font-medium">{eq.codigo}</td>
                     <td className="p-3 text-muted-foreground">{eq.descricao}</td>
