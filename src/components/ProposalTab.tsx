@@ -86,7 +86,7 @@ export default function ProposalTab({ params, projection, onUpdate, onSave, save
             <Separator orientation="vertical" className="h-5 bg-primary-foreground/30" />
             <span className="font-semibold text-sm">SmartCycle</span>
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Proposta Comercial SmartCycle LS</h2>
+          <h2 className="text-2xl font-bold text-foreground">Aluguel Comercial SmartCycle LS</h2>
           {params.clientName && <p className="text-lg text-muted-foreground">Cliente: <strong className="text-foreground">{params.clientName}</strong></p>}
           {params.numeroProposta && <p className="text-sm text-muted-foreground">Nº {params.numeroProposta}</p>}
           <p className="text-sm text-muted-foreground">Ciclo operacional de 10 anos</p>
@@ -104,9 +104,9 @@ export default function ProposalTab({ params, projection, onUpdate, onSave, save
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Salvar proposta</DialogTitle>
+            <DialogTitle>Salvar aluguel</DialogTitle>
             <DialogDescription>
-              A proposta precisa ser salva antes de exportar o PDF para gerar o número automático. Deseja salvar agora?
+              O aluguel precisa ser salvo antes de exportar o PDF para gerar o número automático. Deseja salvar agora?
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 justify-end">

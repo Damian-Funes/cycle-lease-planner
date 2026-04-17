@@ -85,7 +85,7 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
     if (error) {
       toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Proposta excluída" });
+      toast({ title: "Aluguel excluído" });
       setPropostas((prev) => prev.filter((p) => p.id !== id));
     }
   }
@@ -121,12 +121,12 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Minhas Propostas</DialogTitle>
+          <DialogTitle>Meus Aluguéis</DialogTitle>
         </DialogHeader>
         {loading ? (
           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
         ) : propostas.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">Nenhuma proposta salva ainda.</p>
+          <p className="text-center text-muted-foreground py-8">Nenhum aluguel salvo ainda.</p>
         ) : (
           <div className="space-y-2">
             {propostas.map((p) => (
@@ -148,7 +148,7 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
                   </AlertDialogTrigger>
                   <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Excluir proposta?</AlertDialogTitle>
+                      <AlertDialogTitle>Excluir aluguel?</AlertDialogTitle>
                       <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
