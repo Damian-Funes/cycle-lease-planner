@@ -167,10 +167,13 @@ const Index = () => {
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Button size="sm" variant="outline" className="gap-1" asChild>
-              <a href="https://seed-solution-advisor.lovable.app" target="_blank" rel="noopener noreferrer">
-                <Package className="w-4 h-4" /> Layout
-              </a>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1"
+              onClick={() => window.open("https://seed-solution-advisor.lovable.app", "_blank", "noopener,noreferrer")}
+            >
+              <Package className="w-4 h-4" /> Layout
             </Button>
             <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
               if (sessionStorage.getItem("catalogo_auth") === "true") {
