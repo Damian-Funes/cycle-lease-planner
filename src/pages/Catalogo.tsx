@@ -120,6 +120,16 @@ export default function Catalogo() {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-6 space-y-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por código ou descrição..."
+            className="w-full h-10 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
         {/* Edit/New form */}
         {editing && (
           <Card className="border-primary">
