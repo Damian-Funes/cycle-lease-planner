@@ -33,11 +33,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [quantidade, setQuantidade] = useState(1);
-  const [vpFocused, setVpFocused] = useState(false);
-  const [vpRaw, setVpRaw] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
-  // true até o usuário editar manualmente o "Valor Total do Projeto"
-  const [autoFillEnabled, setAutoFillEnabled] = useState(true);
 
   useEffect(() => {
     supabase
@@ -54,17 +50,20 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const sugerido = Math.round(calcValorVendaSugerido(itens));
   const projetoMenorQueCusto = valorProjeto > 0 && valorProjeto < entrada;
 
-  function autoFillProjeto(newItens: ItemProjeto[]) {
-    if (!autoFillEnabled) return;
-    const s = Math.round(calcValorVendaSugerido(newItens));
-    if (s > 0) onValorProjetoChange(s);
+  // Sempre que os itens mudarem, sincroniza o valorProjeto com a soma dos valores de venda
+  useEffect(() => {
+    if (sugerido !== valorProjeto) {
+      onValorProjetoChange(sugerido);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sugerido]);
+
+  function autoFillProjeto(_newItens: ItemProjeto[]) {
+    // No-op: a sincronização é feita pelo useEffect acima
   }
 
   function aplicarSugerido() {
-    if (sugerido > 0) {
-      onValorProjetoChange(sugerido);
-      setAutoFillEnabled(true);
-    }
+    onValorProjetoChange(sugerido);
   }
 
   function handleAdd() {
