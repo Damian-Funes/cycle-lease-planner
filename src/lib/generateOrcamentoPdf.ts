@@ -1,6 +1,15 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { OrcamentoParams, calcSubtotal, calcDescontoAplicado, calcTotal } from "./orcamento";
+import {
+  toTitleCase,
+  toSentenceCase,
+  toUpperClean,
+  normalizeEmail,
+  normalizePhone,
+  normalizeCnpj,
+  normalizePrazo,
+} from "./textFormat";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
@@ -70,14 +79,14 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
   }
 
   const rightLines: string[] = [
-    `NÚMERO: ${params.numeroOrcamento || "—"}`,
+    `NUMERO: ${params.numeroOrcamento || "—"}`,
     `DATA: ${new Date().toLocaleDateString("pt-BR")}`,
-    `CLIENTE: ${params.clientName}`,
+    `CLIENTE: ${toTitleCase(params.clientName)}`,
   ];
-  if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${params.clienteEndereco}`);
-  if (params.clienteTelefone) rightLines.push(`TEL: ${params.clienteTelefone}`);
-  if (params.clienteCnpj) rightLines.push(`CNPJ: ${params.clienteCnpj}`);
-  if (params.clienteEmail) rightLines.push(`E-MAIL: ${params.clienteEmail}`);
+  if (params.clienteEndereco) rightLines.push(`ENDERECO: ${toTitleCase(params.clienteEndereco)}`);
+  if (params.clienteTelefone) rightLines.push(`TEL: ${normalizePhone(params.clienteTelefone)}`);
+  if (params.clienteCnpj) rightLines.push(`CNPJ: ${normalizeCnpj(params.clienteCnpj)}`);
+  if (params.clienteEmail) rightLines.push(`E-MAIL: ${normalizeEmail(params.clienteEmail)}`);
 
   autoTable(doc, {
     startY: 35,
@@ -88,7 +97,7 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
       0: { cellWidth: pageW / 2 - 14 },
       1: { cellWidth: pageW / 2 - 14 },
     },
-    head: [["LS DO BRASIL", "ORÇAMENTO COMERCIAL"]],
+    head: [["LS DO BRASIL", "ORCAMENTO COMERCIAL"]],
     body: [
       [
         "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTE: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
@@ -133,13 +142,14 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   doc.setFontSize(10);
   doc.setTextColor(50);
-  const introText = `At.: Sr(a).: ${params.contatoNome || params.clientName}\nApresentamos abaixo o orçamento para os itens solicitados:`;
+  const contato = toTitleCase(params.contatoNome || params.clientName);
+  const introText = `At.: Sr(a).: ${contato}\nApresentamos abaixo o orcamento para os itens solicitados:`;
   doc.text(introText, 14, y);
   y += 14;
 
   // Tabela de itens
   const itemRows = params.itens.map((it, i) => {
-    const desc = it.descricao.replace(/\s*\[.*?\]\s*/g, "").trim();
+    const desc = toUpperClean(it.descricao.replace(/\s*\[.*?\]\s*/g, ""));
     const sub = it.valor_unitario * it.quantidade;
     return [
       String(i + 1),
@@ -163,7 +173,7 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
       3: { cellWidth: 32, halign: "right" },
       4: { cellWidth: 34, halign: "right" },
     },
-    head: [["ÍTEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
+    head: [["ITEM", "DESCRICAO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
     body: itemRows,
   });
 
@@ -191,7 +201,7 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     },
     body: totalsBody,
     foot: [["TOTAL", fmtBRL(total)]],
-    footStyles: { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold", fontSize: 11, halign: "right" },
+    footStyles: { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold", fontSize: 11, halign: "right", cellPadding: 4 },
   });
 
   y = getLastY(doc) + 12;
@@ -199,17 +209,22 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   // Condições
   doc.setFontSize(11);
   doc.setTextColor(...GREEN);
-  doc.text("CONDIÇÕES COMERCIAIS", 14, y);
+  doc.text("CONDICOES COMERCIAIS", 14, y);
   y += 7;
   doc.setFontSize(9);
   doc.setTextColor(50);
 
   const lines: string[] = [];
-  if (params.condicoesPagamento) lines.push(`Condições de pagamento: ${params.condicoesPagamento}`);
-  if (params.prazoEntrega) lines.push(`Prazo de entrega: ${params.prazoEntrega}`);
+  if (params.condicoesPagamento) {
+    lines.push(`Condicoes de pagamento: ${toSentenceCase(params.condicoesPagamento)}`);
+  }
+  if (params.prazoEntrega) {
+    lines.push(`Prazo de entrega: ${normalizePrazo(params.prazoEntrega)}`);
+  }
   lines.push(`Validade da oferta: ${params.validadeDias} dias`);
-  if (params.localEntrega || params.clienteEndereco) {
-    lines.push(`Local de entrega: ${params.localEntrega || params.clienteEndereco}`);
+  const local = params.localEntrega || params.clienteEndereco;
+  if (local) {
+    lines.push(`Local de entrega: ${toTitleCase(local)}`);
   }
   lines.push("Moeda: Real (R$)");
 
@@ -223,17 +238,18 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     y += 4;
     doc.setFontSize(11);
     doc.setTextColor(...GREEN);
-    doc.text("OBSERVAÇÕES", 14, y);
+    doc.text("OBSERVACOES", 14, y);
     y += 7;
     doc.setFontSize(9);
     doc.setTextColor(50);
-    const split = doc.splitTextToSize(params.observacoes, pageW - 28);
+    const split = doc.splitTextToSize(toSentenceCase(params.observacoes), pageW - 28);
     doc.text(split, 14, y);
   }
 
   addFooter(doc);
 
-  const fileName = `${params.numeroOrcamento || "orcamento"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
+  const cleanClient = toTitleCase(params.clientName).replace(/[^a-zA-Z0-9]+/g, "_");
+  const fileName = `${params.numeroOrcamento || "orcamento"}-${cleanClient || "cliente"}.pdf`;
 
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
