@@ -36,6 +36,8 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const [vpFocused, setVpFocused] = useState(false);
   const [vpRaw, setVpRaw] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
+  // true até o usuário editar manualmente o "Valor Total do Projeto"
+  const [autoFillEnabled, setAutoFillEnabled] = useState(true);
 
   useEffect(() => {
     supabase
@@ -49,6 +51,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   }, []);
 
   const entrada = calcEntrada(itens);
+  const sugerido = Math.round(calcValorVendaSugerido(itens));
   const projetoMenorQueCusto = valorProjeto > 0 && valorProjeto < entrada;
 
   function autoFillProjeto(newItens: ItemProjeto[]) {
