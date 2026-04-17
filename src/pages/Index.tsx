@@ -116,24 +116,24 @@ const Index = () => {
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Proposta salva!" });
+      toast({ title: "Aluguel salvo!" });
     }
   }, [params, savedId, projection, toast]);
 
   const handleLoad = (loadedParams: SmartCycleParams, id: string) => {
     setParams(loadedParams);
     setSavedId(id);
-    toast({ title: "Proposta carregada" });
+    toast({ title: "Aluguel carregado" });
   };
 
   const handleNova = () => {
     if (params.clientName || savedId) {
-      const ok = window.confirm("Iniciar uma nova proposta? Alterações não salvas serão perdidas.");
+      const ok = window.confirm("Iniciar um novo aluguel? Alterações não salvas serão perdidas.");
       if (!ok) return;
     }
     setParams(DEFAULT_PARAMS);
     setSavedId(null);
-    toast({ title: "Nova proposta iniciada" });
+    toast({ title: "Novo aluguel iniciado" });
   };
 
   return (
@@ -165,7 +165,7 @@ const Index = () => {
               Salvar
             </Button>
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
-              <FolderOpen className="w-4 h-4" /> Propostas
+              <FolderOpen className="w-4 h-4" /> Aluguéis
             </Button>
             <Button size="sm" variant="outline" className="gap-1" asChild>
               <Link to="/orcamento">
@@ -205,7 +205,7 @@ const Index = () => {
               <BarChart3 className="w-4 h-4" /> Projeção 10 Anos
             </TabsTrigger>
             <TabsTrigger value="proposal" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <FileText className="w-4 h-4" /> Resumo Proposta
+              <FileText className="w-4 h-4" /> Resumo Aluguel
             </TabsTrigger>
           </TabsList>
 
