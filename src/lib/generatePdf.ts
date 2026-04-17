@@ -408,7 +408,7 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
     head: [["ANO", "FASE", "PREÇO/SACO", "VOL. MÍNIMO", "MENSALIDADE", "RECEITA ANUAL"]],
     body: projRows,
     foot: [
-      ["", "", "", "", "IMPLANTAÇÃO", fmtBRL(params.valorProjeto)],
+      ["", "", "", "", "ENTRADA", fmtBRL(params.entrada)],
       ["", "", "", "", "FASE 1", fmtBRL(subtotalF1)],
       ["", "", "", "", "FASE 2", fmtBRL(subtotalF2)],
       ["", "", "", "", "TOTAL 10 ANOS", fmtBRL(totalGeralCliente)],
