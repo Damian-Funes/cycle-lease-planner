@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
-import { Equipamento, ItemProjeto, calcEntrada } from "@/lib/equipamentos";
+import { Equipamento, ItemProjeto, calcEntrada, calcValorVendaSugerido } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
 import { Wrench, Plus, Trash2, AlertTriangle, ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,11 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const entrada = calcEntrada(itens);
   const projetoMenorQueCusto = valorProjeto > 0 && valorProjeto < entrada;
 
+  function autoFillProjeto(newItens: ItemProjeto[]) {
+    const sugerido = Math.round(calcValorVendaSugerido(newItens));
+    if (sugerido > 0) onValorProjetoChange(sugerido);
+  }
+
   function handleAdd() {
     if (!selectedId || quantidade < 1) return;
     const eq = equipamentos.find((e) => e.id === selectedId);
@@ -72,27 +77,31 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
           codigo: eq.codigo,
           descricao: eq.descricao,
           valor_custo: eq.valor_custo,
+          valor_venda: eq.valor_venda ?? null,
           quantidade,
           subtotal: quantidade * eq.valor_custo,
         },
       ];
     }
     onItensChange(newItens);
+    autoFillProjeto(newItens);
     setSelectedId("");
     setQuantidade(1);
   }
 
   function handleRemove(idx: number) {
-    onItensChange(itens.filter((_, i) => i !== idx));
+    const newItens = itens.filter((_, i) => i !== idx);
+    onItensChange(newItens);
+    autoFillProjeto(newItens);
   }
 
   function handleQtdChange(idx: number, newQtd: number) {
     if (newQtd < 1) return;
-    onItensChange(
-      itens.map((item, i) =>
-        i === idx ? { ...item, quantidade: newQtd, subtotal: newQtd * item.valor_custo } : item
-      )
+    const newItens = itens.map((item, i) =>
+      i === idx ? { ...item, quantidade: newQtd, subtotal: newQtd * item.valor_custo } : item
     );
+    onItensChange(newItens);
+    autoFillProjeto(newItens);
   }
 
   return (
