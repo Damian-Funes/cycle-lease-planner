@@ -26,7 +26,7 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const CATALOGO_SENHA = "0LSdobrasil2026@";
+  const CATALOGO_SENHA = "36021214Df@";
 
   const projection = useMemo(() => calcProjection(params), [params]);
 
