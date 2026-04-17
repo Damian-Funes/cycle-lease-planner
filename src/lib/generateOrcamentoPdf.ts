@@ -201,7 +201,7 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     },
     body: totalsBody,
     foot: [["TOTAL", fmtBRL(total)]],
-    footStyles: { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold", fontSize: 11, halign: "right" },
+    footStyles: { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold", fontSize: 11, halign: "right", cellPadding: 4 },
   });
 
   y = getLastY(doc) + 12;
@@ -209,17 +209,22 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   // Condições
   doc.setFontSize(11);
   doc.setTextColor(...GREEN);
-  doc.text("CONDIÇÕES COMERCIAIS", 14, y);
+  doc.text("CONDICOES COMERCIAIS", 14, y);
   y += 7;
   doc.setFontSize(9);
   doc.setTextColor(50);
 
   const lines: string[] = [];
-  if (params.condicoesPagamento) lines.push(`Condições de pagamento: ${params.condicoesPagamento}`);
-  if (params.prazoEntrega) lines.push(`Prazo de entrega: ${params.prazoEntrega}`);
+  if (params.condicoesPagamento) {
+    lines.push(`Condicoes de pagamento: ${toSentenceCase(params.condicoesPagamento)}`);
+  }
+  if (params.prazoEntrega) {
+    lines.push(`Prazo de entrega: ${normalizePrazo(params.prazoEntrega)}`);
+  }
   lines.push(`Validade da oferta: ${params.validadeDias} dias`);
-  if (params.localEntrega || params.clienteEndereco) {
-    lines.push(`Local de entrega: ${params.localEntrega || params.clienteEndereco}`);
+  const local = params.localEntrega || params.clienteEndereco;
+  if (local) {
+    lines.push(`Local de entrega: ${toTitleCase(local)}`);
   }
   lines.push("Moeda: Real (R$)");
 
@@ -233,11 +238,11 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     y += 4;
     doc.setFontSize(11);
     doc.setTextColor(...GREEN);
-    doc.text("OBSERVAÇÕES", 14, y);
+    doc.text("OBSERVACOES", 14, y);
     y += 7;
     doc.setFontSize(9);
     doc.setTextColor(50);
-    const split = doc.splitTextToSize(params.observacoes, pageW - 28);
+    const split = doc.splitTextToSize(toSentenceCase(params.observacoes), pageW - 28);
     doc.text(split, 14, y);
   }
 
