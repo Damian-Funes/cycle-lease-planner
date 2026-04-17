@@ -7,7 +7,7 @@ import ParametersTab from "@/components/ParametersTab";
 import ProjectionTab from "@/components/ProjectionTab";
 import ProposalTab from "@/components/ProposalTab";
 import PropostasModal from "@/components/PropostasModal";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, FilePlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -126,6 +126,16 @@ const Index = () => {
     toast({ title: "Proposta carregada" });
   };
 
+  const handleNova = () => {
+    if (params.clientName || savedId) {
+      const ok = window.confirm("Iniciar uma nova proposta? Alterações não salvas serão perdidas.");
+      if (!ok) return;
+    }
+    setParams(DEFAULT_PARAMS);
+    setSavedId(null);
+    toast({ title: "Nova proposta iniciada" });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
@@ -147,6 +157,9 @@ const Index = () => {
               onChange={(e) => update("clientName", e.target.value)}
               className="h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <Button size="sm" variant="outline" onClick={handleNova} className="gap-1">
+              <FilePlus className="w-4 h-4" /> Nova
+            </Button>
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salvar
