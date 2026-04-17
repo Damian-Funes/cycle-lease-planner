@@ -34,7 +34,7 @@ export interface YearProjection {
 
 export const DEFAULT_PARAMS: SmartCycleParams = {
   clientName: "",
-  valorProjeto: 5500000,
+  valorProjeto: 0,
   entrada: 0,
   pesoPorSaco: 40,
   volumeMinF2Pct: 50,
