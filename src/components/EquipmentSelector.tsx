@@ -15,19 +15,6 @@ interface Props {
   onValorProjetoChange: (v: number) => void;
 }
 
-function formatLiveInput(value: string): string {
-  // Remove tudo que não é dígito
-  const digits = value.replace(/\D/g, "");
-  if (digits === "") return "";
-  // Converte para número e formata com separadores pt-BR (sem decimais)
-  const num = parseInt(digits, 10);
-  return num.toLocaleString("pt-BR");
-}
-
-function parseLiveInput(text: string): number {
-  const digits = text.replace(/\D/g, "");
-  return parseInt(digits, 10) || 0;
-}
 
 export default function EquipmentSelector({ itens, onItensChange, valorProjeto, onValorProjetoChange }: Props) {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
@@ -221,7 +208,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-secondary/50">
-                    <td colSpan={2} className="p-2 font-semibold text-right">Custo Total (Entrada):</td>
+                    <td colSpan={2} className="p-2 font-semibold text-right">Entrada:</td>
                     <td className="p-2 text-right font-bold text-primary text-base">{formatBRL(entrada)}</td>
                     <td></td>
                   </tr>
