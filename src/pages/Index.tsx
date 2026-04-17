@@ -7,10 +7,10 @@ import ParametersTab from "@/components/ParametersTab";
 import ProjectionTab from "@/components/ProjectionTab";
 import ProposalTab from "@/components/ProposalTab";
 import PropostasModal from "@/components/PropostasModal";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, FilePlus } from "lucide-react";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, FilePlus, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,6 +166,11 @@ const Index = () => {
             </Button>
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1" asChild>
+              <Link to="/orcamento">
+                <Receipt className="w-4 h-4" /> Orçamento
+              </Link>
             </Button>
             <a
               href="https://seed-solution-advisor.lovable.app"
