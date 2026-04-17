@@ -10,7 +10,7 @@ import PropostasModal from "@/components/PropostasModal";
 import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, FilePlus, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
