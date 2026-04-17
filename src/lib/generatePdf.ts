@@ -510,5 +510,21 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   addFooter(doc);
 
   const fileName = `${params.numeroProposta || "proposta"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
-  doc.save(fileName);
+  console.log("[PDF] Salvando arquivo:", fileName);
+  try {
+    doc.save(fileName);
+    console.log("[PDF] doc.save() executado com sucesso");
+  } catch (e) {
+    console.error("[PDF] Erro em doc.save(), tentando fallback via blob:", e);
+    // Fallback: cria blob e força o download manualmente
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
