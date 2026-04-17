@@ -44,6 +44,81 @@ export type Database = {
         }
         Relationships: []
       }
+      orcamentos: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          condicoes_pagamento: string | null
+          contato_nome: string | null
+          created_at: string
+          desconto_tipo: string
+          desconto_valor: number
+          frete: number
+          id: string
+          itens: Json
+          local_entrega: string | null
+          nome_cliente: string
+          numero_orcamento: string | null
+          observacoes: string | null
+          prazo_entrega: string | null
+          status: string | null
+          subtotal: number
+          total: number
+          updated_at: string
+          validade_dias: number | null
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          desconto_tipo?: string
+          desconto_valor?: number
+          frete?: number
+          id?: string
+          itens?: Json
+          local_entrega?: string | null
+          nome_cliente: string
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          status?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          validade_dias?: number | null
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          desconto_tipo?: string
+          desconto_valor?: number
+          frete?: number
+          id?: string
+          itens?: Json
+          local_entrega?: string | null
+          nome_cliente?: string
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          status?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          validade_dias?: number | null
+        }
+        Relationships: []
+      }
       propostas: {
         Row: {
           cliente_cnpj: string | null
