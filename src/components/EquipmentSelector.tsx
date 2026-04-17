@@ -247,15 +247,37 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                 inputMode="numeric"
                 value={vpFocused ? vpRaw : valorProjeto > 0 ? valorProjeto.toLocaleString("pt-BR") : ""}
                 onFocus={() => { setVpFocused(true); setVpRaw(valorProjeto > 0 ? valorProjeto.toLocaleString("pt-BR") : ""); }}
-                onBlur={() => { setVpFocused(false); onValorProjetoChange(parseLiveInput(vpRaw)); }}
-                onChange={(e) => { const formatted = formatLiveInput(e.target.value); setVpRaw(formatted); }}
+                onBlur={() => {
+                  setVpFocused(false);
+                  const novo = parseLiveInput(vpRaw);
+                  onValorProjetoChange(novo);
+                  // Se o usuário digitou algo diferente do sugerido, desliga o auto-fill
+                  if (novo !== sugerido) setAutoFillEnabled(false);
+                }}
+                onChange={(e) => {
+                  const formatted = formatLiveInput(e.target.value);
+                  setVpRaw(formatted);
+                  setAutoFillEnabled(false);
+                }}
                 className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-right"
               />
+              {sugerido > 0 && valorProjeto !== sugerido && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={aplicarSugerido}
+                  className="h-9 whitespace-nowrap text-xs"
+                  title={`Usar valor sugerido: ${formatBRL(sugerido)}`}
+                >
+                  Usar sugerido
+                </Button>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Preço final do projeto para o cliente
-              {calcValorVendaSugerido(itens) > 0 && (
-                <> · Sugerido (planilha de venda): <strong>{formatBRL(calcValorVendaSugerido(itens))}</strong></>
+              {sugerido > 0 && (
+                <> · Sugerido (planilha de venda): <strong>{formatBRL(sugerido)}</strong></>
               )}
             </p>
             {projetoMenorQueCusto && (
