@@ -512,36 +512,46 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   const fileName = `${params.numeroProposta || "proposta"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
   console.log("[PDF] Salvando arquivo:", fileName);
 
-  // Estratégia: usar blob + abrir em nova aba (funciona dentro de iframes do preview).
-  // Tenta forçar download via <a download>; se o navegador/iframe bloquear,
-  // ainda abre o PDF em nova aba como fallback.
-  try {
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
+  // Detecta Safari (que tem problemas com blob: em iframes — WebKitBlobResource erro 1)
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // Detecta se está rodando dentro de um iframe (preview da Lovable)
+  const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
 
-    // 1) Tenta download direto
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.rel = "noopener";
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // 2) Fallback: abre em nova aba caso o download tenha sido bloqueado
-    setTimeout(() => {
-      try {
-        window.open(url, "_blank", "noopener,noreferrer");
-      } catch (err) {
-        console.warn("[PDF] window.open bloqueado:", err);
+  if (isSafari || inIframe) {
+    // Safari/iframe: usa data URI, que funciona de forma confiável
+    try {
+      const dataUri = doc.output("datauristring", { filename: fileName });
+      const win = window.open();
+      if (win) {
+        win.document.write(
+          `<html><head><title>${fileName}</title></head>` +
+          `<body style="margin:0">` +
+          `<iframe src="${dataUri}" style="border:0;width:100vw;height:100vh"></iframe>` +
+          `</body></html>`
+        );
+        win.document.close();
+        console.log("[PDF] Aberto em nova aba via data URI");
+      } else {
+        // Pop-up bloqueado: navega a aba atual (top) para o PDF
+        if (window.top) {
+          window.top.location.href = dataUri;
+        } else {
+          window.location.href = dataUri;
+        }
       }
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    }, 300);
-
-    console.log("[PDF] Download disparado via blob");
-  } catch (e) {
-    console.error("[PDF] Erro no download via blob, tentando doc.save():", e);
-    doc.save(fileName);
+    } catch (e) {
+      console.error("[PDF] Erro no data URI, tentando doc.save():", e);
+      doc.save(fileName);
+    }
+  } else {
+    // Outros navegadores: download direto via doc.save()
+    try {
+      doc.save(fileName);
+      console.log("[PDF] doc.save() executado");
+    } catch (e) {
+      console.error("[PDF] doc.save() falhou:", e);
+      const dataUri = doc.output("datauristring", { filename: fileName });
+      window.open(dataUri, "_blank");
+    }
   }
 }
