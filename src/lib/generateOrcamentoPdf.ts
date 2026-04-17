@@ -97,7 +97,7 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
       0: { cellWidth: pageW / 2 - 14 },
       1: { cellWidth: pageW / 2 - 14 },
     },
-    head: [["LS DO BRASIL", "ORÇAMENTO COMERCIAL"]],
+    head: [["LS DO BRASIL", "ORCAMENTO COMERCIAL"]],
     body: [
       [
         "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTE: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
@@ -142,13 +142,14 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   doc.setFontSize(10);
   doc.setTextColor(50);
-  const introText = `At.: Sr(a).: ${params.contatoNome || params.clientName}\nApresentamos abaixo o orçamento para os itens solicitados:`;
+  const contato = toTitleCase(params.contatoNome || params.clientName);
+  const introText = `At.: Sr(a).: ${contato}\nApresentamos abaixo o orcamento para os itens solicitados:`;
   doc.text(introText, 14, y);
   y += 14;
 
   // Tabela de itens
   const itemRows = params.itens.map((it, i) => {
-    const desc = it.descricao.replace(/\s*\[.*?\]\s*/g, "").trim();
+    const desc = toUpperClean(it.descricao.replace(/\s*\[.*?\]\s*/g, ""));
     const sub = it.valor_unitario * it.quantidade;
     return [
       String(i + 1),
@@ -172,7 +173,7 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
       3: { cellWidth: 32, halign: "right" },
       4: { cellWidth: 34, halign: "right" },
     },
-    head: [["ÍTEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
+    head: [["ITEM", "DESCRICAO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
     body: itemRows,
   });
 
