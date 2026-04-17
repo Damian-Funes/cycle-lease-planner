@@ -55,8 +55,16 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const projetoMenorQueCusto = valorProjeto > 0 && valorProjeto < entrada;
 
   function autoFillProjeto(newItens: ItemProjeto[]) {
-    const sugerido = Math.round(calcValorVendaSugerido(newItens));
-    if (sugerido > 0) onValorProjetoChange(sugerido);
+    if (!autoFillEnabled) return;
+    const s = Math.round(calcValorVendaSugerido(newItens));
+    if (s > 0) onValorProjetoChange(s);
+  }
+
+  function aplicarSugerido() {
+    if (sugerido > 0) {
+      onValorProjetoChange(sugerido);
+      setAutoFillEnabled(true);
+    }
   }
 
   function handleAdd() {
