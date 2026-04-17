@@ -1,6 +1,15 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { OrcamentoParams, calcSubtotal, calcDescontoAplicado, calcTotal } from "./orcamento";
+import {
+  toTitleCase,
+  toSentenceCase,
+  toUpperClean,
+  normalizeEmail,
+  normalizePhone,
+  normalizeCnpj,
+  normalizePrazo,
+} from "./textFormat";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
