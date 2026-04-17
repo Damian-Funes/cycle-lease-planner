@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_PARAMS, SmartCycleParams, calcProjection, calcVolumeMinimoAnual, calcDivida } from "@/lib/smartcycle";
@@ -6,11 +6,12 @@ import { ItemProjeto, calcEntrada } from "@/lib/equipamentos";
 import ParametersTab from "@/components/ParametersTab";
 import ProjectionTab from "@/components/ProjectionTab";
 import ProposalTab from "@/components/ProposalTab";
-import PropostasModal from "@/components/PropostasModal";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, FilePlus, Receipt } from "lucide-react";
+import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
+import NovaPropostaButton from "@/components/NovaPropostaButton";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ const Index = () => {
   const [senhaError, setSenhaError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const CATALOGO_SENHA = "36021214Df@";
 
