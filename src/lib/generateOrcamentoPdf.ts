@@ -79,14 +79,14 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
   }
 
   const rightLines: string[] = [
-    `NÚMERO: ${params.numeroOrcamento || "—"}`,
+    `NUMERO: ${params.numeroOrcamento || "—"}`,
     `DATA: ${new Date().toLocaleDateString("pt-BR")}`,
-    `CLIENTE: ${params.clientName}`,
+    `CLIENTE: ${toTitleCase(params.clientName)}`,
   ];
-  if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${params.clienteEndereco}`);
-  if (params.clienteTelefone) rightLines.push(`TEL: ${params.clienteTelefone}`);
-  if (params.clienteCnpj) rightLines.push(`CNPJ: ${params.clienteCnpj}`);
-  if (params.clienteEmail) rightLines.push(`E-MAIL: ${params.clienteEmail}`);
+  if (params.clienteEndereco) rightLines.push(`ENDERECO: ${toTitleCase(params.clienteEndereco)}`);
+  if (params.clienteTelefone) rightLines.push(`TEL: ${normalizePhone(params.clienteTelefone)}`);
+  if (params.clienteCnpj) rightLines.push(`CNPJ: ${normalizeCnpj(params.clienteCnpj)}`);
+  if (params.clienteEmail) rightLines.push(`E-MAIL: ${normalizeEmail(params.clienteEmail)}`);
 
   autoTable(doc, {
     startY: 35,
