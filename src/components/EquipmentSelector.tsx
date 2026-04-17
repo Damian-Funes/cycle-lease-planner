@@ -241,7 +241,12 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                 className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-right"
               />
             </div>
-            <p className="text-xs text-muted-foreground">Preço final do projeto para o cliente</p>
+            <p className="text-xs text-muted-foreground">
+              Preço final do projeto para o cliente
+              {calcValorVendaSugerido(itens) > 0 && (
+                <> · Sugerido (planilha de venda): <strong>{formatBRL(calcValorVendaSugerido(itens))}</strong></>
+              )}
+            </p>
             {projetoMenorQueCusto && (
               <div className="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
                 <AlertTriangle className="w-3.5 h-3.5" />
