@@ -1,29 +1,59 @@
 
 
-# Correcao do Logo no PDF
+# Comparar planilha com base do Supabase e atualizar valores
 
-## Problema raiz
+## Contexto
 
-O logo esta sendo adicionado corretamente via `doc.addImage()` na posicao y=10. Porem, a tabela `autoTable` que mostra os dados da empresa e do cliente tambem comeca em `startY: 10`, e o cabecalho da tabela (com fundo verde) pinta por cima do logo, cobrindo-o completamente.
+- Base atual no Supabase: **115 equipamentos ativos** (ex: códigos 0101, 0102, 0313, 04020001…)
+- Planilha enviada: `Cópia_de_equipamentos_rows_rev04.xlsx` (rev04 — sugere quarta revisão de preços)
+- O parser de documento não extraiu o conteúdo do .xlsx (só veio o cabeçalho). Preciso ler o arquivo com pandas no modo default para acessar todas as linhas.
+- **Bônus**: corrigir o erro de build do `tsconfig.json` (remover `baseUrl`) no mesmo passo.
 
-## Solucao
+## Plano de execução (em modo default)
 
-Mover o logo para **acima** da tabela e ajustar o `startY` da tabela para comecar **abaixo** do logo.
+### 1) Corrigir build
 
-### Alteracoes em `src/lib/generatePdf.ts`
+Remover `"baseUrl": "."` do `tsconfig.json`. O `paths` continua funcionando (relativo ao próprio tsconfig).
 
-1. **Manter o logo na posicao atual** (x=15, y=10, w=25, h=12) -- ele ocupa de y=10 ate y=22
-2. **Mover o `startY` da tabela** de 10 para ~24, para que a tabela comece logo abaixo do logo
-3. **Remover o texto "LS DO BRASIL" do cabecalho da tabela** (coluna 0), ja que o logo real agora ficara visivel acima -- ou manter o texto como referencia da empresa mas sem cobrir o logo
-4. Ajustar o `drawLogoFallback` para tambem funcionar nessa nova posicao
+### 2) Ler a planilha
 
-### Detalhes tecnicos
+Copiar `user-uploads://Cópia_de_equipamentos_rows_rev04.xlsx` para `/tmp/eq.xlsx` e ler com pandas. Identificar automaticamente as colunas:
+- **Código** (codigo / código)
+- **Descrição** (descricao / descrição / produto)
+- **Valor de custo** (valor_custo / custo / valor)
 
-Na funcao `addHeader`:
+### 3) Comparar planilha vs Supabase
 
-- Logo: `doc.addImage(logoDataUrl, "JPEG", 15, 10, 25, 12)` (mantido)
-- Tabela: mudar `startY: 10` para `startY: 24`
-- Isso garante que o logo fica visivel acima da tabela com os dados da empresa/cliente
+Para cada código da planilha, classificar em uma de 4 categorias:
 
-Essa e uma mudanca de 1-2 linhas que resolve o problema sem alterar nada na logica de geracao do PDF.
+| Categoria | O que vou fazer |
+|---|---|
+| **Alterado** (mesmo código, valor ou descrição diferente) | UPDATE no registro existente |
+| **Novo** (código não existe no Supabase) | INSERT como `ativo = true` |
+| **Igual** (código existe e valores batem) | nada |
+| **Removido** (código existe no Supabase mas não na planilha) | marcar `ativo = false` (não deleto, para preservar histórico em `propostas.itens_projeto`) |
+
+### 4) Pré-confirmação
+
+Antes de aplicar qualquer mudança, vou te mostrar um **resumo**:
+- X alterados (com diff de valor: antigo → novo)
+- Y novos
+- Z desativados
+- W inalterados
+
+Se algo parecer estranho (ex: 100 itens "removidos"), eu paro e te aviso antes de tocar no banco.
+
+### 5) Aplicar no Supabase
+
+Executar UPDATEs / INSERTs / desativações via tool de insert do Supabase. Tudo na tabela `equipamentos` — schema não muda.
+
+### 6) Validação final
+
+Mostrar contagem final (`ativos`, `total`) e amostra de 5 itens atualizados para confirmar.
+
+## Observações
+
+- **Propostas antigas ficam intactas**: a coluna `itens_projeto` é JSONB com snapshot dos itens (código/descrição/custo no momento da venda), então atualizar o catálogo não muda propostas já salvas.
+- **Sem perda de histórico**: ninguém é deletado — apenas desativado se sumir da planilha.
+- Se a planilha tiver colunas extras (categoria, unidade), elas são ignoradas — a tabela só tem `codigo`, `descricao`, `valor_custo`, `ativo`.
 
