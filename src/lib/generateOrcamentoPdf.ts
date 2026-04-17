@@ -248,7 +248,8 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   addFooter(doc);
 
-  const fileName = `${params.numeroOrcamento || "orcamento"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
+  const cleanClient = toTitleCase(params.clientName).replace(/[^a-zA-Z0-9]+/g, "_");
+  const fileName = `${params.numeroOrcamento || "orcamento"}-${cleanClient || "cliente"}.pdf`;
 
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
