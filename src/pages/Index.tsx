@@ -138,6 +138,52 @@ const Index = () => {
     toast({ title: "Novo aluguel iniciado" });
   };
 
+  // Deep-link: ?load=<id> carrega aluguel; ?novo=1 inicia novo
+  useEffect(() => {
+    const loadId = searchParams.get("load");
+    const novo = searchParams.get("novo");
+    if (loadId) {
+      (async () => {
+        const { data, error } = await supabase.from("propostas").select("*").eq("id", loadId).maybeSingle();
+        if (error || !data) {
+          toast({ title: "Aluguel não encontrado", variant: "destructive" });
+        } else {
+          const loaded: SmartCycleParams = {
+            clientName: data.nome_cliente,
+            valorProjeto: Number(data.valor_projeto),
+            entrada: Number(data.entrada),
+            tarifaF1: Number(data.tarifa_f1),
+            tarifaF2: Number(data.tarifa_f2),
+            tarifaExcedente: Number(data.tarifa_excedente),
+            reajuste: Number(data.reajuste_anual),
+            pesoPorSaco: Number(data.peso_saco),
+            volumeMinF2Pct: Number(data.vol_min_f2_pct),
+            status: data.status || "rascunho",
+            observacoes: data.observacoes || "",
+            itensProjeto: Array.isArray(data.itens_projeto) ? (data.itens_projeto as unknown as ItemProjeto[]) : [],
+            contatoNome: data.contato_nome || "",
+            clienteEndereco: data.cliente_endereco || "",
+            clienteTelefone: data.cliente_telefone || "",
+            clienteCnpj: data.cliente_cnpj || "",
+            clienteEmail: data.cliente_email || "",
+            validadeDias: data.validade_dias ?? 10,
+            localEntrega: data.local_entrega || "",
+            numeroProposta: data.numero_proposta || "",
+          };
+          setParams(loaded);
+          setSavedId(data.id);
+          toast({ title: "Aluguel carregado" });
+        }
+        setSearchParams({}, { replace: true });
+      })();
+    } else if (novo) {
+      setParams(DEFAULT_PARAMS);
+      setSavedId(null);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
@@ -159,20 +205,13 @@ const Index = () => {
               onChange={(e) => update("clientName", e.target.value)}
               className="h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            <Button size="sm" variant="outline" onClick={handleNova} className="gap-1">
-              <FilePlus className="w-4 h-4" /> Nova
-            </Button>
+            <NovaPropostaButton onNovoAluguel={handleNova} />
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salvar
             </Button>
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
-              <FolderOpen className="w-4 h-4" /> Aluguéis
-            </Button>
-            <Button size="sm" variant="outline" className="gap-1" asChild>
-              <Link to="/orcamento">
-                <Receipt className="w-4 h-4" /> Orçamento
-              </Link>
+              <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
             <a
               href="https://seed-solution-advisor.lovable.app"
@@ -223,7 +262,7 @@ const Index = () => {
         </Tabs>
       </main>
 
-      <PropostasModal open={modalOpen} onOpenChange={setModalOpen} onLoad={handleLoad} />
+      <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} />
 
       <Dialog open={catalogoDialogOpen} onOpenChange={setCatalogoDialogOpen}>
         <DialogContent className="max-w-sm">
