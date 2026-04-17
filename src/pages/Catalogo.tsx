@@ -16,9 +16,12 @@ export default function Catalogo() {
   const [form, setForm] = useState({ codigo: "", descricao: "", valor_custo: "", valor_venda: "" });
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
   const { toast } = useToast();
 
   const equipamentosFiltrados = equipamentos.filter((eq) => {
+    if (filtroStatus === "ativos" && !eq.ativo) return false;
+    if (filtroStatus === "inativos" && eq.ativo) return false;
     const q = busca.trim().toLowerCase();
     if (!q) return true;
     return eq.codigo.toLowerCase().includes(q) || eq.descricao.toLowerCase().includes(q);
@@ -120,14 +123,29 @@ export default function Catalogo() {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-6 space-y-4">
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por código ou descrição..."
-            className="w-full h-10 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por código ou descrição..."
+              className="w-full h-10 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="flex rounded-md border bg-background p-0.5">
+            {(["todos", "ativos", "inativos"] as const).map((opt) => (
+              <button
+                key={opt}
+                onClick={() => setFiltroStatus(opt)}
+                className={`px-3 h-9 text-sm rounded capitalize transition-colors ${
+                  filtroStatus === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Edit/New form */}
