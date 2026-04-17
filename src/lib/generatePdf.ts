@@ -177,8 +177,8 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
   const subtotalF1 = projection.filter(r => r.fase === 1).reduce((s, r) => s + r.receitaAnual, 0);
   const subtotalF2 = projection.filter(r => r.fase === 2).reduce((s, r) => s + r.receitaAnual, 0);
-  // Total para o cliente: Implantação (valorProjeto) + receitas das fases
-  const totalGeralCliente = params.valorProjeto + subtotalF1 + subtotalF2;
+  // Total para o cliente: Entrada + receitas das fases (a dívida é quitada pelas mensalidades das fases)
+  const totalGeralCliente = params.entrada + subtotalF1 + subtotalF2;
   const mensF1 = (volumeMin * params.tarifaF1) / 12;
   const mensF2 = (volumeF2 * params.tarifaF2) / 12;
 
@@ -408,7 +408,7 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
     head: [["ANO", "FASE", "PREÇO/SACO", "VOL. MÍNIMO", "MENSALIDADE", "RECEITA ANUAL"]],
     body: projRows,
     foot: [
-      ["", "", "", "", "IMPLANTAÇÃO", fmtBRL(params.valorProjeto)],
+      ["", "", "", "", "ENTRADA", fmtBRL(params.entrada)],
       ["", "", "", "", "FASE 1", fmtBRL(subtotalF1)],
       ["", "", "", "", "FASE 2", fmtBRL(subtotalF2)],
       ["", "", "", "", "TOTAL 10 ANOS", fmtBRL(totalGeralCliente)],
@@ -451,12 +451,13 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
     },
     head: [["Descrição", "Valor"]],
     body: [
-      ["Implantação", fmtBRL(params.valorProjeto)],
+      ["Valor da Implantação", fmtBRL(params.valorProjeto)],
+      ["Entrada", fmtBRL(params.entrada)],
       ["Volume Mínimo Anual (Fase 1)", `${fmtNum(volumeMin)} sacos`],
       ["Volume Mínimo Anual (Fase 2)", `${fmtNum(volumeF2)} sacos`],
       ["Mensalidade Ano 1", fmtBRL(mensF1)],
       ["Mensalidade Ano 6", fmtBRL(mensF2)],
-      ["Total Projetado 10 Anos", fmtBRL(totalGeralCliente)],
+      ["Total Projetado 10 Anos (Entrada + Mensalidades)", fmtBRL(totalGeralCliente)],
       ["Reajuste Anual Estimado", `${params.reajuste.toLocaleString("pt-BR")}% (referência IPCA)`],
     ],
     alternateRowStyles: altRowStyles,
