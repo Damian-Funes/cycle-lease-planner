@@ -34,7 +34,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   }, []);
 
   const entrada = calcEntrada(itens);
-  const sugerido = Math.round(calcValorVendaSugerido(itens));
+  const sugerido = calcValorVendaSugerido(itens);
   const projetoMenorQueCusto = valorProjeto > 0 && valorProjeto < entrada;
 
   // Sempre que os itens mudarem, sincroniza o valorProjeto com a soma dos valores de venda
