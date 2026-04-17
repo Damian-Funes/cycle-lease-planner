@@ -11,10 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Equipamento } from "@/lib/equipamentos";
 import { OrcamentoParams, ItemOrcamento, DEFAULT_ORCAMENTO, calcSubtotal, calcDescontoAplicado, calcTotal } from "@/lib/orcamento";
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
-import OrcamentosModal from "@/components/OrcamentosModal";
+import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
+import NovaPropostaButton from "@/components/NovaPropostaButton";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FilePlus, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function fmtBRL(v: number) {
@@ -31,6 +32,7 @@ export default function Orcamento() {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     supabase
@@ -176,6 +178,49 @@ export default function Orcamento() {
     toast({ title: "Orçamento carregado" });
   }
 
+  // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
+  useEffect(() => {
+    const loadId = searchParams.get("load");
+    const novo = searchParams.get("novo");
+    if (loadId) {
+      (async () => {
+        const { data, error } = await supabase.from("orcamentos").select("*").eq("id", loadId).maybeSingle();
+        if (error || !data) {
+          toast({ title: "Orçamento não encontrado", variant: "destructive" });
+        } else {
+          const loaded: OrcamentoParams = {
+            numeroOrcamento: data.numero_orcamento || "",
+            clientName: data.nome_cliente,
+            contatoNome: data.contato_nome || "",
+            clienteEndereco: data.cliente_endereco || "",
+            clienteTelefone: data.cliente_telefone || "",
+            clienteCnpj: data.cliente_cnpj || "",
+            clienteEmail: data.cliente_email || "",
+            itens: Array.isArray(data.itens) ? (data.itens as unknown as ItemOrcamento[]) : [],
+            descontoTipo: ((data.desconto_tipo as any) || "percentual"),
+            descontoValor: Number(data.desconto_valor) || 0,
+            frete: Number(data.frete) || 0,
+            condicoesPagamento: data.condicoes_pagamento || "",
+            prazoEntrega: data.prazo_entrega || "",
+            validadeDias: data.validade_dias ?? 10,
+            localEntrega: data.local_entrega || "",
+            observacoes: data.observacoes || "",
+            status: data.status || "rascunho",
+          };
+          setParams(loaded);
+          setSavedId(data.id);
+          toast({ title: "Orçamento carregado" });
+        }
+        setSearchParams({}, { replace: true });
+      })();
+    } else if (novo) {
+      setParams(DEFAULT_ORCAMENTO);
+      setSavedId(null);
+      setSearchParams({}, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handlePdf() {
     if (!params.clientName.trim()) {
       toast({ title: "Preencha o nome do cliente", variant: "destructive" });
@@ -207,15 +252,13 @@ export default function Orcamento() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={handleNovo} className="gap-1">
-              <FilePlus className="w-4 h-4" /> Novo
-            </Button>
+            <NovaPropostaButton onNovoOrcamento={handleNovo} />
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salvar
             </Button>
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
-              <FolderOpen className="w-4 h-4" /> Orçamentos
+              <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
             <Button size="sm" variant="default" onClick={handlePdf} className="gap-1">
               <FileDown className="w-4 h-4" /> Gerar PDF
