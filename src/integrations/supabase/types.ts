@@ -22,6 +22,7 @@ export type Database = {
           descricao: string
           id: string
           valor_custo: number
+          valor_venda: number | null
         }
         Insert: {
           ativo?: boolean | null
@@ -30,6 +31,7 @@ export type Database = {
           descricao: string
           id?: string
           valor_custo: number
+          valor_venda?: number | null
         }
         Update: {
           ativo?: boolean | null
@@ -38,6 +40,7 @@ export type Database = {
           descricao?: string
           id?: string
           valor_custo?: number
+          valor_venda?: number | null
         }
         Relationships: []
       }
