@@ -167,14 +167,14 @@ const Index = () => {
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1"
-              onClick={() => window.open("https://seed-solution-advisor.lovable.app", "_blank", "noopener,noreferrer")}
+            <a
+              href="https://seed-solution-advisor.lovable.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3"
             >
               <Package className="w-4 h-4" /> Layout
-            </Button>
+            </a>
             <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
               if (sessionStorage.getItem("catalogo_auth") === "true") {
                 navigate("/catalogo");
