@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import EquipmentTable from "./EquipmentTable";
 import { generateProposalPdf } from "@/lib/generatePdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   params: SmartCycleParams;
@@ -21,6 +22,7 @@ interface Props {
 export default function ProposalTab({ params, projection, onUpdate, onSave, savedId }: Props) {
   const [exporting, setExporting] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const volumeMin = calcVolumeMinimoAnual(params);
   const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
@@ -45,7 +47,13 @@ export default function ProposalTab({ params, projection, onUpdate, onSave, save
     }
     setExporting(true);
     try {
+      console.log("[ProposalTab] Iniciando geração de PDF...");
       await generateProposalPdf(params, projection);
+      console.log("[ProposalTab] PDF gerado com sucesso");
+      toast({ title: "PDF gerado!", description: "O download deve iniciar em instantes." });
+    } catch (e: any) {
+      console.error("[ProposalTab] Erro ao gerar PDF:", e);
+      toast({ title: "Erro ao gerar PDF", description: e?.message || String(e), variant: "destructive" });
     } finally {
       setExporting(false);
     }
@@ -59,6 +67,10 @@ export default function ProposalTab({ params, projection, onUpdate, onSave, save
       // Small delay to let state update with the new numeroProposta
       await new Promise(r => setTimeout(r, 300));
       await generateProposalPdf(params, projection);
+      toast({ title: "PDF gerado!", description: "O download deve iniciar em instantes." });
+    } catch (e: any) {
+      console.error("[ProposalTab] Erro ao salvar e exportar PDF:", e);
+      toast({ title: "Erro ao gerar PDF", description: e?.message || String(e), variant: "destructive" });
     } finally {
       setExporting(false);
     }
