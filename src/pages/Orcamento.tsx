@@ -350,16 +350,7 @@ export default function Orcamento() {
                             className="w-16 h-7 px-1 rounded border bg-background text-sm text-center focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </td>
-                        <td className="p-2 text-right">
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={it.valor_unitario}
-                            onChange={(e) => updateItem(idx, { valor_unitario: Math.max(0, parseFloat(e.target.value) || 0) })}
-                            className="w-28 h-7 px-1 rounded border bg-background text-sm text-right focus:outline-none focus:ring-1 focus:ring-ring"
-                          />
-                        </td>
+                        <td className="p-2 text-right tabular-nums">{fmtBRL(it.valor_unitario)}</td>
                         <td className="p-2 text-right font-medium">{fmtBRL(it.valor_unitario * it.quantidade)}</td>
                         <td className="p-2">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
