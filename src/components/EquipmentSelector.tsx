@@ -33,11 +33,7 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [quantidade, setQuantidade] = useState(1);
-  const [vpFocused, setVpFocused] = useState(false);
-  const [vpRaw, setVpRaw] = useState("");
   const [comboOpen, setComboOpen] = useState(false);
-  // true até o usuário editar manualmente o "Valor Total do Projeto"
-  const [autoFillEnabled, setAutoFillEnabled] = useState(true);
 
   useEffect(() => {
     supabase
@@ -54,17 +50,20 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
   const sugerido = Math.round(calcValorVendaSugerido(itens));
   const projetoMenorQueCusto = valorProjeto > 0 && valorProjeto < entrada;
 
-  function autoFillProjeto(newItens: ItemProjeto[]) {
-    if (!autoFillEnabled) return;
-    const s = Math.round(calcValorVendaSugerido(newItens));
-    if (s > 0) onValorProjetoChange(s);
+  // Sempre que os itens mudarem, sincroniza o valorProjeto com a soma dos valores de venda
+  useEffect(() => {
+    if (sugerido !== valorProjeto) {
+      onValorProjetoChange(sugerido);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sugerido]);
+
+  function autoFillProjeto(_newItens: ItemProjeto[]) {
+    // No-op: a sincronização é feita pelo useEffect acima
   }
 
   function aplicarSugerido() {
-    if (sugerido > 0) {
-      onValorProjetoChange(sugerido);
-      setAutoFillEnabled(true);
-    }
+    onValorProjetoChange(sugerido);
   }
 
   function handleAdd() {
@@ -237,48 +236,19 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
             </p>
           )}
 
-          {/* Valor Total do Projeto */}
+          {/* Valor Total do Projeto — calculado automaticamente */}
           <div className="space-y-1.5 pt-2 border-t">
-            <label className="text-sm font-medium text-muted-foreground">Valor Total do Projeto (R$)</label>
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-muted-foreground">R$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={vpFocused ? vpRaw : valorProjeto > 0 ? valorProjeto.toLocaleString("pt-BR") : ""}
-                onFocus={() => { setVpFocused(true); setVpRaw(valorProjeto > 0 ? valorProjeto.toLocaleString("pt-BR") : ""); }}
-                onBlur={() => {
-                  setVpFocused(false);
-                  const novo = parseLiveInput(vpRaw);
-                  onValorProjetoChange(novo);
-                  // Se o usuário digitou algo diferente do sugerido, desliga o auto-fill
-                  if (novo !== sugerido) setAutoFillEnabled(false);
-                }}
-                onChange={(e) => {
-                  const formatted = formatLiveInput(e.target.value);
-                  setVpRaw(formatted);
-                  setAutoFillEnabled(false);
-                }}
-                className="w-full h-9 px-3 rounded-md border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring text-right"
-              />
-              {sugerido > 0 && valorProjeto !== sugerido && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={aplicarSugerido}
-                  className="h-9 whitespace-nowrap text-xs"
-                  title={`Usar valor sugerido: ${formatBRL(sugerido)}`}
-                >
-                  Usar sugerido
-                </Button>
-              )}
+            <label className="text-sm font-medium text-muted-foreground">
+              Valor Total do Projeto (R$)
+            </label>
+            <div className="flex items-center justify-between bg-muted/30 border rounded-md h-11 px-3">
+              <span className="text-xs text-muted-foreground">Calculado automaticamente</span>
+              <span className="text-base font-bold text-primary">
+                {valorProjeto > 0 ? formatBRL(valorProjeto) : "—"}
+              </span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Preço final do projeto para o cliente
-              {sugerido > 0 && (
-                <> · Sugerido (planilha de venda): <strong>{formatBRL(sugerido)}</strong></>
-              )}
+              Soma dos valores de venda dos equipamentos selecionados (planilha oficial).
             </p>
             {projetoMenorQueCusto && (
               <div className="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
