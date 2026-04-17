@@ -192,11 +192,47 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   doc.text(introText, 14, y);
   y += 14;
 
-  const equipRows = params.itensProjeto.map((item, i) => [
-    String(i + 1),
-    item.descricao.replace(/\s*\[.*?\]\s*/g, "").trim(),
-    String(item.quantidade),
-  ]);
+  // Compute subtotais de venda — fallback proporcional ao custo se valor_venda não estiver preenchido
+  const totalCustoItens = params.itensProjeto.reduce(
+    (s, it) => s + (Number(it.valor_custo) || 0) * it.quantidade,
+    0
+  );
+  const totalVendaItens = params.itensProjeto.reduce(
+    (s, it) => s + (Number(it.valor_venda) || 0) * it.quantidade,
+    0
+  );
+  const usarRateio = totalVendaItens <= 0 && totalCustoItens > 0;
+
+  const equipRows = params.itensProjeto.map((item, i) => {
+    const descLimpa = item.descricao.replace(/\s*\[.*?\]\s*/g, "").trim();
+    let unit: number;
+    let sub: number;
+    if (usarRateio) {
+      // Distribui valorProjeto proporcional ao custo do item
+      const pesoItem = (Number(item.valor_custo) || 0) * item.quantidade;
+      sub = totalCustoItens > 0 ? (pesoItem / totalCustoItens) * params.valorProjeto : 0;
+      unit = item.quantidade > 0 ? sub / item.quantidade : 0;
+    } else {
+      unit = Number(item.valor_venda) || 0;
+      sub = unit * item.quantidade;
+    }
+    return [
+      String(i + 1),
+      descLimpa,
+      String(item.quantidade),
+      fmtBRL(unit),
+      fmtBRL(sub),
+    ];
+  });
+
+  const subtotalEquip = equipRows.reduce((s, r, i) => {
+    const it = params.itensProjeto[i];
+    if (usarRateio) {
+      const pesoItem = (Number(it.valor_custo) || 0) * it.quantidade;
+      return s + (totalCustoItens > 0 ? (pesoItem / totalCustoItens) * params.valorProjeto : 0);
+    }
+    return s + (Number(it.valor_venda) || 0) * it.quantidade;
+  }, 0);
 
   autoTable(doc, {
     startY: y,
@@ -204,16 +240,29 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
     headStyles,
     styles: baseStyles,
     alternateRowStyles: altRowStyles,
-    head: [["ÍTEM", "DESCRIÇÃO", "QTD"]],
+    columnStyles: {
+      0: { cellWidth: 12, halign: "center" },
+      1: { cellWidth: "auto" as any },
+      2: { cellWidth: 14, halign: "center" },
+      3: { cellWidth: 32, halign: "right" },
+      4: { cellWidth: 34, halign: "right" },
+    },
+    head: [["ÍTEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
     body: equipRows,
+    foot: [["", "", "", "VALOR DA IMPLANTAÇÃO", fmtBRL(params.valorProjeto)]],
+    footStyles: { fillColor: GRAY_LIGHT as any, textColor: BLACK as any, fontStyle: "bold", fontSize: 9, halign: "right" },
   });
 
-  y = getLastY(doc) + 10;
-  doc.setFontSize(12);
-  doc.setTextColor(...GREEN);
-  doc.setFont(undefined as any, "bold");
-  doc.text(`VALOR DA IMPLANTAÇÃO: ${fmtBRL(params.valorProjeto)}`, 14, y);
-  doc.setFont(undefined as any, "normal");
+  y = getLastY(doc) + 6;
+  if (Math.abs(subtotalEquip - params.valorProjeto) > 1) {
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.setFont(undefined as any, "italic");
+    const diff = params.valorProjeto - subtotalEquip;
+    const label = diff >= 0 ? "Acréscimo (impostos / serviços)" : "Desconto comercial";
+    doc.text(`* Soma dos itens: ${fmtBRL(subtotalEquip)} · ${label}: ${fmtBRL(Math.abs(diff))}`, 14, y);
+    doc.setFont(undefined as any, "normal");
+  }
 
   addFooter(doc);
 
