@@ -511,20 +511,37 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
 
   const fileName = `${params.numeroProposta || "proposta"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
   console.log("[PDF] Salvando arquivo:", fileName);
+
+  // Estratégia: usar blob + abrir em nova aba (funciona dentro de iframes do preview).
+  // Tenta forçar download via <a download>; se o navegador/iframe bloquear,
+  // ainda abre o PDF em nova aba como fallback.
   try {
-    doc.save(fileName);
-    console.log("[PDF] doc.save() executado com sucesso");
-  } catch (e) {
-    console.error("[PDF] Erro em doc.save(), tentando fallback via blob:", e);
-    // Fallback: cria blob e força o download manualmente
     const blob = doc.output("blob");
     const url = URL.createObjectURL(blob);
+
+    // 1) Tenta download direto
     const a = document.createElement("a");
     a.href = url;
     a.download = fileName;
+    a.rel = "noopener";
+    a.target = "_blank";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    // 2) Fallback: abre em nova aba caso o download tenha sido bloqueado
+    setTimeout(() => {
+      try {
+        window.open(url, "_blank", "noopener,noreferrer");
+      } catch (err) {
+        console.warn("[PDF] window.open bloqueado:", err);
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    }, 300);
+
+    console.log("[PDF] Download disparado via blob");
+  } catch (e) {
+    console.error("[PDF] Erro no download via blob, tentando doc.save():", e);
+    doc.save(fileName);
   }
 }
