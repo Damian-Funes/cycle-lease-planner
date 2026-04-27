@@ -542,7 +542,7 @@ export default function LayoutEditor() {
         {/* canvas */}
         <div className="flex-1 p-3 min-w-0">
           <Card className="h-full overflow-hidden relative">
-            <div ref={containerRef} className="w-full h-full bg-[#F5F5F0]">
+            <div ref={containerRef} className="w-full h-full bg-muted/30">
               {containerSize.w > 0 && (
                 <Stage
                   ref={stageRef}
