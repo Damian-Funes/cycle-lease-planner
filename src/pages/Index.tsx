@@ -216,17 +216,10 @@ const Index = () => {
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
-              if (sessionStorage.getItem("catalogo_auth") === "true") {
-                navigate("/catalogo");
-              } else {
-                setSenha("");
-                setSenhaError(false);
-                setCatalogoDialogOpen(true);
-              }
-            }}>
+            <Button size="sm" variant="ghost" className="gap-1" onClick={() => navigate("/catalogo")}>
               <Package className="w-4 h-4" /> Catálogo
             </Button>
+            <AppHeader />
           </div>
         </div>
       </header>
