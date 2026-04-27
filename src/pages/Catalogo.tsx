@@ -110,7 +110,16 @@ export default function Catalogo() {
   function parseMoney(v: string): number | null {
     const s = v.trim();
     if (!s) return null;
-    return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
+    // Caso pt-BR (com vírgula decimal): remove pontos de milhar e troca vírgula por ponto.
+    if (s.includes(",")) {
+      return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
+    }
+    // Sem vírgula: se houver um único ponto seguido de 1-2 dígitos no fim, é decimal (ex.: "59448.3").
+    if (/^\d+\.\d{1,2}$/.test(s)) {
+      return parseFloat(s) || 0;
+    }
+    // Caso contrário (ex.: "1.234.567" ou "1234567"), pontos são separador de milhar.
+    return parseFloat(s.replace(/\./g, "")) || 0;
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
