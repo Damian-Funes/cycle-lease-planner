@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search,
+  Download, Box, Search, ZoomIn, ZoomOut, Maximize2,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,12 +170,46 @@ export default function LayoutEditor() {
     return () => ro.disconnect();
   }, []);
 
-  const scale = useMemo(() => {
-    if (!layout) return 0.05;
+  const fitScale = useMemo(() => {
+    if (!layout || containerSize.w === 0) return 0.05;
     const sx = containerSize.w / layout.piso_largura_mm;
     const sy = containerSize.h / layout.piso_comprimento_mm;
     return Math.min(sx, sy) * 0.95;
   }, [layout, containerSize]);
+
+  const [zoom, setZoom] = useState(1); // multiplicador sobre fitScale
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const scale = fitScale * zoom;
+
+  const stageX = (containerSize.w - (layout?.piso_largura_mm ?? 0) * scale) / 2 + pan.x;
+  const stageY = (containerSize.h - (layout?.piso_comprimento_mm ?? 0) * scale) / 2 + pan.y;
+
+  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
+
+  const handleWheel = useCallback((e: any) => {
+    e.evt.preventDefault();
+    const stage = e.target.getStage();
+    if (!stage) return;
+    const oldScale = scale;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const mousePointTo = {
+      x: (pointer.x - stageX) / oldScale,
+      y: (pointer.y - stageY) / oldScale,
+    };
+    const direction = e.evt.deltaY > 0 ? -1 : 1;
+    const factor = 1.15;
+    let newZoom = direction > 0 ? zoom * factor : zoom / factor;
+    newZoom = Math.max(0.3, Math.min(8, newZoom));
+    const newScale = fitScale * newZoom;
+    const baseX = (containerSize.w - (layout?.piso_largura_mm ?? 0) * newScale) / 2;
+    const baseY = (containerSize.h - (layout?.piso_comprimento_mm ?? 0) * newScale) / 2;
+    const newPanX = pointer.x - mousePointTo.x * newScale - baseX;
+    const newPanY = pointer.y - mousePointTo.y * newScale - baseY;
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  }, [scale, zoom, fitScale, stageX, stageY, containerSize, layout]);
+
 
   /* ---- atalhos teclado ---- */
   useEffect(() => {
@@ -489,10 +523,10 @@ export default function LayoutEditor() {
                   height={containerSize.h}
                   scaleX={scale}
                   scaleY={scale}
-                  x={(containerSize.w - layout.piso_largura_mm * scale) / 2}
-                  y={(containerSize.h - layout.piso_comprimento_mm * scale) / 2}
+                  x={stageX}
+                  y={stageY}
+                  onWheel={handleWheel}
                   onMouseDown={(e) => {
-                    // clique fora desseleciona
                     if (e.target === e.target.getStage()) setSelectedId(null);
                   }}
                 >
@@ -535,6 +569,20 @@ export default function LayoutEditor() {
                   </Layer>
                 </Stage>
               )}
+
+              {/* Controles de zoom */}
+              <div className="absolute top-3 right-3 bg-background border rounded-lg shadow-md flex items-center gap-0.5 p-1 z-10">
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))} title="Zoom -">
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </Button>
+                <span className="text-xs tabular-nums w-12 text-center text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.min(8, z * 1.2))} title="Zoom +">
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={resetView} title="Ajustar à tela">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
 
               {/* HUD ações sobre o item selecionado */}
               {selectedItem && (
