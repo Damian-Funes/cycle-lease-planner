@@ -83,6 +83,10 @@ export default function Catalogo() {
       valor_custo: eq.valor_custo.toString(),
       valor_venda: eq.valor_venda != null ? eq.valor_venda.toString() : "",
       imagem_url: eq.imagem_url || "",
+      categoria: (eq.categoria as EquipamentoCategoria) || "",
+      largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
+      comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
+      altura_mm: eq.altura_mm != null ? String(eq.altura_mm) : "",
     });
     setImageFile(null);
     setImagePreview(eq.imagem_url || "");
@@ -151,12 +155,23 @@ export default function Catalogo() {
       return;
     }
 
+    const cat = form.categoria || null;
+    const corCategoria = cat ? CATEGORIAS.find((c) => c.value === cat)?.cor ?? null : null;
+    const toInt = (v: string) => {
+      const n = parseInt(v, 10);
+      return isNaN(n) ? null : n;
+    };
     const row = {
       codigo: form.codigo.trim(),
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
       imagem_url,
+      categoria: cat,
+      cor_categoria: corCategoria,
+      largura_mm: toInt(form.largura_mm),
+      comprimento_mm: toInt(form.comprimento_mm),
+      altura_mm: toInt(form.altura_mm),
     };
 
     if (editing === "new") {
