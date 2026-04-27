@@ -542,7 +542,7 @@ export default function LayoutEditor() {
         {/* canvas */}
         <div className="flex-1 p-3 min-w-0">
           <Card className="h-full overflow-hidden relative">
-            <div ref={containerRef} className="w-full h-full bg-[#F5F5F0]">
+            <div ref={containerRef} className="w-full h-full bg-muted/30">
               {containerSize.w > 0 && (
                 <Stage
                   ref={stageRef}
@@ -559,7 +559,7 @@ export default function LayoutEditor() {
                 >
                   <Layer>
                     {/* fundo do piso */}
-                    <Rect width={layout.piso_largura_mm} height={layout.piso_comprimento_mm} fill="#FAFAF7" />
+                    <Rect width={layout.piso_largura_mm} height={layout.piso_comprimento_mm} fill="hsl(var(--background))" shadowColor="rgba(0,0,0,0.18)" shadowBlur={220} shadowOpacity={0.18} shadowOffset={{ x: 0, y: 24 }} />
                     {/* planta cliente */}
                     {pisoBgImg && (
                       <KonvaImage
@@ -575,9 +575,9 @@ export default function LayoutEditor() {
                     <Rect
                       width={layout.piso_largura_mm}
                       height={layout.piso_comprimento_mm}
-                      stroke="#888"
-                      strokeWidth={40}
-                      dash={[300, 200]}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={60}
+                      dash={[320, 180]}
                       listening={false}
                     />
                     {/* equipamentos */}
@@ -598,7 +598,7 @@ export default function LayoutEditor() {
               )}
 
               {/* Controles de zoom */}
-              <div className="absolute top-3 right-3 bg-background border rounded-lg shadow-md flex items-center gap-0.5 p-1 z-10">
+              <div className="absolute top-3 right-3 bg-background/95 border rounded-lg shadow-md flex items-center gap-0.5 p-1 z-10">
                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))} title="Zoom -">
                   <ZoomOut className="w-3.5 h-3.5" />
                 </Button>
@@ -606,8 +606,9 @@ export default function LayoutEditor() {
                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.min(8, z * 1.2))} title="Zoom +">
                   <ZoomIn className="w-3.5 h-3.5" />
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={resetView} title="Ajustar à tela">
+                <Button size="sm" variant="default" className="h-7 px-2 gap-1" onClick={resetView} title="Centralizar layout">
                   <Maximize2 className="w-3.5 h-3.5" />
+                  <span className="text-xs">Centralizar</span>
                 </Button>
               </div>
 
