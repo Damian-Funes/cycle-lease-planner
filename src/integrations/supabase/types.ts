@@ -16,34 +16,164 @@ export type Database = {
     Tables: {
       equipamentos: {
         Row: {
+          altura_mm: number | null
           ativo: boolean | null
+          categoria: string | null
           codigo: string
+          comprimento_mm: number | null
+          cor_categoria: string | null
           created_at: string | null
           descricao: string
           id: string
           imagem_url: string | null
+          largura_mm: number | null
           valor_custo: number
           valor_venda: number | null
         }
         Insert: {
+          altura_mm?: number | null
           ativo?: boolean | null
+          categoria?: string | null
           codigo: string
+          comprimento_mm?: number | null
+          cor_categoria?: string | null
           created_at?: string | null
           descricao: string
           id?: string
           imagem_url?: string | null
+          largura_mm?: number | null
           valor_custo: number
           valor_venda?: number | null
         }
         Update: {
+          altura_mm?: number | null
           ativo?: boolean | null
+          categoria?: string | null
           codigo?: string
+          comprimento_mm?: number | null
+          cor_categoria?: string | null
           created_at?: string | null
           descricao?: string
           id?: string
           imagem_url?: string | null
+          largura_mm?: number | null
           valor_custo?: number
           valor_venda?: number | null
+        }
+        Relationships: []
+      }
+      layout_equipamentos: {
+        Row: {
+          created_at: string
+          equipamento_id: string
+          id: string
+          layout_id: string
+          ordem: number
+          pos_x_mm: number
+          pos_y_mm: number
+          rotacao: number
+          rotulo_customizado: string | null
+        }
+        Insert: {
+          created_at?: string
+          equipamento_id: string
+          id?: string
+          layout_id: string
+          ordem?: number
+          pos_x_mm?: number
+          pos_y_mm?: number
+          rotacao?: number
+          rotulo_customizado?: string | null
+        }
+        Update: {
+          created_at?: string
+          equipamento_id?: string
+          id?: string
+          layout_id?: string
+          ordem?: number
+          pos_x_mm?: number
+          pos_y_mm?: number
+          rotacao?: number
+          rotulo_customizado?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layout_equipamentos_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layout_equipamentos_equipamento_id_fkey"
+            columns: ["equipamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_layout_completo"
+            referencedColumns: ["equipamento_id"]
+          },
+          {
+            foreignKeyName: "layout_equipamentos_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      layouts: {
+        Row: {
+          cidade: string | null
+          cliente: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          origem_id: string
+          origem_tipo: string
+          piso_comprimento_mm: number
+          piso_imagem_opacidade: number
+          piso_imagem_url: string | null
+          piso_largura_mm: number
+          revisao: string
+          status: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          cidade?: string | null
+          cliente?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          origem_id: string
+          origem_tipo: string
+          piso_comprimento_mm?: number
+          piso_imagem_opacidade?: number
+          piso_imagem_url?: string | null
+          piso_largura_mm?: number
+          revisao?: string
+          status?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cidade?: string | null
+          cliente?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          origem_id?: string
+          origem_tipo?: string
+          piso_comprimento_mm?: number
+          piso_imagem_opacidade?: number
+          piso_imagem_url?: string | null
+          piso_largura_mm?: number
+          revisao?: string
+          status?: string
+          unidade?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -274,7 +404,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_layout_completo: {
+        Row: {
+          altura_mm: number | null
+          categoria: string | null
+          codigo: string | null
+          comprimento_mm: number | null
+          cor_categoria: string | null
+          equipamento_id: string | null
+          imagem_url: string | null
+          item_id: string | null
+          largura_mm: number | null
+          layout_id: string | null
+          nome: string | null
+          ordem: number | null
+          pos_x_mm: number | null
+          pos_y_mm: number | null
+          rotacao: number | null
+          rotulo_customizado: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layout_equipamentos_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
