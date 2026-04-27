@@ -15,6 +15,7 @@ import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import AppHeader from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export default function Orcamento() {
   const [modalOpen, setModalOpen] = useState(false);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { loading: authLoading, profile } = useAuth();
 
   useEffect(() => {
     supabase
@@ -181,6 +183,7 @@ export default function Orcamento() {
 
   // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
   useEffect(() => {
+    if (authLoading || profile?.status !== "approved") return;
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
     if (loadId) {
@@ -223,7 +226,7 @@ export default function Orcamento() {
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, profile?.status]);
 
   async function handlePdf() {
     if (!params.clientName.trim()) {

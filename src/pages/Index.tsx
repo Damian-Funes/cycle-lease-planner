@@ -9,6 +9,7 @@ import ProposalTab from "@/components/ProposalTab";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import AppHeader from "@/components/AppHeader";
+import { useAuth } from "@/hooks/useAuth";
 import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { loading: authLoading, profile } = useAuth();
 
   const CATALOGO_SENHA = "36021214Df@";
 
@@ -141,6 +143,7 @@ const Index = () => {
 
   // Deep-link: ?load=<id> carrega aluguel; ?novo=1 inicia novo
   useEffect(() => {
+    if (authLoading || profile?.status !== "approved") return;
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
     if (loadId) {
@@ -186,7 +189,7 @@ const Index = () => {
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, profile?.status]);
 
   return (
     <div className="min-h-screen bg-background">
