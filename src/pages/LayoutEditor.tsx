@@ -559,7 +559,7 @@ export default function LayoutEditor() {
                 >
                   <Layer>
                     {/* fundo do piso */}
-                    <Rect width={layout.piso_largura_mm} height={layout.piso_comprimento_mm} fill="#FAFAF7" />
+                    <Rect width={layout.piso_largura_mm} height={layout.piso_comprimento_mm} fill="hsl(var(--background))" shadowColor="rgba(0,0,0,0.18)" shadowBlur={220} shadowOpacity={0.18} shadowOffset={{ x: 0, y: 24 }} />
                     {/* planta cliente */}
                     {pisoBgImg && (
                       <KonvaImage
@@ -575,9 +575,9 @@ export default function LayoutEditor() {
                     <Rect
                       width={layout.piso_largura_mm}
                       height={layout.piso_comprimento_mm}
-                      stroke="#888"
-                      strokeWidth={40}
-                      dash={[300, 200]}
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={60}
+                      dash={[320, 180]}
                       listening={false}
                     />
                     {/* equipamentos */}
