@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const cards = [
@@ -31,6 +31,13 @@ const cards = [
     icon: Package,
     to: "/catalogo",
     color: "bg-purple-500/10 text-purple-600",
+  },
+  {
+    title: "Layout",
+    desc: "Layouts dos projetos",
+    icon: LayoutGrid,
+    to: "/layout",
+    color: "bg-teal-500/10 text-teal-600",
   },
 ];
 
