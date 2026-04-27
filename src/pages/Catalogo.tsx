@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Equipamento } from "@/lib/equipamentos";
+import { Equipamento, EquipamentoCategoria, CATEGORIAS } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
 import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, ImagePlus, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,17 @@ export default function Catalogo() {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ codigo: "", descricao: "", valor_custo: "", valor_venda: "", imagem_url: "" });
+  const [form, setForm] = useState({
+    codigo: "",
+    descricao: "",
+    valor_custo: "",
+    valor_venda: "",
+    imagem_url: "",
+    categoria: "" as EquipamentoCategoria | "",
+    largura_mm: "",
+    comprimento_mm: "",
+    altura_mm: "",
+  });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -44,7 +54,17 @@ export default function Catalogo() {
   }
 
   function resetForm() {
-    setForm({ codigo: "", descricao: "", valor_custo: "", valor_venda: "", imagem_url: "" });
+    setForm({
+      codigo: "",
+      descricao: "",
+      valor_custo: "",
+      valor_venda: "",
+      imagem_url: "",
+      categoria: "",
+      largura_mm: "",
+      comprimento_mm: "",
+      altura_mm: "",
+    });
     setImageFile(null);
     setImagePreview("");
     if (fileInputRef.current) fileInputRef.current.value = "";
