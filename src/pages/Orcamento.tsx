@@ -13,6 +13,7 @@ import { OrcamentoParams, ItemOrcamento, DEFAULT_ORCAMENTO, calcSubtotal, calcDe
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
+import AppHeader from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt } from "lucide-react";
@@ -217,6 +218,9 @@ export default function Orcamento() {
       setParams(DEFAULT_ORCAMENTO);
       setSavedId(null);
       setSearchParams({}, { replace: true });
+    } else if (searchParams.get("propostas")) {
+      setModalOpen(true);
+      setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -263,6 +267,7 @@ export default function Orcamento() {
             <Button size="sm" variant="default" onClick={handlePdf} className="gap-1">
               <FileDown className="w-4 h-4" /> Gerar PDF
             </Button>
+            <AppHeader />
           </div>
         </div>
       </header>

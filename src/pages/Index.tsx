@@ -8,6 +8,7 @@ import ProjectionTab from "@/components/ProjectionTab";
 import ProposalTab from "@/components/ProposalTab";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
+import AppHeader from "@/components/AppHeader";
 import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -180,6 +181,9 @@ const Index = () => {
       setParams(DEFAULT_PARAMS);
       setSavedId(null);
       setSearchParams({}, { replace: true });
+    } else if (searchParams.get("propostas")) {
+      setModalOpen(true);
+      setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -213,17 +217,10 @@ const Index = () => {
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
-              if (sessionStorage.getItem("catalogo_auth") === "true") {
-                navigate("/catalogo");
-              } else {
-                setSenha("");
-                setSenhaError(false);
-                setCatalogoDialogOpen(true);
-              }
-            }}>
+            <Button size="sm" variant="ghost" className="gap-1" onClick={() => navigate("/catalogo")}>
               <Package className="w-4 h-4" /> Catálogo
             </Button>
+            <AppHeader />
           </div>
         </div>
       </header>
