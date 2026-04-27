@@ -570,6 +570,20 @@ export default function LayoutEditor() {
                 </Stage>
               )}
 
+              {/* Controles de zoom */}
+              <div className="absolute top-3 right-3 bg-background border rounded-lg shadow-md flex items-center gap-0.5 p-1 z-10">
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))} title="Zoom -">
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </Button>
+                <span className="text-xs tabular-nums w-12 text-center text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.min(8, z * 1.2))} title="Zoom +">
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={resetView} title="Ajustar à tela">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
               {/* HUD ações sobre o item selecionado */}
               {selectedItem && (
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-background border rounded-lg shadow-md px-2 py-1 flex items-center gap-1">
