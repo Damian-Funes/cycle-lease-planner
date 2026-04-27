@@ -564,7 +564,7 @@ export default function Orcamento() {
         </Card>
       </main>
 
-      <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} />
+      <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} onLoadOrcamento={loadOrcamentoById} />
     </div>
   );
 }
