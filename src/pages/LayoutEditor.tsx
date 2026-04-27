@@ -525,12 +525,6 @@ export default function LayoutEditor() {
                   scaleY={scale}
                   x={stageX}
                   y={stageY}
-                  draggable
-                  onDragEnd={(e) => {
-                    if (e.target === e.target.getStage()) {
-                      setPan({ x: pan.x + (e.target.x() - stageX), y: pan.y + (e.target.y() - stageY) });
-                    }
-                  }}
                   onWheel={handleWheel}
                   onMouseDown={(e) => {
                     if (e.target === e.target.getStage()) setSelectedId(null);
