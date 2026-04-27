@@ -131,6 +131,40 @@ const Index = () => {
     toast({ title: "Aluguel carregado" });
   };
 
+  const loadPropostaById = useCallback(async (loadId: string) => {
+    const { data, error } = await supabase.from("propostas").select("*").eq("id", loadId).maybeSingle();
+
+    if (error || !data) {
+      toast({ title: "Aluguel não encontrado", variant: "destructive" });
+      return;
+    }
+
+    const loaded: SmartCycleParams = {
+      clientName: data.nome_cliente,
+      valorProjeto: Number(data.valor_projeto),
+      entrada: Number(data.entrada),
+      tarifaF1: Number(data.tarifa_f1),
+      tarifaF2: Number(data.tarifa_f2),
+      tarifaExcedente: Number(data.tarifa_excedente),
+      reajuste: Number(data.reajuste_anual),
+      pesoPorSaco: Number(data.peso_saco),
+      volumeMinF2Pct: Number(data.vol_min_f2_pct),
+      status: data.status || "rascunho",
+      observacoes: data.observacoes || "",
+      itensProjeto: Array.isArray(data.itens_projeto) ? (data.itens_projeto as unknown as ItemProjeto[]) : [],
+      contatoNome: data.contato_nome || "",
+      clienteEndereco: data.cliente_endereco || "",
+      clienteTelefone: data.cliente_telefone || "",
+      clienteCnpj: data.cliente_cnpj || "",
+      clienteEmail: data.cliente_email || "",
+      validadeDias: data.validade_dias ?? 10,
+      localEntrega: data.local_entrega || "",
+      numeroProposta: data.numero_proposta || "",
+    };
+
+    handleLoad(loaded, data.id);
+  }, [toast]);
+
   const handleNova = () => {
     if (params.clientName || savedId) {
       const ok = window.confirm("Iniciar um novo aluguel? Alterações não salvas serão perdidas.");
@@ -144,52 +178,29 @@ const Index = () => {
   // Deep-link: ?load=<id> carrega aluguel; ?novo=1 inicia novo
   useEffect(() => {
     if (authLoading || profile?.status !== "approved") return;
+
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
+
     if (loadId) {
-      (async () => {
-        const { data, error } = await supabase.from("propostas").select("*").eq("id", loadId).maybeSingle();
-        if (error || !data) {
-          toast({ title: "Aluguel não encontrado", variant: "destructive" });
-        } else {
-          const loaded: SmartCycleParams = {
-            clientName: data.nome_cliente,
-            valorProjeto: Number(data.valor_projeto),
-            entrada: Number(data.entrada),
-            tarifaF1: Number(data.tarifa_f1),
-            tarifaF2: Number(data.tarifa_f2),
-            tarifaExcedente: Number(data.tarifa_excedente),
-            reajuste: Number(data.reajuste_anual),
-            pesoPorSaco: Number(data.peso_saco),
-            volumeMinF2Pct: Number(data.vol_min_f2_pct),
-            status: data.status || "rascunho",
-            observacoes: data.observacoes || "",
-            itensProjeto: Array.isArray(data.itens_projeto) ? (data.itens_projeto as unknown as ItemProjeto[]) : [],
-            contatoNome: data.contato_nome || "",
-            clienteEndereco: data.cliente_endereco || "",
-            clienteTelefone: data.cliente_telefone || "",
-            clienteCnpj: data.cliente_cnpj || "",
-            clienteEmail: data.cliente_email || "",
-            validadeDias: data.validade_dias ?? 10,
-            localEntrega: data.local_entrega || "",
-            numeroProposta: data.numero_proposta || "",
-          };
-          setParams(loaded);
-          setSavedId(data.id);
-          toast({ title: "Aluguel carregado" });
-        }
+      void loadPropostaById(loadId).finally(() => {
         setSearchParams({}, { replace: true });
-      })();
-    } else if (novo) {
+      });
+      return;
+    }
+
+    if (novo) {
       setParams(DEFAULT_PARAMS);
       setSavedId(null);
       setSearchParams({}, { replace: true });
-    } else if (searchParams.get("propostas")) {
+      return;
+    }
+
+    if (searchParams.get("propostas")) {
       setModalOpen(true);
       setSearchParams({}, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, profile?.status]);
+  }, [authLoading, profile?.status, searchParams, setSearchParams, loadPropostaById]);
 
   return (
     <div className="min-h-screen bg-background">
