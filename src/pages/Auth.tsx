@@ -18,7 +18,7 @@ const nomeSchema = z.string().trim().min(2, "Nome muito curto").max(100);
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -28,18 +28,16 @@ export default function Auth() {
   const [signupPwd, setSignupPwd] = useState("");
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) return;
-    // Usuário logado: aguarda profile e redireciona
-    if (profile) {
-      if (profile.status === "approved") {
-        const from = (location.state as any)?.from;
-        const target = from && typeof from === "string" && from !== "/auth" ? from : "/";
-        navigate(target, { replace: true });
-      } else {
-        navigate("/pendente", { replace: true });
-      }
+    if (authLoading || !user || !profile) return;
+
+    if (profile.status === "approved") {
+      const from = (location.state as any)?.from;
+      const target = from && typeof from === "string" && from !== "/auth" ? from : "/";
+      navigate(target, { replace: true });
+      return;
     }
+
+    navigate("/pendente", { replace: true });
   }, [user, profile, authLoading, navigate, location.state]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -51,14 +49,47 @@ export default function Auth() {
       toast.error(err.errors?.[0]?.message || "Dados inválidos");
       return;
     }
+
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPwd });
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password: loginPwd });
+
     if (error) {
+      setLoading(false);
       toast.error(error.message === "Invalid login credentials" ? "Email ou senha incorretos" : error.message);
-    } else {
-      toast.success("Login realizado");
+      return;
     }
+
+    const signedInUser = data.user;
+    if (!signedInUser) {
+      setLoading(false);
+      toast.error("Sessão não iniciada corretamente.");
+      return;
+    }
+
+    const { data: prof, error: profileError } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("user_id", signedInUser.id)
+      .maybeSingle();
+
+    if (profileError) {
+      await refreshProfile();
+      setLoading(false);
+      toast.error("Login realizado, mas não foi possível carregar seu perfil.");
+      return;
+    }
+
+    toast.success("Login realizado");
+    setLoading(false);
+
+    if (prof?.status === "approved") {
+      const from = (location.state as any)?.from;
+      const target = from && typeof from === "string" && from !== "/auth" ? from : "/";
+      navigate(target, { replace: true });
+      return;
+    }
+
+    navigate("/pendente", { replace: true });
   };
 
   const handleSignup = async (e: React.FormEvent) => {
