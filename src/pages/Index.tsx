@@ -29,6 +29,7 @@ const Index = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { loading: authLoading, profile } = useAuth();
 
   const CATALOGO_SENHA = "36021214Df@";
 
@@ -187,7 +188,7 @@ const Index = () => {
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, profile?.status]);
 
   return (
     <div className="min-h-screen bg-background">
