@@ -217,6 +217,9 @@ export default function Orcamento() {
       setParams(DEFAULT_ORCAMENTO);
       setSavedId(null);
       setSearchParams({}, { replace: true });
+    } else if (searchParams.get("propostas")) {
+      setModalOpen(true);
+      setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -263,6 +266,7 @@ export default function Orcamento() {
             <Button size="sm" variant="default" onClick={handlePdf} className="gap-1">
               <FileDown className="w-4 h-4" /> Gerar PDF
             </Button>
+            <AppHeader />
           </div>
         </div>
       </header>
