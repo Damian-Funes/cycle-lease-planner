@@ -106,7 +106,7 @@ export default function PropostasUnificadasModal({
     onOpenChange(false);
     if (row.tipo === "aluguel") {
       if (onLoadAluguel) onLoadAluguel(row.id);
-      else navigate(`/?load=${row.id}`);
+      else navigate(`/smartcycle?load=${row.id}`);
     } else {
       if (onLoadOrcamento) onLoadOrcamento(row.id);
       else navigate(`/orcamento?load=${row.id}`);
