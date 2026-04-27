@@ -265,7 +265,7 @@ const Index = () => {
         </Tabs>
       </main>
 
-      <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} />
+      <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} onLoadAluguel={loadPropostaById} />
 
       <Dialog open={catalogoDialogOpen} onOpenChange={setCatalogoDialogOpen}>
         <DialogContent className="max-w-sm">
