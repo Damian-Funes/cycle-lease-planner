@@ -4,6 +4,7 @@ export interface Equipamento {
   descricao: string;
   valor_custo: number;
   valor_venda?: number | null;
+  imagem_url?: string | null;
   ativo: boolean;
 }
 
