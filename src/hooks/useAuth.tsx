@@ -17,7 +17,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (userId?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authReady, user?.id]);
+  }, [authReady, user?.id, session?.access_token]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -90,8 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(false);
   };
 
-  const refreshProfile = async () => {
-    if (user) await fetchProfileAndRole(user.id);
+  const refreshProfile = async (userId?: string) => {
+    const targetUserId = userId ?? user?.id;
+    if (targetUserId) await fetchProfileAndRole(targetUserId);
   };
 
   return (
