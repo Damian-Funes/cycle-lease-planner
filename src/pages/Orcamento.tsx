@@ -181,52 +181,63 @@ export default function Orcamento() {
     toast({ title: "Orçamento carregado" });
   }
 
+  const loadOrcamentoById = useCallback(async (loadId: string) => {
+    const { data, error } = await supabase.from("orcamentos").select("*").eq("id", loadId).maybeSingle();
+
+    if (error || !data) {
+      toast({ title: "Orçamento não encontrado", variant: "destructive" });
+      return;
+    }
+
+    const loaded: OrcamentoParams = {
+      numeroOrcamento: data.numero_orcamento || "",
+      clientName: data.nome_cliente,
+      contatoNome: data.contato_nome || "",
+      clienteEndereco: data.cliente_endereco || "",
+      clienteTelefone: data.cliente_telefone || "",
+      clienteCnpj: data.cliente_cnpj || "",
+      clienteEmail: data.cliente_email || "",
+      itens: Array.isArray(data.itens) ? (data.itens as unknown as ItemOrcamento[]) : [],
+      descontoTipo: ((data.desconto_tipo as any) || "percentual"),
+      descontoValor: Number(data.desconto_valor) || 0,
+      frete: Number(data.frete) || 0,
+      condicoesPagamento: data.condicoes_pagamento || "",
+      prazoEntrega: data.prazo_entrega || "",
+      validadeDias: data.validade_dias ?? 10,
+      localEntrega: data.local_entrega || "",
+      observacoes: data.observacoes || "",
+      status: data.status || "rascunho",
+    };
+
+    handleLoad(loaded, data.id);
+  }, [toast]);
+
   // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
   useEffect(() => {
     if (authLoading || profile?.status !== "approved") return;
+
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
+
     if (loadId) {
-      (async () => {
-        const { data, error } = await supabase.from("orcamentos").select("*").eq("id", loadId).maybeSingle();
-        if (error || !data) {
-          toast({ title: "Orçamento não encontrado", variant: "destructive" });
-        } else {
-          const loaded: OrcamentoParams = {
-            numeroOrcamento: data.numero_orcamento || "",
-            clientName: data.nome_cliente,
-            contatoNome: data.contato_nome || "",
-            clienteEndereco: data.cliente_endereco || "",
-            clienteTelefone: data.cliente_telefone || "",
-            clienteCnpj: data.cliente_cnpj || "",
-            clienteEmail: data.cliente_email || "",
-            itens: Array.isArray(data.itens) ? (data.itens as unknown as ItemOrcamento[]) : [],
-            descontoTipo: ((data.desconto_tipo as any) || "percentual"),
-            descontoValor: Number(data.desconto_valor) || 0,
-            frete: Number(data.frete) || 0,
-            condicoesPagamento: data.condicoes_pagamento || "",
-            prazoEntrega: data.prazo_entrega || "",
-            validadeDias: data.validade_dias ?? 10,
-            localEntrega: data.local_entrega || "",
-            observacoes: data.observacoes || "",
-            status: data.status || "rascunho",
-          };
-          setParams(loaded);
-          setSavedId(data.id);
-          toast({ title: "Orçamento carregado" });
-        }
+      void loadOrcamentoById(loadId).finally(() => {
         setSearchParams({}, { replace: true });
-      })();
-    } else if (novo) {
+      });
+      return;
+    }
+
+    if (novo) {
       setParams(DEFAULT_ORCAMENTO);
       setSavedId(null);
       setSearchParams({}, { replace: true });
-    } else if (searchParams.get("propostas")) {
+      return;
+    }
+
+    if (searchParams.get("propostas")) {
       setModalOpen(true);
       setSearchParams({}, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, profile?.status]);
+  }, [authLoading, profile?.status, searchParams, setSearchParams, loadOrcamentoById]);
 
   async function handlePdf() {
     if (!params.clientName.trim()) {
