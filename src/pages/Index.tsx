@@ -180,6 +180,9 @@ const Index = () => {
       setParams(DEFAULT_PARAMS);
       setSavedId(null);
       setSearchParams({}, { replace: true });
+    } else if (searchParams.get("propostas")) {
+      setModalOpen(true);
+      setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
