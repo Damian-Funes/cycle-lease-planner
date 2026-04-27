@@ -73,12 +73,12 @@ export default function Auth() {
       .maybeSingle();
 
     if (profileError) {
-      await refreshProfile();
       setLoading(false);
       toast.error("Login realizado, mas não foi possível carregar seu perfil.");
       return;
     }
 
+    await refreshProfile(signedInUser.id);
     toast.success("Login realizado");
     setLoading(false);
 
