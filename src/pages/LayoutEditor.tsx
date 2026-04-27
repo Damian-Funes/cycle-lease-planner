@@ -186,6 +186,12 @@ export default function LayoutEditor() {
 
   const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
 
+  // Reset pan quando o tamanho do piso muda (evita layout sair da tela)
+  useEffect(() => {
+    setPan({ x: 0, y: 0 });
+  }, [layout?.piso_largura_mm, layout?.piso_comprimento_mm, containerSize.w, containerSize.h]);
+
+
   const handleWheel = useCallback((e: any) => {
     e.evt.preventDefault();
     const stage = e.target.getStage();
