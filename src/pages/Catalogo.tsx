@@ -28,12 +28,8 @@ export default function Catalogo() {
   });
 
   useEffect(() => {
-    if (sessionStorage.getItem("catalogo_auth") !== "true") {
-      navigate("/", { replace: true });
-      return;
-    }
     fetchAll();
-  }, [navigate]);
+  }, []);
 
   async function fetchAll() {
     setLoading(true);
