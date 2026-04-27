@@ -523,10 +523,16 @@ export default function LayoutEditor() {
                   height={containerSize.h}
                   scaleX={scale}
                   scaleY={scale}
-                  x={(containerSize.w - layout.piso_largura_mm * scale) / 2}
-                  y={(containerSize.h - layout.piso_comprimento_mm * scale) / 2}
+                  x={stageX}
+                  y={stageY}
+                  draggable
+                  onDragEnd={(e) => {
+                    if (e.target === e.target.getStage()) {
+                      setPan({ x: pan.x + (e.target.x() - stageX), y: pan.y + (e.target.y() - stageY) });
+                    }
+                  }}
+                  onWheel={handleWheel}
                   onMouseDown={(e) => {
-                    // clique fora desseleciona
                     if (e.target === e.target.getStage()) setSelectedId(null);
                   }}
                 >
