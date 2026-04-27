@@ -237,10 +237,10 @@ export default function LayoutEditor() {
 
   async function addEquipamento(eq: Equipamento) {
     if (!layout) return;
-    if (!eq.imagem_url || !eq.largura_mm || !eq.comprimento_mm) {
+    if (!eq.largura_mm || !eq.comprimento_mm) {
       toast({
-        title: "Equipamento incompleto",
-        description: "Cadastre imagem e dimensões no Catálogo antes de adicionar ao layout.",
+        title: "Dimensões obrigatórias",
+        description: "Cadastre largura e comprimento no Catálogo antes de adicionar ao layout.",
         variant: "destructive",
       });
       return;
