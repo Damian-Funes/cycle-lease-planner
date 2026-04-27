@@ -28,42 +28,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
 
   const fetchProfileAndRole = async (userId: string) => {
     const [{ data: prof }, { data: roles }] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
     ]);
+
     setProfile(prof as Profile | null);
     setIsAdmin(!!roles?.some((r) => r.role === "admin"));
   };
 
   useEffect(() => {
-    // Listener primeiro (sem awaits dentro)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, sess) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
-      if (sess?.user) {
-        setTimeout(() => fetchProfileAndRole(sess.user.id), 0);
-      } else {
-        setProfile(null);
-        setIsAdmin(false);
-      }
     });
 
-    // Depois pega sessão atual
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
       setSession(sess);
       setUser(sess?.user ?? null);
-      if (sess?.user) {
-        fetchProfileAndRole(sess.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+      setAuthReady(true);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!authReady) return;
+
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      await fetchProfileAndRole(user.id);
+      if (!cancelled) {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authReady, user?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -76,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, isAdmin, loading, refreshProfile, signOut }}>
       {children}
     </AuthContext.Provider>
   );
