@@ -75,13 +75,22 @@ export default function Catalogo() {
     resetForm();
   }
 
+  function formatMoneyForInput(n: number | null | undefined): string {
+    if (n == null || isNaN(n)) return "";
+    // Formata em pt-BR (1.234,56) — compatível com parseMoney
+    return n.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
   function startEdit(eq: Equipamento) {
     setEditing(eq.id);
     setForm({
       codigo: eq.codigo,
       descricao: eq.descricao,
-      valor_custo: eq.valor_custo.toString(),
-      valor_venda: eq.valor_venda != null ? eq.valor_venda.toString() : "",
+      valor_custo: formatMoneyForInput(eq.valor_custo),
+      valor_venda: formatMoneyForInput(eq.valor_venda),
       imagem_url: eq.imagem_url || "",
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
