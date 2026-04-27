@@ -20,7 +20,17 @@ interface AuthContextValue {
   refreshProfile: (userId?: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const defaultAuthContext: AuthContextValue = {
+  user: null,
+  session: null,
+  profile: null,
+  isAdmin: false,
+  loading: true,
+  signOut: async () => {},
+  refreshProfile: async () => {},
+};
+
+const AuthContext = createContext<AuthContextValue>(defaultAuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
