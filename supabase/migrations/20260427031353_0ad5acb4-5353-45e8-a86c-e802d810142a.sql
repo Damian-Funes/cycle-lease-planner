@@ -1,0 +1,1 @@
+ALTER VIEW public.vw_layout_completo SET (security_invoker = true);
