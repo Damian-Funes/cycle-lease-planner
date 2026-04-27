@@ -143,6 +143,7 @@ const Index = () => {
 
   // Deep-link: ?load=<id> carrega aluguel; ?novo=1 inicia novo
   useEffect(() => {
+    if (authLoading || profile?.status !== "approved") return;
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
     if (loadId) {
