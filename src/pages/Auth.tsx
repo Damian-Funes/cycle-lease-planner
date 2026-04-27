@@ -28,10 +28,14 @@ export default function Auth() {
   const [signupPwd, setSignupPwd] = useState("");
 
   useEffect(() => {
-    if (!authLoading && user && profile) {
+    if (authLoading) return;
+    if (!user) return;
+    // Usuário logado: aguarda profile e redireciona
+    if (profile) {
       if (profile.status === "approved") {
-        const from = (location.state as any)?.from || "/";
-        navigate(from, { replace: true });
+        const from = (location.state as any)?.from;
+        const target = from && typeof from === "string" && from !== "/auth" ? from : "/";
+        navigate(target, { replace: true });
       } else {
         navigate("/pendente", { replace: true });
       }
