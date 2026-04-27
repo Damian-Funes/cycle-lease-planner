@@ -33,10 +33,10 @@ const cards = [
     color: "bg-purple-500/10 text-purple-600",
   },
   {
-    title: "Layout",
-    desc: "Layouts dos projetos",
+    title: "Layouts",
+    desc: "Vista em planta dos projetos",
     icon: LayoutGrid,
-    to: "/layout",
+    to: "/layouts",
     color: "bg-teal-500/10 text-teal-600",
   },
 ];

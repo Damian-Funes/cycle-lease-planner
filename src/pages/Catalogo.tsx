@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Equipamento } from "@/lib/equipamentos";
+import { Equipamento, EquipamentoCategoria, CATEGORIAS } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
 import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, ImagePlus, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,17 @@ export default function Catalogo() {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ codigo: "", descricao: "", valor_custo: "", valor_venda: "", imagem_url: "" });
+  const [form, setForm] = useState({
+    codigo: "",
+    descricao: "",
+    valor_custo: "",
+    valor_venda: "",
+    imagem_url: "",
+    categoria: "" as EquipamentoCategoria | "",
+    largura_mm: "",
+    comprimento_mm: "",
+    altura_mm: "",
+  });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -44,7 +54,17 @@ export default function Catalogo() {
   }
 
   function resetForm() {
-    setForm({ codigo: "", descricao: "", valor_custo: "", valor_venda: "", imagem_url: "" });
+    setForm({
+      codigo: "",
+      descricao: "",
+      valor_custo: "",
+      valor_venda: "",
+      imagem_url: "",
+      categoria: "",
+      largura_mm: "",
+      comprimento_mm: "",
+      altura_mm: "",
+    });
     setImageFile(null);
     setImagePreview("");
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -63,6 +83,10 @@ export default function Catalogo() {
       valor_custo: eq.valor_custo.toString(),
       valor_venda: eq.valor_venda != null ? eq.valor_venda.toString() : "",
       imagem_url: eq.imagem_url || "",
+      categoria: (eq.categoria as EquipamentoCategoria) || "",
+      largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
+      comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
+      altura_mm: eq.altura_mm != null ? String(eq.altura_mm) : "",
     });
     setImageFile(null);
     setImagePreview(eq.imagem_url || "");
@@ -131,12 +155,23 @@ export default function Catalogo() {
       return;
     }
 
+    const cat = form.categoria || null;
+    const corCategoria = cat ? CATEGORIAS.find((c) => c.value === cat)?.cor ?? null : null;
+    const toInt = (v: string) => {
+      const n = parseInt(v, 10);
+      return isNaN(n) ? null : n;
+    };
     const row = {
       codigo: form.codigo.trim(),
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
       imagem_url,
+      categoria: cat,
+      cor_categoria: corCategoria,
+      largura_mm: toInt(form.largura_mm),
+      comprimento_mm: toInt(form.comprimento_mm),
+      altura_mm: toInt(form.altura_mm),
     };
 
     if (editing === "new") {
@@ -280,8 +315,57 @@ export default function Catalogo() {
                       placeholder="200000"
                     />
                   </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Categoria (para Layout)</label>
+                    <select
+                      value={form.categoria}
+                      onChange={(e) => setForm({ ...form, categoria: e.target.value as EquipamentoCategoria | "" })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">— Sem categoria —</option>
+                      {CATEGORIAS.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Largura (mm)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.largura_mm}
+                      onChange={(e) => setForm({ ...form, largura_mm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="3000"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Comprimento (mm)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.comprimento_mm}
+                      onChange={(e) => setForm({ ...form, comprimento_mm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="1500"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Altura (mm) — opcional</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.altura_mm}
+                      onChange={(e) => setForm({ ...form, altura_mm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="1500"
+                    />
+                  </div>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
+              </p>
               <div className="flex gap-2 mt-4">
                 <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
