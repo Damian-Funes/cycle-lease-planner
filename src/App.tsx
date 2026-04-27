@@ -11,7 +11,8 @@ import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
 import Orcamento from "./pages/Orcamento";
-import Layout from "./pages/Layout";
+import Layouts from "./pages/Layouts";
+import LayoutEditor from "./pages/LayoutEditor";
 import AdminUsuarios from "./pages/AdminUsuarios";
 import NotFound from "./pages/NotFound";
 
@@ -31,7 +32,8 @@ const App = () => (
             <Route path="/smartcycle" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/orcamento" element={<ProtectedRoute><Orcamento /></ProtectedRoute>} />
             <Route path="/catalogo" element={<ProtectedRoute><Catalogo /></ProtectedRoute>} />
-            <Route path="/layout" element={<ProtectedRoute><Layout /></ProtectedRoute>} />
+            <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
+            <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
             <Route path="/admin/usuarios" element={<ProtectedRoute requireAdmin><AdminUsuarios /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
