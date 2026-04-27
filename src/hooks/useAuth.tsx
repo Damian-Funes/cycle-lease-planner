@@ -41,13 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
 
   const fetchProfileAndRole = async (userId: string) => {
-    const [{ data: prof }, { data: roles }] = await Promise.all([
+    const [profRes, rolesRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
     ]);
 
-    setProfile(prof as Profile | null);
-    setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+    if (profRes.error) throw profRes.error;
+    if (rolesRes.error) throw rolesRes.error;
+
+    setProfile(profRes.data as Profile | null);
+    setIsAdmin(!!rolesRes.data?.some((r) => r.role === "admin"));
   };
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess);
       setUser(sess?.user ?? null);
+      setAuthReady(true);
     });
 
     supabase.auth.getSession().then(({ data: { session: sess } }) => {
@@ -70,29 +74,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!authReady) return;
 
-    let cancelled = false;
+    let active = true;
 
     const loadProfile = async () => {
       if (!user) {
+        if (!active) return;
         setProfile(null);
         setIsAdmin(false);
         setLoading(false);
         return;
       }
 
-      setLoading(true);
-      await fetchProfileAndRole(user.id);
-      if (!cancelled) {
-        setLoading(false);
+      if (active) setLoading(true);
+
+      try {
+        await fetchProfileAndRole(user.id);
+      } catch (error) {
+        console.error("[auth] failed to load profile/roles", error);
+        if (active) {
+          setProfile(null);
+          setIsAdmin(false);
+        }
+      } finally {
+        if (active) setLoading(false);
       }
     };
 
     loadProfile();
 
     return () => {
-      cancelled = true;
+      active = false;
     };
-  }, [authReady, user?.id, session?.access_token]);
+  }, [authReady, user?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -102,7 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async (userId?: string) => {
     const targetUserId = userId ?? user?.id;
-    if (targetUserId) await fetchProfileAndRole(targetUserId);
+    if (!targetUserId) return;
+
+    try {
+      setLoading(true);
+      await fetchProfileAndRole(targetUserId);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
