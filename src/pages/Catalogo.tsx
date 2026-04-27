@@ -315,8 +315,57 @@ export default function Catalogo() {
                       placeholder="200000"
                     />
                   </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Categoria (para Layout)</label>
+                    <select
+                      value={form.categoria}
+                      onChange={(e) => setForm({ ...form, categoria: e.target.value as EquipamentoCategoria | "" })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    >
+                      <option value="">— Sem categoria —</option>
+                      {CATEGORIAS.map((c) => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Largura (mm)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.largura_mm}
+                      onChange={(e) => setForm({ ...form, largura_mm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="3000"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Comprimento (mm)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.comprimento_mm}
+                      onChange={(e) => setForm({ ...form, comprimento_mm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="1500"
+                    />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Altura (mm) — opcional</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.altura_mm}
+                      onChange={(e) => setForm({ ...form, altura_mm: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="1500"
+                    />
+                  </div>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
+              </p>
               <div className="flex gap-2 mt-4">
                 <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
