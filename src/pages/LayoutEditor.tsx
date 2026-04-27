@@ -157,7 +157,8 @@ export default function LayoutEditor() {
       await refreshItems();
       setLoading(false);
     })();
-  }, [id, navigate, refreshItems, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   /* ---- responsive container ---- */
   useEffect(() => {
