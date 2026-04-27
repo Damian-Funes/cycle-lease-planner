@@ -348,7 +348,28 @@ export default function LayoutEditor() {
   /* ---- exportar PDF ---- */
   async function handleExportPdf() {
     if (!stageRef.current || !layout) return;
-    const dataUrl = stageRef.current.toDataURL({ pixelRatio: 3 });
+    let dataUrl: string;
+    try {
+      const stage = stageRef.current;
+      const targetPxWidth = 2400;
+      const pr = Math.max(1, targetPxWidth / Math.max(1, layout.piso_largura_mm * scale));
+      dataUrl = stage.toDataURL({
+        x: stageX,
+        y: stageY,
+        width: layout.piso_largura_mm * scale,
+        height: layout.piso_comprimento_mm * scale,
+        pixelRatio: pr,
+        mimeType: "image/png",
+      });
+    } catch (err: any) {
+      console.error("[PDF] toDataURL falhou:", err);
+      toast({
+        title: "Não foi possível gerar o PDF",
+        description: "Provável bloqueio de CORS na imagem do piso. Reenvie a imagem ou remova-a e tente novamente.",
+        variant: "destructive",
+      });
+      return;
+    }
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
