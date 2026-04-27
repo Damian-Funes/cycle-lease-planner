@@ -183,6 +183,7 @@ export default function Orcamento() {
 
   // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
   useEffect(() => {
+    if (authLoading || profile?.status !== "approved") return;
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
     if (loadId) {
@@ -225,7 +226,7 @@ export default function Orcamento() {
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading, profile?.status]);
 
   async function handlePdf() {
     if (!params.clientName.trim()) {
