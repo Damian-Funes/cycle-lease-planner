@@ -13,7 +13,7 @@ export default function NovaPropostaButton({ onNovoAluguel, onNovoOrcamento }: P
 
   const handleAluguel = () => {
     if (onNovoAluguel) onNovoAluguel();
-    else navigate("/?novo=1");
+    else navigate("/smartcycle?novo=1");
   };
   const handleOrcamento = () => {
     if (onNovoOrcamento) onNovoOrcamento();
