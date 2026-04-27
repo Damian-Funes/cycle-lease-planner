@@ -1,22 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
-import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search } from "lucide-react";
+import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, ImagePlus, ImageOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+
+const BUCKET = "equipamentos-imagens";
+const MAX_IMG_MB = 5;
 
 export default function Catalogo() {
-  const navigate = useNavigate();
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ codigo: "", descricao: "", valor_custo: "", valor_venda: "" });
+  const [form, setForm] = useState({ codigo: "", descricao: "", valor_custo: "", valor_venda: "", imagem_url: "" });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const equipamentosFiltrados = equipamentos.filter((eq) => {
@@ -38,9 +43,16 @@ export default function Catalogo() {
     setLoading(false);
   }
 
+  function resetForm() {
+    setForm({ codigo: "", descricao: "", valor_custo: "", valor_venda: "", imagem_url: "" });
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   function startNew() {
     setEditing("new");
-    setForm({ codigo: "", descricao: "", valor_custo: "", valor_venda: "" });
+    resetForm();
   }
 
   function startEdit(eq: Equipamento) {
@@ -50,11 +62,16 @@ export default function Catalogo() {
       descricao: eq.descricao,
       valor_custo: eq.valor_custo.toString(),
       valor_venda: eq.valor_venda != null ? eq.valor_venda.toString() : "",
+      imagem_url: eq.imagem_url || "",
     });
+    setImageFile(null);
+    setImagePreview(eq.imagem_url || "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function cancelEdit() {
     setEditing(null);
+    resetForm();
   }
 
   function parseMoney(v: string): number | null {
@@ -63,17 +80,63 @@ export default function Catalogo() {
     return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_IMG_MB * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: `Máx. ${MAX_IMG_MB}MB.`, variant: "destructive" });
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
+
+  async function uploadImage(codigo: string): Promise<string | null> {
+    if (!imageFile) return form.imagem_url || null;
+    const ext = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+    const safeCodigo = codigo.replace(/[^a-zA-Z0-9_-]/g, "_");
+    const path = `${safeCodigo}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET).upload(path, imageFile, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: imageFile.type,
+    });
+    if (error) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+      return null;
+    }
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   async function handleSave() {
     if (!form.codigo.trim() || !form.descricao.trim() || !form.valor_custo) {
       toast({ title: "Preencha código, descrição e valor de custo", variant: "destructive" });
       return;
     }
+    // Imagem obrigatória: precisa ter arquivo novo OU url já existente
+    if (!imageFile && !form.imagem_url) {
+      toast({ title: "Imagem obrigatória", description: "Envie a foto do equipamento.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
+
+    const imagem_url = await uploadImage(form.codigo.trim());
+    if (!imagem_url) {
+      setSaving(false);
+      return;
+    }
+
     const row = {
       codigo: form.codigo.trim(),
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
+      imagem_url,
     };
 
     if (editing === "new") {
@@ -94,6 +157,7 @@ export default function Catalogo() {
 
     setSaving(false);
     setEditing(null);
+    resetForm();
     fetchAll();
   }
 
@@ -151,45 +215,74 @@ export default function Catalogo() {
               <CardTitle className="text-base">{editing === "new" ? "Novo Equipamento" : "Editar Equipamento"}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-muted-foreground">Código</label>
+              <div className="grid sm:grid-cols-[120px_1fr] gap-4">
+                {/* Imagem */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Imagem *</label>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-[120px] h-[120px] rounded-md border-2 border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden"
+                  >
+                    {imagePreview ? (
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-center text-muted-foreground p-2">
+                        <ImagePlus className="w-6 h-6 mx-auto mb-1" />
+                        <span className="text-xs">Adicionar foto</span>
+                      </div>
+                    )}
+                  </div>
                   <input
-                    value={form.codigo}
-                    onChange={(e) => setForm({ ...form, codigo: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="EQ-011"
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
                   />
+                  <p className="text-xs text-muted-foreground">PNG/JPG até {MAX_IMG_MB}MB</p>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-muted-foreground">Descrição</label>
-                  <input
-                    value={form.descricao}
-                    onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="Nome do equipamento"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-muted-foreground">Valor de Custo (R$)</label>
-                  <input
-                    value={form.valor_custo}
-                    onChange={(e) => setForm({ ...form, valor_custo: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
-                    placeholder="100000"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-muted-foreground">Valor de Venda (R$)</label>
-                  <input
-                    value={form.valor_venda}
-                    onChange={(e) => setForm({ ...form, valor_venda: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
-                    placeholder="200000"
-                  />
+
+                {/* Campos */}
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Código</label>
+                    <input
+                      value={form.codigo}
+                      onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="EQ-011"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Descrição</label>
+                    <input
+                      value={form.descricao}
+                      onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="Nome do equipamento"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Valor de Custo (R$)</label>
+                    <input
+                      value={form.valor_custo}
+                      onChange={(e) => setForm({ ...form, valor_custo: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="100000"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-muted-foreground">Valor de Venda (R$)</label>
+                    <input
+                      value={form.valor_venda}
+                      onChange={(e) => setForm({ ...form, valor_venda: e.target.value })}
+                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                      placeholder="200000"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2 mt-3">
+              <div className="flex gap-2 mt-4">
                 <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   Salvar
@@ -212,6 +305,7 @@ export default function Catalogo() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 text-muted-foreground">
+                  <th className="text-left p-3 font-medium w-16">Foto</th>
                   <th className="text-left p-3 font-medium">Código</th>
                   <th className="text-left p-3 font-medium">Descrição</th>
                   <th className="text-right p-3 font-medium">Valor Custo</th>
@@ -223,6 +317,15 @@ export default function Catalogo() {
               <tbody>
                 {equipamentosFiltrados.map((eq) => (
                   <tr key={eq.id} className={`border-t transition-colors ${eq.ativo ? "hover:bg-muted/30" : "opacity-50"}`}>
+                    <td className="p-2">
+                      <div className="w-12 h-12 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
+                        {eq.imagem_url ? (
+                          <img src={eq.imagem_url} alt={eq.codigo} className="w-full h-full object-contain" loading="lazy" />
+                        ) : (
+                          <ImageOff className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </td>
                     <td className="p-3 font-medium">{eq.codigo}</td>
                     <td className="p-3 text-muted-foreground">{eq.descricao}</td>
                     <td className="p-3 text-right font-semibold">{formatBRL(Number(eq.valor_custo))}</td>
