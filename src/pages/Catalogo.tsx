@@ -75,13 +75,22 @@ export default function Catalogo() {
     resetForm();
   }
 
+  function formatMoneyForInput(n: number | null | undefined): string {
+    if (n == null || isNaN(n)) return "";
+    // Formata em pt-BR (1.234,56) — compatível com parseMoney
+    return n.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
   function startEdit(eq: Equipamento) {
     setEditing(eq.id);
     setForm({
       codigo: eq.codigo,
       descricao: eq.descricao,
-      valor_custo: eq.valor_custo.toString(),
-      valor_venda: eq.valor_venda != null ? eq.valor_venda.toString() : "",
+      valor_custo: formatMoneyForInput(eq.valor_custo),
+      valor_venda: formatMoneyForInput(eq.valor_venda),
       imagem_url: eq.imagem_url || "",
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
@@ -101,7 +110,16 @@ export default function Catalogo() {
   function parseMoney(v: string): number | null {
     const s = v.trim();
     if (!s) return null;
-    return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
+    // Caso pt-BR (com vírgula decimal): remove pontos de milhar e troca vírgula por ponto.
+    if (s.includes(",")) {
+      return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
+    }
+    // Sem vírgula: se houver um único ponto seguido de 1-2 dígitos no fim, é decimal (ex.: "59448.3").
+    if (/^\d+\.\d{1,2}$/.test(s)) {
+      return parseFloat(s) || 0;
+    }
+    // Caso contrário (ex.: "1.234.567" ou "1234567"), pontos são separador de milhar.
+    return parseFloat(s.replace(/\./g, "")) || 0;
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
