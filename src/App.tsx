@@ -13,13 +13,13 @@ import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
 import Orcamento from "./pages/Orcamento";
+import Reforma from "./pages/Reforma";
+import ReformaCatalogo from "./pages/ReformaCatalogo";
 import NotFound from "./pages/NotFound";
 
 const Layouts = lazy(() => import("./pages/Layouts"));
 const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
 const AdminUsuarios = lazy(() => import("./pages/AdminUsuarios"));
-const Reforma = lazy(() => import("./pages/Reforma"));
-const ReformaCatalogo = lazy(() => import("./pages/ReformaCatalogo"));
 
 const queryClient = new QueryClient();
 
