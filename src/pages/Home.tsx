@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const cards = [
@@ -38,6 +38,13 @@ const cards = [
     icon: LayoutGrid,
     to: "/layouts",
     color: "bg-teal-500/10 text-teal-600",
+  },
+  {
+    title: "Reforma",
+    desc: "Projetos de reforma e adequação",
+    icon: Wrench,
+    to: "/reforma",
+    color: "bg-rose-500/10 text-rose-600",
   },
 ];
 
