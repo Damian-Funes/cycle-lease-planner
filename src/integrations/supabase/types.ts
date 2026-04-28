@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      itens_reforma: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          codigo: string
+          created_at: string
+          descricao: string
+          id: string
+          ordem: number
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          codigo: string
+          created_at?: string
+          descricao: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       layout_equipamentos: {
         Row: {
           created_at: string
@@ -178,6 +214,81 @@ export type Database = {
         Relationships: []
       }
       orcamentos: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          condicoes_pagamento: string | null
+          contato_nome: string | null
+          created_at: string
+          desconto_tipo: string
+          desconto_valor: number
+          frete: number
+          id: string
+          itens: Json
+          local_entrega: string | null
+          nome_cliente: string
+          numero_orcamento: string | null
+          observacoes: string | null
+          prazo_entrega: string | null
+          status: string | null
+          subtotal: number
+          total: number
+          updated_at: string
+          validade_dias: number | null
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          desconto_tipo?: string
+          desconto_valor?: number
+          frete?: number
+          id?: string
+          itens?: Json
+          local_entrega?: string | null
+          nome_cliente: string
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          status?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          validade_dias?: number | null
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string
+          desconto_tipo?: string
+          desconto_valor?: number
+          frete?: number
+          id?: string
+          itens?: Json
+          local_entrega?: string | null
+          nome_cliente?: string
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          prazo_entrega?: string | null
+          status?: string | null
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          validade_dias?: number | null
+        }
+        Relationships: []
+      }
+      orcamentos_reforma: {
         Row: {
           cliente_cnpj: string | null
           cliente_email: string | null
