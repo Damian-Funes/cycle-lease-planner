@@ -391,72 +391,37 @@ export default function LayoutEditor() {
         <div className="flex-1 p-3 min-w-0">
           <Card className="h-full overflow-hidden relative">
             <div ref={containerRef} className="w-full h-full bg-muted/30">
-              {containerSize.w > 0 && (
-                <Stage
-                  ref={stageRef}
-                  width={containerSize.w}
-                  height={containerSize.h}
-                  scaleX={scale}
-                  scaleY={scale}
-                  x={stageX}
-                  y={stageY}
-                  onWheel={handleWheel}
-                  onMouseDown={(e) => {
-                    if (e.target === e.target.getStage()) setSelectedId(null);
-                  }}
-                >
-                  <Layer>
-                    {/* fundo do piso */}
-                    <Rect width={layout.piso_largura_mm} height={layout.piso_comprimento_mm} fill="hsl(var(--background))" shadowColor="rgba(0,0,0,0.18)" shadowBlur={220} shadowOpacity={0.18} shadowOffset={{ x: 0, y: 24 }} />
-                    {/* planta cliente */}
-                    {pisoBgImg && (
-                      <KonvaImage
-                        image={pisoBgImg}
-                        width={layout.piso_largura_mm}
-                        height={layout.piso_comprimento_mm}
-                        opacity={layout.piso_imagem_opacidade}
-                        listening={false}
-                      />
-                    )}
-                    <GridBackground pisoW={layout.piso_largura_mm} pisoH={layout.piso_comprimento_mm} />
-                    {/* borda do piso */}
-                    <Rect
-                      width={layout.piso_largura_mm}
-                      height={layout.piso_comprimento_mm}
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={60}
-                      dash={[320, 180]}
-                      listening={false}
-                    />
-                    {/* equipamentos */}
-                    {items.map((it) => (
-                      <EquipamentoNode
-                        key={it.item_id}
-                        item={it}
-                        selected={selectedId === it.item_id}
-                        onSelect={() => setSelectedId(it.item_id)}
-                        onDragEnd={(x, y) => handleDragEnd(it.item_id, x, y)}
-                        onDblClick={() => { setSelectedId(it.item_id); rotateSelected(); }}
-                        pisoW={layout.piso_largura_mm}
-                        pisoH={layout.piso_comprimento_mm}
-                      />
-                    ))}
-                  </Layer>
-                </Stage>
+              {layout && (
+                <Layout3DCanvas
+                  items={items}
+                  pisoLarguraMm={layout.piso_largura_mm}
+                  pisoComprimentoMm={layout.piso_comprimento_mm}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onTransform={handleTransform}
+                  mode={transformMode}
+                />
               )}
 
-              {/* Controles de zoom */}
-              <div className="absolute top-3 right-3 bg-background/95 border rounded-lg shadow-md flex items-center gap-0.5 p-1 z-10">
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))} title="Zoom -">
-                  <ZoomOut className="w-3.5 h-3.5" />
+              {/* Modo de transformação */}
+              <div className="absolute top-3 right-3 bg-background/95 border rounded-lg shadow-md flex items-center gap-1 p-1 z-10">
+                <Button
+                  size="sm"
+                  variant={transformMode === "translate" ? "default" : "ghost"}
+                  onClick={() => setTransformMode("translate")}
+                  className="h-7 gap-1"
+                >
+                  <Move3d className="w-3.5 h-3.5" />
+                  <span className="text-xs">Mover</span>
                 </Button>
-                <span className="text-xs tabular-nums w-12 text-center text-muted-foreground">{Math.round(zoom * 100)}%</span>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.min(8, z * 1.2))} title="Zoom +">
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </Button>
-                <Button size="sm" variant="default" className="h-7 px-2 gap-1" onClick={resetView} title="Centralizar layout">
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="text-xs">Centralizar</span>
+                <Button
+                  size="sm"
+                  variant={transformMode === "rotate" ? "default" : "ghost"}
+                  onClick={() => setTransformMode("rotate")}
+                  className="h-7 gap-1"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                  <span className="text-xs">Rotacionar</span>
                 </Button>
               </div>
 
