@@ -28,6 +28,9 @@ export default function Catalogo() {
   });
   const [modeloFile, setModeloFile] = useState<File | null>(null);
   const [modeloFileName, setModeloFileName] = useState<string>("");
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
+  const [uploadError, setUploadError] = useState<string>("");
+  const [uploadingFileSize, setUploadingFileSize] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
@@ -68,6 +71,9 @@ export default function Catalogo() {
     setModeloFile(null);
     setModeloFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setUploadStatus("idle");
+    setUploadError("");
+    setUploadingFileSize(0);
   }
 
   function startNew() {
@@ -99,6 +105,9 @@ export default function Catalogo() {
     });
     setModeloFile(null);
     setModeloFileName((eq as any).modelo_3d_url ? "Modelo atual" : "");
+    setUploadStatus((eq as any).modelo_3d_url ? "success" : "idle");
+    setUploadError("");
+    setUploadingFileSize(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -122,7 +131,7 @@ export default function Catalogo() {
     return parseFloat(s.replace(/\./g, "")) || 0;
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const isGlb = file.name.toLowerCase().endsWith(".glb");
@@ -134,25 +143,33 @@ export default function Catalogo() {
       toast({ title: "Arquivo muito grande", description: `Máx. ${MAX_GLB_MB}MB.`, variant: "destructive" });
       return;
     }
+
     setModeloFile(file);
     setModeloFileName(file.name);
-  }
+    setUploadStatus("uploading");
+    setUploadError("");
+    setUploadingFileSize(file.size);
 
-  async function uploadModelo(codigo: string): Promise<string | null> {
-    if (!modeloFile) return form.modelo_3d_url || null;
-    const safeCodigo = codigo.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const path = `${safeCodigo}-${Date.now()}.glb`;
-    const { error } = await supabase.storage.from(BUCKET_MODELOS).upload(path, modeloFile, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: "model/gltf-binary",
-    });
-    if (error) {
-      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
-      return null;
+    try {
+      const safeCodigo = (form.codigo.trim() || "temp").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const path = `${safeCodigo}-${Date.now()}.glb`;
+      const { error } = await supabase.storage.from(BUCKET_MODELOS).upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: "model/gltf-binary",
+      });
+      if (error) {
+        setUploadStatus("error");
+        setUploadError(error.message);
+        return;
+      }
+      const { data } = supabase.storage.from(BUCKET_MODELOS).getPublicUrl(path);
+      setForm((f) => ({ ...f, modelo_3d_url: data.publicUrl }));
+      setUploadStatus("success");
+    } catch (err: any) {
+      setUploadStatus("error");
+      setUploadError(err?.message || "Erro desconhecido no upload");
     }
-    const { data } = supabase.storage.from(BUCKET_MODELOS).getPublicUrl(path);
-    return data.publicUrl;
   }
 
   async function handleSave() {
@@ -160,9 +177,15 @@ export default function Catalogo() {
       toast({ title: "Preencha código, descrição e valor de custo", variant: "destructive" });
       return;
     }
+    if (uploadStatus === "uploading") {
+      toast({ title: "Aguarde", description: "Upload do modelo ainda em andamento.", variant: "destructive" });
+      return;
+    }
+    if (uploadStatus === "error") {
+      toast({ title: "Erro no upload", description: "Tente subir o modelo novamente antes de salvar.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
-
-    const modelo_3d_url = await uploadModelo(form.codigo.trim());
 
     const cat = form.categoria || null;
     const corCategoria = cat ? CATEGORIAS.find((c) => c.value === cat)?.cor ?? null : null;
@@ -175,7 +198,7 @@ export default function Catalogo() {
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
-      modelo_3d_url,
+      modelo_3d_url: form.modelo_3d_url || null,
       categoria: cat,
       cor_categoria: corCategoria,
       largura_mm: toInt(form.largura_mm),
@@ -186,17 +209,19 @@ export default function Catalogo() {
     if (editing === "new") {
       const { error } = await supabase.from("equipamentos").insert(row);
       if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Equipamento adicionado" });
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
       }
+      toast({ title: "Equipamento adicionado" });
     } else {
       const { error } = await supabase.from("equipamentos").update(row).eq("id", editing!);
       if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Equipamento atualizado" });
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
       }
+      toast({ title: "Equipamento atualizado" });
     }
 
     setSaving(false);
@@ -264,13 +289,35 @@ export default function Catalogo() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Modelo 3D (.glb)</label>
                   <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-[120px] h-[120px] rounded-md border-2 border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden p-2"
+                    onClick={() => uploadStatus !== "uploading" && fileInputRef.current?.click()}
+                    className={`w-[120px] h-[120px] rounded-md border-2 border-dashed flex items-center justify-center overflow-hidden p-2 transition-colors ${
+                      uploadStatus === "uploading"
+                        ? "border-primary bg-primary/5 cursor-wait"
+                        : uploadStatus === "success"
+                        ? "border-green-500 bg-green-50 cursor-pointer hover:bg-green-100"
+                        : uploadStatus === "error"
+                        ? "border-destructive bg-destructive/5 cursor-pointer hover:bg-destructive/10"
+                        : "border-border bg-muted/30 cursor-pointer hover:border-primary hover:bg-muted/50"
+                    }`}
                   >
-                    {modeloFileName ? (
+                    {uploadStatus === "uploading" ? (
                       <div className="text-center text-foreground">
-                        <FileBox className="w-6 h-6 mx-auto mb-1 text-primary" />
+                        <Loader2 className="w-6 h-6 mx-auto mb-1 animate-spin text-primary" />
+                        <span className="text-[10px] leading-tight block">Subindo...</span>
+                        <span className="text-[9px] leading-tight block text-muted-foreground">
+                          {(uploadingFileSize / (1024 * 1024)).toFixed(1)} MB
+                        </span>
+                      </div>
+                    ) : uploadStatus === "success" && modeloFileName ? (
+                      <div className="text-center text-green-700">
+                        <FileBox className="w-6 h-6 mx-auto mb-1" />
                         <span className="text-[10px] leading-tight block break-all">{modeloFileName}</span>
+                      </div>
+                    ) : uploadStatus === "error" ? (
+                      <div className="text-center text-destructive p-1">
+                        <X className="w-6 h-6 mx-auto mb-1" />
+                        <span className="text-[10px] leading-tight block">Erro</span>
+                        <span className="text-[9px] leading-tight block">Clique pra tentar</span>
                       </div>
                     ) : (
                       <div className="text-center text-muted-foreground p-2">
@@ -285,8 +332,17 @@ export default function Catalogo() {
                     accept=".glb,model/gltf-binary"
                     onChange={handleFileChange}
                     className="hidden"
+                    disabled={uploadStatus === "uploading"}
                   />
-                  <p className="text-xs text-muted-foreground">GLB até {MAX_GLB_MB}MB</p>
+                  {uploadStatus === "uploading" ? (
+                    <p className="text-xs text-primary">Aguarde concluir...</p>
+                  ) : uploadStatus === "success" ? (
+                    <p className="text-xs text-green-600">✓ Modelo carregado</p>
+                  ) : uploadStatus === "error" ? (
+                    <p className="text-xs text-destructive break-words max-w-[120px]">{uploadError}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">GLB até {MAX_GLB_MB}MB</p>
+                  )}
                 </div>
 
                 {/* Campos */}
@@ -379,9 +435,14 @@ export default function Catalogo() {
                 Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
               </p>
               <div className="flex gap-2 mt-4">
-                <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving || uploadStatus === "uploading"}
+                  className="gap-1"
+                >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar
+                  {uploadStatus === "uploading" ? "Aguarde upload..." : "Salvar"}
                 </Button>
                 <Button size="sm" variant="outline" onClick={cancelEdit} className="gap-1">
                   <X className="w-4 h-4" /> Cancelar
