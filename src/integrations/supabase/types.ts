@@ -24,6 +24,8 @@ export type Database = {
           cor_categoria: string | null
           created_at: string | null
           descricao: string
+          glb_rotacao_x: number
+          glb_rotacao_z: number
           id: string
           imagem_url: string | null
           largura_mm: number | null
@@ -40,6 +42,8 @@ export type Database = {
           cor_categoria?: string | null
           created_at?: string | null
           descricao: string
+          glb_rotacao_x?: number
+          glb_rotacao_z?: number
           id?: string
           imagem_url?: string | null
           largura_mm?: number | null
@@ -56,6 +60,8 @@ export type Database = {
           cor_categoria?: string | null
           created_at?: string | null
           descricao?: string
+          glb_rotacao_x?: number
+          glb_rotacao_z?: number
           id?: string
           imagem_url?: string | null
           largura_mm?: number | null
@@ -526,6 +532,8 @@ export type Database = {
           comprimento_mm: number | null
           cor_categoria: string | null
           equipamento_id: string | null
+          glb_rotacao_x: number | null
+          glb_rotacao_z: number | null
           imagem_url: string | null
           item_id: string | null
           largura_mm: number | null
