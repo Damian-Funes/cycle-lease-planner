@@ -440,6 +440,20 @@ export default function Catalogo() {
                   </div>
                 </div>
               </div>
+              {form.modelo_3d_url && uploadStatus === "success" && (
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">Orientação do modelo 3D</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha qual face do equipamento fica grudada no chão no editor de layout.
+                  </p>
+                  <GlbOrientationEditor
+                    glbUrl={form.modelo_3d_url}
+                    rotacaoX={form.glb_rotacao_x}
+                    rotacaoZ={form.glb_rotacao_z}
+                    onChange={(rx, rz) => setForm((f) => ({ ...f, glb_rotacao_x: rx, glb_rotacao_z: rz }))}
+                  />
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mt-3">
                 Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
               </p>
