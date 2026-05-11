@@ -3,7 +3,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
-import { Loader2 } from "lucide-react";
+import { ViewHelper } from "three/examples/jsm/helpers/ViewHelper.js";
+import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { LayoutItemRow } from "@/lib/layouts";
 
 export interface Layout3DCanvasProps {
