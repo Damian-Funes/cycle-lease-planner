@@ -28,6 +28,9 @@ export default function Catalogo() {
   });
   const [modeloFile, setModeloFile] = useState<File | null>(null);
   const [modeloFileName, setModeloFileName] = useState<string>("");
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
+  const [uploadError, setUploadError] = useState<string>("");
+  const [uploadingFileSize, setUploadingFileSize] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
