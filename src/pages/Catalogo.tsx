@@ -91,14 +91,14 @@ export default function Catalogo() {
       descricao: eq.descricao,
       valor_custo: formatMoneyForInput(eq.valor_custo),
       valor_venda: formatMoneyForInput(eq.valor_venda),
-      imagem_url: eq.imagem_url || "",
+      modelo_3d_url: (eq as any).modelo_3d_url || "",
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
       comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
       altura_mm: eq.altura_mm != null ? String(eq.altura_mm) : "",
     });
-    setImageFile(null);
-    setImagePreview(eq.imagem_url || "");
+    setModeloFile(null);
+    setModeloFileName((eq as any).modelo_3d_url ? "Modelo atual" : "");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
