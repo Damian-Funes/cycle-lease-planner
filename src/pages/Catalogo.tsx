@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento, EquipamentoCategoria, CATEGORIAS } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
-import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, ImagePlus, ImageOff } from "lucide-react";
+import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box, Upload, FileBox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
-const BUCKET = "equipamentos-imagens";
-const MAX_IMG_MB = 5;
+const BUCKET_MODELOS = "modelos-3d";
+const MAX_GLB_MB = 50;
 
 export default function Catalogo() {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
