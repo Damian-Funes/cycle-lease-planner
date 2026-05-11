@@ -263,7 +263,7 @@ export function Layout3DCanvas({
     const ro = new ResizeObserver(onResize);
     ro.observe(mount);
 
-    ctxRef.current = { scene, camera, renderer, tc, groups: {}, onTransform, onSelect, dom };
+    ctxRef.current = { scene, camera, renderer, tc, groups: {}, onTransform, onSelect, dom, animateToView };
 
     return () => {
       cancelAnimationFrame(raf);
