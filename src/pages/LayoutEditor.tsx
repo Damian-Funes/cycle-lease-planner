@@ -198,33 +198,22 @@ export default function LayoutEditor() {
     }, 300);
   }
 
-  function handleOpenSimulador3D() {
-    if (!id) return;
-    const url = `${SIMULADOR_URL}/?layout=${id}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
   /* ---- exportar PDF ---- */
   async function handleExportPdf() {
-    if (!stageRef.current || !layout) return;
+    if (!layout) return;
+    const canvas = containerRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) {
+      toast({ title: "Canvas 3D não encontrado", variant: "destructive" });
+      return;
+    }
     let dataUrl: string;
     try {
-      const stage = stageRef.current;
-      const targetPxWidth = 2400;
-      const pr = Math.max(1, targetPxWidth / Math.max(1, layout.piso_largura_mm * scale));
-      dataUrl = stage.toDataURL({
-        x: stageX,
-        y: stageY,
-        width: layout.piso_largura_mm * scale,
-        height: layout.piso_comprimento_mm * scale,
-        pixelRatio: pr,
-        mimeType: "image/png",
-      });
-    } catch (err: any) {
+      dataUrl = canvas.toDataURL("image/png");
+    } catch (err) {
       console.error("[PDF] toDataURL falhou:", err);
       toast({
         title: "Não foi possível gerar o PDF",
-        description: "Provável bloqueio de CORS na imagem do piso. Reenvie a imagem ou remova-a e tente novamente.",
+        description: "Falha ao capturar imagem do canvas 3D.",
         variant: "destructive",
       });
       return;
