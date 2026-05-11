@@ -279,6 +279,11 @@ export function Layout3DCanvas({
       } catch {
         /* noop */
       }
+      try {
+        mount.removeChild(viewHelperDiv);
+      } catch {
+        /* noop */
+      }
       scene.traverse((o: THREE.Object3D) => {
         const mesh = o as THREE.Mesh;
         if (mesh.geometry) mesh.geometry.dispose();
