@@ -540,6 +540,18 @@ export default function LayoutEditor() {
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
             </Button>
+            <Button
+              onClick={handleOpenSimulador3D}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!id || saving}
+              title="Abre o simulador 3D em uma nova aba com os equipamentos deste layout"
+            >
+              <Box className="w-4 h-4" />
+              <span className="hidden sm:inline">Abrir 3D</span>
+              <ExternalLink className="w-3 h-3 opacity-60" />
+            </Button>
             <AppHeader />
           </div>
         </div>
