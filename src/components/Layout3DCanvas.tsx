@@ -26,6 +26,7 @@ interface CanvasCtx {
   onTransform?: Layout3DCanvasProps["onTransform"];
   onSelect?: Layout3DCanvasProps["onSelect"];
   dom?: HTMLCanvasElement;
+  animateToView?: (theta: number, phi: number, radius?: number) => void;
 }
 
 export function Layout3DCanvas({
