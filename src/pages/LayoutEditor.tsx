@@ -32,7 +32,6 @@ export default function LayoutEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<any>(null);
 
   const [layout, setLayout] = useState<LayoutRow | null>(null);
   const [items, setItems] = useState<LayoutItemRow[]>([]);
@@ -41,8 +40,7 @@ export default function LayoutEditor() {
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [containerSize, setContainerSize] = useState({ w: 800, h: 600 });
-  const [pisoBgImg] = useImage(layout?.piso_imagem_url ?? "", "anonymous");
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
