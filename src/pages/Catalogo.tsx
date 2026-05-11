@@ -260,30 +260,33 @@ export default function Catalogo() {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-[120px_1fr] gap-4">
-                {/* Imagem */}
+                {/* Upload Modelo 3D */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Imagem *</label>
+                  <label className="text-sm font-medium text-muted-foreground">Modelo 3D (.glb)</label>
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-[120px] h-[120px] rounded-md border-2 border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden"
+                    className="w-[120px] h-[120px] rounded-md border-2 border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden p-2"
                   >
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
+                    {modeloFileName ? (
+                      <div className="text-center text-foreground">
+                        <FileBox className="w-6 h-6 mx-auto mb-1 text-primary" />
+                        <span className="text-[10px] leading-tight block break-all">{modeloFileName}</span>
+                      </div>
                     ) : (
                       <div className="text-center text-muted-foreground p-2">
-                        <ImagePlus className="w-6 h-6 mx-auto mb-1" />
-                        <span className="text-xs">Adicionar foto</span>
+                        <Upload className="w-6 h-6 mx-auto mb-1" />
+                        <span className="text-xs">Adicionar GLB</span>
                       </div>
                     )}
                   </div>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept=".glb,model/gltf-binary"
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  <p className="text-xs text-muted-foreground">PNG/JPG até {MAX_IMG_MB}MB</p>
+                  <p className="text-xs text-muted-foreground">GLB até {MAX_GLB_MB}MB</p>
                 </div>
 
                 {/* Campos */}
