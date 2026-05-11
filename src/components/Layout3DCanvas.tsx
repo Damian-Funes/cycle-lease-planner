@@ -185,6 +185,28 @@ export function Layout3DCanvas({
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
     scene.add(tcHelper);
 
+    const viewHelperDiv = document.createElement("div");
+    viewHelperDiv.style.position = "absolute";
+    viewHelperDiv.style.top = "10px";
+    viewHelperDiv.style.right = "10px";
+    viewHelperDiv.style.width = "128px";
+    viewHelperDiv.style.height = "128px";
+    viewHelperDiv.style.zIndex = "10";
+    viewHelperDiv.style.pointerEvents = "auto";
+    mount.appendChild(viewHelperDiv);
+    const viewHelper = new ViewHelper(camera, viewHelperDiv);
+    viewHelperDiv.addEventListener("pointerup", (event) => {
+      const vh = viewHelper as unknown as { handleClick: (e: PointerEvent) => boolean };
+      if (vh.handleClick(event)) {
+        setTimeout(() => {
+          const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
+          orbit.radius = offset.length();
+          orbit.theta = Math.atan2(offset.z, offset.x);
+          orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
+        }, 600);
+      }
+    });
+
     const raycaster = new THREE.Raycaster();
     const mouseV = new THREE.Vector2();
     let downPos: { x: number; y: number } | null = null;
