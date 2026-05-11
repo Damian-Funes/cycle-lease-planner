@@ -206,6 +206,8 @@ export default function Catalogo() {
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
       modelo_3d_url: form.modelo_3d_url || null,
+      glb_rotacao_x: form.glb_rotacao_x,
+      glb_rotacao_z: form.glb_rotacao_z,
       categoria: cat,
       cor_categoria: corCategoria,
       largura_mm: toInt(form.largura_mm),
