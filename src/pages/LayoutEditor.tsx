@@ -69,62 +69,7 @@ export default function LayoutEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  /* ---- responsive container ---- */
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const r = entries[0].contentRect;
-      setContainerSize({ w: r.width, h: r.height });
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
 
-  const fitScale = useMemo(() => {
-    if (!layout || containerSize.w === 0) return 0.05;
-    const sx = containerSize.w / layout.piso_largura_mm;
-    const sy = containerSize.h / layout.piso_comprimento_mm;
-    return Math.min(sx, sy) * 0.95;
-  }, [layout, containerSize]);
-
-  const [zoom, setZoom] = useState(1); // multiplicador sobre fitScale
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const scale = fitScale * zoom;
-
-  const stageX = (containerSize.w - (layout?.piso_largura_mm ?? 0) * scale) / 2 + pan.x;
-  const stageY = (containerSize.h - (layout?.piso_comprimento_mm ?? 0) * scale) / 2 + pan.y;
-
-  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
-
-  // Reset pan quando o tamanho do piso muda (evita layout sair da tela)
-  useEffect(() => {
-    setPan({ x: 0, y: 0 });
-  }, [layout?.piso_largura_mm, layout?.piso_comprimento_mm, containerSize.w, containerSize.h]);
-
-
-  const handleWheel = useCallback((e: any) => {
-    e.evt.preventDefault();
-    const stage = e.target.getStage();
-    if (!stage) return;
-    const oldScale = scale;
-    const pointer = stage.getPointerPosition();
-    if (!pointer) return;
-    const mousePointTo = {
-      x: (pointer.x - stageX) / oldScale,
-      y: (pointer.y - stageY) / oldScale,
-    };
-    const direction = e.evt.deltaY > 0 ? -1 : 1;
-    const factor = 1.15;
-    let newZoom = direction > 0 ? zoom * factor : zoom / factor;
-    newZoom = Math.max(0.3, Math.min(8, newZoom));
-    const newScale = fitScale * newZoom;
-    const baseX = (containerSize.w - (layout?.piso_largura_mm ?? 0) * newScale) / 2;
-    const baseY = (containerSize.h - (layout?.piso_comprimento_mm ?? 0) * newScale) / 2;
-    const newPanX = pointer.x - mousePointTo.x * newScale - baseX;
-    const newPanY = pointer.y - mousePointTo.y * newScale - baseY;
-    setZoom(newZoom);
-    setPan({ x: newPanX, y: newPanY });
-  }, [scale, zoom, fitScale, stageX, stageY, containerSize, layout]);
 
 
   /* ---- atalhos teclado ---- */
