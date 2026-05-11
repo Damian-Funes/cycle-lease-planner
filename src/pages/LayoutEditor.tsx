@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Stage, Layer, Rect, Line, Image as KonvaImage, Group, Text } from "react-konva";
-import useImage from "use-image";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,110 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, ZoomIn, ZoomOut, Maximize2, ExternalLink,
+  Download, Box, Search, Move3d,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import { Layout3DCanvas } from "@/components/Layout3DCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
-  LayoutItemRow, LayoutRow, listLayoutItems, snap, clampPos,
+  LayoutItemRow, LayoutRow, listLayoutItems,
   PISO_MIN_MM, PISO_MAX_MM, SNAP_MM,
 } from "@/lib/layouts";
 import type { Equipamento } from "@/lib/equipamentos";
 import { CATEGORIAS } from "@/lib/equipamentos";
 
-const GRID_MM = 500;
 const PLANTAS_BUCKET = "plantas-cliente";
-const SIMULADOR_URL = "https://simuladorv1.vercel.app";
 
-/* ---------- Equipamento renderizado no canvas ---------- */
-function EquipamentoNode({
-  item,
-  selected,
-  onSelect,
-  onDragEnd,
-  onDblClick,
-  pisoW,
-  pisoH,
-}: {
-  item: LayoutItemRow;
-  selected: boolean;
-  onSelect: () => void;
-  onDragEnd: (x: number, y: number) => void;
-  onDblClick: () => void;
-  pisoW: number;
-  pisoH: number;
-}) {
-  const w = item.largura_mm ?? 1000;
-  const h = item.comprimento_mm ?? 1000;
-  const [img] = useImage(item.imagem_url ?? "", "anonymous");
-  const cor = item.cor_categoria || "hsl(var(--muted-foreground))";
 
-  return (
-    <Group
-      x={item.pos_x_mm}
-      y={item.pos_y_mm}
-      rotation={item.rotacao}
-      offsetX={w / 2}
-      offsetY={h / 2}
-      draggable
-      onClick={onSelect}
-      onTap={onSelect}
-      onDblClick={onDblClick}
-      onDblTap={onDblClick}
-      onDragEnd={(e) => {
-        const rawX = e.target.x();
-        const rawY = e.target.y();
-        const snappedX = snap(rawX);
-        const snappedY = snap(rawY);
-        const { x, y } = clampPos(snappedX, snappedY, w, h, pisoW, pisoH, item.rotacao);
-        e.target.x(x);
-        e.target.y(y);
-        onDragEnd(x, y);
-      }}
-    >
-      {img ? (
-        <KonvaImage image={img} width={w} height={h} />
-      ) : (
-        <Rect width={w} height={h} fill={cor} opacity={0.85} cornerRadius={50} />
-      )}
-      {!img && (
-        <Text
-          text={item.codigo}
-          width={w}
-          height={h}
-          fontSize={Math.min(w, h) * 0.18}
-          fill="#fff"
-          align="center"
-          verticalAlign="middle"
-          listening={false}
-        />
-      )}
-      {selected && (
-        <Rect
-          width={w}
-          height={h}
-          stroke="#1D9E75"
-          strokeWidth={60}
-          dash={[120, 80]}
-          listening={false}
-        />
-      )}
-    </Group>
-  );
-}
-
-/* ---------- Background grid (mm) ---------- */
-function GridBackground({ pisoW, pisoH }: { pisoW: number; pisoH: number }) {
-  const lines: JSX.Element[] = [];
-  for (let x = 0; x <= pisoW; x += GRID_MM) {
-    lines.push(<Line key={`v${x}`} points={[x, 0, x, pisoH]} stroke="rgba(0,0,0,0.06)" strokeWidth={20} />);
-  }
-  for (let y = 0; y <= pisoH; y += GRID_MM) {
-    lines.push(<Line key={`h${y}`} points={[0, y, pisoW, y]} stroke="rgba(0,0,0,0.06)" strokeWidth={20} />);
-  }
-  return <>{lines}</>;
-}
 
 /* ---------- Página ---------- */
 export default function LayoutEditor() {
@@ -122,7 +32,6 @@ export default function LayoutEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<any>(null);
 
   const [layout, setLayout] = useState<LayoutRow | null>(null);
   const [items, setItems] = useState<LayoutItemRow[]>([]);
@@ -131,8 +40,7 @@ export default function LayoutEditor() {
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [containerSize, setContainerSize] = useState({ w: 800, h: 600 });
-  const [pisoBgImg] = useImage(layout?.piso_imagem_url ?? "", "anonymous");
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
@@ -161,62 +69,7 @@ export default function LayoutEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  /* ---- responsive container ---- */
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver((entries) => {
-      const r = entries[0].contentRect;
-      setContainerSize({ w: r.width, h: r.height });
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
 
-  const fitScale = useMemo(() => {
-    if (!layout || containerSize.w === 0) return 0.05;
-    const sx = containerSize.w / layout.piso_largura_mm;
-    const sy = containerSize.h / layout.piso_comprimento_mm;
-    return Math.min(sx, sy) * 0.95;
-  }, [layout, containerSize]);
-
-  const [zoom, setZoom] = useState(1); // multiplicador sobre fitScale
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const scale = fitScale * zoom;
-
-  const stageX = (containerSize.w - (layout?.piso_largura_mm ?? 0) * scale) / 2 + pan.x;
-  const stageY = (containerSize.h - (layout?.piso_comprimento_mm ?? 0) * scale) / 2 + pan.y;
-
-  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
-
-  // Reset pan quando o tamanho do piso muda (evita layout sair da tela)
-  useEffect(() => {
-    setPan({ x: 0, y: 0 });
-  }, [layout?.piso_largura_mm, layout?.piso_comprimento_mm, containerSize.w, containerSize.h]);
-
-
-  const handleWheel = useCallback((e: any) => {
-    e.evt.preventDefault();
-    const stage = e.target.getStage();
-    if (!stage) return;
-    const oldScale = scale;
-    const pointer = stage.getPointerPosition();
-    if (!pointer) return;
-    const mousePointTo = {
-      x: (pointer.x - stageX) / oldScale,
-      y: (pointer.y - stageY) / oldScale,
-    };
-    const direction = e.evt.deltaY > 0 ? -1 : 1;
-    const factor = 1.15;
-    let newZoom = direction > 0 ? zoom * factor : zoom / factor;
-    newZoom = Math.max(0.3, Math.min(8, newZoom));
-    const newScale = fitScale * newZoom;
-    const baseX = (containerSize.w - (layout?.piso_largura_mm ?? 0) * newScale) / 2;
-    const baseY = (containerSize.h - (layout?.piso_comprimento_mm ?? 0) * newScale) / 2;
-    const newPanX = pointer.x - mousePointTo.x * newScale - baseX;
-    const newPanY = pointer.y - mousePointTo.y * newScale - baseY;
-    setZoom(newZoom);
-    setPan({ x: newPanX, y: newPanY });
-  }, [scale, zoom, fitScale, stageX, stageY, containerSize, layout]);
 
 
   /* ---- atalhos teclado ---- */
@@ -249,21 +102,19 @@ export default function LayoutEditor() {
     if (error) toast({ title: "Erro ao salvar item", description: error.message, variant: "destructive" });
   }
 
-  async function handleDragEnd(itemId: string, x: number, y: number) {
-    setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: x, pos_y_mm: y } : i)));
-    await persistItem(itemId, { pos_x_mm: x, pos_y_mm: y });
+  async function handleTransform(itemId: string, posXmm: number, posYmm: number, rotacaoDeg: number) {
+    const rotInt = ((Math.round(rotacaoDeg / 90) * 90) % 360) as 0 | 90 | 180 | 270;
+    setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: posXmm, pos_y_mm: posYmm, rotacao: rotInt } : i)));
+    await persistItem(itemId, { pos_x_mm: posXmm, pos_y_mm: posYmm, rotacao: rotInt });
   }
 
   async function rotateSelected() {
-    if (!selectedId || !layout) return;
+    if (!selectedId) return;
     const item = items.find((i) => i.item_id === selectedId);
     if (!item) return;
     const newRot = (((item.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
-    const w = item.largura_mm ?? 1000;
-    const h = item.comprimento_mm ?? 1000;
-    const { x, y } = clampPos(item.pos_x_mm, item.pos_y_mm, w, h, layout.piso_largura_mm, layout.piso_comprimento_mm, newRot);
-    setItems((cur) => cur.map((i) => (i.item_id === selectedId ? { ...i, rotacao: newRot, pos_x_mm: x, pos_y_mm: y } : i)));
-    await persistItem(selectedId, { rotacao: newRot, pos_x_mm: x, pos_y_mm: y });
+    setItems((cur) => cur.map((i) => (i.item_id === selectedId ? { ...i, rotacao: newRot } : i)));
+    await persistItem(selectedId, { rotacao: newRot });
   }
 
   async function removeSelected() {
@@ -347,33 +198,22 @@ export default function LayoutEditor() {
     }, 300);
   }
 
-  function handleOpenSimulador3D() {
-    if (!id) return;
-    const url = `${SIMULADOR_URL}/?layout=${id}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }
-
   /* ---- exportar PDF ---- */
   async function handleExportPdf() {
-    if (!stageRef.current || !layout) return;
+    if (!layout) return;
+    const canvas = containerRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) {
+      toast({ title: "Canvas 3D não encontrado", variant: "destructive" });
+      return;
+    }
     let dataUrl: string;
     try {
-      const stage = stageRef.current;
-      const targetPxWidth = 2400;
-      const pr = Math.max(1, targetPxWidth / Math.max(1, layout.piso_largura_mm * scale));
-      dataUrl = stage.toDataURL({
-        x: stageX,
-        y: stageY,
-        width: layout.piso_largura_mm * scale,
-        height: layout.piso_comprimento_mm * scale,
-        pixelRatio: pr,
-        mimeType: "image/png",
-      });
-    } catch (err: any) {
+      dataUrl = canvas.toDataURL("image/png");
+    } catch (err) {
       console.error("[PDF] toDataURL falhou:", err);
       toast({
         title: "Não foi possível gerar o PDF",
-        description: "Provável bloqueio de CORS na imagem do piso. Reenvie a imagem ou remova-a e tente novamente.",
+        description: "Falha ao capturar imagem do canvas 3D.",
         variant: "destructive",
       });
       return;
@@ -540,18 +380,6 @@ export default function LayoutEditor() {
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
             </Button>
-            <Button
-              onClick={handleOpenSimulador3D}
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={!id || saving}
-              title="Abre o simulador 3D em uma nova aba com os equipamentos deste layout"
-            >
-              <Box className="w-4 h-4" />
-              <span className="hidden sm:inline">Abrir 3D</span>
-              <ExternalLink className="w-3 h-3 opacity-60" />
-            </Button>
             <AppHeader />
           </div>
         </div>
@@ -563,72 +391,37 @@ export default function LayoutEditor() {
         <div className="flex-1 p-3 min-w-0">
           <Card className="h-full overflow-hidden relative">
             <div ref={containerRef} className="w-full h-full bg-muted/30">
-              {containerSize.w > 0 && (
-                <Stage
-                  ref={stageRef}
-                  width={containerSize.w}
-                  height={containerSize.h}
-                  scaleX={scale}
-                  scaleY={scale}
-                  x={stageX}
-                  y={stageY}
-                  onWheel={handleWheel}
-                  onMouseDown={(e) => {
-                    if (e.target === e.target.getStage()) setSelectedId(null);
-                  }}
-                >
-                  <Layer>
-                    {/* fundo do piso */}
-                    <Rect width={layout.piso_largura_mm} height={layout.piso_comprimento_mm} fill="hsl(var(--background))" shadowColor="rgba(0,0,0,0.18)" shadowBlur={220} shadowOpacity={0.18} shadowOffset={{ x: 0, y: 24 }} />
-                    {/* planta cliente */}
-                    {pisoBgImg && (
-                      <KonvaImage
-                        image={pisoBgImg}
-                        width={layout.piso_largura_mm}
-                        height={layout.piso_comprimento_mm}
-                        opacity={layout.piso_imagem_opacidade}
-                        listening={false}
-                      />
-                    )}
-                    <GridBackground pisoW={layout.piso_largura_mm} pisoH={layout.piso_comprimento_mm} />
-                    {/* borda do piso */}
-                    <Rect
-                      width={layout.piso_largura_mm}
-                      height={layout.piso_comprimento_mm}
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={60}
-                      dash={[320, 180]}
-                      listening={false}
-                    />
-                    {/* equipamentos */}
-                    {items.map((it) => (
-                      <EquipamentoNode
-                        key={it.item_id}
-                        item={it}
-                        selected={selectedId === it.item_id}
-                        onSelect={() => setSelectedId(it.item_id)}
-                        onDragEnd={(x, y) => handleDragEnd(it.item_id, x, y)}
-                        onDblClick={() => { setSelectedId(it.item_id); rotateSelected(); }}
-                        pisoW={layout.piso_largura_mm}
-                        pisoH={layout.piso_comprimento_mm}
-                      />
-                    ))}
-                  </Layer>
-                </Stage>
+              {layout && (
+                <Layout3DCanvas
+                  items={items}
+                  pisoLarguraMm={layout.piso_largura_mm}
+                  pisoComprimentoMm={layout.piso_comprimento_mm}
+                  selectedId={selectedId}
+                  onSelect={setSelectedId}
+                  onTransform={handleTransform}
+                  mode={transformMode}
+                />
               )}
 
-              {/* Controles de zoom */}
-              <div className="absolute top-3 right-3 bg-background/95 border rounded-lg shadow-md flex items-center gap-0.5 p-1 z-10">
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))} title="Zoom -">
-                  <ZoomOut className="w-3.5 h-3.5" />
+              {/* Modo de transformação */}
+              <div className="absolute top-3 right-3 bg-background/95 border rounded-lg shadow-md flex items-center gap-1 p-1 z-10">
+                <Button
+                  size="sm"
+                  variant={transformMode === "translate" ? "default" : "ghost"}
+                  onClick={() => setTransformMode("translate")}
+                  className="h-7 gap-1"
+                >
+                  <Move3d className="w-3.5 h-3.5" />
+                  <span className="text-xs">Mover</span>
                 </Button>
-                <span className="text-xs tabular-nums w-12 text-center text-muted-foreground">{Math.round(zoom * 100)}%</span>
-                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setZoom((z) => Math.min(8, z * 1.2))} title="Zoom +">
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </Button>
-                <Button size="sm" variant="default" className="h-7 px-2 gap-1" onClick={resetView} title="Centralizar layout">
-                  <Maximize2 className="w-3.5 h-3.5" />
-                  <span className="text-xs">Centralizar</span>
+                <Button
+                  size="sm"
+                  variant={transformMode === "rotate" ? "default" : "ghost"}
+                  onClick={() => setTransformMode("rotate")}
+                  className="h-7 gap-1"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                  <span className="text-xs">Rotacionar</span>
                 </Button>
               </div>
 
