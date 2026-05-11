@@ -66,6 +66,8 @@ export default function Catalogo() {
       valor_custo: "",
       valor_venda: "",
       modelo_3d_url: "",
+      glb_rotacao_x: 0,
+      glb_rotacao_z: 0,
       categoria: "",
       largura_mm: "",
       comprimento_mm: "",
