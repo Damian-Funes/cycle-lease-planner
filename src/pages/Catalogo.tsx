@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/smartcycle";
 import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box, Upload, FileBox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { GlbOrientationEditor } from "@/components/GlbOrientationEditor";
 
 const BUCKET_MODELOS = "modelos-3d";
 const MAX_GLB_MB = 50;
