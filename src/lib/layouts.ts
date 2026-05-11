@@ -35,6 +35,9 @@ export interface LayoutItemRow {
   altura_mm: number | null;
   imagem_url: string | null;
   cor_categoria: string | null;
+  modelo_3d_url?: string | null;
+  glb_rotacao_x?: number | null;
+  glb_rotacao_z?: number | null;
 }
 
 export const PISO_MIN_MM = 5000;
