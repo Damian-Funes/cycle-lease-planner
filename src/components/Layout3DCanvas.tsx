@@ -150,8 +150,8 @@ export function Layout3DCanvas({
     tc.setSize(0.8);
     tc.showY = false;
     tc.setMode("translate");
-    tc.addEventListener("dragging-changed", (e: { value: boolean }) => {
-      orbit.locked = e.value;
+    tc.addEventListener("dragging-changed", (e) => {
+      orbit.locked = Boolean((e as { value: unknown }).value);
     });
     tc.addEventListener("objectChange", () => {
       const obj = tc.object;
