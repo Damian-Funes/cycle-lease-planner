@@ -59,14 +59,14 @@ export default function Catalogo() {
       descricao: "",
       valor_custo: "",
       valor_venda: "",
-      imagem_url: "",
+      modelo_3d_url: "",
       categoria: "",
       largura_mm: "",
       comprimento_mm: "",
       altura_mm: "",
     });
-    setImageFile(null);
-    setImagePreview("");
+    setModeloFile(null);
+    setModeloFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
