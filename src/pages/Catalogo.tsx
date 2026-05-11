@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento, EquipamentoCategoria, CATEGORIAS } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
-import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, ImagePlus, ImageOff } from "lucide-react";
+import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box, Upload, FileBox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
-const BUCKET = "equipamentos-imagens";
-const MAX_IMG_MB = 5;
+const BUCKET_MODELOS = "modelos-3d";
+const MAX_GLB_MB = 50;
 
 export default function Catalogo() {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
@@ -20,14 +20,14 @@ export default function Catalogo() {
     descricao: "",
     valor_custo: "",
     valor_venda: "",
-    imagem_url: "",
+    modelo_3d_url: "",
     categoria: "" as EquipamentoCategoria | "",
     largura_mm: "",
     comprimento_mm: "",
     altura_mm: "",
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [modeloFile, setModeloFile] = useState<File | null>(null);
+  const [modeloFileName, setModeloFileName] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
@@ -59,14 +59,14 @@ export default function Catalogo() {
       descricao: "",
       valor_custo: "",
       valor_venda: "",
-      imagem_url: "",
+      modelo_3d_url: "",
       categoria: "",
       largura_mm: "",
       comprimento_mm: "",
       altura_mm: "",
     });
-    setImageFile(null);
-    setImagePreview("");
+    setModeloFile(null);
+    setModeloFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -91,14 +91,14 @@ export default function Catalogo() {
       descricao: eq.descricao,
       valor_custo: formatMoneyForInput(eq.valor_custo),
       valor_venda: formatMoneyForInput(eq.valor_venda),
-      imagem_url: eq.imagem_url || "",
+      modelo_3d_url: (eq as any).modelo_3d_url || "",
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
       comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
       altura_mm: eq.altura_mm != null ? String(eq.altura_mm) : "",
     });
-    setImageFile(null);
-    setImagePreview(eq.imagem_url || "");
+    setModeloFile(null);
+    setModeloFileName((eq as any).modelo_3d_url ? "Modelo atual" : "");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -125,33 +125,33 @@ export default function Catalogo() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+    const isGlb = file.name.toLowerCase().endsWith(".glb");
+    if (!isGlb) {
+      toast({ title: "Arquivo inválido", description: "Envie um arquivo .glb (modelo 3D).", variant: "destructive" });
       return;
     }
-    if (file.size > MAX_IMG_MB * 1024 * 1024) {
-      toast({ title: "Imagem muito grande", description: `Máx. ${MAX_IMG_MB}MB.`, variant: "destructive" });
+    if (file.size > MAX_GLB_MB * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: `Máx. ${MAX_GLB_MB}MB.`, variant: "destructive" });
       return;
     }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setModeloFile(file);
+    setModeloFileName(file.name);
   }
 
-  async function uploadImage(codigo: string): Promise<string | null> {
-    if (!imageFile) return form.imagem_url || null;
-    const ext = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+  async function uploadModelo(codigo: string): Promise<string | null> {
+    if (!modeloFile) return form.modelo_3d_url || null;
     const safeCodigo = codigo.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const path = `${safeCodigo}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, imageFile, {
+    const path = `${safeCodigo}-${Date.now()}.glb`;
+    const { error } = await supabase.storage.from(BUCKET_MODELOS).upload(path, modeloFile, {
       cacheControl: "3600",
       upsert: false,
-      contentType: imageFile.type,
+      contentType: "model/gltf-binary",
     });
     if (error) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
       return null;
     }
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(BUCKET_MODELOS).getPublicUrl(path);
     return data.publicUrl;
   }
 
@@ -160,18 +160,9 @@ export default function Catalogo() {
       toast({ title: "Preencha código, descrição e valor de custo", variant: "destructive" });
       return;
     }
-    // Imagem obrigatória: precisa ter arquivo novo OU url já existente
-    if (!imageFile && !form.imagem_url) {
-      toast({ title: "Imagem obrigatória", description: "Envie a foto do equipamento.", variant: "destructive" });
-      return;
-    }
     setSaving(true);
 
-    const imagem_url = await uploadImage(form.codigo.trim());
-    if (!imagem_url) {
-      setSaving(false);
-      return;
-    }
+    const modelo_3d_url = await uploadModelo(form.codigo.trim());
 
     const cat = form.categoria || null;
     const corCategoria = cat ? CATEGORIAS.find((c) => c.value === cat)?.cor ?? null : null;
@@ -179,12 +170,12 @@ export default function Catalogo() {
       const n = parseInt(v, 10);
       return isNaN(n) ? null : n;
     };
-    const row = {
+    const row: any = {
       codigo: form.codigo.trim(),
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
-      imagem_url,
+      modelo_3d_url,
       categoria: cat,
       cor_categoria: corCategoria,
       largura_mm: toInt(form.largura_mm),
@@ -269,30 +260,33 @@ export default function Catalogo() {
             </CardHeader>
             <CardContent>
               <div className="grid sm:grid-cols-[120px_1fr] gap-4">
-                {/* Imagem */}
+                {/* Upload Modelo 3D */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground">Imagem *</label>
+                  <label className="text-sm font-medium text-muted-foreground">Modelo 3D (.glb)</label>
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-[120px] h-[120px] rounded-md border-2 border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden"
+                    className="w-[120px] h-[120px] rounded-md border-2 border-dashed border-border bg-muted/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors overflow-hidden p-2"
                   >
-                    {imagePreview ? (
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
+                    {modeloFileName ? (
+                      <div className="text-center text-foreground">
+                        <FileBox className="w-6 h-6 mx-auto mb-1 text-primary" />
+                        <span className="text-[10px] leading-tight block break-all">{modeloFileName}</span>
+                      </div>
                     ) : (
                       <div className="text-center text-muted-foreground p-2">
-                        <ImagePlus className="w-6 h-6 mx-auto mb-1" />
-                        <span className="text-xs">Adicionar foto</span>
+                        <Upload className="w-6 h-6 mx-auto mb-1" />
+                        <span className="text-xs">Adicionar GLB</span>
                       </div>
                     )}
                   </div>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept=".glb,model/gltf-binary"
                     onChange={handleFileChange}
                     className="hidden"
                   />
-                  <p className="text-xs text-muted-foreground">PNG/JPG até {MAX_IMG_MB}MB</p>
+                  <p className="text-xs text-muted-foreground">GLB até {MAX_GLB_MB}MB</p>
                 </div>
 
                 {/* Campos */}
@@ -407,7 +401,7 @@ export default function Catalogo() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 text-muted-foreground">
-                  <th className="text-left p-3 font-medium w-16">Foto</th>
+                  <th className="text-left p-3 font-medium w-16">Modelo</th>
                   <th className="text-left p-3 font-medium">Código</th>
                   <th className="text-left p-3 font-medium">Descrição</th>
                   <th className="text-right p-3 font-medium">Valor Custo</th>
@@ -420,12 +414,18 @@ export default function Catalogo() {
                 {equipamentosFiltrados.map((eq) => (
                   <tr key={eq.id} className={`border-t transition-colors ${eq.ativo ? "hover:bg-muted/30" : "opacity-50"}`}>
                     <td className="p-2">
-                      <div className="w-12 h-12 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
-                        {eq.imagem_url ? (
-                          <img src={eq.imagem_url} alt={eq.codigo} className="w-full h-full object-contain" loading="lazy" />
-                        ) : (
-                          <ImageOff className="w-4 h-4 text-muted-foreground" />
-                        )}
+                      <div
+                        className="w-12 h-12 rounded border flex items-center justify-center relative overflow-hidden"
+                        style={{
+                          backgroundColor: eq.cor_categoria || "#888780",
+                          opacity: (eq as any).modelo_3d_url ? 1 : 0.4,
+                        }}
+                        title={(eq as any).modelo_3d_url ? "Modelo 3D cadastrado" : "Sem modelo 3D"}
+                      >
+                        <Box className="w-3 h-3 text-white/70 absolute top-1 right-1" />
+                        <span className="text-[10px] font-mono font-medium text-white text-center px-0.5 leading-tight break-all">
+                          {eq.codigo.slice(0, 8)}
+                        </span>
                       </div>
                     </td>
                     <td className="p-3 font-medium">{eq.codigo}</td>
