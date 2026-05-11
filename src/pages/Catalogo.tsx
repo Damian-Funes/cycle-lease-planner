@@ -401,7 +401,7 @@ export default function Catalogo() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-muted/50 text-muted-foreground">
-                  <th className="text-left p-3 font-medium w-16">Foto</th>
+                  <th className="text-left p-3 font-medium w-16">Modelo</th>
                   <th className="text-left p-3 font-medium">Código</th>
                   <th className="text-left p-3 font-medium">Descrição</th>
                   <th className="text-right p-3 font-medium">Valor Custo</th>
@@ -414,12 +414,18 @@ export default function Catalogo() {
                 {equipamentosFiltrados.map((eq) => (
                   <tr key={eq.id} className={`border-t transition-colors ${eq.ativo ? "hover:bg-muted/30" : "opacity-50"}`}>
                     <td className="p-2">
-                      <div className="w-12 h-12 rounded border bg-muted/30 flex items-center justify-center overflow-hidden">
-                        {eq.imagem_url ? (
-                          <img src={eq.imagem_url} alt={eq.codigo} className="w-full h-full object-contain" loading="lazy" />
-                        ) : (
-                          <ImageOff className="w-4 h-4 text-muted-foreground" />
-                        )}
+                      <div
+                        className="w-12 h-12 rounded border flex items-center justify-center relative overflow-hidden"
+                        style={{
+                          backgroundColor: eq.cor_categoria || "#888780",
+                          opacity: (eq as any).modelo_3d_url ? 1 : 0.4,
+                        }}
+                        title={(eq as any).modelo_3d_url ? "Modelo 3D cadastrado" : "Sem modelo 3D"}
+                      >
+                        <Box className="w-3 h-3 text-white/70 absolute top-1 right-1" />
+                        <span className="text-[10px] font-mono font-medium text-white text-center px-0.5 leading-tight break-all">
+                          {eq.codigo.slice(0, 8)}
+                        </span>
                       </div>
                     </td>
                     <td className="p-3 font-medium">{eq.codigo}</td>
