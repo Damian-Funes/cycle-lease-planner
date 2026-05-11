@@ -161,8 +161,8 @@ export function GlbOrientationEditor({
     }
   }, [rotacaoX, rotacaoZ]);
 
-  const rotateX = () => onChange((rotacaoX + 90) % 360, rotacaoZ);
-  const rotateZ = () => onChange(rotacaoX, (rotacaoZ + 90) % 360);
+  const rotateX = (dir: 1 | -1) => onChange((rotacaoX + dir * 90 + 360) % 360, rotacaoZ);
+  const rotateZ = (dir: 1 | -1) => onChange(rotacaoX, (rotacaoZ + dir * 90 + 360) % 360);
   const reset = () => onChange(0, 0);
 
   return (
@@ -180,12 +180,24 @@ export function GlbOrientationEditor({
         )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={rotateX} className="gap-1.5">
-          <RotateCw className="w-3.5 h-3.5" /> Girar X (+90°)
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={rotateZ} className="gap-1.5">
-          <RotateCw className="w-3.5 h-3.5" /> Girar Z (+90°)
-        </Button>
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium text-muted-foreground mr-1">X:</span>
+          <Button type="button" size="sm" variant="outline" onClick={() => rotateX(-1)} className="gap-1.5" title="Girar X -90°">
+            <RotateCcw className="w-3.5 h-3.5" /> -90°
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => rotateX(1)} className="gap-1.5" title="Girar X +90°">
+            <RotateCw className="w-3.5 h-3.5" /> +90°
+          </Button>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Z:</span>
+          <Button type="button" size="sm" variant="outline" onClick={() => rotateZ(-1)} className="gap-1.5" title="Girar Z -90°">
+            <RotateCcw className="w-3.5 h-3.5" /> -90°
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => rotateZ(1)} className="gap-1.5" title="Girar Z +90°">
+            <RotateCw className="w-3.5 h-3.5" /> +90°
+          </Button>
+        </div>
         <Button type="button" size="sm" variant="ghost" onClick={reset} className="gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" /> Resetar
         </Button>
