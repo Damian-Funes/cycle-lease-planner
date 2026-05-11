@@ -168,6 +168,8 @@ export function Layout3DCanvas({
 
     const tc = new TransformControls(camera, dom);
     tc.setSize(0.8);
+    tc.setTranslationSnap(0.1);
+    tc.setRotationSnap(THREE.MathUtils.degToRad(90));
     tc.showY = false;
     tc.setMode("translate");
     tc.addEventListener("dragging-changed", (e) => {
