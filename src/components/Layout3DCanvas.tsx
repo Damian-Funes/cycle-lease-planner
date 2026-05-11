@@ -112,6 +112,24 @@ export function Layout3DCanvas({
     };
     updateCam();
 
+    const animateToView = (targetTheta: number, targetPhi: number, targetRadius?: number) => {
+      const startTheta = orbit.theta;
+      const startPhi = orbit.phi;
+      const startRadius = orbit.radius;
+      const endRadius = targetRadius ?? orbit.radius;
+      const dur = 500;
+      const t0 = performance.now();
+      const tween = () => {
+        const t = Math.min(1, (performance.now() - t0) / dur);
+        const ease = 1 - Math.pow(1 - t, 3);
+        orbit.theta = startTheta + (targetTheta - startTheta) * ease;
+        orbit.phi = startPhi + (targetPhi - startPhi) * ease;
+        orbit.radius = startRadius + (endRadius - startRadius) * ease;
+        if (t < 1) requestAnimationFrame(tween);
+      };
+      tween();
+    };
+
     const dom = renderer.domElement;
     dom.style.touchAction = "none";
     dom.style.display = "block";
