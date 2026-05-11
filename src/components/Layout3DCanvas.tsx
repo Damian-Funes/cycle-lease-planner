@@ -442,9 +442,61 @@ export function Layout3DCanvas({
     }
   }, [selectedId]);
 
+  const goToView = (view: "top" | "front" | "back" | "left" | "right" | "iso") => {
+    const c = ctxRef.current;
+    if (!c.animateToView) return;
+    const floorW = Math.max(pisoLarguraMm / 1000, 5);
+    const floorH = Math.max(pisoComprimentoMm / 1000, 5);
+    const baseRadius = Math.max(floorW, floorH) * 1.2;
+    switch (view) {
+      case "top":
+        c.animateToView(-Math.PI / 2, 0.05, baseRadius);
+        break;
+      case "front":
+        c.animateToView(-Math.PI / 2, Math.PI / 2 - 0.05, baseRadius);
+        break;
+      case "back":
+        c.animateToView(Math.PI / 2, Math.PI / 2 - 0.05, baseRadius);
+        break;
+      case "left":
+        c.animateToView(Math.PI, Math.PI / 2 - 0.05, baseRadius);
+        break;
+      case "right":
+        c.animateToView(0, Math.PI / 2 - 0.05, baseRadius);
+        break;
+      case "iso":
+      default:
+        c.animateToView(-Math.PI / 4, Math.PI / 3.5, baseRadius * 1.15);
+        break;
+    }
+  };
+
+  const btnCls =
+    "px-2.5 py-1.5 text-xs font-medium rounded hover:bg-muted flex items-center gap-1.5";
+
   return (
-    <div className="relative w-full h-full">
-      <div ref={mountRef} className="w-full h-full" />
+    <div ref={mountRef} className="w-full h-full relative bg-stone-100">
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-background/95 backdrop-blur border shadow-sm rounded-lg flex items-center gap-1 px-1.5 py-1 z-10">
+        <button onClick={() => goToView("top")} className={btnCls} title="Vista superior">
+          <ArrowDown className="w-3.5 h-3.5" /> Topo
+        </button>
+        <button onClick={() => goToView("front")} className={btnCls} title="Vista frontal">
+          <ArrowUp className="w-3.5 h-3.5 rotate-180" /> Frente
+        </button>
+        <button onClick={() => goToView("back")} className={btnCls} title="Vista traseira">
+          <ArrowUp className="w-3.5 h-3.5" /> Trás
+        </button>
+        <button onClick={() => goToView("left")} className={btnCls} title="Vista lateral esquerda">
+          <ArrowLeft className="w-3.5 h-3.5" /> Esq
+        </button>
+        <button onClick={() => goToView("right")} className={btnCls} title="Vista lateral direita">
+          <ArrowRight className="w-3.5 h-3.5" /> Dir
+        </button>
+        <div className="w-px h-5 bg-border mx-0.5" />
+        <button onClick={() => goToView("iso")} className={btnCls} title="Vista isométrica">
+          <Box className="w-3.5 h-3.5" /> Iso
+        </button>
+      </div>
       {Object.keys(loadingGlb).length > 0 && (
         <div className="absolute top-3 left-3 bg-background/95 border rounded-lg shadow-md px-3 py-2 flex items-center gap-2 text-xs z-10">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
