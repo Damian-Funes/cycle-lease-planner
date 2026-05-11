@@ -20,14 +20,14 @@ export default function Catalogo() {
     descricao: "",
     valor_custo: "",
     valor_venda: "",
-    imagem_url: "",
+    modelo_3d_url: "",
     categoria: "" as EquipamentoCategoria | "",
     largura_mm: "",
     comprimento_mm: "",
     altura_mm: "",
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
+  const [modeloFile, setModeloFile] = useState<File | null>(null);
+  const [modeloFileName, setModeloFileName] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "inativos">("todos");
