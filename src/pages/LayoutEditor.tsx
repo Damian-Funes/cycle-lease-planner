@@ -25,6 +25,7 @@ import { CATEGORIAS } from "@/lib/equipamentos";
 
 const GRID_MM = 500;
 const PLANTAS_BUCKET = "plantas-cliente";
+const SIMULADOR_URL = "https://simuladorv1.vercel.app";
 
 /* ---------- Equipamento renderizado no canvas ---------- */
 function EquipamentoNode({
