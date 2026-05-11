@@ -125,33 +125,33 @@ export default function Catalogo() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast({ title: "Arquivo inválido", description: "Selecione uma imagem.", variant: "destructive" });
+    const isGlb = file.name.toLowerCase().endsWith(".glb");
+    if (!isGlb) {
+      toast({ title: "Arquivo inválido", description: "Envie um arquivo .glb (modelo 3D).", variant: "destructive" });
       return;
     }
-    if (file.size > MAX_IMG_MB * 1024 * 1024) {
-      toast({ title: "Imagem muito grande", description: `Máx. ${MAX_IMG_MB}MB.`, variant: "destructive" });
+    if (file.size > MAX_GLB_MB * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: `Máx. ${MAX_GLB_MB}MB.`, variant: "destructive" });
       return;
     }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    setModeloFile(file);
+    setModeloFileName(file.name);
   }
 
-  async function uploadImage(codigo: string): Promise<string | null> {
-    if (!imageFile) return form.imagem_url || null;
-    const ext = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+  async function uploadModelo(codigo: string): Promise<string | null> {
+    if (!modeloFile) return form.modelo_3d_url || null;
     const safeCodigo = codigo.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const path = `${safeCodigo}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, imageFile, {
+    const path = `${safeCodigo}-${Date.now()}.glb`;
+    const { error } = await supabase.storage.from(BUCKET_MODELOS).upload(path, modeloFile, {
       cacheControl: "3600",
       upsert: false,
-      contentType: imageFile.type,
+      contentType: "model/gltf-binary",
     });
     if (error) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
       return null;
     }
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    const { data } = supabase.storage.from(BUCKET_MODELOS).getPublicUrl(path);
     return data.publicUrl;
   }
 
@@ -160,18 +160,9 @@ export default function Catalogo() {
       toast({ title: "Preencha código, descrição e valor de custo", variant: "destructive" });
       return;
     }
-    // Imagem obrigatória: precisa ter arquivo novo OU url já existente
-    if (!imageFile && !form.imagem_url) {
-      toast({ title: "Imagem obrigatória", description: "Envie a foto do equipamento.", variant: "destructive" });
-      return;
-    }
     setSaving(true);
 
-    const imagem_url = await uploadImage(form.codigo.trim());
-    if (!imagem_url) {
-      setSaving(false);
-      return;
-    }
+    const modelo_3d_url = await uploadModelo(form.codigo.trim());
 
     const cat = form.categoria || null;
     const corCategoria = cat ? CATEGORIAS.find((c) => c.value === cat)?.cor ?? null : null;
@@ -179,12 +170,12 @@ export default function Catalogo() {
       const n = parseInt(v, 10);
       return isNaN(n) ? null : n;
     };
-    const row = {
+    const row: any = {
       codigo: form.codigo.trim(),
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
-      imagem_url,
+      modelo_3d_url,
       categoria: cat,
       cor_categoria: corCategoria,
       largura_mm: toInt(form.largura_mm),
