@@ -102,21 +102,19 @@ export default function LayoutEditor() {
     if (error) toast({ title: "Erro ao salvar item", description: error.message, variant: "destructive" });
   }
 
-  async function handleDragEnd(itemId: string, x: number, y: number) {
-    setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: x, pos_y_mm: y } : i)));
-    await persistItem(itemId, { pos_x_mm: x, pos_y_mm: y });
+  async function handleTransform(itemId: string, posXmm: number, posYmm: number, rotacaoDeg: number) {
+    const rotInt = ((Math.round(rotacaoDeg / 90) * 90) % 360) as 0 | 90 | 180 | 270;
+    setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: posXmm, pos_y_mm: posYmm, rotacao: rotInt } : i)));
+    await persistItem(itemId, { pos_x_mm: posXmm, pos_y_mm: posYmm, rotacao: rotInt });
   }
 
   async function rotateSelected() {
-    if (!selectedId || !layout) return;
+    if (!selectedId) return;
     const item = items.find((i) => i.item_id === selectedId);
     if (!item) return;
     const newRot = (((item.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
-    const w = item.largura_mm ?? 1000;
-    const h = item.comprimento_mm ?? 1000;
-    const { x, y } = clampPos(item.pos_x_mm, item.pos_y_mm, w, h, layout.piso_largura_mm, layout.piso_comprimento_mm, newRot);
-    setItems((cur) => cur.map((i) => (i.item_id === selectedId ? { ...i, rotacao: newRot, pos_x_mm: x, pos_y_mm: y } : i)));
-    await persistItem(selectedId, { rotacao: newRot, pos_x_mm: x, pos_y_mm: y });
+    setItems((cur) => cur.map((i) => (i.item_id === selectedId ? { ...i, rotacao: newRot } : i)));
+    await persistItem(selectedId, { rotacao: newRot });
   }
 
   async function removeSelected() {
