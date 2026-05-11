@@ -7,6 +7,7 @@ import { formatBRL } from "@/lib/smartcycle";
 import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box, Upload, FileBox } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { GlbOrientationEditor } from "@/components/GlbOrientationEditor";
 
 const BUCKET_MODELOS = "modelos-3d";
 const MAX_GLB_MB = 50;
@@ -21,6 +22,8 @@ export default function Catalogo() {
     valor_custo: "",
     valor_venda: "",
     modelo_3d_url: "",
+    glb_rotacao_x: 0,
+    glb_rotacao_z: 0,
     categoria: "" as EquipamentoCategoria | "",
     largura_mm: "",
     comprimento_mm: "",
@@ -63,6 +66,8 @@ export default function Catalogo() {
       valor_custo: "",
       valor_venda: "",
       modelo_3d_url: "",
+      glb_rotacao_x: 0,
+      glb_rotacao_z: 0,
       categoria: "",
       largura_mm: "",
       comprimento_mm: "",
@@ -98,6 +103,8 @@ export default function Catalogo() {
       valor_custo: formatMoneyForInput(eq.valor_custo),
       valor_venda: formatMoneyForInput(eq.valor_venda),
       modelo_3d_url: (eq as any).modelo_3d_url || "",
+      glb_rotacao_x: (eq as any).glb_rotacao_x ?? 0,
+      glb_rotacao_z: (eq as any).glb_rotacao_z ?? 0,
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
       comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
@@ -199,6 +206,8 @@ export default function Catalogo() {
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
       modelo_3d_url: form.modelo_3d_url || null,
+      glb_rotacao_x: form.glb_rotacao_x,
+      glb_rotacao_z: form.glb_rotacao_z,
       categoria: cat,
       cor_categoria: corCategoria,
       largura_mm: toInt(form.largura_mm),
@@ -431,6 +440,20 @@ export default function Catalogo() {
                   </div>
                 </div>
               </div>
+              {form.modelo_3d_url && uploadStatus === "success" && (
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground">Orientação do modelo 3D</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Escolha qual face do equipamento fica grudada no chão no editor de layout.
+                  </p>
+                  <GlbOrientationEditor
+                    glbUrl={form.modelo_3d_url}
+                    rotacaoX={form.glb_rotacao_x}
+                    rotacaoZ={form.glb_rotacao_z}
+                    onChange={(rx, rz) => setForm((f) => ({ ...f, glb_rotacao_x: rx, glb_rotacao_z: rz }))}
+                  />
+                </div>
+              )}
               <p className="text-xs text-muted-foreground mt-3">
                 Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
               </p>

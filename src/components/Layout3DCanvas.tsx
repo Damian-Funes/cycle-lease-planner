@@ -168,6 +168,8 @@ export function Layout3DCanvas({
 
     const tc = new TransformControls(camera, dom);
     tc.setSize(0.8);
+    tc.setTranslationSnap(0.1);
+    tc.setRotationSnap(THREE.MathUtils.degToRad(90));
     tc.showY = false;
     tc.setMode("translate");
     tc.addEventListener("dragging-changed", (e) => {
@@ -306,8 +308,17 @@ export function Layout3DCanvas({
 
   useEffect(() => {
     const c = ctxRef.current;
-    if (!c.tc) return;
+    if (!c.scene || !c.tc) return;
     c.tc.setMode(mode);
+    if (mode === "translate") {
+      c.tc.showX = true;
+      c.tc.showY = false;
+      c.tc.showZ = true;
+    } else {
+      c.tc.showX = false;
+      c.tc.showY = true;
+      c.tc.showZ = false;
+    }
   }, [mode]);
 
   useEffect(() => {
@@ -388,6 +399,10 @@ export function Layout3DCanvas({
           glbUrl,
           (gltf) => {
             const inner = gltf.scene;
+            const rotX = (((it as unknown as { glb_rotacao_x?: number | null }).glb_rotacao_x ?? 0) * Math.PI) / 180;
+            const rotZ = (((it as unknown as { glb_rotacao_z?: number | null }).glb_rotacao_z ?? 0) * Math.PI) / 180;
+            inner.rotation.x = rotX;
+            inner.rotation.z = rotZ;
             inner.traverse((o: THREE.Object3D) => {
               const mesh = o as THREE.Mesh;
               if ((mesh as unknown as { isMesh?: boolean }).isMesh) {
