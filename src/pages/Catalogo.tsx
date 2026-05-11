@@ -105,6 +105,9 @@ export default function Catalogo() {
     });
     setModeloFile(null);
     setModeloFileName((eq as any).modelo_3d_url ? "Modelo atual" : "");
+    setUploadStatus((eq as any).modelo_3d_url ? "success" : "idle");
+    setUploadError("");
+    setUploadingFileSize(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
