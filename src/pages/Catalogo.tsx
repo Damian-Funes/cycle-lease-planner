@@ -103,6 +103,8 @@ export default function Catalogo() {
       valor_custo: formatMoneyForInput(eq.valor_custo),
       valor_venda: formatMoneyForInput(eq.valor_venda),
       modelo_3d_url: (eq as any).modelo_3d_url || "",
+      glb_rotacao_x: (eq as any).glb_rotacao_x ?? 0,
+      glb_rotacao_z: (eq as any).glb_rotacao_z ?? 0,
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
       comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
