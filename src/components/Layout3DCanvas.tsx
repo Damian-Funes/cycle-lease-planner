@@ -237,10 +237,18 @@ export function Layout3DCanvas({
     dom.addEventListener("mouseup", onClickUp);
 
     let raf = 0;
+    const viewHelperClock = new THREE.Clock();
     const animate = () => {
       raf = requestAnimationFrame(animate);
+      const delta = viewHelperClock.getDelta();
+      const vh = viewHelper as unknown as { animating?: boolean; update: (d: number) => void };
+      if (vh.animating) vh.update(delta);
       updateCam();
+      renderer.autoClear = true;
       renderer.render(scene, camera);
+      renderer.autoClear = false;
+      viewHelper.render(renderer);
+      renderer.autoClear = true;
     };
     animate();
 
