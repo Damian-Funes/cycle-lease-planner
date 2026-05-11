@@ -27,6 +27,7 @@ export type Database = {
           id: string
           imagem_url: string | null
           largura_mm: number | null
+          modelo_3d_url: string | null
           valor_custo: number
           valor_venda: number | null
         }
@@ -42,6 +43,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           largura_mm?: number | null
+          modelo_3d_url?: string | null
           valor_custo: number
           valor_venda?: number | null
         }
@@ -57,6 +59,7 @@ export type Database = {
           id?: string
           imagem_url?: string | null
           largura_mm?: number | null
+          modelo_3d_url?: string | null
           valor_custo?: number
           valor_venda?: number | null
         }
@@ -527,6 +530,7 @@ export type Database = {
           item_id: string | null
           largura_mm: number | null
           layout_id: string | null
+          modelo_3d_url: string | null
           nome: string | null
           ordem: number | null
           pos_x_mm: number | null
