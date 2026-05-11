@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { Button } from "@/components/ui/button";
-import { RotateCw, RefreshCw, Loader2 } from "lucide-react";
+import { RotateCw, RotateCcw, RefreshCw, Loader2 } from "lucide-react";
 
 interface GlbOrientationEditorProps {
   glbUrl: string;
