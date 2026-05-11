@@ -435,9 +435,14 @@ export default function Catalogo() {
                 Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
               </p>
               <div className="flex gap-2 mt-4">
-                <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving || uploadStatus === "uploading"}
+                  className="gap-1"
+                >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar
+                  {uploadStatus === "uploading" ? "Aguarde upload..." : "Salvar"}
                 </Button>
                 <Button size="sm" variant="outline" onClick={cancelEdit} className="gap-1">
                   <X className="w-4 h-4" /> Cancelar
