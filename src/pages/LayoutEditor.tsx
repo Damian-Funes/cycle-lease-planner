@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, ZoomIn, ZoomOut, Maximize2,
+  Download, Box, Search, ZoomIn, ZoomOut, Maximize2, ExternalLink,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ import { CATEGORIAS } from "@/lib/equipamentos";
 
 const GRID_MM = 500;
 const PLANTAS_BUCKET = "plantas-cliente";
+const SIMULADOR_URL = "https://simuladorv1.vercel.app";
 
 /* ---------- Equipamento renderizado no canvas ---------- */
 function EquipamentoNode({
@@ -346,6 +347,12 @@ export default function LayoutEditor() {
     }, 300);
   }
 
+  function handleOpenSimulador3D() {
+    if (!id) return;
+    const url = `${SIMULADOR_URL}/?layout=${id}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   /* ---- exportar PDF ---- */
   async function handleExportPdf() {
     if (!stageRef.current || !layout) return;
@@ -532,6 +539,18 @@ export default function LayoutEditor() {
             </Button>
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
+            </Button>
+            <Button
+              onClick={handleOpenSimulador3D}
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!id || saving}
+              title="Abre o simulador 3D em uma nova aba com os equipamentos deste layout"
+            >
+              <Box className="w-4 h-4" />
+              <span className="hidden sm:inline">Abrir 3D</span>
+              <ExternalLink className="w-3 h-3 opacity-60" />
             </Button>
             <AppHeader />
           </div>
