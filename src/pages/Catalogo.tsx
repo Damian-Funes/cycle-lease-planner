@@ -71,6 +71,9 @@ export default function Catalogo() {
     setModeloFile(null);
     setModeloFileName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setUploadStatus("idle");
+    setUploadError("");
+    setUploadingFileSize(0);
   }
 
   function startNew() {
