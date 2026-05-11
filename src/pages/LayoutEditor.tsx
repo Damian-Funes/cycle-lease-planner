@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Stage, Layer, Rect, Line, Image as KonvaImage, Group, Text } from "react-konva";
-import useImage from "use-image";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,21 +9,20 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, ZoomIn, ZoomOut, Maximize2, ExternalLink,
+  Download, Box, Search, Move3d,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import { Layout3DCanvas } from "@/components/Layout3DCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
-  LayoutItemRow, LayoutRow, listLayoutItems, snap, clampPos,
+  LayoutItemRow, LayoutRow, listLayoutItems,
   PISO_MIN_MM, PISO_MAX_MM, SNAP_MM,
 } from "@/lib/layouts";
 import type { Equipamento } from "@/lib/equipamentos";
 import { CATEGORIAS } from "@/lib/equipamentos";
 
-const GRID_MM = 500;
 const PLANTAS_BUCKET = "plantas-cliente";
-const SIMULADOR_URL = "https://simuladorv1.vercel.app";
 
 /* ---------- Equipamento renderizado no canvas ---------- */
 function EquipamentoNode({
