@@ -308,8 +308,17 @@ export function Layout3DCanvas({
 
   useEffect(() => {
     const c = ctxRef.current;
-    if (!c.tc) return;
+    if (!c.scene || !c.tc) return;
     c.tc.setMode(mode);
+    if (mode === "translate") {
+      c.tc.showX = true;
+      c.tc.showY = false;
+      c.tc.showZ = true;
+    } else {
+      c.tc.showX = false;
+      c.tc.showY = true;
+      c.tc.showZ = false;
+    }
   }, [mode]);
 
   useEffect(() => {
