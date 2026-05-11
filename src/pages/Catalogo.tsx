@@ -131,7 +131,7 @@ export default function Catalogo() {
     return parseFloat(s.replace(/\./g, "")) || 0;
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const isGlb = file.name.toLowerCase().endsWith(".glb");
@@ -143,25 +143,33 @@ export default function Catalogo() {
       toast({ title: "Arquivo muito grande", description: `Máx. ${MAX_GLB_MB}MB.`, variant: "destructive" });
       return;
     }
+
     setModeloFile(file);
     setModeloFileName(file.name);
-  }
+    setUploadStatus("uploading");
+    setUploadError("");
+    setUploadingFileSize(file.size);
 
-  async function uploadModelo(codigo: string): Promise<string | null> {
-    if (!modeloFile) return form.modelo_3d_url || null;
-    const safeCodigo = codigo.replace(/[^a-zA-Z0-9_-]/g, "_");
-    const path = `${safeCodigo}-${Date.now()}.glb`;
-    const { error } = await supabase.storage.from(BUCKET_MODELOS).upload(path, modeloFile, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: "model/gltf-binary",
-    });
-    if (error) {
-      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
-      return null;
+    try {
+      const safeCodigo = (form.codigo.trim() || "temp").replace(/[^a-zA-Z0-9_-]/g, "_");
+      const path = `${safeCodigo}-${Date.now()}.glb`;
+      const { error } = await supabase.storage.from(BUCKET_MODELOS).upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: "model/gltf-binary",
+      });
+      if (error) {
+        setUploadStatus("error");
+        setUploadError(error.message);
+        return;
+      }
+      const { data } = supabase.storage.from(BUCKET_MODELOS).getPublicUrl(path);
+      setForm((f) => ({ ...f, modelo_3d_url: data.publicUrl }));
+      setUploadStatus("success");
+    } catch (err: any) {
+      setUploadStatus("error");
+      setUploadError(err?.message || "Erro desconhecido no upload");
     }
-    const { data } = supabase.storage.from(BUCKET_MODELOS).getPublicUrl(path);
-    return data.publicUrl;
   }
 
   async function handleSave() {
@@ -169,9 +177,15 @@ export default function Catalogo() {
       toast({ title: "Preencha código, descrição e valor de custo", variant: "destructive" });
       return;
     }
+    if (uploadStatus === "uploading") {
+      toast({ title: "Aguarde", description: "Upload do modelo ainda em andamento.", variant: "destructive" });
+      return;
+    }
+    if (uploadStatus === "error") {
+      toast({ title: "Erro no upload", description: "Tente subir o modelo novamente antes de salvar.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
-
-    const modelo_3d_url = await uploadModelo(form.codigo.trim());
 
     const cat = form.categoria || null;
     const corCategoria = cat ? CATEGORIAS.find((c) => c.value === cat)?.cor ?? null : null;
@@ -184,7 +198,7 @@ export default function Catalogo() {
       descricao: form.descricao.trim(),
       valor_custo: parseMoney(form.valor_custo) ?? 0,
       valor_venda: parseMoney(form.valor_venda),
-      modelo_3d_url,
+      modelo_3d_url: form.modelo_3d_url || null,
       categoria: cat,
       cor_categoria: corCategoria,
       largura_mm: toInt(form.largura_mm),
@@ -195,17 +209,19 @@ export default function Catalogo() {
     if (editing === "new") {
       const { error } = await supabase.from("equipamentos").insert(row);
       if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Equipamento adicionado" });
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
       }
+      toast({ title: "Equipamento adicionado" });
     } else {
       const { error } = await supabase.from("equipamentos").update(row).eq("id", editing!);
       if (error) {
-        toast({ title: "Erro", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Equipamento atualizado" });
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
       }
+      toast({ title: "Equipamento atualizado" });
     }
 
     setSaving(false);
