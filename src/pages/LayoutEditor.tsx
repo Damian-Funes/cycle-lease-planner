@@ -347,6 +347,12 @@ export default function LayoutEditor() {
     }, 300);
   }
 
+  function handleOpenSimulador3D() {
+    if (!id) return;
+    const url = `${SIMULADOR_URL}/?layout=${id}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   /* ---- exportar PDF ---- */
   async function handleExportPdf() {
     if (!stageRef.current || !layout) return;
