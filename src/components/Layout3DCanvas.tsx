@@ -318,6 +318,7 @@ export function Layout3DCanvas({
           else mat.dispose();
         }
       });
+      pmremGenerator.dispose();
       renderer.dispose();
       ctxRef.current = {};
     };
