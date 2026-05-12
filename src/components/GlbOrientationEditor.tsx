@@ -12,16 +12,44 @@ interface GlbOrientationEditorProps {
   onChange: (rotacaoX: number, rotacaoZ: number) => void;
 }
 
-function applyRotation(inner: THREE.Group, rx: number, rz: number) {
+interface CameraInfo {
+  radius: number;
+  height: number;
+  targetY: number;
+}
+
+function applyRotation(
+  inner: THREE.Group,
+  rx: number,
+  rz: number,
+  cameraInfoRef: { current: CameraInfo },
+) {
   inner.rotation.x = (rx * Math.PI) / 180;
   inner.rotation.z = (rz * Math.PI) / 180;
   inner.updateMatrixWorld(true);
+
   const box = new THREE.Box3().setFromObject(inner);
   const center = new THREE.Vector3();
   box.getCenter(center);
   inner.position.x = -center.x;
   inner.position.z = -center.z;
   inner.position.y = -box.min.y;
+
+  inner.updateMatrixWorld(true);
+  const newBox = new THREE.Box3().setFromObject(inner);
+  const size = new THREE.Vector3();
+  newBox.getSize(size);
+
+  const diagonalXZ = Math.sqrt(size.x * size.x + size.z * size.z);
+  const maxDim = Math.max(diagonalXZ, size.y);
+
+  const fov = 35;
+  const fovRad = (fov * Math.PI) / 180;
+  const radius = Math.max((maxDim / 2) / Math.tan(fovRad / 2) * 1.4, 8);
+  const height = Math.max(radius * 0.4, size.y / 2 + 1.5);
+  const targetY = Math.max(size.y / 2, 0.5);
+
+  cameraInfoRef.current = { radius, height, targetY };
 }
 
 export function GlbOrientationEditor({
@@ -32,6 +60,7 @@ export function GlbOrientationEditor({
 }: GlbOrientationEditorProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<THREE.Group | null>(null);
+  const cameraInfoRef = useRef<CameraInfo>({ radius: 8, height: 5, targetY: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +73,7 @@ export function GlbOrientationEditor({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf5f5f4);
 
-    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 500);
+    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 2000);
     camera.position.set(6, 5, 7);
     camera.lookAt(0, 1, 0);
 
@@ -61,14 +90,14 @@ export function GlbOrientationEditor({
     scene.add(dir);
 
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(8, 8),
+      new THREE.PlaneGeometry(30, 30),
       new THREE.MeshStandardMaterial({ color: 0xe7e5e4, roughness: 0.95 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    const grid = new THREE.GridHelper(8, 8, 0xc0c0c0, 0xd6d3d1);
+    const grid = new THREE.GridHelper(30, 30, 0xc0c0c0, 0xd6d3d1);
     grid.position.y = 0.01;
     scene.add(grid);
 
@@ -98,7 +127,7 @@ export function GlbOrientationEditor({
         });
         scene.add(inner);
         innerRef.current = inner;
-        applyRotation(inner, rotacaoX, rotacaoZ);
+        applyRotation(inner, rotacaoX, rotacaoZ, cameraInfoRef);
         setLoading(false);
       },
       undefined,
@@ -112,10 +141,11 @@ export function GlbOrientationEditor({
     const animate = () => {
       raf = requestAnimationFrame(animate);
       theta += 0.003;
-      camera.position.x = Math.cos(theta) * 7;
-      camera.position.z = Math.sin(theta) * 7;
-      camera.position.y = 5;
-      camera.lookAt(0, 1, 0);
+      const { radius, height: camH, targetY } = cameraInfoRef.current;
+      camera.position.x = Math.cos(theta) * radius;
+      camera.position.z = Math.sin(theta) * radius;
+      camera.position.y = camH;
+      camera.lookAt(0, targetY, 0);
       renderer.render(scene, camera);
     };
     animate();
@@ -157,7 +187,7 @@ export function GlbOrientationEditor({
 
   useEffect(() => {
     if (innerRef.current) {
-      applyRotation(innerRef.current, rotacaoX, rotacaoZ);
+      applyRotation(innerRef.current, rotacaoX, rotacaoZ, cameraInfoRef);
     }
   }, [rotacaoX, rotacaoZ]);
 
