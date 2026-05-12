@@ -206,6 +206,7 @@ export function GlbOrientationEditor({
           else mat.dispose();
         }
       });
+      pmremGenerator.dispose();
       renderer.dispose();
       innerRef.current = null;
     };
