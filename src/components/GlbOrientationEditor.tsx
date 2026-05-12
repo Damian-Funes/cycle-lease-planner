@@ -73,7 +73,7 @@ export function GlbOrientationEditor({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf5f5f4);
 
-    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 500);
+    const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 2000);
     camera.position.set(6, 5, 7);
     camera.lookAt(0, 1, 0);
 
