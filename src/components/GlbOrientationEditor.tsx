@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Button } from "@/components/ui/button";
 import { RotateCw, RotateCcw, RefreshCw, Loader2 } from "lucide-react";
 
@@ -81,13 +82,39 @@ export function GlbOrientationEditor({
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const dir = new THREE.DirectionalLight(0xffffff, 0.9);
-    dir.position.set(8, 12, 6);
-    dir.castShadow = true;
-    scene.add(dir);
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.85);
+    hemi.position.set(0, 20, 0);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+    keyLight.position.set(10, 18, 8);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.camera.left = -15;
+    keyLight.shadow.camera.right = 15;
+    keyLight.shadow.camera.top = 15;
+    keyLight.shadow.camera.bottom = -15;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.55);
+    fillLight.position.set(-8, 10, -6);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.55);
+    rimLight.position.set(0, 8, -12);
+    scene.add(rimLight);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(30, 30),
@@ -179,6 +206,7 @@ export function GlbOrientationEditor({
           else mat.dispose();
         }
       });
+      pmremGenerator.dispose();
       renderer.dispose();
       innerRef.current = null;
     };
