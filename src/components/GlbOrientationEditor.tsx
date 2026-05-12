@@ -141,10 +141,11 @@ export function GlbOrientationEditor({
     const animate = () => {
       raf = requestAnimationFrame(animate);
       theta += 0.003;
-      camera.position.x = Math.cos(theta) * 7;
-      camera.position.z = Math.sin(theta) * 7;
-      camera.position.y = 5;
-      camera.lookAt(0, 1, 0);
+      const { radius, height: camH, targetY } = cameraInfoRef.current;
+      camera.position.x = Math.cos(theta) * radius;
+      camera.position.z = Math.sin(theta) * radius;
+      camera.position.y = camH;
+      camera.lookAt(0, targetY, 0);
       renderer.render(scene, camera);
     };
     animate();
