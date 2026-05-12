@@ -90,14 +90,14 @@ export function GlbOrientationEditor({
     scene.add(dir);
 
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(8, 8),
+      new THREE.PlaneGeometry(30, 30),
       new THREE.MeshStandardMaterial({ color: 0xe7e5e4, roughness: 0.95 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    const grid = new THREE.GridHelper(8, 8, 0xc0c0c0, 0xd6d3d1);
+    const grid = new THREE.GridHelper(30, 30, 0xc0c0c0, 0xd6d3d1);
     grid.position.y = 0.01;
     scene.add(grid);
 
