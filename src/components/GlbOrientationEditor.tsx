@@ -127,7 +127,7 @@ export function GlbOrientationEditor({
         });
         scene.add(inner);
         innerRef.current = inner;
-        applyRotation(inner, rotacaoX, rotacaoZ);
+        applyRotation(inner, rotacaoX, rotacaoZ, cameraInfoRef);
         setLoading(false);
       },
       undefined,
