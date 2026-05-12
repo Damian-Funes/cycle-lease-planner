@@ -186,7 +186,7 @@ export function GlbOrientationEditor({
 
   useEffect(() => {
     if (innerRef.current) {
-      applyRotation(innerRef.current, rotacaoX, rotacaoZ);
+      applyRotation(innerRef.current, rotacaoX, rotacaoZ, cameraInfoRef);
     }
   }, [rotacaoX, rotacaoZ]);
 
