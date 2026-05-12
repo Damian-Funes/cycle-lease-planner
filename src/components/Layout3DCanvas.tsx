@@ -59,27 +59,49 @@ export function Layout3DCanvas({
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
     mount.appendChild(renderer.domElement);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.8);
+    hemi.position.set(0, 50, 0);
+    scene.add(hemi);
+
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.4);
+    keyLight.position.set(20, 35, 15);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.left = -40;
+    keyLight.shadow.camera.right = 40;
+    keyLight.shadow.camera.top = 40;
+    keyLight.shadow.camera.bottom = -40;
+    keyLight.shadow.camera.near = 1;
+    keyLight.shadow.camera.far = 120;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.5);
+    fillLight.position.set(-15, 20, -10);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    rimLight.position.set(0, 15, -25);
+    scene.add(rimLight);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.25);
     scene.add(ambient);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.95);
-    dir.position.set(20, 30, 15);
-    dir.castShadow = true;
-    dir.shadow.mapSize.set(2048, 2048);
-    dir.shadow.camera.left = -30;
-    dir.shadow.camera.right = 30;
-    dir.shadow.camera.top = 30;
-    dir.shadow.camera.bottom = -30;
-    scene.add(dir);
 
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xe7e5e4,
-      roughness: 0.95,
-      metalness: 0,
+      color: 0xdcdcdc,
+      roughness: 0.92,
+      metalness: 0.0,
     });
     const floor = new THREE.Mesh(floorGeom, floorMat);
     floor.rotation.x = -Math.PI / 2;
