@@ -12,16 +12,44 @@ interface GlbOrientationEditorProps {
   onChange: (rotacaoX: number, rotacaoZ: number) => void;
 }
 
-function applyRotation(inner: THREE.Group, rx: number, rz: number) {
+interface CameraInfo {
+  radius: number;
+  height: number;
+  targetY: number;
+}
+
+function applyRotation(
+  inner: THREE.Group,
+  rx: number,
+  rz: number,
+  cameraInfoRef: { current: CameraInfo },
+) {
   inner.rotation.x = (rx * Math.PI) / 180;
   inner.rotation.z = (rz * Math.PI) / 180;
   inner.updateMatrixWorld(true);
+
   const box = new THREE.Box3().setFromObject(inner);
   const center = new THREE.Vector3();
   box.getCenter(center);
   inner.position.x = -center.x;
   inner.position.z = -center.z;
   inner.position.y = -box.min.y;
+
+  inner.updateMatrixWorld(true);
+  const newBox = new THREE.Box3().setFromObject(inner);
+  const size = new THREE.Vector3();
+  newBox.getSize(size);
+
+  const diagonalXZ = Math.sqrt(size.x * size.x + size.z * size.z);
+  const maxDim = Math.max(diagonalXZ, size.y);
+
+  const fov = 35;
+  const fovRad = (fov * Math.PI) / 180;
+  const radius = Math.max((maxDim / 2) / Math.tan(fovRad / 2) * 1.4, 8);
+  const height = Math.max(radius * 0.4, size.y / 2 + 1.5);
+  const targetY = Math.max(size.y / 2, 0.5);
+
+  cameraInfoRef.current = { radius, height, targetY };
 }
 
 export function GlbOrientationEditor({
