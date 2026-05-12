@@ -60,6 +60,7 @@ export function GlbOrientationEditor({
 }: GlbOrientationEditorProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const innerRef = useRef<THREE.Group | null>(null);
+  const cameraInfoRef = useRef<CameraInfo>({ radius: 8, height: 5, targetY: 1 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
