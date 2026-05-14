@@ -88,8 +88,15 @@ function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
     transition,
     opacity: isDragging ? 0.3 : 1,
   };
-  const initials = (op.profiles?.nome ?? op.profiles?.email ?? "?").slice(0, 2).toUpperCase();
-  const border = rottingClass(op, etapa);
+  const initials = (op.responsavel_nome ?? op.responsavel_email ?? "?").slice(0, 2).toUpperCase();
+  const rotting = ROTTING_MAP[op.rotting_status] ?? ROTTING_MAP.fresh;
+  const limit = op.etapa_rotting_days ?? etapa?.rotting_days ?? 14;
+  const tooltipText =
+    op.rotting_status === "fresh"
+      ? `Em dia · ${op.dias_sem_atividade}d sem atividade (limite ${limit}d)`
+      : op.rotting_status === "no_activity"
+      ? `Sem próxima atividade agendada · ${op.dias_sem_atividade}d`
+      : `Sem atividade há ${op.dias_sem_atividade}d — rotting em ${limit}d`;
 
   return (
     <div
@@ -102,17 +109,34 @@ function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
         e.stopPropagation();
         navigate(`/crm/deal/${op.id}`);
       }}
-      className={`bg-card border border-l-4 ${border} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow`}
+      className={`relative bg-card border border-l-4 ${rotting.border} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow`}
     >
-      <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{op.titulo}</div>
-      {op.organizacoes && (
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className="absolute top-1.5 right-1.5 text-xs leading-none select-none"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {rotting.emoji}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <span className="text-xs">{rotting.label} · {tooltipText}</span>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2 pr-5">{op.titulo}</div>
+      {op.organizacao_nome && (
         <Link
           to={`/organizacoes/${op.organizacao_id}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           className="text-xs text-primary hover:underline block mb-2 truncate"
         >
-          {op.organizacoes.nome}
+          {op.organizacao_nome}
         </Link>
       )}
       <div className="flex items-end justify-between mb-2">
