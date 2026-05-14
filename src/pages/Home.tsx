@@ -53,6 +53,13 @@ const cards = [
     to: "/clientes",
     color: "bg-indigo-500/10 text-indigo-600",
   },
+  {
+    title: "CRM",
+    desc: "Pipeline comercial e oportunidades",
+    icon: KanbanSquare,
+    to: "/crm",
+    color: "bg-emerald-500/10 text-emerald-600",
+  },
 ];
 
 export default function Home() {
