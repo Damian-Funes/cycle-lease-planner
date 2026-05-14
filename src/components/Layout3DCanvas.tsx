@@ -207,10 +207,33 @@ export function Layout3DCanvas({
     const onUp = () => {
       orbit.isDragging = false;
     };
+    const zoomRaycaster = new THREE.Raycaster();
+    const zoomNdc = new THREE.Vector2();
+    const zoomPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const onWheel = (e: WheelEvent) => {
       if (orbit.locked) return;
       e.preventDefault();
-      orbit.radius = Math.max(3, Math.min(150, orbit.radius + e.deltaY * 0.02));
+
+      const oldRadius = orbit.radius;
+      const newRadius = Math.max(3, Math.min(150, oldRadius + e.deltaY * 0.02));
+      if (newRadius === oldRadius) return;
+
+      // ponto sob o cursor (no plano do piso) — vira o novo target proporcionalmente
+      const rect = dom.getBoundingClientRect();
+      zoomNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      zoomNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      zoomRaycaster.setFromCamera(zoomNdc, camera);
+      const hit = new THREE.Vector3();
+      const intersected = zoomRaycaster.ray.intersectPlane(zoomPlane, hit);
+
+      orbit.radius = newRadius;
+
+      if (intersected) {
+        // fração de aproximação (0 = sem mover, 1 = target gruda no cursor)
+        const t = (oldRadius - newRadius) / oldRadius;
+        orbit.target.x += (hit.x - orbit.target.x) * t;
+        orbit.target.z += (hit.z - orbit.target.z) * t;
+      }
     };
     dom.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
