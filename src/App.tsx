@@ -19,6 +19,7 @@ import OrganizacaoDetalhe from "./pages/OrganizacaoDetalhe";
 import Pessoas from "./pages/Pessoas";
 import Dossie from "./pages/Dossie";
 import Crm from "./pages/Crm";
+const DealDetalhe = lazy(() => import("./pages/DealDetalhe"));
 import Orcamento from "./pages/Orcamento";
 import Reforma from "./pages/Reforma";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
