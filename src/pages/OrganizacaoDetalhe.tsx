@@ -334,7 +334,7 @@ export default function OrganizacaoDetalhe() {
               <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>
             </TabsContent>
             <TabsContent value="atividades" className="mt-4">
-              <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>
+              {org && <ActivityFeed entityType="organizacao" entityId={org.id} />}
             </TabsContent>
             <TabsContent value="notas" className="mt-4">
               <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>
