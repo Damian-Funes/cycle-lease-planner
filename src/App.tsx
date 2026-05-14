@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 const Layouts = lazy(() => import("./pages/Layouts"));
 const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
 const AdminUsuarios = lazy(() => import("./pages/AdminUsuarios"));
+const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
 
 const queryClient = new QueryClient();
 
