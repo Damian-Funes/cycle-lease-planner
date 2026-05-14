@@ -62,6 +62,7 @@ const App = () => (
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
               <Route path="/reforma/catalogo" element={<ProtectedRoute requireAdmin><ReformaCatalogo /></ProtectedRoute>} />
               <Route path="/admin/usuarios" element={<ProtectedRoute requireAdmin><AdminUsuarios /></ProtectedRoute>} />
+              <Route path="/admin/pipelines" element={<ProtectedRoute requireAdmin><AdminPipelines /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
