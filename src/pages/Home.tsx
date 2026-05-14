@@ -61,6 +61,13 @@ const cards = [
     color: "bg-cyan-500/10 text-cyan-600",
   },
   {
+    title: "Pessoas",
+    desc: "Contatos individuais",
+    icon: User,
+    to: "/pessoas",
+    color: "bg-sky-500/10 text-sky-600",
+  },
+  {
     title: "CRM",
     desc: "Pipeline comercial e oportunidades",
     icon: KanbanSquare,
