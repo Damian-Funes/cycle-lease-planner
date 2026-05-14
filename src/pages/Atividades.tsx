@@ -75,7 +75,7 @@ export default function Atividades() {
       const map: any = {};
       (ops || []).forEach((o: any) => { map[o.id] = { titulo: o.titulo, organizacao_id: o.organizacao_id }; });
       setOpps(map);
-      const orgIds = [...new Set((ops || []).map((o: any) => o.organizacao_id))];
+      const orgIds = [...new Set((ops || []).map((o: any) => o.organizacao_id as string))] as string[];
       if (orgIds.length) {
         const { data: ogs } = await supabase.from("organizacoes").select("id, nome").in("id", orgIds);
         const omap: any = {};
