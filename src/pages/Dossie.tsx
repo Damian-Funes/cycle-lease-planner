@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Plus, Trash2, Eye, Loader2, FileText,
-  CheckCircle2, DollarSign, Clock, Mail, Phone, Star,
+  CheckCircle2, DollarSign, Clock, Mail, Phone, Star, Activity,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ClienteFormModal, { ClienteRow } from "@/components/ClienteFormModal";
 import ContatoFormModal, { ContatoRow } from "@/components/ContatoFormModal";
+import AtividadeFormSheet from "@/components/AtividadeFormSheet";
+import Timeline from "@/components/Timeline";
+import OportunidadesCliente from "@/components/OportunidadesCliente";
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "bg-gray-200 text-gray-800 hover:bg-gray-200",
