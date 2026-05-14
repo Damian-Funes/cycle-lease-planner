@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { OrcamentoParams, calcSubtotal, calcDescontoAplicado, calcTotal } from "./orcamento";
 import {
