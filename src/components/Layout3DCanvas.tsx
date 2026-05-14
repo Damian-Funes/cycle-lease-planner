@@ -272,14 +272,76 @@ export function Layout3DCanvas({
       mouseV.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouseV.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouseV, camera);
-      const groups = Object.values(ctxRef.current.groups || {}) as THREE.Object3D[];
-      const hits = raycaster.intersectObjects(groups, true);
+      const c = ctxRef.current;
+
+      // MODO CONECTAR
+      if (c.currentMode === "connect") {
+        const groupsArr = Object.values(c.groups || {}) as THREE.Object3D[];
+        const hits = raycaster.intersectObjects(groupsArr, true);
+        if (hits.length === 0) return;
+
+        let wrapper: THREE.Object3D | null = hits[0].object;
+        while (wrapper && !wrapper.userData.itemId) wrapper = wrapper.parent;
+        if (!wrapper) return;
+
+        const itemId = wrapper.userData.itemId as string;
+        const worldPoint = hits[0].point.clone();
+        const localPoint = wrapper.worldToLocal(worldPoint.clone());
+
+        const localBbox = new THREE.Box3();
+        const wrapperMatrixInv = wrapper.matrixWorld.clone().invert();
+        wrapper.children.forEach((child: THREE.Object3D) => {
+          const childBox = new THREE.Box3().setFromObject(child);
+          childBox.applyMatrix4(wrapperMatrixInv);
+          localBbox.union(childBox);
+        });
+        if (localBbox.isEmpty()) {
+          localBbox.min.set(-0.5, 0, -0.5);
+          localBbox.max.set(0.5, 1, 0.5);
+        }
+
+        const snapDistMeters = 0.2;
+        const distancias = [
+          { d: Math.abs(localPoint.x - localBbox.min.x), p: new THREE.Vector3(localBbox.min.x, localPoint.y, localPoint.z) },
+          { d: Math.abs(localPoint.x - localBbox.max.x), p: new THREE.Vector3(localBbox.max.x, localPoint.y, localPoint.z) },
+          { d: Math.abs(localPoint.y - localBbox.min.y), p: new THREE.Vector3(localPoint.x, localBbox.min.y, localPoint.z) },
+          { d: Math.abs(localPoint.y - localBbox.max.y), p: new THREE.Vector3(localPoint.x, localBbox.max.y, localPoint.z) },
+          { d: Math.abs(localPoint.z - localBbox.min.z), p: new THREE.Vector3(localPoint.x, localPoint.y, localBbox.min.z) },
+          { d: Math.abs(localPoint.z - localBbox.max.z), p: new THREE.Vector3(localPoint.x, localPoint.y, localBbox.max.z) },
+        ];
+        const maisProx = distancias.reduce((a, b) => (a.d < b.d ? a : b));
+        const finalLocal = maisProx.d < snapDistMeters ? maisProx.p : localPoint;
+
+        const xmm = Math.round(finalLocal.x * 1000);
+        const ymm = Math.round(finalLocal.y * 1000);
+        const zmm = Math.round(finalLocal.z * 1000);
+
+        c.onConectarClick?.(itemId, xmm, ymm, zmm);
+        return;
+      }
+
+      // MODO NORMAL: testar clique em conexao antes de equipamento
+      if (c.conexoesGroup) {
+        const conexHits = raycaster.intersectObjects(c.conexoesGroup.children, true);
+        if (conexHits.length > 0) {
+          let line: THREE.Object3D | null = conexHits[0].object;
+          while (line && !line.userData.conexaoId) line = line.parent;
+          if (line) {
+            c.onConexaoSelect?.(line.userData.conexaoId as string);
+            return;
+          }
+        }
+      }
+
+      const groupsArr = Object.values(c.groups || {}) as THREE.Object3D[];
+      const hits = raycaster.intersectObjects(groupsArr, true);
       if (hits.length > 0) {
         let obj: THREE.Object3D | null = hits[0].object;
         while (obj && !obj.userData.itemId) obj = obj.parent;
-        if (obj) ctxRef.current.onSelect?.(obj.userData.itemId as string);
+        if (obj) c.onSelect?.(obj.userData.itemId as string);
       } else {
-        ctxRef.current.onSelect?.(null);
+        c.onSelect?.(null);
+        c.onConexaoSelect?.(null);
       }
     };
     dom.addEventListener("mousedown", onClickDown);
