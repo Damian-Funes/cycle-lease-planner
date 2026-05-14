@@ -721,6 +721,143 @@ export type Database = {
         }
         Relationships: []
       }
+      organizacoes: {
+        Row: {
+          cidade: string | null
+          cnpj: string | null
+          created_at: string
+          email_principal: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          porte: string | null
+          regiao: string | null
+          responsavel_id: string | null
+          segmento: string | null
+          site: string | null
+          status: string
+          tags: string[]
+          telefone_principal: string | null
+          updated_at: string
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email_principal?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          porte?: string | null
+          regiao?: string | null
+          responsavel_id?: string | null
+          segmento?: string | null
+          site?: string | null
+          status?: string
+          tags?: string[]
+          telefone_principal?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email_principal?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          porte?: string | null
+          regiao?: string | null
+          responsavel_id?: string | null
+          segmento?: string | null
+          site?: string | null
+          status?: string
+          tags?: string[]
+          telefone_principal?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizacoes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pessoas: {
+        Row: {
+          cargo: string | null
+          celular: string | null
+          created_at: string
+          e_decisor: boolean
+          email: string | null
+          id: string
+          linkedin: string | null
+          nome: string
+          observacoes: string | null
+          organizacao_id: string | null
+          responsavel_id: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          celular?: string | null
+          created_at?: string
+          e_decisor?: boolean
+          email?: string | null
+          id?: string
+          linkedin?: string | null
+          nome: string
+          observacoes?: string | null
+          organizacao_id?: string | null
+          responsavel_id?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          celular?: string | null
+          created_at?: string
+          e_decisor?: boolean
+          email?: string | null
+          id?: string
+          linkedin?: string | null
+          nome?: string
+          observacoes?: string | null
+          organizacao_id?: string | null
+          responsavel_id?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved_at: string | null
