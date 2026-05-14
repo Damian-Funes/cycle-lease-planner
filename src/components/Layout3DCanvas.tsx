@@ -464,6 +464,7 @@ export function Layout3DCanvas({
     existingIds.forEach((id) => {
       if (!newIds.includes(id)) {
         const g = groups[id];
+        descartarMaterialClonado(g);
         c.scene!.remove(g);
         g.traverse((o: THREE.Object3D) => {
           const mesh = o as THREE.Mesh;
