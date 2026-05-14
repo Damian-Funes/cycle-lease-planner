@@ -246,6 +246,9 @@ export default function Orcamento() {
 
   async function handlePdf() {
     if (!params.clientName.trim()) {
+      setClientNameError(true);
+      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => clientNameRef.current?.focus(), 300);
       toast({ title: "Preencha o nome do cliente", variant: "destructive" });
       return;
     }
