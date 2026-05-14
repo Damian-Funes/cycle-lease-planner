@@ -6,7 +6,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { ViewHelper } from "three/examples/jsm/helpers/ViewHelper.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
-import type { LayoutItemRow } from "@/lib/layouts";
+import type { LayoutItemRow, ConexaoRow } from "@/lib/layouts";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -15,8 +15,14 @@ export interface Layout3DCanvasProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onTransform: (id: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) => void;
-  mode: "translate" | "rotate";
+  mode: "translate" | "rotate" | "connect";
   alturaLiberada?: boolean;
+  conexoes?: ConexaoRow[];
+  modoConexao?: boolean;
+  conexaoPontoTemp?: { itemId: string; x: number; y: number; z: number } | null;
+  selectedConexaoId?: string | null;
+  onConectarClick?: (itemId: string, x: number, y: number, z: number) => void;
+  onConexaoSelect?: (id: string | null) => void;
 }
 
 interface CanvasCtx {
@@ -25,8 +31,13 @@ interface CanvasCtx {
   renderer?: THREE.WebGLRenderer;
   tc?: TransformControls;
   groups?: Record<string, THREE.Group>;
+  conexoesGroup?: THREE.Group;
+  previewMarker?: THREE.Mesh | null;
   onTransform?: Layout3DCanvasProps["onTransform"];
   onSelect?: Layout3DCanvasProps["onSelect"];
+  onConectarClick?: Layout3DCanvasProps["onConectarClick"];
+  onConexaoSelect?: Layout3DCanvasProps["onConexaoSelect"];
+  currentMode?: Layout3DCanvasProps["mode"];
   dom?: HTMLCanvasElement;
   animateToView?: (theta: number, phi: number, radius?: number) => void;
 }
@@ -40,6 +51,12 @@ export function Layout3DCanvas({
   onTransform,
   mode,
   alturaLiberada = false,
+  conexoes = [],
+  modoConexao = false,
+  conexaoPontoTemp = null,
+  selectedConexaoId = null,
+  onConectarClick,
+  onConexaoSelect,
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
@@ -53,6 +70,10 @@ export function Layout3DCanvas({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf5f5f4);
+
+    const conexoesGroup = new THREE.Group();
+    conexoesGroup.name = "conexoes";
+    scene.add(conexoesGroup);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
 
@@ -251,14 +272,76 @@ export function Layout3DCanvas({
       mouseV.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouseV.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouseV, camera);
-      const groups = Object.values(ctxRef.current.groups || {}) as THREE.Object3D[];
-      const hits = raycaster.intersectObjects(groups, true);
+      const c = ctxRef.current;
+
+      // MODO CONECTAR
+      if (c.currentMode === "connect") {
+        const groupsArr = Object.values(c.groups || {}) as THREE.Object3D[];
+        const hits = raycaster.intersectObjects(groupsArr, true);
+        if (hits.length === 0) return;
+
+        let wrapper: THREE.Object3D | null = hits[0].object;
+        while (wrapper && !wrapper.userData.itemId) wrapper = wrapper.parent;
+        if (!wrapper) return;
+
+        const itemId = wrapper.userData.itemId as string;
+        const worldPoint = hits[0].point.clone();
+        const localPoint = wrapper.worldToLocal(worldPoint.clone());
+
+        const localBbox = new THREE.Box3();
+        const wrapperMatrixInv = wrapper.matrixWorld.clone().invert();
+        wrapper.children.forEach((child: THREE.Object3D) => {
+          const childBox = new THREE.Box3().setFromObject(child);
+          childBox.applyMatrix4(wrapperMatrixInv);
+          localBbox.union(childBox);
+        });
+        if (localBbox.isEmpty()) {
+          localBbox.min.set(-0.5, 0, -0.5);
+          localBbox.max.set(0.5, 1, 0.5);
+        }
+
+        const snapDistMeters = 0.2;
+        const distancias = [
+          { d: Math.abs(localPoint.x - localBbox.min.x), p: new THREE.Vector3(localBbox.min.x, localPoint.y, localPoint.z) },
+          { d: Math.abs(localPoint.x - localBbox.max.x), p: new THREE.Vector3(localBbox.max.x, localPoint.y, localPoint.z) },
+          { d: Math.abs(localPoint.y - localBbox.min.y), p: new THREE.Vector3(localPoint.x, localBbox.min.y, localPoint.z) },
+          { d: Math.abs(localPoint.y - localBbox.max.y), p: new THREE.Vector3(localPoint.x, localBbox.max.y, localPoint.z) },
+          { d: Math.abs(localPoint.z - localBbox.min.z), p: new THREE.Vector3(localPoint.x, localPoint.y, localBbox.min.z) },
+          { d: Math.abs(localPoint.z - localBbox.max.z), p: new THREE.Vector3(localPoint.x, localPoint.y, localBbox.max.z) },
+        ];
+        const maisProx = distancias.reduce((a, b) => (a.d < b.d ? a : b));
+        const finalLocal = maisProx.d < snapDistMeters ? maisProx.p : localPoint;
+
+        const xmm = Math.round(finalLocal.x * 1000);
+        const ymm = Math.round(finalLocal.y * 1000);
+        const zmm = Math.round(finalLocal.z * 1000);
+
+        c.onConectarClick?.(itemId, xmm, ymm, zmm);
+        return;
+      }
+
+      // MODO NORMAL: testar clique em conexao antes de equipamento
+      if (c.conexoesGroup) {
+        const conexHits = raycaster.intersectObjects(c.conexoesGroup.children, true);
+        if (conexHits.length > 0) {
+          let line: THREE.Object3D | null = conexHits[0].object;
+          while (line && !line.userData.conexaoId) line = line.parent;
+          if (line) {
+            c.onConexaoSelect?.(line.userData.conexaoId as string);
+            return;
+          }
+        }
+      }
+
+      const groupsArr = Object.values(c.groups || {}) as THREE.Object3D[];
+      const hits = raycaster.intersectObjects(groupsArr, true);
       if (hits.length > 0) {
         let obj: THREE.Object3D | null = hits[0].object;
         while (obj && !obj.userData.itemId) obj = obj.parent;
-        if (obj) ctxRef.current.onSelect?.(obj.userData.itemId as string);
+        if (obj) c.onSelect?.(obj.userData.itemId as string);
       } else {
-        ctxRef.current.onSelect?.(null);
+        c.onSelect?.(null);
+        c.onConexaoSelect?.(null);
       }
     };
     dom.addEventListener("mousedown", onClickDown);
@@ -291,7 +374,15 @@ export function Layout3DCanvas({
     const ro = new ResizeObserver(onResize);
     ro.observe(mount);
 
-    ctxRef.current = { scene, camera, renderer, tc, groups: {}, onTransform, onSelect, dom, animateToView };
+    ctxRef.current = {
+      scene, camera, renderer, tc,
+      groups: {},
+      conexoesGroup,
+      previewMarker: null,
+      onTransform, onSelect, onConectarClick, onConexaoSelect,
+      currentMode: mode,
+      dom, animateToView,
+    };
 
     return () => {
       cancelAnimationFrame(raf);
@@ -331,12 +422,21 @@ export function Layout3DCanvas({
   useEffect(() => {
     ctxRef.current.onTransform = onTransform;
     ctxRef.current.onSelect = onSelect;
-  }, [onTransform, onSelect]);
+    ctxRef.current.onConectarClick = onConectarClick;
+    ctxRef.current.onConexaoSelect = onConexaoSelect;
+    ctxRef.current.currentMode = mode;
+  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode]);
 
   useEffect(() => {
     const c = ctxRef.current;
     if (!c.scene || !c.tc) return;
-    c.tc.setMode(mode);
+    if (mode === "connect") {
+      c.tc.detach();
+      (c.tc as unknown as { visible: boolean }).visible = false;
+      return;
+    }
+    (c.tc as unknown as { visible: boolean }).visible = true;
+    c.tc.setMode(mode as "translate" | "rotate");
     if (mode === "translate") {
       c.tc.showX = true;
       c.tc.showY = alturaLiberada;
@@ -484,6 +584,105 @@ export function Layout3DCanvas({
       c.tc.detach();
     }
   }, [selectedId]);
+
+  // Renderiza conexoes
+  useEffect(() => {
+    const c = ctxRef.current;
+    if (!c.scene || !c.conexoesGroup || !c.groups) return;
+    const grp = c.conexoesGroup;
+
+    while (grp.children.length > 0) {
+      const child = grp.children[0] as THREE.Mesh;
+      grp.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      const mat = child.material as THREE.Material | THREE.Material[] | undefined;
+      if (mat) {
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat.dispose();
+      }
+    }
+
+    conexoes.forEach((conex) => {
+      const grupoOrigem = c.groups![conex.item_origem_id];
+      const grupoDestino = c.groups![conex.item_destino_id];
+      if (!grupoOrigem || !grupoDestino) return;
+
+      grupoOrigem.updateMatrixWorld(true);
+      grupoDestino.updateMatrixWorld(true);
+
+      const localOrigem = new THREE.Vector3(
+        conex.ponto_origem_x_mm / 1000,
+        conex.ponto_origem_y_mm / 1000,
+        conex.ponto_origem_z_mm / 1000,
+      );
+      const localDestino = new THREE.Vector3(
+        conex.ponto_destino_x_mm / 1000,
+        conex.ponto_destino_y_mm / 1000,
+        conex.ponto_destino_z_mm / 1000,
+      );
+
+      const worldOrigem = grupoOrigem.localToWorld(localOrigem.clone());
+      const worldDestino = grupoDestino.localToWorld(localDestino.clone());
+
+      const dist = worldOrigem.distanceTo(worldDestino);
+      if (dist < 0.001) return;
+
+      const isSel = conex.id === selectedConexaoId;
+      const cor = isSel ? 0x1d9e75 : 0x444444;
+      const raio = isSel ? 0.04 : 0.025;
+
+      const geom = new THREE.CylinderGeometry(raio, raio, dist, 12);
+      const mat = new THREE.MeshStandardMaterial({ color: cor, roughness: 0.7, metalness: 0.1 });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.conexaoId = conex.id;
+
+      const meio = new THREE.Vector3().addVectors(worldOrigem, worldDestino).multiplyScalar(0.5);
+      mesh.position.copy(meio);
+
+      const direcao = new THREE.Vector3().subVectors(worldDestino, worldOrigem).normalize();
+      const yAxis = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(yAxis, direcao);
+      mesh.setRotationFromQuaternion(quat);
+
+      grp.add(mesh);
+    });
+  }, [conexoes, selectedConexaoId, items]);
+
+  // Marcador do ponto temporario (modo conectar)
+  useEffect(() => {
+    const c = ctxRef.current;
+    if (!c.scene) return;
+
+    if (c.previewMarker) {
+      c.scene.remove(c.previewMarker);
+      if (c.previewMarker.geometry) c.previewMarker.geometry.dispose();
+      const m = c.previewMarker.material as THREE.Material | undefined;
+      if (m) m.dispose();
+      c.previewMarker = null;
+    }
+
+    if (modoConexao && conexaoPontoTemp && c.groups) {
+      const grupoOrigem = c.groups[conexaoPontoTemp.itemId];
+      if (grupoOrigem) {
+        grupoOrigem.updateMatrixWorld(true);
+        const localOrigem = new THREE.Vector3(
+          conexaoPontoTemp.x / 1000,
+          conexaoPontoTemp.y / 1000,
+          conexaoPontoTemp.z / 1000,
+        );
+        const worldOrigem = grupoOrigem.localToWorld(localOrigem.clone());
+        const sphereGeom = new THREE.SphereGeometry(0.1, 16, 16);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+        sphere.position.copy(worldOrigem);
+        c.scene.add(sphere);
+        c.previewMarker = sphere;
+      }
+    }
+  }, [modoConexao, conexaoPontoTemp]);
+
 
   const goToView = (view: "top" | "front" | "back" | "left" | "right" | "iso") => {
     const c = ctxRef.current;

@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d, ArrowUpDown,
+  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Layout3DCanvas } from "@/components/Layout3DCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
-  LayoutItemRow, LayoutRow, listLayoutItems,
+  LayoutItemRow, LayoutRow, ConexaoRow, listLayoutItems,
   PISO_MIN_MM, PISO_MAX_MM, SNAP_MM,
 } from "@/lib/layouts";
 import type { Equipamento } from "@/lib/equipamentos";
@@ -40,13 +40,22 @@ export default function LayoutEditor() {
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "connect">("translate");
   const [alturaLiberada, setAlturaLiberada] = useState(false);
+  const [conexoes, setConexoes] = useState<ConexaoRow[]>([]);
+  const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
+  const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
     if (!id) return;
     setItems(await listLayoutItems(id));
+  }, [id]);
+
+  const refreshConexoes = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase.from("layout_conexoes").select("*").eq("layout_id", id);
+    setConexoes((data as ConexaoRow[]) || []);
   }, [id]);
 
   useEffect(() => {
@@ -65,6 +74,7 @@ export default function LayoutEditor() {
       setLayout(lay as LayoutRow);
       setEquipamentos((eqRes.data ?? []) as Equipamento[]);
       await refreshItems();
+      await refreshConexoes();
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,9 +86,21 @@ export default function LayoutEditor() {
   /* ---- atalhos teclado ---- */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!selectedId) return;
       const tgt = e.target as HTMLElement;
       if (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA") return;
+
+      if (e.key === "Escape" && transformMode === "connect") {
+        e.preventDefault();
+        setTransformMode("translate");
+        setConexaoPontoTemp(null);
+        return;
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedConexaoId) {
+        e.preventDefault();
+        handleConexaoDelete(selectedConexaoId);
+        return;
+      }
+      if (!selectedId) return;
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         rotateSelected();
@@ -90,7 +112,7 @@ export default function LayoutEditor() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, items]);
+  }, [selectedId, items, selectedConexaoId, transformMode]);
 
   /* ---- ações ---- */
   async function persistItem(itemId: string, patch: Partial<LayoutItemRow>) {
@@ -128,6 +150,47 @@ export default function LayoutEditor() {
     }
     setItems((cur) => cur.filter((i) => i.item_id !== selectedId));
     setSelectedId(null);
+  }
+
+  async function handleConectarClick(itemId: string, xmm: number, ymm: number, zmm: number) {
+    if (!conexaoPontoTemp) {
+      setConexaoPontoTemp({ itemId, x: xmm, y: ymm, z: zmm });
+      toast({ title: "Ponto A marcado", description: "Agora clique no segundo equipamento." });
+      return;
+    }
+    if (conexaoPontoTemp.itemId === itemId) {
+      toast({ title: "Selecione outro equipamento", variant: "destructive" });
+      return;
+    }
+    const nova = {
+      layout_id: id!,
+      item_origem_id: conexaoPontoTemp.itemId,
+      item_destino_id: itemId,
+      ponto_origem_x_mm: conexaoPontoTemp.x,
+      ponto_origem_y_mm: conexaoPontoTemp.y,
+      ponto_origem_z_mm: conexaoPontoTemp.z,
+      ponto_destino_x_mm: xmm,
+      ponto_destino_y_mm: ymm,
+      ponto_destino_z_mm: zmm,
+    };
+    const { data, error } = await supabase.from("layout_conexoes").insert(nova).select().single();
+    if (error) {
+      toast({ title: "Erro ao criar conexão", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConexoes((cur) => [...cur, data as ConexaoRow]);
+    setConexaoPontoTemp(null);
+    toast({ title: "Conexão criada" });
+  }
+
+  async function handleConexaoDelete(conexId: string) {
+    const { error } = await supabase.from("layout_conexoes").delete().eq("id", conexId);
+    if (error) {
+      toast({ title: "Erro ao deletar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConexoes((cur) => cur.filter((c) => c.id !== conexId));
+    setSelectedConexaoId(null);
   }
 
   async function addEquipamento(eq: Equipamento) {
@@ -403,6 +466,12 @@ export default function LayoutEditor() {
                   onTransform={handleTransform}
                   mode={transformMode}
                   alturaLiberada={alturaLiberada}
+                  conexoes={conexoes}
+                  modoConexao={transformMode === "connect"}
+                  conexaoPontoTemp={conexaoPontoTemp}
+                  selectedConexaoId={selectedConexaoId}
+                  onConectarClick={handleConectarClick}
+                  onConexaoSelect={setSelectedConexaoId}
                 />
               )}
 
@@ -411,7 +480,7 @@ export default function LayoutEditor() {
                 <Button
                   size="sm"
                   variant={transformMode === "translate" ? "default" : "ghost"}
-                  onClick={() => setTransformMode("translate")}
+                  onClick={() => { setTransformMode("translate"); setConexaoPontoTemp(null); }}
                   className="h-7 gap-1"
                 >
                   <Move3d className="w-3.5 h-3.5" />
@@ -420,11 +489,28 @@ export default function LayoutEditor() {
                 <Button
                   size="sm"
                   variant={transformMode === "rotate" ? "default" : "ghost"}
-                  onClick={() => setTransformMode("rotate")}
+                  onClick={() => { setTransformMode("rotate"); setConexaoPontoTemp(null); }}
                   className="h-7 gap-1"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                   <span className="text-xs">Rotacionar</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={transformMode === "connect" ? "default" : "ghost"}
+                  onClick={() => {
+                    if (transformMode === "connect") {
+                      setTransformMode("translate");
+                      setConexaoPontoTemp(null);
+                    } else {
+                      setTransformMode("connect");
+                      setSelectedId(null);
+                    }
+                  }}
+                  className="h-7 gap-1"
+                >
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <span className="text-xs">{transformMode === "connect" ? "Cancelar (ESC)" : "Conectar"}</span>
                 </Button>
                 <Button
                   size="sm"
@@ -461,6 +547,7 @@ export default function LayoutEditor() {
               <TabsTrigger value="items" className="text-xs">Equipamentos ({items.length})</TabsTrigger>
               <TabsTrigger value="catalog" className="text-xs">Catálogo</TabsTrigger>
               <TabsTrigger value="floor" className="text-xs">Piso</TabsTrigger>
+              <TabsTrigger value="conexoes" className="text-xs">Conexões ({conexoes.length})</TabsTrigger>
             </TabsList>
 
             {/* Aba 1 */}
@@ -603,6 +690,47 @@ export default function LayoutEditor() {
                 />
                 <p className="text-xs text-muted-foreground">PNG/JPG até 8MB. A imagem cobre o piso inteiro.</p>
               </div>
+            </TabsContent>
+
+            {/* Aba 4 - Conexões */}
+            <TabsContent value="conexoes" className="p-3 space-y-2 m-0">
+              {conexoes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhuma conexão ainda. Clique em "Conectar" no header e selecione dois equipamentos.
+                </p>
+              ) : (
+                conexoes.map((c) => {
+                  const origem = items.find((i) => i.item_id === c.item_origem_id);
+                  const destino = items.find((i) => i.item_id === c.item_destino_id);
+                  const isSel = c.id === selectedConexaoId;
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedConexaoId(c.id === selectedConexaoId ? null : c.id)}
+                      className={`p-2 border rounded-md cursor-pointer flex items-center justify-between gap-2 transition-colors ${
+                        isSel ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium truncate">
+                          {origem?.codigo || "?"} → {destino?.codigo || "?"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {origem?.nome || ""} → {destino?.nome || ""}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="shrink-0 h-7 w-7 p-0 text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleConexaoDelete(c.id); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
             </TabsContent>
           </Tabs>
         </aside>

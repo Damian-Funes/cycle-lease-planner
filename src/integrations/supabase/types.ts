@@ -107,6 +107,84 @@ export type Database = {
         }
         Relationships: []
       }
+      layout_conexoes: {
+        Row: {
+          created_at: string
+          id: string
+          item_destino_id: string
+          item_origem_id: string
+          layout_id: string
+          ponto_destino_x_mm: number
+          ponto_destino_y_mm: number
+          ponto_destino_z_mm: number
+          ponto_origem_x_mm: number
+          ponto_origem_y_mm: number
+          ponto_origem_z_mm: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_destino_id: string
+          item_origem_id: string
+          layout_id: string
+          ponto_destino_x_mm?: number
+          ponto_destino_y_mm?: number
+          ponto_destino_z_mm?: number
+          ponto_origem_x_mm?: number
+          ponto_origem_y_mm?: number
+          ponto_origem_z_mm?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_destino_id?: string
+          item_origem_id?: string
+          layout_id?: string
+          ponto_destino_x_mm?: number
+          ponto_destino_y_mm?: number
+          ponto_destino_z_mm?: number
+          ponto_origem_x_mm?: number
+          ponto_origem_y_mm?: number
+          ponto_origem_z_mm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layout_conexoes_item_destino_id_fkey"
+            columns: ["item_destino_id"]
+            isOneToOne: false
+            referencedRelation: "layout_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layout_conexoes_item_destino_id_fkey"
+            columns: ["item_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_layout_completo"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "layout_conexoes_item_origem_id_fkey"
+            columns: ["item_origem_id"]
+            isOneToOne: false
+            referencedRelation: "layout_equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layout_conexoes_item_origem_id_fkey"
+            columns: ["item_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_layout_completo"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "layout_conexoes_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layout_equipamentos: {
         Row: {
           created_at: string
