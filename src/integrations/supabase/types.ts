@@ -60,13 +60,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "atividades_oportunidade_id_fkey"
-            columns: ["oportunidade_id"]
-            isOneToOne: false
-            referencedRelation: "oportunidades"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "atividades_responsavel_id_fkey"
             columns: ["responsavel_id"]
             isOneToOne: false
@@ -241,6 +234,9 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          pipeline_id: string
+          probabilidade_default: number
+          rotting_days: number
         }
         Insert: {
           cor?: string | null
@@ -250,6 +246,9 @@ export type Database = {
           id?: string
           nome: string
           ordem: number
+          pipeline_id: string
+          probabilidade_default?: number
+          rotting_days?: number
         }
         Update: {
           cor?: string | null
@@ -259,8 +258,64 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          pipeline_id?: string
+          probabilidade_default?: number
+          rotting_days?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "etapas_pipeline_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_oportunidade: {
+        Row: {
+          created_at: string
+          id: string
+          oportunidade_id: string
+          tipo_mudanca: string
+          usuario_id: string | null
+          valor_anterior: Json | null
+          valor_novo: Json | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          oportunidade_id: string
+          tipo_mudanca: string
+          usuario_id?: string | null
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          oportunidade_id?: string
+          tipo_mudanca?: string
+          usuario_id?: string | null
+          valor_anterior?: Json | null
+          valor_novo?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_oportunidade_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_oportunidade_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       itens_reforma: {
         Row: {
@@ -494,65 +549,132 @@ export type Database = {
         }
         Relationships: []
       }
+      oportunidade_pessoas: {
+        Row: {
+          created_at: string
+          id: string
+          oportunidade_id: string
+          papel: string | null
+          pessoa_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          oportunidade_id: string
+          papel?: string | null
+          pessoa_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          oportunidade_id?: string
+          papel?: string | null
+          pessoa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidade_pessoas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidade_pessoas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oportunidades: {
         Row: {
-          cliente_id: string
+          concorrente_vencedor: string | null
           created_at: string
           data_fechamento_prevista: string | null
+          data_fechamento_real: string | null
           etapa_id: string
           id: string
           motivo_perda: string | null
           observacoes: string | null
+          ordem_coluna: number | null
+          organizacao_id: string
+          pipeline_id: string
           probabilidade: number
           proposta_id: string | null
+          proxima_atividade_em: string | null
           responsavel_id: string | null
+          status: string
           titulo: string
+          ultima_atividade_em: string | null
           updated_at: string
-          valor_estimado: number | null
+          valor_estimado: number
         }
         Insert: {
-          cliente_id: string
+          concorrente_vencedor?: string | null
           created_at?: string
           data_fechamento_prevista?: string | null
+          data_fechamento_real?: string | null
           etapa_id: string
           id?: string
           motivo_perda?: string | null
           observacoes?: string | null
+          ordem_coluna?: number | null
+          organizacao_id: string
+          pipeline_id: string
           probabilidade?: number
           proposta_id?: string | null
+          proxima_atividade_em?: string | null
           responsavel_id?: string | null
+          status?: string
           titulo: string
+          ultima_atividade_em?: string | null
           updated_at?: string
-          valor_estimado?: number | null
+          valor_estimado?: number
         }
         Update: {
-          cliente_id?: string
+          concorrente_vencedor?: string | null
           created_at?: string
           data_fechamento_prevista?: string | null
+          data_fechamento_real?: string | null
           etapa_id?: string
           id?: string
           motivo_perda?: string | null
           observacoes?: string | null
+          ordem_coluna?: number | null
+          organizacao_id?: string
+          pipeline_id?: string
           probabilidade?: number
           proposta_id?: string | null
+          proxima_atividade_em?: string | null
           responsavel_id?: string | null
+          status?: string
           titulo?: string
+          ultima_atividade_em?: string | null
           updated_at?: string
-          valor_estimado?: number | null
+          valor_estimado?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "oportunidades_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "oportunidades_etapa_id_fkey"
             columns: ["etapa_id"]
             isOneToOne: false
             referencedRelation: "etapas_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
           {
@@ -857,6 +979,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipelines: {
+        Row: {
+          ativo: boolean
+          cor: string
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
