@@ -466,6 +466,12 @@ export default function LayoutEditor() {
                   onTransform={handleTransform}
                   mode={transformMode}
                   alturaLiberada={alturaLiberada}
+                  conexoes={conexoes}
+                  modoConexao={transformMode === "connect"}
+                  conexaoPontoTemp={conexaoPontoTemp}
+                  selectedConexaoId={selectedConexaoId}
+                  onConectarClick={handleConectarClick}
+                  onConexaoSelect={setSelectedConexaoId}
                 />
               )}
 
@@ -474,7 +480,7 @@ export default function LayoutEditor() {
                 <Button
                   size="sm"
                   variant={transformMode === "translate" ? "default" : "ghost"}
-                  onClick={() => setTransformMode("translate")}
+                  onClick={() => { setTransformMode("translate"); setConexaoPontoTemp(null); }}
                   className="h-7 gap-1"
                 >
                   <Move3d className="w-3.5 h-3.5" />
@@ -483,11 +489,28 @@ export default function LayoutEditor() {
                 <Button
                   size="sm"
                   variant={transformMode === "rotate" ? "default" : "ghost"}
-                  onClick={() => setTransformMode("rotate")}
+                  onClick={() => { setTransformMode("rotate"); setConexaoPontoTemp(null); }}
                   className="h-7 gap-1"
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                   <span className="text-xs">Rotacionar</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={transformMode === "connect" ? "default" : "ghost"}
+                  onClick={() => {
+                    if (transformMode === "connect") {
+                      setTransformMode("translate");
+                      setConexaoPontoTemp(null);
+                    } else {
+                      setTransformMode("connect");
+                      setSelectedId(null);
+                    }
+                  }}
+                  className="h-7 gap-1"
+                >
+                  <LinkIcon className="w-3.5 h-3.5" />
+                  <span className="text-xs">{transformMode === "connect" ? "Cancelar (ESC)" : "Conectar"}</span>
                 </Button>
                 <Button
                   size="sm"
