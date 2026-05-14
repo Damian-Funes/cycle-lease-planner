@@ -222,11 +222,12 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <input
+              ref={clientNameRef}
               type="text"
               placeholder="Nome do cliente"
               value={params.clientName}
-              onChange={(e) => update("clientName", e.target.value)}
-              className="h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
+              className={`h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring ${clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}`}
             />
             <NovaPropostaButton onNovoAluguel={handleNova} />
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
