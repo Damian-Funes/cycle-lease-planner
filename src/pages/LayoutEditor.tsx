@@ -162,6 +162,39 @@ export default function LayoutEditor() {
       toast({ title: "Selecione outro equipamento", variant: "destructive" });
       return;
     }
+
+    // ---- Encaixar fisicamente: mover o 2º equipamento para o ponto A coincidir com o ponto B ----
+    const itemOrigem = items.find((i) => i.item_id === conexaoPontoTemp.itemId);
+    const itemDestino = items.find((i) => i.item_id === itemId);
+    if (!itemOrigem || !itemDestino) {
+      toast({ title: "Equipamento não encontrado", variant: "destructive" });
+      return;
+    }
+    // Mapeamento mm->world: world.x = pos_x_mm/1000, world.y = pos_z_mm/1000 (altura), world.z = pos_y_mm/1000.
+    // Wrapper só tem yaw (rotacao em graus) ao redor de Y.
+    const localToWorld = (it: LayoutItemRow, lxMm: number, lyMm: number, lzMm: number) => {
+      const rotY = ((it.rotacao ?? 0) * Math.PI) / 180;
+      const lx = lxMm / 1000, ly = lyMm / 1000, lz = lzMm / 1000;
+      const cos = Math.cos(rotY), sin = Math.sin(rotY);
+      const wx = (it.pos_x_mm ?? 0) / 1000 + cos * lx + sin * lz;
+      const wy = (it.pos_z_mm ?? 0) / 1000 + ly;
+      const wz = (it.pos_y_mm ?? 0) / 1000 - sin * lx + cos * lz;
+      return { wx, wy, wz };
+    };
+    const A = localToWorld(itemOrigem, conexaoPontoTemp.x, conexaoPontoTemp.y, conexaoPontoTemp.z);
+    const B = localToWorld(itemDestino, xmm, ymm, zmm);
+    const dWx = A.wx - B.wx;
+    const dWy = A.wy - B.wy;
+    const dWz = A.wz - B.wz;
+    const novoPosXmm = Math.round((itemDestino.pos_x_mm ?? 0) + dWx * 1000);
+    const novoPosYmm = Math.round((itemDestino.pos_y_mm ?? 0) + dWz * 1000);
+    const novoPosZmm = Math.round((itemDestino.pos_z_mm ?? 0) + dWy * 1000);
+
+    setItems((cur) => cur.map((i) => (i.item_id === itemId
+      ? { ...i, pos_x_mm: novoPosXmm, pos_y_mm: novoPosYmm, pos_z_mm: novoPosZmm }
+      : i)));
+    await persistItem(itemId, { pos_x_mm: novoPosXmm, pos_y_mm: novoPosYmm, pos_z_mm: novoPosZmm } as Partial<LayoutItemRow>);
+
     const nova = {
       layout_id: id!,
       item_origem_id: conexaoPontoTemp.itemId,
@@ -180,7 +213,7 @@ export default function LayoutEditor() {
     }
     setConexoes((cur) => [...cur, data as ConexaoRow]);
     setConexaoPontoTemp(null);
-    toast({ title: "Conexão criada" });
+    toast({ title: "Equipamentos conectados" });
   }
 
   async function handleConexaoDelete(conexId: string) {
