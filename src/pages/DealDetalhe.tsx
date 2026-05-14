@@ -54,9 +54,13 @@ export default function DealDetalhe() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
 
   // Modais
-  const [finalDialog, setFinalDialog] = useState<{ open: boolean; etapa: Etapa | null }>({ open: false, etapa: null });
-  const [dataReal, setDataReal] = useState("");
-  const [motivoPerda, setMotivoPerda] = useState("");
+  const [winDialog, setWinDialog] = useState(false);
+  const [winData, setWinData] = useState({ data_real: "", valor_final: 0, observacoes: "" });
+  const [loseDialog, setLoseDialog] = useState(false);
+  const [loseData, setLoseData] = useState({ motivo: "", motivo_outro: "", concorrente: "", observacoes: "" });
+  const [postWinDialog, setPostWinDialog] = useState(false);
+  const [reabrirDialog, setReabrirDialog] = useState(false);
+  const [reabrirObs, setReabrirObs] = useState("");
   const [delDialog, setDelDialog] = useState(false);
   const [moveDialog, setMoveDialog] = useState(false);
   const [novoPipeline, setNovoPipeline] = useState("");
@@ -132,41 +136,106 @@ export default function DealDetalhe() {
   };
 
   const moverParaEtapa = async (etapa: Etapa) => {
-    if (etapa.e_final) {
-      setFinalDialog({ open: true, etapa });
-      setDataReal(new Date().toISOString().slice(0, 10));
-      setMotivoPerda("");
-      return;
-    }
+    if (etapa.e_final && etapa.e_ganho) { abrirGanhar(etapa); return; }
+    if (etapa.e_final) { abrirPerder(etapa); return; }
     const ok = await patch({ etapa_id: etapa.id, probabilidade: etapa.probabilidade_default });
     if (ok) toast.success(`Movido para ${etapa.nome}`);
   };
 
-  const confirmarFinal = async () => {
-    const et = finalDialog.etapa;
+  const abrirGanhar = (_et?: Etapa) => {
+    const et = _et || etapasPipeline.find(e => e.e_final && e.e_ganho);
+    if (!et) { toast.error("Nenhuma etapa final 'ganha' configurada"); return; }
+    setWinData({
+      data_real: new Date().toISOString().slice(0, 10),
+      valor_final: deal.valor_estimado || 0,
+      observacoes: "",
+    });
+    setWinDialog(true);
+  };
+
+  const confirmarGanhar = async () => {
+    const et = etapasPipeline.find(e => e.e_final && e.e_ganho);
     if (!et) return;
-    if (!et.e_ganho && !motivoPerda.trim()) { toast.error("Motivo da perda obrigatório"); return; }
-    const changes: any = {
+    const obsNova = winData.observacoes
+      ? `${deal.observacoes ? deal.observacoes + "\n\n" : ""}[Ganha ${winData.data_real}] ${winData.observacoes}`
+      : deal.observacoes;
+    const ok = await patch({
       etapa_id: et.id,
-      status: et.e_ganho ? "ganha" : "perdida",
-      data_fechamento_real: dataReal || new Date().toISOString().slice(0, 10),
-      probabilidade: et.e_ganho ? 100 : 0,
-    };
-    if (!et.e_ganho) changes.motivo_perda = motivoPerda;
-    const ok = await patch(changes);
+      status: "ganha",
+      data_fechamento_real: winData.data_real,
+      valor_estimado: winData.valor_final,
+      probabilidade: 100,
+      observacoes: obsNova,
+    });
+    if (!ok) return;
+    setWinDialog(false);
+
+    // Warnings não bloqueantes
+    const temDecisor = oppPessoas.some(op => op.papel === "decisor");
+    if (!temDecisor) toast.warning("⚠️ Sem pessoa decisora vinculada");
+    if (!deal.proposta_id) toast.warning("⚠️ Sem proposta vinculada");
+
+    toast.success("🎉 Marcada como Ganha!");
+    setPostWinDialog(true);
+    carregar();
+  };
+
+  const abrirPerder = (_et?: Etapa) => {
+    const et = _et || etapasPipeline.find(e => e.e_final && !e.e_ganho);
+    if (!et) { toast.error("Nenhuma etapa final 'perdida' configurada"); return; }
+    setLoseData({ motivo: "", motivo_outro: "", concorrente: "", observacoes: "" });
+    setLoseDialog(true);
+  };
+
+  const confirmarPerder = async () => {
+    const et = etapasPipeline.find(e => e.e_final && !e.e_ganho);
+    if (!et) return;
+    if (!loseData.motivo) { toast.error("Selecione o motivo"); return; }
+    const motivoFinal = loseData.motivo === "outro" ? loseData.motivo_outro.trim() : loseData.motivo;
+    if (!motivoFinal) { toast.error("Descreva o motivo"); return; }
+    const obsNova = loseData.observacoes
+      ? `${deal.observacoes ? deal.observacoes + "\n\n" : ""}[Perdida] ${loseData.observacoes}`
+      : deal.observacoes;
+    const ok = await patch({
+      etapa_id: et.id,
+      status: "perdida",
+      data_fechamento_real: new Date().toISOString().slice(0, 10),
+      probabilidade: 0,
+      motivo_perda: motivoFinal,
+      concorrente_vencedor: loseData.concorrente || null,
+      observacoes: obsNova,
+    });
     if (ok) {
-      toast.success(et.e_ganho ? "Marcada como Ganha 🏆" : "Marcada como Perdida");
-      setFinalDialog({ open: false, etapa: null });
+      toast.success("Marcada como Perdida");
+      setLoseDialog(false);
       carregar();
     }
   };
 
-  const marcarGanhaPerdida = (ganho: boolean) => {
-    const et = etapasPipeline.find(e => e.e_final && e.e_ganho === ganho);
-    if (!et) { toast.error(`Nenhuma etapa final ${ganho ? "ganha" : "perdida"} configurada`); return; }
-    setFinalDialog({ open: true, etapa: et });
-    setDataReal(new Date().toISOString().slice(0, 10));
-    setMotivoPerda("");
+  const confirmarReabrir = async () => {
+    const ordemAtual = etapaAtual?.ordem ?? 0;
+    const anterior = [...etapasPipeline]
+      .filter(e => !e.e_final && e.ordem < ordemAtual)
+      .sort((a, b) => b.ordem - a.ordem)[0]
+      || etapasPipeline.find(e => !e.e_final);
+    if (!anterior) { toast.error("Sem etapa anterior disponível"); return; }
+    const obsNova = reabrirObs
+      ? `${deal.observacoes ? deal.observacoes + "\n\n" : ""}[Reaberta] ${reabrirObs}`
+      : deal.observacoes;
+    const ok = await patch({
+      etapa_id: anterior.id,
+      status: "aberta",
+      data_fechamento_real: null,
+      motivo_perda: null,
+      probabilidade: anterior.probabilidade_default,
+      observacoes: obsNova,
+    });
+    if (ok) {
+      toast.success("Oportunidade reaberta");
+      setReabrirDialog(false);
+      setReabrirObs("");
+      carregar();
+    }
   };
 
   const excluir = async () => {
@@ -243,6 +312,9 @@ export default function DealDetalhe() {
 
   const vincularProposta = async (pid: string) => {
     await patch({ proposta_id: pid });
+    if (deal?.status === "ganha") {
+      await supabase.from("propostas").update({ status: "aprovada" }).eq("id", pid);
+    }
     toast.success("Proposta vinculada");
     setVincPropDialog(false);
     carregar();
@@ -283,6 +355,9 @@ export default function DealDetalhe() {
               <DropdownMenuItem onClick={() => { setNovoPipeline(deal.pipeline_id); setNovaEtapa(deal.etapa_id); setMoveDialog(true); }}>
                 Mover de Pipeline
               </DropdownMenuItem>
+              {deal.status !== "aberta" && (
+                <DropdownMenuItem onClick={() => setReabrirDialog(true)}>Reabrir</DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-rose-600" onClick={() => setDelDialog(true)}>Excluir</DropdownMenuItem>
             </DropdownMenuContent>
@@ -430,10 +505,10 @@ export default function DealDetalhe() {
                 })}
               </div>
               <div className="flex gap-2 mt-4">
-                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => marcarGanhaPerdida(true)}>
+                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => abrirGanhar()}>
                   <Trophy className="w-4 h-4 mr-2" />Marcar Ganha
                 </Button>
-                <Button variant="destructive" className="flex-1" onClick={() => marcarGanhaPerdida(false)}>
+                <Button variant="destructive" className="flex-1" onClick={() => abrirPerder()}>
                   <X className="w-4 h-4 mr-2" />Marcar Perdida
                 </Button>
               </div>
@@ -540,29 +615,114 @@ export default function DealDetalhe() {
         </div>
       </div>
 
-      {/* Dialog: etapa final */}
-      <AlertDialog open={finalDialog.open} onOpenChange={(o) => !o && setFinalDialog({ open: false, etapa: null })}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{finalDialog.etapa?.e_ganho ? "Marcar como Ganha" : "Marcar como Perdida"}</AlertDialogTitle>
-            <AlertDialogDescription>Confirme as informações de fechamento.</AlertDialogDescription>
-          </AlertDialogHeader>
+      {/* Dialog: GANHAR */}
+      <Dialog open={winDialog} onOpenChange={setWinDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🎉 Marcar como Ganha</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
             <Field label="Data de fechamento real">
-              <Input type="date" value={dataReal} onChange={(e) => setDataReal(e.target.value)} />
+              <Input type="date" value={winData.data_real}
+                onChange={(e) => setWinData({ ...winData, data_real: e.target.value })} />
             </Field>
-            {!finalDialog.etapa?.e_ganho && (
-              <Field label="Motivo da perda *">
-                <Textarea value={motivoPerda} onChange={(e) => setMotivoPerda(e.target.value)} placeholder="Descreva o motivo..." />
+            <Field label="Valor final (BRL)">
+              <Input type="number" value={winData.valor_final}
+                onChange={(e) => setWinData({ ...winData, valor_final: Number(e.target.value) })} />
+              <div className="text-xs text-muted-foreground mt-1">{fmtBRL(winData.valor_final)}</div>
+            </Field>
+            <Field label="Observações">
+              <Textarea value={winData.observacoes}
+                onChange={(e) => setWinData({ ...winData, observacoes: e.target.value })} />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWinDialog(false)}>Cancelar</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={confirmarGanhar}>Confirmar Ganho</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: pós-ganho */}
+      <Dialog open={postWinDialog} onOpenChange={setPostWinDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🏆 Deal ganho! E agora?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Button variant="outline" className="w-full justify-start" onClick={() => { carregarPropostas(); setPostWinDialog(false); setVincPropDialog(true); }}>
+              <FileText className="w-4 h-4 mr-2" />Vincular proposta existente
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={() => navigate(`/orcamento?oportunidade=${id}`)}>
+              <Plus className="w-4 h-4 mr-2" />Criar proposta
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPostWinDialog(false)}>Depois</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: PERDER */}
+      <Dialog open={loseDialog} onOpenChange={setLoseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como Perdida</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Field label="Motivo da perda *">
+              <Select value={loseData.motivo} onValueChange={(v) => setLoseData({ ...loseData, motivo: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="preço">Preço</SelectItem>
+                  <SelectItem value="timing">Timing</SelectItem>
+                  <SelectItem value="concorrência">Concorrência</SelectItem>
+                  <SelectItem value="sem orçamento">Sem orçamento</SelectItem>
+                  <SelectItem value="sem fit técnico">Sem fit técnico</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            {loseData.motivo === "outro" && (
+              <Field label="Descreva o motivo *">
+                <Input value={loseData.motivo_outro}
+                  onChange={(e) => setLoseData({ ...loseData, motivo_outro: e.target.value })} />
               </Field>
             )}
+            <Field label="Concorrente vencedor (opcional)">
+              <Input value={loseData.concorrente}
+                onChange={(e) => setLoseData({ ...loseData, concorrente: e.target.value })} />
+            </Field>
+            <Field label="Observações">
+              <Textarea value={loseData.observacoes}
+                onChange={(e) => setLoseData({ ...loseData, observacoes: e.target.value })} />
+            </Field>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmarFinal}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLoseDialog(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmarPerder}>Confirmar Perda</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: REABRIR */}
+      <Dialog open={reabrirDialog} onOpenChange={setReabrirDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reabrir oportunidade</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Field label="Observação (opcional)">
+              <Textarea value={reabrirObs} onChange={(e) => setReabrirObs(e.target.value)}
+                placeholder="Por que está sendo reaberta?" />
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReabrirDialog(false)}>Cancelar</Button>
+            <Button onClick={confirmarReabrir}>Reabrir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog: excluir */}
       <AlertDialog open={delDialog} onOpenChange={setDelDialog}>

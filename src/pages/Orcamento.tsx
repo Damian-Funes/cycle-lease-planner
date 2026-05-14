@@ -242,6 +242,30 @@ export default function Orcamento() {
       setModalOpen(true);
       setSearchParams({}, { replace: true });
     }
+
+    const oppId = searchParams.get("oportunidade");
+    if (oppId) {
+      (async () => {
+        const { data: opp } = await supabase
+          .from("oportunidades")
+          .select("titulo, organizacao_id, organizacoes:organizacao_id(nome, cnpj, email_principal, telefone_principal, endereco)")
+          .eq("id", oppId)
+          .maybeSingle();
+        if (opp) {
+          const o: any = (opp as any).organizacoes;
+          setParams((p) => ({
+            ...p,
+            clientName: o?.nome || opp.titulo || p.clientName,
+            clienteCnpj: o?.cnpj || p.clienteCnpj,
+            clienteEmail: o?.email_principal || p.clienteEmail,
+            clienteTelefone: o?.telefone_principal || p.clienteTelefone,
+            clienteEndereco: o?.endereco || p.clienteEndereco,
+          }));
+          toast({ title: "Pré-preenchido a partir da oportunidade" });
+        }
+        setSearchParams({}, { replace: true });
+      })();
+    }
   }, [authLoading, profile?.status, searchParams, setSearchParams, loadOrcamentoById]);
 
   async function handlePdf() {
