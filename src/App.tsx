@@ -12,6 +12,7 @@ import Pendente from "./pages/Pendente";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
+import Clientes from "./pages/Clientes";
 import Orcamento from "./pages/Orcamento";
 import Reforma from "./pages/Reforma";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="/smartcycle" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/orcamento" element={<ProtectedRoute><Orcamento /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><Catalogo /></ProtectedRoute>} />
+              <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
