@@ -152,6 +152,47 @@ export default function LayoutEditor() {
     setSelectedId(null);
   }
 
+  async function handleConectarClick(itemId: string, xmm: number, ymm: number, zmm: number) {
+    if (!conexaoPontoTemp) {
+      setConexaoPontoTemp({ itemId, x: xmm, y: ymm, z: zmm });
+      toast({ title: "Ponto A marcado", description: "Agora clique no segundo equipamento." });
+      return;
+    }
+    if (conexaoPontoTemp.itemId === itemId) {
+      toast({ title: "Selecione outro equipamento", variant: "destructive" });
+      return;
+    }
+    const nova = {
+      layout_id: id!,
+      item_origem_id: conexaoPontoTemp.itemId,
+      item_destino_id: itemId,
+      ponto_origem_x_mm: conexaoPontoTemp.x,
+      ponto_origem_y_mm: conexaoPontoTemp.y,
+      ponto_origem_z_mm: conexaoPontoTemp.z,
+      ponto_destino_x_mm: xmm,
+      ponto_destino_y_mm: ymm,
+      ponto_destino_z_mm: zmm,
+    };
+    const { data, error } = await supabase.from("layout_conexoes").insert(nova).select().single();
+    if (error) {
+      toast({ title: "Erro ao criar conexão", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConexoes((cur) => [...cur, data as ConexaoRow]);
+    setConexaoPontoTemp(null);
+    toast({ title: "Conexão criada" });
+  }
+
+  async function handleConexaoDelete(conexId: string) {
+    const { error } = await supabase.from("layout_conexoes").delete().eq("id", conexId);
+    if (error) {
+      toast({ title: "Erro ao deletar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConexoes((cur) => cur.filter((c) => c.id !== conexId));
+    setSelectedConexaoId(null);
+  }
+
   async function addEquipamento(eq: Equipamento) {
     if (!layout) return;
     if (!eq.largura_mm || !eq.comprimento_mm) {
