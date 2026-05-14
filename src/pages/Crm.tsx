@@ -338,7 +338,7 @@ export default function Crm() {
       if (v < min || v > max) return false;
       if (q) {
         const inTitle = o.titulo.toLowerCase().includes(q);
-        const inOrg = o.organizacoes?.nome.toLowerCase().includes(q);
+        const inOrg = o.organizacao_nome?.toLowerCase().includes(q);
         if (!inTitle && !inOrg) return false;
       }
       return true;
@@ -646,7 +646,7 @@ export default function Crm() {
               {activeOp && (
                 <div className="bg-card border rounded-md p-3 shadow-lg w-72">
                   <div className="font-semibold text-sm">{activeOp.titulo}</div>
-                  <div className="text-xs text-muted-foreground">{activeOp.organizacoes?.nome}</div>
+                  <div className="text-xs text-muted-foreground">{activeOp.organizacao_nome}</div>
                   <div className="text-base font-bold mt-1">
                     {activeOp.valor_estimado ? fmtBRL(Number(activeOp.valor_estimado)) : "—"}
                   </div>
