@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
+import ActivityFeed from "@/components/ActivityFeed";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
@@ -334,7 +335,7 @@ export default function OrganizacaoDetalhe() {
               <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>
             </TabsContent>
             <TabsContent value="atividades" className="mt-4">
-              <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>
+              {org && <ActivityFeed entityType="organizacao" entityId={org.id} />}
             </TabsContent>
             <TabsContent value="notas" className="mt-4">
               <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>

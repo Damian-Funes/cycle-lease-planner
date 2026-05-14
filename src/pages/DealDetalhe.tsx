@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import ActivityFeed from "@/components/ActivityFeed";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -525,9 +526,7 @@ export default function DealDetalhe() {
             </TabsList>
 
             <TabsContent value="atividades">
-              <Card><CardContent className="py-12 text-center text-muted-foreground">
-                Em breve (Sprint 5).
-              </CardContent></Card>
+              <ActivityFeed entityType="oportunidade" entityId={deal.id} />
             </TabsContent>
 
             <TabsContent value="notas">
