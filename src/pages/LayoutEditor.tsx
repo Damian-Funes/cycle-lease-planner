@@ -74,6 +74,7 @@ export default function LayoutEditor() {
       setLayout(lay as LayoutRow);
       setEquipamentos((eqRes.data ?? []) as Equipamento[]);
       await refreshItems();
+      await refreshConexoes();
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
