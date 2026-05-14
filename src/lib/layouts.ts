@@ -23,6 +23,7 @@ export interface LayoutItemRow {
   layout_id: string;
   pos_x_mm: number;
   pos_y_mm: number;
+  pos_z_mm?: number;
   rotacao: 0 | 90 | 180 | 270;
   ordem: number;
   rotulo_customizado: string | null;
