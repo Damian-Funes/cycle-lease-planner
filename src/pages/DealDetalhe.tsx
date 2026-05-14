@@ -525,9 +525,7 @@ export default function DealDetalhe() {
             </TabsList>
 
             <TabsContent value="atividades">
-              <Card><CardContent className="py-12 text-center text-muted-foreground">
-                Em breve (Sprint 5).
-              </CardContent></Card>
+              <ActivityFeed entityType="oportunidade" entityId={deal.id} />
             </TabsContent>
 
             <TabsContent value="notas">
