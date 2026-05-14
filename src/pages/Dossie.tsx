@@ -218,9 +218,10 @@ export default function Dossie() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="contatos">Contatos</TabsTrigger>
+            <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
             <TabsTrigger value="propostas">Propostas</TabsTrigger>
             <TabsTrigger value="layouts">Layouts</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
