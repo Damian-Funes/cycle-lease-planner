@@ -352,6 +352,9 @@ export default function DealDetalhe() {
               <DropdownMenuItem onClick={() => { setNovoPipeline(deal.pipeline_id); setNovaEtapa(deal.etapa_id); setMoveDialog(true); }}>
                 Mover de Pipeline
               </DropdownMenuItem>
+              {deal.status !== "aberta" && (
+                <DropdownMenuItem onClick={() => setReabrirDialog(true)}>Reabrir</DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-rose-600" onClick={() => setDelDialog(true)}>Excluir</DropdownMenuItem>
             </DropdownMenuContent>
