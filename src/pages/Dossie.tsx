@@ -353,12 +353,16 @@ export default function Dossie() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="oportunidades">
+            <OportunidadesCliente clienteId={clienteId!} />
+          </TabsContent>
+
           <TabsContent value="layouts">
             <Card><CardContent className="p-12 text-center text-muted-foreground">Em breve</CardContent></Card>
           </TabsContent>
 
           <TabsContent value="timeline">
-            <Card><CardContent className="p-12 text-center text-muted-foreground">Em breve</CardContent></Card>
+            <Timeline clienteId={clienteId!} />
           </TabsContent>
         </Tabs>
       </main>
