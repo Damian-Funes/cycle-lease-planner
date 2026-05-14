@@ -33,6 +33,8 @@ export default function Orcamento() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [clientNameError, setClientNameError] = useState(false);
+  const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { loading: authLoading, profile } = useAuth();
