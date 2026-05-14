@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 
 const cards = [
   {
@@ -74,10 +75,19 @@ const cards = [
     to: "/crm",
     color: "bg-emerald-500/10 text-emerald-600",
   },
+  {
+    title: "Atividades",
+    desc: "Sua inbox de tarefas e follow-ups",
+    icon: CheckSquare,
+    to: "/atividades",
+    color: "bg-orange-500/10 text-orange-600",
+    badgeKey: "atividades",
+  },
 ];
 
 export default function Home() {
   const navigate = useNavigate();
+  const ativBadge = useAtividadesBadge();
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b">
@@ -100,14 +110,20 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {cards.map((c) => {
+          {cards.map((c: any) => {
             const Icon = c.icon;
+            const showBadge = c.badgeKey === "atividades" && ativBadge > 0;
             return (
               <Card
                 key={c.title}
                 onClick={() => navigate(c.to)}
-                className="p-6 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group"
+                className="p-6 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group relative"
               >
+                {showBadge && (
+                  <span className="absolute top-3 right-3 min-w-5 h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">
+                    {ativBadge}
+                  </span>
+                )}
                 <div className={`w-12 h-12 rounded-lg ${c.color} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
                   <Icon className="w-6 h-6" />
                 </div>
