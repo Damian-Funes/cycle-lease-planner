@@ -13,7 +13,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { differenceInDays, parseISO, startOfDay, subDays, isAfter } from "date-fns";
 import {
-  ArrowLeft, Calendar, CheckCircle2, Clock, DollarSign,
+  ArrowLeft, Calendar, CheckCircle2, Clock, DollarSign, Flame,
   Plus, Search, Settings, Target, TrendingUp, Trophy,
 } from "lucide-react";
 
@@ -36,6 +36,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -48,29 +49,33 @@ interface Etapa {
   cor: string | null; probabilidade_default: number; rotting_days: number;
   e_final: boolean; e_ganho: boolean;
 }
+type RottingStatus = "fresh" | "aging" | "rotting" | "no_activity";
+
 interface Oportunidade {
   id: string; titulo: string; pipeline_id: string; etapa_id: string;
   organizacao_id: string; valor_estimado: number; probabilidade: number;
   data_fechamento_prevista: string | null; data_fechamento_real: string | null;
   responsavel_id: string | null; status: string; motivo_perda: string | null;
   ordem_coluna: number | null; ultima_atividade_em: string | null;
-  proxima_atividade_em: string | null; updated_at: string;
-  organizacoes: { id: string; nome: string } | null;
-  profiles: { id: string; nome: string | null; email: string } | null;
+  proxima_atividade_em: string | null; updated_at: string; created_at: string;
+  organizacao_nome: string | null;
+  responsavel_nome: string | null;
+  responsavel_email: string | null;
+  etapa_cor: string | null;
+  etapa_rotting_days: number | null;
+  rotting_status: RottingStatus;
+  dias_sem_atividade: number;
 }
 
 const STORAGE_KEY = "crm.pipelineId";
 
-/* ---------- Card ---------- */
-function rottingClass(op: Oportunidade, etapa?: Etapa): string {
-  if (!etapa) return "border-l-transparent";
-  const ref = op.ultima_atividade_em ?? op.updated_at;
-  const days = differenceInDays(new Date(), parseISO(ref));
-  const limit = etapa.rotting_days ?? 14;
-  if (days < limit * 0.6) return "border-l-emerald-500";
-  if (days < limit) return "border-l-amber-500";
-  return "border-l-rose-500";
-}
+/* ---------- Rotting visual map ---------- */
+const ROTTING_MAP: Record<RottingStatus, { border: string; emoji: string; label: string }> = {
+  fresh:       { border: "border-l-emerald-500", emoji: "🌱", label: "Fresca" },
+  aging:       { border: "border-l-amber-500",   emoji: "⏳", label: "Envelhecendo" },
+  rotting:     { border: "border-l-orange-600",  emoji: "🔥", label: "Em rotting" },
+  no_activity: { border: "border-l-rose-500",    emoji: "⚠️", label: "Sem atividade" },
+};
 
 function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
   const navigate = useNavigate();
