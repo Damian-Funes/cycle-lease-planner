@@ -86,9 +86,21 @@ export default function LayoutEditor() {
   /* ---- atalhos teclado ---- */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!selectedId) return;
       const tgt = e.target as HTMLElement;
       if (tgt.tagName === "INPUT" || tgt.tagName === "TEXTAREA") return;
+
+      if (e.key === "Escape" && transformMode === "connect") {
+        e.preventDefault();
+        setTransformMode("translate");
+        setConexaoPontoTemp(null);
+        return;
+      }
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedConexaoId) {
+        e.preventDefault();
+        handleConexaoDelete(selectedConexaoId);
+        return;
+      }
+      if (!selectedId) return;
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         rotateSelected();
@@ -100,7 +112,7 @@ export default function LayoutEditor() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, items]);
+  }, [selectedId, items, selectedConexaoId, transformMode]);
 
   /* ---- ações ---- */
   async function persistItem(itemId: string, patch: Partial<LayoutItemRow>) {
