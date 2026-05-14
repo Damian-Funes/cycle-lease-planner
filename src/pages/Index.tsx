@@ -26,6 +26,8 @@ const Index = () => {
   const [catalogoDialogOpen, setCatalogoDialogOpen] = useState(false);
   const [senha, setSenha] = useState("");
   const [senhaError, setSenhaError] = useState(false);
+  const [clientNameError, setClientNameError] = useState(false);
+  const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
