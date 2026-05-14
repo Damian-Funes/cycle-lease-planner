@@ -80,6 +80,19 @@ export async function listLayouts(): Promise<LayoutRow[]> {
   return (data ?? []) as LayoutRow[];
 }
 
+export interface ConexaoRow {
+  id: string;
+  layout_id: string;
+  item_origem_id: string;
+  item_destino_id: string;
+  ponto_origem_x_mm: number;
+  ponto_origem_y_mm: number;
+  ponto_origem_z_mm: number;
+  ponto_destino_x_mm: number;
+  ponto_destino_y_mm: number;
+  ponto_destino_z_mm: number;
+}
+
 /** Load all items of a given layout via the RPC-friendly view. */
 export async function listLayoutItems(layoutId: string): Promise<LayoutItemRow[]> {
   const { data, error } = await supabase
