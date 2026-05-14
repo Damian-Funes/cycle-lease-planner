@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  DndContext, DragEndEvent, DragOverlay, DragStartEvent, DragOverEvent,
-  PointerSensor, useSensor, useSensors,
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
+  PointerSensor, useSensor, useSensors, useDroppable,
   closestCorners,
 } from "@dnd-kit/core";
 import {
@@ -146,10 +146,9 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
   const ids = ops.map((o) => o.id);
 
   // droppable for empty column case
-  const { setNodeRef, isOver } = useSortable({
+  const { setNodeRef, isOver } = useDroppable({
     id: `col:${etapa.id}`,
     data: { type: "column", etapaId: etapa.id },
-    disabled: true,
   });
 
   return (
