@@ -54,6 +54,13 @@ const cards = [
     color: "bg-indigo-500/10 text-indigo-600",
   },
   {
+    title: "Organizações",
+    desc: "Empresas e contatos (CRM)",
+    icon: Building2,
+    to: "/organizacoes",
+    color: "bg-cyan-500/10 text-cyan-600",
+  },
+  {
     title: "CRM",
     desc: "Pipeline comercial e oportunidades",
     icon: KanbanSquare,
