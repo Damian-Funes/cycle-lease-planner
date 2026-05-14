@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2 } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const cards = [
@@ -59,6 +59,13 @@ const cards = [
     icon: Building2,
     to: "/organizacoes",
     color: "bg-cyan-500/10 text-cyan-600",
+  },
+  {
+    title: "Pessoas",
+    desc: "Contatos individuais",
+    icon: User,
+    to: "/pessoas",
+    color: "bg-sky-500/10 text-sky-600",
   },
   {
     title: "CRM",

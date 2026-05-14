@@ -14,6 +14,7 @@ import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
 import Clientes from "./pages/Clientes";
 import Organizacoes from "./pages/Organizacoes";
+import Pessoas from "./pages/Pessoas";
 import Dossie from "./pages/Dossie";
 import Crm from "./pages/Crm";
 import Orcamento from "./pages/Orcamento";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/catalogo" element={<ProtectedRoute><Catalogo /></ProtectedRoute>} />
               <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
               <Route path="/organizacoes" element={<ProtectedRoute><Organizacoes /></ProtectedRoute>} />
+              <Route path="/pessoas" element={<ProtectedRoute><Pessoas /></ProtectedRoute>} />
               <Route path="/dossie/:clienteId" element={<ProtectedRoute><Dossie /></ProtectedRoute>} />
               <Route path="/crm" element={<ProtectedRoute><Crm /></ProtectedRoute>} />
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
