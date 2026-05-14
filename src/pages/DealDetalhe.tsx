@@ -312,6 +312,9 @@ export default function DealDetalhe() {
 
   const vincularProposta = async (pid: string) => {
     await patch({ proposta_id: pid });
+    if (deal?.status === "ganha") {
+      await supabase.from("propostas").update({ status: "aprovada" }).eq("id", pid);
+    }
     toast.success("Proposta vinculada");
     setVincPropDialog(false);
     carregar();
