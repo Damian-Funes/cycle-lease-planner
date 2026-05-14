@@ -43,6 +43,8 @@ export default function Reforma() {
   const [saving, setSaving] = useState(false);
   const [listaOpen, setListaOpen] = useState(false);
   const [orcamentos, setOrcamentos] = useState<any[]>([]);
+  const [clientNameError, setClientNameError] = useState(false);
+  const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { loading: authLoading, profile } = useAuth();
