@@ -136,41 +136,106 @@ export default function DealDetalhe() {
   };
 
   const moverParaEtapa = async (etapa: Etapa) => {
-    if (etapa.e_final) {
-      setFinalDialog({ open: true, etapa });
-      setDataReal(new Date().toISOString().slice(0, 10));
-      setMotivoPerda("");
-      return;
-    }
+    if (etapa.e_final && etapa.e_ganho) { abrirGanhar(etapa); return; }
+    if (etapa.e_final) { abrirPerder(etapa); return; }
     const ok = await patch({ etapa_id: etapa.id, probabilidade: etapa.probabilidade_default });
     if (ok) toast.success(`Movido para ${etapa.nome}`);
   };
 
-  const confirmarFinal = async () => {
-    const et = finalDialog.etapa;
+  const abrirGanhar = (_et?: Etapa) => {
+    const et = _et || etapasPipeline.find(e => e.e_final && e.e_ganho);
+    if (!et) { toast.error("Nenhuma etapa final 'ganha' configurada"); return; }
+    setWinData({
+      data_real: new Date().toISOString().slice(0, 10),
+      valor_final: deal.valor_estimado || 0,
+      observacoes: "",
+    });
+    setWinDialog(true);
+  };
+
+  const confirmarGanhar = async () => {
+    const et = etapasPipeline.find(e => e.e_final && e.e_ganho);
     if (!et) return;
-    if (!et.e_ganho && !motivoPerda.trim()) { toast.error("Motivo da perda obrigatório"); return; }
-    const changes: any = {
+    const obsNova = winData.observacoes
+      ? `${deal.observacoes ? deal.observacoes + "\n\n" : ""}[Ganha ${winData.data_real}] ${winData.observacoes}`
+      : deal.observacoes;
+    const ok = await patch({
       etapa_id: et.id,
-      status: et.e_ganho ? "ganha" : "perdida",
-      data_fechamento_real: dataReal || new Date().toISOString().slice(0, 10),
-      probabilidade: et.e_ganho ? 100 : 0,
-    };
-    if (!et.e_ganho) changes.motivo_perda = motivoPerda;
-    const ok = await patch(changes);
+      status: "ganha",
+      data_fechamento_real: winData.data_real,
+      valor_estimado: winData.valor_final,
+      probabilidade: 100,
+      observacoes: obsNova,
+    });
+    if (!ok) return;
+    setWinDialog(false);
+
+    // Warnings não bloqueantes
+    const temDecisor = oppPessoas.some(op => op.papel === "decisor");
+    if (!temDecisor) toast.warning("⚠️ Sem pessoa decisora vinculada");
+    if (!deal.proposta_id) toast.warning("⚠️ Sem proposta vinculada");
+
+    toast.success("🎉 Marcada como Ganha!");
+    setPostWinDialog(true);
+    carregar();
+  };
+
+  const abrirPerder = (_et?: Etapa) => {
+    const et = _et || etapasPipeline.find(e => e.e_final && !e.e_ganho);
+    if (!et) { toast.error("Nenhuma etapa final 'perdida' configurada"); return; }
+    setLoseData({ motivo: "", motivo_outro: "", concorrente: "", observacoes: "" });
+    setLoseDialog(true);
+  };
+
+  const confirmarPerder = async () => {
+    const et = etapasPipeline.find(e => e.e_final && !e.e_ganho);
+    if (!et) return;
+    if (!loseData.motivo) { toast.error("Selecione o motivo"); return; }
+    const motivoFinal = loseData.motivo === "outro" ? loseData.motivo_outro.trim() : loseData.motivo;
+    if (!motivoFinal) { toast.error("Descreva o motivo"); return; }
+    const obsNova = loseData.observacoes
+      ? `${deal.observacoes ? deal.observacoes + "\n\n" : ""}[Perdida] ${loseData.observacoes}`
+      : deal.observacoes;
+    const ok = await patch({
+      etapa_id: et.id,
+      status: "perdida",
+      data_fechamento_real: new Date().toISOString().slice(0, 10),
+      probabilidade: 0,
+      motivo_perda: motivoFinal,
+      concorrente_vencedor: loseData.concorrente || null,
+      observacoes: obsNova,
+    });
     if (ok) {
-      toast.success(et.e_ganho ? "Marcada como Ganha 🏆" : "Marcada como Perdida");
-      setFinalDialog({ open: false, etapa: null });
+      toast.success("Marcada como Perdida");
+      setLoseDialog(false);
       carregar();
     }
   };
 
-  const marcarGanhaPerdida = (ganho: boolean) => {
-    const et = etapasPipeline.find(e => e.e_final && e.e_ganho === ganho);
-    if (!et) { toast.error(`Nenhuma etapa final ${ganho ? "ganha" : "perdida"} configurada`); return; }
-    setFinalDialog({ open: true, etapa: et });
-    setDataReal(new Date().toISOString().slice(0, 10));
-    setMotivoPerda("");
+  const confirmarReabrir = async () => {
+    const ordemAtual = etapaAtual?.ordem ?? 0;
+    const anterior = [...etapasPipeline]
+      .filter(e => !e.e_final && e.ordem < ordemAtual)
+      .sort((a, b) => b.ordem - a.ordem)[0]
+      || etapasPipeline.find(e => !e.e_final);
+    if (!anterior) { toast.error("Sem etapa anterior disponível"); return; }
+    const obsNova = reabrirObs
+      ? `${deal.observacoes ? deal.observacoes + "\n\n" : ""}[Reaberta] ${reabrirObs}`
+      : deal.observacoes;
+    const ok = await patch({
+      etapa_id: anterior.id,
+      status: "aberta",
+      data_fechamento_real: null,
+      motivo_perda: null,
+      probabilidade: anterior.probabilidade_default,
+      observacoes: obsNova,
+    });
+    if (ok) {
+      toast.success("Oportunidade reaberta");
+      setReabrirDialog(false);
+      setReabrirObs("");
+      carregar();
+    }
   };
 
   const excluir = async () => {
