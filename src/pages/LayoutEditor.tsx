@@ -52,6 +52,12 @@ export default function LayoutEditor() {
     setItems(await listLayoutItems(id));
   }, [id]);
 
+  const refreshConexoes = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase.from("layout_conexoes").select("*").eq("layout_id", id);
+    setConexoes((data as ConexaoRow[]) || []);
+  }, [id]);
+
   useEffect(() => {
     if (!id) return;
     (async () => {
