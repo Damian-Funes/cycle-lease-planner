@@ -599,7 +599,7 @@ export function Layout3DCanvas({
     }
 
     prevSelectedRef.current = selectedId;
-  }, [selectedId, items]);
+  }, [selectedId, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Renderiza conexoes
   useEffect(() => {
