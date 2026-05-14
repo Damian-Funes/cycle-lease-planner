@@ -499,10 +499,10 @@ export default function DealDetalhe() {
                 })}
               </div>
               <div className="flex gap-2 mt-4">
-                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => marcarGanhaPerdida(true)}>
+                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => abrirGanhar()}>
                   <Trophy className="w-4 h-4 mr-2" />Marcar Ganha
                 </Button>
-                <Button variant="destructive" className="flex-1" onClick={() => marcarGanhaPerdida(false)}>
+                <Button variant="destructive" className="flex-1" onClick={() => abrirPerder()}>
                   <X className="w-4 h-4 mr-2" />Marcar Perdida
                 </Button>
               </div>
