@@ -691,6 +691,47 @@ export default function LayoutEditor() {
                 <p className="text-xs text-muted-foreground">PNG/JPG até 8MB. A imagem cobre o piso inteiro.</p>
               </div>
             </TabsContent>
+
+            {/* Aba 4 - Conexões */}
+            <TabsContent value="conexoes" className="p-3 space-y-2 m-0">
+              {conexoes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhuma conexão ainda. Clique em "Conectar" no header e selecione dois equipamentos.
+                </p>
+              ) : (
+                conexoes.map((c) => {
+                  const origem = items.find((i) => i.item_id === c.item_origem_id);
+                  const destino = items.find((i) => i.item_id === c.item_destino_id);
+                  const isSel = c.id === selectedConexaoId;
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedConexaoId(c.id === selectedConexaoId ? null : c.id)}
+                      className={`p-2 border rounded-md cursor-pointer flex items-center justify-between gap-2 transition-colors ${
+                        isSel ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-medium truncate">
+                          {origem?.codigo || "?"} → {destino?.codigo || "?"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {origem?.nome || ""} → {destino?.nome || ""}
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="shrink-0 h-7 w-7 p-0 text-destructive"
+                        onClick={(e) => { e.stopPropagation(); handleConexaoDelete(c.id); }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })
+              )}
+            </TabsContent>
           </Tabs>
         </aside>
       </div>
