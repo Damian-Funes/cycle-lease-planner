@@ -155,14 +155,19 @@ export default function Dossie() {
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
             <Link to="/clientes">
               <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
             </Link>
-            <h1 className="text-lg font-bold">Dossiê do Cliente</h1>
+            <h1 className="text-lg font-bold truncate">Dossiê do Cliente</h1>
           </div>
-          <AppHeader />
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setAtividadeOpen(true)} className="gap-1">
+              <Activity className="w-4 h-4" /> Registrar Atividade
+            </Button>
+            <AppHeader />
+          </div>
         </div>
       </header>
 
