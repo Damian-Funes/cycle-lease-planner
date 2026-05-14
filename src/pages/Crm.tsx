@@ -188,7 +188,20 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
       >
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-sm">{etapa.nome}</h3>
-          <span className="text-xs bg-background px-2 py-0.5 rounded-full font-medium">{ops.length}</span>
+          <div className="flex items-center gap-1.5">
+            {(() => {
+              const rotCount = ops.filter((o) => o.rotting_status === "rotting").length;
+              return rotCount > 0 ? (
+                <span
+                  className="text-[11px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium"
+                  title={`${rotCount} oportunidade(s) em rotting`}
+                >
+                  🔥 {rotCount}
+                </span>
+              ) : null;
+            })()}
+            <span className="text-xs bg-background px-2 py-0.5 rounded-full font-medium">{ops.length}</span>
+          </div>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium">{fmtBRL(total)}</span>
