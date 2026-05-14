@@ -579,7 +579,7 @@ export function Layout3DCanvas({
         buildBoxFallback();
       }
     });
-  }, [items]);
+  }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
   const prevSelectedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -599,7 +599,7 @@ export function Layout3DCanvas({
     }
 
     prevSelectedRef.current = selectedId;
-  }, [selectedId, items]);
+  }, [selectedId, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Renderiza conexoes
   useEffect(() => {
@@ -664,7 +664,7 @@ export function Layout3DCanvas({
 
       grp.add(mesh);
     });
-  }, [conexoes, selectedConexaoId, items]);
+  }, [conexoes, selectedConexaoId, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Marcador do ponto temporario (modo conectar)
   useEffect(() => {
