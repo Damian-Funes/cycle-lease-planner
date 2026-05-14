@@ -425,8 +425,22 @@ export function Layout3DCanvas({
   }, [onTransform, onSelect]);
 
   useEffect(() => {
+    ctxRef.current.onTransform = onTransform;
+    ctxRef.current.onSelect = onSelect;
+    ctxRef.current.onConectarClick = onConectarClick;
+    ctxRef.current.onConexaoSelect = onConexaoSelect;
+    ctxRef.current.currentMode = mode;
+  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode]);
+
+  useEffect(() => {
     const c = ctxRef.current;
     if (!c.scene || !c.tc) return;
+    if (mode === "connect") {
+      c.tc.detach();
+      (c.tc as unknown as { visible: boolean }).visible = false;
+      return;
+    }
+    (c.tc as unknown as { visible: boolean }).visible = true;
     c.tc.setMode(mode);
     if (mode === "translate") {
       c.tc.showX = true;
