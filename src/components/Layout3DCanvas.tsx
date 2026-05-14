@@ -579,7 +579,7 @@ export function Layout3DCanvas({
         buildBoxFallback();
       }
     });
-  }, [items]);
+  }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
   const prevSelectedRef = useRef<string | null>(null);
   useEffect(() => {
