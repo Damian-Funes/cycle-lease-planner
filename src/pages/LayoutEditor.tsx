@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d,
+  Download, Box, Search, Move3d, ArrowUpDown,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Layout3DCanvas } from "@/components/Layout3DCanvas";
