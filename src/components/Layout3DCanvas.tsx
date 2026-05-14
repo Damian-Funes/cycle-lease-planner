@@ -39,6 +39,7 @@ export function Layout3DCanvas({
   onSelect,
   onTransform,
   mode,
+  alturaLiberada = false,
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
