@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 
 const cards = [
@@ -45,6 +45,13 @@ const cards = [
     icon: Wrench,
     to: "/reforma",
     color: "bg-rose-500/10 text-rose-600",
+  },
+  {
+    title: "Clientes",
+    desc: "Cadastro e gestão de clientes",
+    icon: Users,
+    to: "/clientes",
+    color: "bg-indigo-500/10 text-indigo-600",
   },
 ];
 
