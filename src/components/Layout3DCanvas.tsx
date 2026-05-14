@@ -380,10 +380,11 @@ export function Layout3DCanvas({
       const d = (it.comprimento_mm ?? 1000) / 1000;
       const posX = (it.pos_x_mm ?? 0) / 1000;
       const posZ = (it.pos_y_mm ?? 0) / 1000;
+      const posY = (it.pos_z_mm ?? 0) / 1000;
       const rotY = ((it.rotacao ?? 0) * Math.PI) / 180;
 
       if (existing) {
-        existing.position.set(posX, 0, posZ);
+        existing.position.set(posX, posY, posZ);
         existing.rotation.set(0, rotY, 0);
         return;
       }
@@ -391,7 +392,7 @@ export function Layout3DCanvas({
       const wrapper = new THREE.Group();
       wrapper.name = it.item_id;
       wrapper.userData.itemId = it.item_id;
-      wrapper.position.set(posX, 0, posZ);
+      wrapper.position.set(posX, posY, posZ);
       wrapper.rotation.set(0, rotY, 0);
       c.scene!.add(wrapper);
       groups[it.item_id] = wrapper;
