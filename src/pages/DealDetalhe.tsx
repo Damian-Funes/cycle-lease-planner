@@ -54,9 +54,13 @@ export default function DealDetalhe() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
 
   // Modais
-  const [finalDialog, setFinalDialog] = useState<{ open: boolean; etapa: Etapa | null }>({ open: false, etapa: null });
-  const [dataReal, setDataReal] = useState("");
-  const [motivoPerda, setMotivoPerda] = useState("");
+  const [winDialog, setWinDialog] = useState(false);
+  const [winData, setWinData] = useState({ data_real: "", valor_final: 0, observacoes: "" });
+  const [loseDialog, setLoseDialog] = useState(false);
+  const [loseData, setLoseData] = useState({ motivo: "", motivo_outro: "", concorrente: "", observacoes: "" });
+  const [postWinDialog, setPostWinDialog] = useState(false);
+  const [reabrirDialog, setReabrirDialog] = useState(false);
+  const [reabrirObs, setReabrirObs] = useState("");
   const [delDialog, setDelDialog] = useState(false);
   const [moveDialog, setMoveDialog] = useState(false);
   const [novoPipeline, setNovoPipeline] = useState("");
