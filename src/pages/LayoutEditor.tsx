@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d, ArrowUpDown,
+  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Layout3DCanvas } from "@/components/Layout3DCanvas";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
-  LayoutItemRow, LayoutRow, listLayoutItems,
+  LayoutItemRow, LayoutRow, ConexaoRow, listLayoutItems,
   PISO_MIN_MM, PISO_MAX_MM, SNAP_MM,
 } from "@/lib/layouts";
 import type { Equipamento } from "@/lib/equipamentos";
