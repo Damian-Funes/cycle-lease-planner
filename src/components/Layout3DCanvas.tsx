@@ -7,6 +7,11 @@ import { ViewHelper } from "three/examples/jsm/helpers/ViewHelper.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { LayoutItemRow, ConexaoRow } from "@/lib/layouts";
+import {
+  tornarTransparente,
+  restaurarOpacidade,
+  descartarMaterialClonado,
+} from "@/lib/three/selectionTransparency";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
