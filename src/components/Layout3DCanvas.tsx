@@ -339,14 +339,14 @@ export function Layout3DCanvas({
     c.tc.setMode(mode);
     if (mode === "translate") {
       c.tc.showX = true;
-      c.tc.showY = false;
+      c.tc.showY = alturaLiberada;
       c.tc.showZ = true;
     } else {
       c.tc.showX = false;
       c.tc.showY = true;
       c.tc.showZ = false;
     }
-  }, [mode]);
+  }, [mode, alturaLiberada]);
 
   useEffect(() => {
     const c = ctxRef.current;
