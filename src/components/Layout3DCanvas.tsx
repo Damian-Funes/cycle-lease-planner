@@ -7,6 +7,11 @@ import { ViewHelper } from "three/examples/jsm/helpers/ViewHelper.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 import type { LayoutItemRow, ConexaoRow } from "@/lib/layouts";
+import {
+  tornarTransparente,
+  restaurarOpacidade,
+  descartarMaterialClonado,
+} from "@/lib/three/selectionTransparency";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -459,6 +464,7 @@ export function Layout3DCanvas({
     existingIds.forEach((id) => {
       if (!newIds.includes(id)) {
         const g = groups[id];
+        descartarMaterialClonado(g);
         c.scene!.remove(g);
         g.traverse((o: THREE.Object3D) => {
           const mesh = o as THREE.Mesh;
@@ -575,15 +581,25 @@ export function Layout3DCanvas({
     });
   }, [items]);
 
+  const prevSelectedRef = useRef<string | null>(null);
   useEffect(() => {
     const c = ctxRef.current;
     if (!c.tc || !c.groups) return;
+
+    const prev = prevSelectedRef.current;
+    if (prev && c.groups[prev]) {
+      restaurarOpacidade(c.groups[prev]);
+    }
+
     if (selectedId && c.groups[selectedId]) {
       c.tc.attach(c.groups[selectedId]);
+      tornarTransparente(c.groups[selectedId]);
     } else {
       c.tc.detach();
     }
-  }, [selectedId]);
+
+    prevSelectedRef.current = selectedId;
+  }, [selectedId, items]);
 
   // Renderiza conexoes
   useEffect(() => {

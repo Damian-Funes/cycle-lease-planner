@@ -304,6 +304,14 @@ export default function LayoutEditor() {
       toast({ title: "Canvas 3D não encontrado", variant: "destructive" });
       return;
     }
+    // Restaura opacidade temporariamente para captura (desselecionando)
+    const idSelecionadoAntes = selectedId;
+    if (idSelecionadoAntes) {
+      setSelectedId(null);
+      // aguarda 2 frames para o useEffect restaurar opacidade e o renderer pintar
+      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    }
+
     let dataUrl: string;
     try {
       dataUrl = canvas.toDataURL("image/png");
@@ -314,8 +322,11 @@ export default function LayoutEditor() {
         description: "Falha ao capturar imagem do canvas 3D.",
         variant: "destructive",
       });
+      if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
       return;
     }
+
+    if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
