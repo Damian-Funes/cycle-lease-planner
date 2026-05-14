@@ -41,6 +41,7 @@ export default function LayoutEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
+  const [alturaLiberada, setAlturaLiberada] = useState(false);
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
