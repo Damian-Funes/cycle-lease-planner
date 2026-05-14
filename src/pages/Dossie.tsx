@@ -66,6 +66,7 @@ export default function Dossie() {
   const [contatoModalOpen, setContatoModalOpen] = useState(false);
   const [editingContato, setEditingContato] = useState<ContatoRow | null>(null);
   const [contatoToDelete, setContatoToDelete] = useState<ContatoRow | null>(null);
+  const [atividadeOpen, setAtividadeOpen] = useState(false);
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ["cliente", clienteId],
