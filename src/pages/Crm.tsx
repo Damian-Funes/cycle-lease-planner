@@ -13,7 +13,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { differenceInDays, parseISO, startOfDay, subDays, isAfter } from "date-fns";
 import {
-  ArrowLeft, Calendar, CheckCircle2, Clock, DollarSign,
+  ArrowLeft, Calendar, CheckCircle2, Clock, DollarSign, Flame,
   Plus, Search, Settings, Target, TrendingUp, Trophy,
 } from "lucide-react";
 
@@ -36,6 +36,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const fmtBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -48,29 +49,33 @@ interface Etapa {
   cor: string | null; probabilidade_default: number; rotting_days: number;
   e_final: boolean; e_ganho: boolean;
 }
+type RottingStatus = "fresh" | "aging" | "rotting" | "no_activity";
+
 interface Oportunidade {
   id: string; titulo: string; pipeline_id: string; etapa_id: string;
   organizacao_id: string; valor_estimado: number; probabilidade: number;
   data_fechamento_prevista: string | null; data_fechamento_real: string | null;
   responsavel_id: string | null; status: string; motivo_perda: string | null;
   ordem_coluna: number | null; ultima_atividade_em: string | null;
-  proxima_atividade_em: string | null; updated_at: string;
-  organizacoes: { id: string; nome: string } | null;
-  profiles: { id: string; nome: string | null; email: string } | null;
+  proxima_atividade_em: string | null; updated_at: string; created_at: string;
+  organizacao_nome: string | null;
+  responsavel_nome: string | null;
+  responsavel_email: string | null;
+  etapa_cor: string | null;
+  etapa_rotting_days: number | null;
+  rotting_status: RottingStatus;
+  dias_sem_atividade: number;
 }
 
 const STORAGE_KEY = "crm.pipelineId";
 
-/* ---------- Card ---------- */
-function rottingClass(op: Oportunidade, etapa?: Etapa): string {
-  if (!etapa) return "border-l-transparent";
-  const ref = op.ultima_atividade_em ?? op.updated_at;
-  const days = differenceInDays(new Date(), parseISO(ref));
-  const limit = etapa.rotting_days ?? 14;
-  if (days < limit * 0.6) return "border-l-emerald-500";
-  if (days < limit) return "border-l-amber-500";
-  return "border-l-rose-500";
-}
+/* ---------- Rotting visual map ---------- */
+const ROTTING_MAP: Record<RottingStatus, { border: string; emoji: string; label: string }> = {
+  fresh:       { border: "border-l-emerald-500", emoji: "🌱", label: "Fresca" },
+  aging:       { border: "border-l-amber-500",   emoji: "⏳", label: "Envelhecendo" },
+  rotting:     { border: "border-l-orange-600",  emoji: "🔥", label: "Em rotting" },
+  no_activity: { border: "border-l-rose-500",    emoji: "⚠️", label: "Sem atividade" },
+};
 
 function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
   const navigate = useNavigate();
@@ -83,8 +88,15 @@ function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
     transition,
     opacity: isDragging ? 0.3 : 1,
   };
-  const initials = (op.profiles?.nome ?? op.profiles?.email ?? "?").slice(0, 2).toUpperCase();
-  const border = rottingClass(op, etapa);
+  const initials = (op.responsavel_nome ?? op.responsavel_email ?? "?").slice(0, 2).toUpperCase();
+  const rotting = ROTTING_MAP[op.rotting_status] ?? ROTTING_MAP.fresh;
+  const limit = op.etapa_rotting_days ?? etapa?.rotting_days ?? 14;
+  const tooltipText =
+    op.rotting_status === "fresh"
+      ? `Em dia · ${op.dias_sem_atividade}d sem atividade (limite ${limit}d)`
+      : op.rotting_status === "no_activity"
+      ? `Sem próxima atividade agendada · ${op.dias_sem_atividade}d`
+      : `Sem atividade há ${op.dias_sem_atividade}d — rotting em ${limit}d`;
 
   return (
     <div
@@ -97,17 +109,34 @@ function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
         e.stopPropagation();
         navigate(`/crm/deal/${op.id}`);
       }}
-      className={`bg-card border border-l-4 ${border} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow`}
+      className={`relative bg-card border border-l-4 ${rotting.border} rounded-md p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow`}
     >
-      <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{op.titulo}</div>
-      {op.organizacoes && (
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className="absolute top-1.5 right-1.5 text-xs leading-none select-none"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {rotting.emoji}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            <span className="text-xs">{rotting.label} · {tooltipText}</span>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2 pr-5">{op.titulo}</div>
+      {op.organizacao_nome && (
         <Link
           to={`/organizacoes/${op.organizacao_id}`}
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
           className="text-xs text-primary hover:underline block mb-2 truncate"
         >
-          {op.organizacoes.nome}
+          {op.organizacao_nome}
         </Link>
       )}
       <div className="flex items-end justify-between mb-2">
@@ -159,7 +188,20 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
       >
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-semibold text-sm">{etapa.nome}</h3>
-          <span className="text-xs bg-background px-2 py-0.5 rounded-full font-medium">{ops.length}</span>
+          <div className="flex items-center gap-1.5">
+            {(() => {
+              const rotCount = ops.filter((o) => o.rotting_status === "rotting").length;
+              return rotCount > 0 ? (
+                <span
+                  className="text-[11px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium"
+                  title={`${rotCount} oportunidade(s) em rotting`}
+                >
+                  🔥 {rotCount}
+                </span>
+              ) : null;
+            })()}
+            <span className="text-xs bg-background px-2 py-0.5 rounded-full font-medium">{ops.length}</span>
+          </div>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="font-medium">{fmtBRL(total)}</span>
@@ -231,19 +273,11 @@ export default function Crm() {
     queryKey: ["oportunidades"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("oportunidades")
-        .select("*, organizacoes(id, nome), profiles!oportunidades_responsavel_id_fkey(id, nome, email)")
+        .from("v_oportunidades_kanban")
+        .select("*")
         .order("ordem_coluna", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
-      if (error) {
-        // fallback se foreign key não estiver mapeada
-        const { data: d2, error: e2 } = await (supabase as any)
-          .from("oportunidades")
-          .select("*, organizacoes(id, nome)")
-          .order("created_at", { ascending: false });
-        if (e2) throw e2;
-        return (d2 ?? []).map((o: any) => ({ ...o, profiles: null })) as Oportunidade[];
-      }
+      if (error) throw error;
       return data as Oportunidade[];
     },
   });
@@ -304,7 +338,7 @@ export default function Crm() {
       if (v < min || v > max) return false;
       if (q) {
         const inTitle = o.titulo.toLowerCase().includes(q);
-        const inOrg = o.organizacoes?.nome.toLowerCase().includes(q);
+        const inOrg = o.organizacao_nome?.toLowerCase().includes(q);
         if (!inTitle && !inOrg) return false;
       }
       return true;
@@ -612,7 +646,7 @@ export default function Crm() {
               {activeOp && (
                 <div className="bg-card border rounded-md p-3 shadow-lg w-72">
                   <div className="font-semibold text-sm">{activeOp.titulo}</div>
-                  <div className="text-xs text-muted-foreground">{activeOp.organizacoes?.nome}</div>
+                  <div className="text-xs text-muted-foreground">{activeOp.organizacao_nome}</div>
                   <div className="text-base font-bold mt-1">
                     {activeOp.valor_estimado ? fmtBRL(Number(activeOp.valor_estimado)) : "—"}
                   </div>
