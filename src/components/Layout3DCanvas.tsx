@@ -422,11 +422,6 @@ export function Layout3DCanvas({
   useEffect(() => {
     ctxRef.current.onTransform = onTransform;
     ctxRef.current.onSelect = onSelect;
-  }, [onTransform, onSelect]);
-
-  useEffect(() => {
-    ctxRef.current.onTransform = onTransform;
-    ctxRef.current.onSelect = onSelect;
     ctxRef.current.onConectarClick = onConectarClick;
     ctxRef.current.onConexaoSelect = onConexaoSelect;
     ctxRef.current.currentMode = mode;
@@ -441,7 +436,7 @@ export function Layout3DCanvas({
       return;
     }
     (c.tc as unknown as { visible: boolean }).visible = true;
-    c.tc.setMode(mode);
+    c.tc.setMode(mode as "translate" | "rotate");
     if (mode === "translate") {
       c.tc.showX = true;
       c.tc.showY = alturaLiberada;
