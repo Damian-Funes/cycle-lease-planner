@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,8 @@ export default function Orcamento() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [clientNameError, setClientNameError] = useState(false);
+  const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { loading: authLoading, profile } = useAuth();
@@ -100,6 +102,9 @@ export default function Orcamento() {
 
   const handleSave = useCallback(async () => {
     if (!params.clientName.trim()) {
+      setClientNameError(true);
+      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => clientNameRef.current?.focus(), 300);
       toast({ title: "Preencha o nome do cliente", variant: "destructive" });
       return;
     }
@@ -241,6 +246,9 @@ export default function Orcamento() {
 
   async function handlePdf() {
     if (!params.clientName.trim()) {
+      setClientNameError(true);
+      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => clientNameRef.current?.focus(), 300);
       toast({ title: "Preencha o nome do cliente", variant: "destructive" });
       return;
     }
@@ -297,7 +305,13 @@ export default function Orcamento() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="cli-nome">Nome / Razão social *</Label>
-              <Input id="cli-nome" value={params.clientName} onChange={(e) => update("clientName", e.target.value)} />
+              <Input
+                id="cli-nome"
+                ref={clientNameRef}
+                value={params.clientName}
+                onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
+                className={clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cli-contato">Contato (At.:)</Label>

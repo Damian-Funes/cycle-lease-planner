@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_PARAMS, SmartCycleParams, calcProjection, calcVolumeMinimoAnual, calcDivida } from "@/lib/smartcycle";
@@ -26,6 +26,8 @@ const Index = () => {
   const [catalogoDialogOpen, setCatalogoDialogOpen] = useState(false);
   const [senha, setSenha] = useState("");
   const [senhaError, setSenhaError] = useState(false);
+  const [clientNameError, setClientNameError] = useState(false);
+  const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,6 +48,9 @@ const Index = () => {
 
   const handleSave = useCallback(async () => {
     if (!params.clientName.trim()) {
+      setClientNameError(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => clientNameRef.current?.focus(), 300);
       toast({ title: "Preencha o nome do cliente", variant: "destructive" });
       return;
     }
@@ -217,11 +222,12 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <input
+              ref={clientNameRef}
               type="text"
               placeholder="Nome do cliente"
               value={params.clientName}
-              onChange={(e) => update("clientName", e.target.value)}
-              className="h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
+              className={`h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring ${clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}`}
             />
             <NovaPropostaButton onNovoAluguel={handleNova} />
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
