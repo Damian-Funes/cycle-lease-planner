@@ -664,7 +664,7 @@ export function Layout3DCanvas({
 
       grp.add(mesh);
     });
-  }, [conexoes, selectedConexaoId, items]);
+  }, [conexoes, selectedConexaoId, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Marcador do ponto temporario (modo conectar)
   useEffect(() => {
