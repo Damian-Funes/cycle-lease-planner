@@ -14,8 +14,9 @@ export interface Layout3DCanvasProps {
   pisoComprimentoMm: number;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  onTransform: (id: string, posXmm: number, posYmm: number, rotacaoDeg: number) => void;
+  onTransform: (id: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) => void;
   mode: "translate" | "rotate";
+  alturaLiberada?: boolean;
 }
 
 interface CanvasCtx {
@@ -38,6 +39,7 @@ export function Layout3DCanvas({
   onSelect,
   onTransform,
   mode,
+  alturaLiberada = false,
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
@@ -203,8 +205,9 @@ export function Layout3DCanvas({
       if (!obj || !obj.userData.itemId) return;
       const posXmm = Math.round(obj.position.x * 1000);
       const posYmm = Math.round(obj.position.z * 1000);
+      const posZmm = Math.round(obj.position.y * 1000);
       const rotacaoDeg = Math.round(((obj.rotation.y * 180) / Math.PI + 360) % 360);
-      ctxRef.current.onTransform?.(obj.userData.itemId, posXmm, posYmm, rotacaoDeg);
+      ctxRef.current.onTransform?.(obj.userData.itemId, posXmm, posYmm, posZmm, rotacaoDeg);
     });
     const tcAny = tc as unknown as { getHelper?: () => THREE.Object3D };
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
@@ -336,14 +339,14 @@ export function Layout3DCanvas({
     c.tc.setMode(mode);
     if (mode === "translate") {
       c.tc.showX = true;
-      c.tc.showY = false;
+      c.tc.showY = alturaLiberada;
       c.tc.showZ = true;
     } else {
       c.tc.showX = false;
       c.tc.showY = true;
       c.tc.showZ = false;
     }
-  }, [mode]);
+  }, [mode, alturaLiberada]);
 
   useEffect(() => {
     const c = ctxRef.current;
@@ -377,10 +380,11 @@ export function Layout3DCanvas({
       const d = (it.comprimento_mm ?? 1000) / 1000;
       const posX = (it.pos_x_mm ?? 0) / 1000;
       const posZ = (it.pos_y_mm ?? 0) / 1000;
+      const posY = (it.pos_z_mm ?? 0) / 1000;
       const rotY = ((it.rotacao ?? 0) * Math.PI) / 180;
 
       if (existing) {
-        existing.position.set(posX, 0, posZ);
+        existing.position.set(posX, posY, posZ);
         existing.rotation.set(0, rotY, 0);
         return;
       }
@@ -388,7 +392,7 @@ export function Layout3DCanvas({
       const wrapper = new THREE.Group();
       wrapper.name = it.item_id;
       wrapper.userData.itemId = it.item_id;
-      wrapper.position.set(posX, 0, posZ);
+      wrapper.position.set(posX, posY, posZ);
       wrapper.rotation.set(0, rotY, 0);
       c.scene!.add(wrapper);
       groups[it.item_id] = wrapper;

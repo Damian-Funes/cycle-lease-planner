@@ -116,6 +116,7 @@ export type Database = {
           ordem: number
           pos_x_mm: number
           pos_y_mm: number
+          pos_z_mm: number
           rotacao: number
           rotulo_customizado: string | null
         }
@@ -127,6 +128,7 @@ export type Database = {
           ordem?: number
           pos_x_mm?: number
           pos_y_mm?: number
+          pos_z_mm?: number
           rotacao?: number
           rotulo_customizado?: string | null
         }
@@ -138,6 +140,7 @@ export type Database = {
           ordem?: number
           pos_x_mm?: number
           pos_y_mm?: number
+          pos_z_mm?: number
           rotacao?: number
           rotulo_customizado?: string | null
         }
@@ -543,6 +546,7 @@ export type Database = {
           ordem: number | null
           pos_x_mm: number | null
           pos_y_mm: number | null
+          pos_z_mm: number | null
           rotacao: number | null
           rotulo_customizado: string | null
         }

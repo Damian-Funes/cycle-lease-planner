@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d,
+  Download, Box, Search, Move3d, ArrowUpDown,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Layout3DCanvas } from "@/components/Layout3DCanvas";
@@ -41,6 +41,7 @@ export default function LayoutEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
+  const [alturaLiberada, setAlturaLiberada] = useState(false);
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
@@ -96,16 +97,17 @@ export default function LayoutEditor() {
     const dbPatch: Record<string, unknown> = {};
     if (patch.pos_x_mm !== undefined) dbPatch.pos_x_mm = patch.pos_x_mm;
     if (patch.pos_y_mm !== undefined) dbPatch.pos_y_mm = patch.pos_y_mm;
+    if ((patch as { pos_z_mm?: number }).pos_z_mm !== undefined) dbPatch.pos_z_mm = (patch as { pos_z_mm?: number }).pos_z_mm;
     if (patch.rotacao !== undefined) dbPatch.rotacao = patch.rotacao;
     if (patch.ordem !== undefined) dbPatch.ordem = patch.ordem;
     const { error } = await supabase.from("layout_equipamentos").update(dbPatch).eq("id", itemId);
     if (error) toast({ title: "Erro ao salvar item", description: error.message, variant: "destructive" });
   }
 
-  async function handleTransform(itemId: string, posXmm: number, posYmm: number, rotacaoDeg: number) {
+  async function handleTransform(itemId: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) {
     const rotInt = ((Math.round(rotacaoDeg / 90) * 90) % 360) as 0 | 90 | 180 | 270;
-    setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: posXmm, pos_y_mm: posYmm, rotacao: rotInt } : i)));
-    await persistItem(itemId, { pos_x_mm: posXmm, pos_y_mm: posYmm, rotacao: rotInt });
+    setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: posXmm, pos_y_mm: posYmm, pos_z_mm: posZmm, rotacao: rotInt } : i)));
+    await persistItem(itemId, { pos_x_mm: posXmm, pos_y_mm: posYmm, pos_z_mm: posZmm, rotacao: rotInt } as Partial<LayoutItemRow>);
   }
 
   async function rotateSelected() {
@@ -400,6 +402,7 @@ export default function LayoutEditor() {
                   onSelect={setSelectedId}
                   onTransform={handleTransform}
                   mode={transformMode}
+                  alturaLiberada={alturaLiberada}
                 />
               )}
 
@@ -422,6 +425,16 @@ export default function LayoutEditor() {
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                   <span className="text-xs">Rotacionar</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={alturaLiberada ? "default" : "ghost"}
+                  onClick={() => setAlturaLiberada((v) => !v)}
+                  className="h-7 gap-1"
+                  title={alturaLiberada ? "Altura liberada — equipamento pode flutuar" : "Altura travada — equipamento fica no chão"}
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span className="text-xs">{alturaLiberada ? "Y liberado" : "Y travado"}</span>
                 </Button>
               </div>
 
