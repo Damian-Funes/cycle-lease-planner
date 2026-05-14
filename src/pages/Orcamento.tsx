@@ -256,10 +256,10 @@ export default function Orcamento() {
           setParams((p) => ({
             ...p,
             clientName: o?.nome || opp.titulo || p.clientName,
-            clientCnpj: o?.cnpj || p.clientCnpj,
-            clientEmail: o?.email_principal || p.clientEmail,
-            clientPhone: o?.telefone_principal || p.clientPhone,
-            clientAddress: o?.endereco || p.clientAddress,
+            clienteCnpj: o?.cnpj || p.clienteCnpj,
+            clienteEmail: o?.email_principal || p.clienteEmail,
+            clienteTelefone: o?.telefone_principal || p.clienteTelefone,
+            clienteEndereco: o?.endereco || p.clienteEndereco,
           }));
           toast({ title: "Pré-preenchido a partir da oportunidade" });
         }
