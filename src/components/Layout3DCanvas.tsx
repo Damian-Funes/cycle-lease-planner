@@ -585,6 +585,105 @@ export function Layout3DCanvas({
     }
   }, [selectedId]);
 
+  // Renderiza conexoes
+  useEffect(() => {
+    const c = ctxRef.current;
+    if (!c.scene || !c.conexoesGroup || !c.groups) return;
+    const grp = c.conexoesGroup;
+
+    while (grp.children.length > 0) {
+      const child = grp.children[0] as THREE.Mesh;
+      grp.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      const mat = child.material as THREE.Material | THREE.Material[] | undefined;
+      if (mat) {
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat.dispose();
+      }
+    }
+
+    conexoes.forEach((conex) => {
+      const grupoOrigem = c.groups![conex.item_origem_id];
+      const grupoDestino = c.groups![conex.item_destino_id];
+      if (!grupoOrigem || !grupoDestino) return;
+
+      grupoOrigem.updateMatrixWorld(true);
+      grupoDestino.updateMatrixWorld(true);
+
+      const localOrigem = new THREE.Vector3(
+        conex.ponto_origem_x_mm / 1000,
+        conex.ponto_origem_y_mm / 1000,
+        conex.ponto_origem_z_mm / 1000,
+      );
+      const localDestino = new THREE.Vector3(
+        conex.ponto_destino_x_mm / 1000,
+        conex.ponto_destino_y_mm / 1000,
+        conex.ponto_destino_z_mm / 1000,
+      );
+
+      const worldOrigem = grupoOrigem.localToWorld(localOrigem.clone());
+      const worldDestino = grupoDestino.localToWorld(localDestino.clone());
+
+      const dist = worldOrigem.distanceTo(worldDestino);
+      if (dist < 0.001) return;
+
+      const isSel = conex.id === selectedConexaoId;
+      const cor = isSel ? 0x1d9e75 : 0x444444;
+      const raio = isSel ? 0.04 : 0.025;
+
+      const geom = new THREE.CylinderGeometry(raio, raio, dist, 12);
+      const mat = new THREE.MeshStandardMaterial({ color: cor, roughness: 0.7, metalness: 0.1 });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.conexaoId = conex.id;
+
+      const meio = new THREE.Vector3().addVectors(worldOrigem, worldDestino).multiplyScalar(0.5);
+      mesh.position.copy(meio);
+
+      const direcao = new THREE.Vector3().subVectors(worldDestino, worldOrigem).normalize();
+      const yAxis = new THREE.Vector3(0, 1, 0);
+      const quat = new THREE.Quaternion().setFromUnitVectors(yAxis, direcao);
+      mesh.setRotationFromQuaternion(quat);
+
+      grp.add(mesh);
+    });
+  }, [conexoes, selectedConexaoId, items]);
+
+  // Marcador do ponto temporario (modo conectar)
+  useEffect(() => {
+    const c = ctxRef.current;
+    if (!c.scene) return;
+
+    if (c.previewMarker) {
+      c.scene.remove(c.previewMarker);
+      if (c.previewMarker.geometry) c.previewMarker.geometry.dispose();
+      const m = c.previewMarker.material as THREE.Material | undefined;
+      if (m) m.dispose();
+      c.previewMarker = null;
+    }
+
+    if (modoConexao && conexaoPontoTemp && c.groups) {
+      const grupoOrigem = c.groups[conexaoPontoTemp.itemId];
+      if (grupoOrigem) {
+        grupoOrigem.updateMatrixWorld(true);
+        const localOrigem = new THREE.Vector3(
+          conexaoPontoTemp.x / 1000,
+          conexaoPontoTemp.y / 1000,
+          conexaoPontoTemp.z / 1000,
+        );
+        const worldOrigem = grupoOrigem.localToWorld(localOrigem.clone());
+        const sphereGeom = new THREE.SphereGeometry(0.1, 16, 16);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+        sphere.position.copy(worldOrigem);
+        c.scene.add(sphere);
+        c.previewMarker = sphere;
+      }
+    }
+  }, [modoConexao, conexaoPontoTemp]);
+
+
   const goToView = (view: "top" | "front" | "back" | "left" | "right" | "iso") => {
     const c = ctxRef.current;
     if (!c.animateToView) return;
