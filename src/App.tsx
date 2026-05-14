@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import GlobalShortcuts from "@/components/GlobalShortcuts";
 import Auth from "./pages/Auth";
 import Pendente from "./pages/Pendente";
 import Home from "./pages/Home";
@@ -43,6 +44,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <GlobalShortcuts />
           <Suspense fallback={<RouteLoader />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
