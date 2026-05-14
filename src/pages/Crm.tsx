@@ -273,19 +273,11 @@ export default function Crm() {
     queryKey: ["oportunidades"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("oportunidades")
-        .select("*, organizacoes(id, nome), profiles!oportunidades_responsavel_id_fkey(id, nome, email)")
+        .from("v_oportunidades_kanban")
+        .select("*")
         .order("ordem_coluna", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
-      if (error) {
-        // fallback se foreign key não estiver mapeada
-        const { data: d2, error: e2 } = await (supabase as any)
-          .from("oportunidades")
-          .select("*, organizacoes(id, nome)")
-          .order("created_at", { ascending: false });
-        if (e2) throw e2;
-        return (d2 ?? []).map((o: any) => ({ ...o, profiles: null })) as Oportunidade[];
-      }
+      if (error) throw error;
       return data as Oportunidade[];
     },
   });
