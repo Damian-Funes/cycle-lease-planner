@@ -132,7 +132,7 @@ export default function OportunidadesCliente({ clienteId }: { clienteId: string 
         </div>
       )}
 
-      <OportunidadeFormModal open={novaOpen} onOpenChange={setNovaOpen} />
+      <OportunidadeFormModal open={novaOpen} onOpenChange={setNovaOpen} defaultClienteId={clienteId} />
       <OportunidadeSheet open={sheetOpen} onOpenChange={setSheetOpen} oportunidadeId={activeId} />
     </div>
   );
