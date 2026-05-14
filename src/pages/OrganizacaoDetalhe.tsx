@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
+import ActivityFeed from "@/components/ActivityFeed";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
