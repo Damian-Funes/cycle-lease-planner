@@ -17,7 +17,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Search, Pencil, Trash2, Loader2, Eye } from "lucide-react";
-import { Link as RLink } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import ClienteFormModal, { ClienteRow } from "@/components/ClienteFormModal";
 
