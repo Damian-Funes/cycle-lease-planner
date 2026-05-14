@@ -14,8 +14,9 @@ export interface Layout3DCanvasProps {
   pisoComprimentoMm: number;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-  onTransform: (id: string, posXmm: number, posYmm: number, rotacaoDeg: number) => void;
+  onTransform: (id: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) => void;
   mode: "translate" | "rotate";
+  alturaLiberada?: boolean;
 }
 
 interface CanvasCtx {
