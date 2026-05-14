@@ -13,6 +13,7 @@ import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Catalogo from "./pages/Catalogo";
 import Clientes from "./pages/Clientes";
+import Organizacoes from "./pages/Organizacoes";
 import Dossie from "./pages/Dossie";
 import Crm from "./pages/Crm";
 import Orcamento from "./pages/Orcamento";
