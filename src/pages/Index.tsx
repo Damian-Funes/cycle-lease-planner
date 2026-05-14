@@ -48,6 +48,9 @@ const Index = () => {
 
   const handleSave = useCallback(async () => {
     if (!params.clientName.trim()) {
+      setClientNameError(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => clientNameRef.current?.focus(), 300);
       toast({ title: "Preencha o nome do cliente", variant: "destructive" });
       return;
     }
