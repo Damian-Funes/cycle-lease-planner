@@ -402,6 +402,7 @@ export default function LayoutEditor() {
                   onSelect={setSelectedId}
                   onTransform={handleTransform}
                   mode={transformMode}
+                  alturaLiberada={alturaLiberada}
                 />
               )}
 
@@ -424,6 +425,16 @@ export default function LayoutEditor() {
                 >
                   <RotateCw className="w-3.5 h-3.5" />
                   <span className="text-xs">Rotacionar</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant={alturaLiberada ? "default" : "ghost"}
+                  onClick={() => setAlturaLiberada((v) => !v)}
+                  className="h-7 gap-1"
+                  title={alturaLiberada ? "Altura liberada — equipamento pode flutuar" : "Altura travada — equipamento fica no chão"}
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                  <span className="text-xs">{alturaLiberada ? "Y liberado" : "Y travado"}</span>
                 </Button>
               </div>
 
