@@ -197,7 +197,12 @@ export default function Clientes() {
                       <TableCell className="text-sm">{resp?.nome || resp?.email || "—"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openEdit(c)}>
+                          <Link to={`/dossie/${c.id}`}>
+                            <Button size="icon" variant="ghost" title="Ver dossiê">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </Link>
+                          <Button size="icon" variant="ghost" onClick={() => openEdit(c)} title="Editar">
                             <Pencil className="w-4 h-4" />
                           </Button>
                           <Button
