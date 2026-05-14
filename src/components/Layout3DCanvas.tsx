@@ -205,8 +205,9 @@ export function Layout3DCanvas({
       if (!obj || !obj.userData.itemId) return;
       const posXmm = Math.round(obj.position.x * 1000);
       const posYmm = Math.round(obj.position.z * 1000);
+      const posZmm = Math.round(obj.position.y * 1000);
       const rotacaoDeg = Math.round(((obj.rotation.y * 180) / Math.PI + 360) % 360);
-      ctxRef.current.onTransform?.(obj.userData.itemId, posXmm, posYmm, rotacaoDeg);
+      ctxRef.current.onTransform?.(obj.userData.itemId, posXmm, posYmm, posZmm, rotacaoDeg);
     });
     const tcAny = tc as unknown as { getHelper?: () => THREE.Object3D };
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
