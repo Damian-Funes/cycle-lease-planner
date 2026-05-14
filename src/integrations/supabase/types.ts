@@ -611,6 +611,7 @@ export type Database = {
           etapa_id: string
           id: string
           motivo_perda: string | null
+          notas: string | null
           observacoes: string | null
           ordem_coluna: number | null
           organizacao_id: string
@@ -633,6 +634,7 @@ export type Database = {
           etapa_id: string
           id?: string
           motivo_perda?: string | null
+          notas?: string | null
           observacoes?: string | null
           ordem_coluna?: number | null
           organizacao_id: string
@@ -655,6 +657,7 @@ export type Database = {
           etapa_id?: string
           id?: string
           motivo_perda?: string | null
+          notas?: string | null
           observacoes?: string | null
           ordem_coluna?: number | null
           organizacao_id?: string
