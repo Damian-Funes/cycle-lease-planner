@@ -40,8 +40,11 @@ export default function LayoutEditor() {
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  const [transformMode, setTransformMode] = useState<"translate" | "rotate">("translate");
+  const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "connect">("translate");
   const [alturaLiberada, setAlturaLiberada] = useState(false);
+  const [conexoes, setConexoes] = useState<ConexaoRow[]>([]);
+  const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
+  const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
