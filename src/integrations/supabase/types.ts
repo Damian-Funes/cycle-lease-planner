@@ -14,6 +14,167 @@ export type Database = {
   }
   public: {
     Tables: {
+      atividades: {
+        Row: {
+          cliente_id: string
+          concluida: boolean
+          conteudo: string | null
+          created_at: string
+          data_atividade: string
+          id: string
+          oportunidade_id: string | null
+          responsavel_id: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          cliente_id: string
+          concluida?: boolean
+          conteudo?: string | null
+          created_at?: string
+          data_atividade?: string
+          id?: string
+          oportunidade_id?: string | null
+          responsavel_id?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          cliente_id?: string
+          concluida?: boolean
+          conteudo?: string | null
+          created_at?: string
+          data_atividade?: string
+          id?: string
+          oportunidade_id?: string | null
+          responsavel_id?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividades_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividades_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          id: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          porte: string | null
+          razao_social: string
+          regiao: string | null
+          responsavel_id: string | null
+          segmento: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          porte?: string | null
+          razao_social: string
+          regiao?: string | null
+          responsavel_id?: string | null
+          segmento?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          porte?: string | null
+          razao_social?: string
+          regiao?: string | null
+          responsavel_id?: string | null
+          segmento?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contatos: {
+        Row: {
+          cargo: string | null
+          cliente_id: string
+          created_at: string
+          e_decisor: boolean
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          cliente_id: string
+          created_at?: string
+          e_decisor?: boolean
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          cliente_id?: string
+          created_at?: string
+          e_decisor?: boolean
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contatos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipamentos: {
         Row: {
           altura_mm: number | null
@@ -68,6 +229,36 @@ export type Database = {
           modelo_3d_url?: string | null
           valor_custo?: number
           valor_venda?: number | null
+        }
+        Relationships: []
+      }
+      etapas_pipeline: {
+        Row: {
+          cor: string | null
+          created_at: string
+          e_final: boolean
+          e_ganho: boolean
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          e_final?: boolean
+          e_ganho?: boolean
+          id?: string
+          nome: string
+          ordem: number
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          e_final?: boolean
+          e_ganho?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
         }
         Relationships: []
       }
@@ -303,6 +494,83 @@ export type Database = {
         }
         Relationships: []
       }
+      oportunidades: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_fechamento_prevista: string | null
+          etapa_id: string
+          id: string
+          motivo_perda: string | null
+          observacoes: string | null
+          probabilidade: number
+          proposta_id: string | null
+          responsavel_id: string | null
+          titulo: string
+          updated_at: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_fechamento_prevista?: string | null
+          etapa_id: string
+          id?: string
+          motivo_perda?: string | null
+          observacoes?: string | null
+          probabilidade?: number
+          proposta_id?: string | null
+          responsavel_id?: string | null
+          titulo: string
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_fechamento_prevista?: string | null
+          etapa_id?: string
+          id?: string
+          motivo_perda?: string | null
+          observacoes?: string | null
+          probabilidade?: number
+          proposta_id?: string | null
+          responsavel_id?: string | null
+          titulo?: string
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orcamentos: {
         Row: {
           cliente_cnpj: string | null
@@ -494,6 +762,7 @@ export type Database = {
           cliente_cnpj: string | null
           cliente_email: string | null
           cliente_endereco: string | null
+          cliente_id: string | null
           cliente_telefone: string | null
           contato_nome: string | null
           created_at: string
@@ -524,6 +793,7 @@ export type Database = {
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_endereco?: string | null
+          cliente_id?: string | null
           cliente_telefone?: string | null
           contato_nome?: string | null
           created_at?: string
@@ -554,6 +824,7 @@ export type Database = {
           cliente_cnpj?: string | null
           cliente_email?: string | null
           cliente_endereco?: string | null
+          cliente_id?: string | null
           cliente_telefone?: string | null
           contato_nome?: string | null
           created_at?: string
@@ -580,7 +851,15 @@ export type Database = {
           vol_min_f2_pct?: number
           volume_minimo_calculado?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "propostas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
