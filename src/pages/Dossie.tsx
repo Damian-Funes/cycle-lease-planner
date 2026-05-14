@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   ArrowLeft, Pencil, Plus, Trash2, Eye, Loader2, FileText,
-  CheckCircle2, DollarSign, Clock, Mail, Phone, Star,
+  CheckCircle2, DollarSign, Clock, Mail, Phone, Star, Activity,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import ClienteFormModal, { ClienteRow } from "@/components/ClienteFormModal";
 import ContatoFormModal, { ContatoRow } from "@/components/ContatoFormModal";
+import AtividadeFormSheet from "@/components/AtividadeFormSheet";
+import Timeline from "@/components/Timeline";
+import OportunidadesCliente from "@/components/OportunidadesCliente";
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "bg-gray-200 text-gray-800 hover:bg-gray-200",
@@ -63,6 +66,7 @@ export default function Dossie() {
   const [contatoModalOpen, setContatoModalOpen] = useState(false);
   const [editingContato, setEditingContato] = useState<ContatoRow | null>(null);
   const [contatoToDelete, setContatoToDelete] = useState<ContatoRow | null>(null);
+  const [atividadeOpen, setAtividadeOpen] = useState(false);
 
   const { data: cliente, isLoading } = useQuery({
     queryKey: ["cliente", clienteId],
@@ -151,14 +155,19 @@ export default function Dossie() {
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
             <Link to="/clientes">
               <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
             </Link>
-            <h1 className="text-lg font-bold">Dossiê do Cliente</h1>
+            <h1 className="text-lg font-bold truncate">Dossiê do Cliente</h1>
           </div>
-          <AppHeader />
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setAtividadeOpen(true)} className="gap-1">
+              <Activity className="w-4 h-4" /> Registrar Atividade
+            </Button>
+            <AppHeader />
+          </div>
         </div>
       </header>
 
@@ -209,9 +218,10 @@ export default function Dossie() {
 
         {/* Tabs */}
         <Tabs defaultValue="overview">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="contatos">Contatos</TabsTrigger>
+            <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
             <TabsTrigger value="propostas">Propostas</TabsTrigger>
             <TabsTrigger value="layouts">Layouts</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
@@ -343,12 +353,16 @@ export default function Dossie() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="oportunidades">
+            <OportunidadesCliente clienteId={clienteId!} />
+          </TabsContent>
+
           <TabsContent value="layouts">
             <Card><CardContent className="p-12 text-center text-muted-foreground">Em breve</CardContent></Card>
           </TabsContent>
 
           <TabsContent value="timeline">
-            <Card><CardContent className="p-12 text-center text-muted-foreground">Em breve</CardContent></Card>
+            <Timeline clienteId={clienteId!} />
           </TabsContent>
         </Tabs>
       </main>
@@ -386,6 +400,12 @@ export default function Dossie() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AtividadeFormSheet
+        open={atividadeOpen}
+        onOpenChange={setAtividadeOpen}
+        clienteId={clienteId!}
+      />
     </div>
   );
 }
