@@ -69,7 +69,7 @@ export default function Atividades() {
     const arr = (ats.data as any) || [];
     setAtividades(arr);
 
-    const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id))];
+    const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id as string))] as string[];
     if (oppIds.length) {
       const { data: ops } = await supabase.from("oportunidades").select("id, titulo, organizacao_id").in("id", oppIds);
       const map: any = {};
