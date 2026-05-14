@@ -1,59 +1,46 @@
+## Objetivo
 
+Ao criar uma conexão entre 2 pontos, mover o segundo equipamento para que o ponto clicado nele encoste exatamente no ponto clicado do primeiro equipamento. A linha cinza vira opcional (os equipamentos ficam fisicamente unidos).
 
-# Comparar planilha com base do Supabase e atualizar valores
+## Comportamento
 
-## Contexto
+1. Usuário entra no modo Conectar.
+2. Clica no ponto A do Equipamento 1 → bolinha laranja aparece (já funciona hoje).
+3. Clica no ponto B do Equipamento 2 → em vez de só salvar a conexão:
+   - Calcula o vetor de deslocamento `delta = pontoA_world - pontoB_world`.
+   - Aplica esse delta na `posicao` do Equipamento 2 (apenas translação, sem rotação).
+   - Persiste a nova posição no `layout_equipamentos`.
+   - Salva a conexão em `layout_conexoes` (mantém a linha como referência visual, agora com comprimento ~0).
+4. Equipamento 1 fica fixo (âncora). Só o segundo se move.
 
-- Base atual no Supabase: **115 equipamentos ativos** (ex: códigos 0101, 0102, 0313, 04020001…)
-- Planilha enviada: `Cópia_de_equipamentos_rows_rev04.xlsx` (rev04 — sugere quarta revisão de preços)
-- O parser de documento não extraiu o conteúdo do .xlsx (só veio o cabeçalho). Preciso ler o arquivo com pandas no modo default para acessar todas as linhas.
-- **Bônus**: corrigir o erro de build do `tsconfig.json` (remover `baseUrl`) no mesmo passo.
+## Regras
 
-## Plano de execução (em modo default)
+- Snap às 6 faces do bbox (200mm) continua funcionando para escolher os pontos.
+- Não tenta resolver cadeias: se o Equipamento 2 já estava conectado a outro, essa conexão antiga é mantida (mas pode ficar visualmente desencaixada — aceito nesta fase).
+- Se o usuário arrastar manualmente um equipamento conectado, a conexão **não** é refeita automaticamente (linha acompanha porque é recalculada via `c.groups[id]` no `useEffect` de `items`).
+- Conectar equipamento consigo mesmo continua bloqueado (toast de erro).
 
-### 1) Corrigir build
+## Arquivos afetados
 
-Remover `"baseUrl": "."` do `tsconfig.json`. O `paths` continua funcionando (relativo ao próprio tsconfig).
+- `src/pages/LayoutEditor.tsx` — no `handleConectarClick`, após receber o segundo ponto, calcular delta em world space, atualizar `items` (posição do 2º equipamento) e chamar `persistItem` antes do INSERT da conexão.
+- `src/components/Layout3DCanvas.tsx` — nenhuma mudança estrutural; o `useEffect` que redesenha conexões já reage à mudança de `items`.
 
-### 2) Ler a planilha
+## Detalhes técnicos
 
-Copiar `user-uploads://Cópia_de_equipamentos_rows_rev04.xlsx` para `/tmp/eq.xlsx` e ler com pandas. Identificar automaticamente as colunas:
-- **Código** (codigo / código)
-- **Descrição** (descricao / descrição / produto)
-- **Valor de custo** (valor_custo / custo / valor)
+- O ponto clicado hoje já é convertido para coordenadas locais do equipamento (`worldToLocal`) e armazenado em mm. Para calcular o delta:
+  1. Reconstituir `pontoA_world` a partir de `conexaoPontoTemp` (local mm → local m → `localToWorld` no grupo do Eq.1).
+  2. Reconstituir `pontoB_world` a partir do clique atual no Eq.2.
+  3. `delta = pontoA_world.sub(pontoB_world)`.
+  4. `novaPosicao = item2.posicao + delta` (Y inclusive — se quiser travar Y, fácil ajustar).
 
-### 3) Comparar planilha vs Supabase
+- A linha desenhada no `useEffect` vai ter comprimento ~0; pode ser escondida quando `length < 1mm` para evitar artefato visual.
 
-Para cada código da planilha, classificar em uma de 4 categorias:
+## Não muda
 
-| Categoria | O que vou fazer |
-|---|---|
-| **Alterado** (mesmo código, valor ou descrição diferente) | UPDATE no registro existente |
-| **Novo** (código não existe no Supabase) | INSERT como `ativo = true` |
-| **Igual** (código existe e valores batem) | nada |
-| **Removido** (código existe no Supabase mas não na planilha) | marcar `ativo = false` (não deleto, para preservar histórico em `propostas.itens_projeto`) |
+- GLB loading, categorias, catálogo, sistema de altura/rotação, iluminação, TransformControls, exportação PDF, transparência de seleção.
+- Tabela `layout_conexoes` permanece igual.
+- Sistema de portas cadastradas (Fase 1 anterior) não é pré-requisito — funciona com o snap heurístico atual.
 
-### 4) Pré-confirmação
+## Pergunta única
 
-Antes de aplicar qualquer mudança, vou te mostrar um **resumo**:
-- X alterados (com diff de valor: antigo → novo)
-- Y novos
-- Z desativados
-- W inalterados
-
-Se algo parecer estranho (ex: 100 itens "removidos"), eu paro e te aviso antes de tocar no banco.
-
-### 5) Aplicar no Supabase
-
-Executar UPDATEs / INSERTs / desativações via tool de insert do Supabase. Tudo na tabela `equipamentos` — schema não muda.
-
-### 6) Validação final
-
-Mostrar contagem final (`ativos`, `total`) e amostra de 5 itens atualizados para confirmar.
-
-## Observações
-
-- **Propostas antigas ficam intactas**: a coluna `itens_projeto` é JSONB com snapshot dos itens (código/descrição/custo no momento da venda), então atualizar o catálogo não muda propostas já salvas.
-- **Sem perda de histórico**: ninguém é deletado — apenas desativado se sumir da planilha.
-- Se a planilha tiver colunas extras (categoria, unidade), elas são ignoradas — a tabela só tem `codigo`, `descricao`, `valor_custo`, `ativo`.
-
+Travar Y no movimento (só desloca em X/Z, mantém altura) ou permitir delta livre nos 3 eixos? Sugiro **delta livre** já que o ponto clicado pode estar no topo/base e faz sentido o equipamento subir/descer pra encaixar.
