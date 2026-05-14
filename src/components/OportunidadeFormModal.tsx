@@ -99,7 +99,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
   useEffect(() => {
     if (open) {
       form.reset({
-        cliente_id: oportunidade?.cliente_id ?? "",
+        cliente_id: oportunidade?.cliente_id ?? defaultClienteId ?? "",
         titulo: oportunidade?.titulo ?? "",
         etapa_id: oportunidade?.etapa_id ?? defaultEtapa,
         valor_estimado: oportunidade?.valor_estimado != null ? String(oportunidade.valor_estimado) : "",
@@ -109,7 +109,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
         observacoes: oportunidade?.observacoes ?? "",
       });
     }
-  }, [open, oportunidade, defaultEtapa]);
+  }, [open, oportunidade, defaultEtapa, defaultClienteId]);
 
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
