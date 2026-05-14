@@ -98,7 +98,7 @@ export default function ClienteFormModal({ open, onOpenChange, cliente, onSaved 
         observacoes: values.observacoes?.trim() || null,
       };
       if (isEdit && cliente) {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("clientes")
           .update(payload)
           .eq("id", cliente.id)
@@ -107,7 +107,7 @@ export default function ClienteFormModal({ open, onOpenChange, cliente, onSaved 
         if (error) throw error;
         return data as ClienteRow;
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("clientes")
           .insert(payload)
           .select()

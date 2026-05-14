@@ -47,7 +47,7 @@ export default function Clientes() {
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("clientes")
         .select("*")
         .order("razao_social");
@@ -85,7 +85,7 @@ export default function Clientes() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clientes").delete().eq("id", id);
+      const { error } = await (supabase as any).from("clientes").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
