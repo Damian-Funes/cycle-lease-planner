@@ -71,6 +71,10 @@ export function Layout3DCanvas({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf5f5f4);
 
+    const conexoesGroup = new THREE.Group();
+    conexoesGroup.name = "conexoes";
+    scene.add(conexoesGroup);
+
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
