@@ -400,6 +400,12 @@ export default function Dossie() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AtividadeFormSheet
+        open={atividadeOpen}
+        onOpenChange={setAtividadeOpen}
+        clienteId={clienteId!}
+      />
     </div>
   );
 }
