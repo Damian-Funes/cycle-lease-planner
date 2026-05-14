@@ -16,40 +16,70 @@ export type Database = {
     Tables: {
       atividades: {
         Row: {
-          cliente_id: string
+          cliente_id: string | null
           concluida: boolean
           conteudo: string | null
           created_at: string
           data_atividade: string
+          data_conclusao: string | null
+          data_inicio: string | null
+          descricao: string | null
+          duracao_minutos: number | null
+          evento_automatico: boolean
           id: string
           oportunidade_id: string | null
+          organizacao_id: string | null
+          pessoa_id: string | null
           responsavel_id: string | null
+          resultado: string | null
           tipo: string
+          tipo_id: string | null
           titulo: string
+          updated_at: string
         }
         Insert: {
-          cliente_id: string
+          cliente_id?: string | null
           concluida?: boolean
           conteudo?: string | null
           created_at?: string
           data_atividade?: string
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          duracao_minutos?: number | null
+          evento_automatico?: boolean
           id?: string
           oportunidade_id?: string | null
+          organizacao_id?: string | null
+          pessoa_id?: string | null
           responsavel_id?: string | null
+          resultado?: string | null
           tipo: string
+          tipo_id?: string | null
           titulo: string
+          updated_at?: string
         }
         Update: {
-          cliente_id?: string
+          cliente_id?: string | null
           concluida?: boolean
           conteudo?: string | null
           created_at?: string
           data_atividade?: string
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          duracao_minutos?: number | null
+          evento_automatico?: boolean
           id?: string
           oportunidade_id?: string | null
+          organizacao_id?: string | null
+          pessoa_id?: string | null
           responsavel_id?: string | null
+          resultado?: string | null
           tipo?: string
+          tipo_id?: string | null
           titulo?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -64,6 +94,13 @@ export type Database = {
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atividades_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_atividade"
             referencedColumns: ["id"]
           },
         ]
@@ -1169,6 +1206,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tipos_atividade: {
+        Row: {
+          ativo: boolean
+          cor: string | null
+          created_at: string
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string | null
+          created_at?: string
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
