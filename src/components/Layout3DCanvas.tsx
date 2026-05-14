@@ -581,15 +581,25 @@ export function Layout3DCanvas({
     });
   }, [items]);
 
+  const prevSelectedRef = useRef<string | null>(null);
   useEffect(() => {
     const c = ctxRef.current;
     if (!c.tc || !c.groups) return;
+
+    const prev = prevSelectedRef.current;
+    if (prev && c.groups[prev]) {
+      restaurarOpacidade(c.groups[prev]);
+    }
+
     if (selectedId && c.groups[selectedId]) {
       c.tc.attach(c.groups[selectedId]);
+      tornarTransparente(c.groups[selectedId]);
     } else {
       c.tc.detach();
     }
-  }, [selectedId]);
+
+    prevSelectedRef.current = selectedId;
+  }, [selectedId, items]);
 
   // Renderiza conexoes
   useEffect(() => {
