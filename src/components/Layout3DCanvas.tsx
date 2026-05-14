@@ -6,7 +6,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { ViewHelper } from "three/examples/jsm/helpers/ViewHelper.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
-import type { LayoutItemRow } from "@/lib/layouts";
+import type { LayoutItemRow, ConexaoRow } from "@/lib/layouts";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -15,8 +15,14 @@ export interface Layout3DCanvasProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onTransform: (id: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) => void;
-  mode: "translate" | "rotate";
+  mode: "translate" | "rotate" | "connect";
   alturaLiberada?: boolean;
+  conexoes?: ConexaoRow[];
+  modoConexao?: boolean;
+  conexaoPontoTemp?: { itemId: string; x: number; y: number; z: number } | null;
+  selectedConexaoId?: string | null;
+  onConectarClick?: (itemId: string, x: number, y: number, z: number) => void;
+  onConexaoSelect?: (id: string | null) => void;
 }
 
 interface CanvasCtx {
@@ -25,8 +31,13 @@ interface CanvasCtx {
   renderer?: THREE.WebGLRenderer;
   tc?: TransformControls;
   groups?: Record<string, THREE.Group>;
+  conexoesGroup?: THREE.Group;
+  previewMarker?: THREE.Mesh | null;
   onTransform?: Layout3DCanvasProps["onTransform"];
   onSelect?: Layout3DCanvasProps["onSelect"];
+  onConectarClick?: Layout3DCanvasProps["onConectarClick"];
+  onConexaoSelect?: Layout3DCanvasProps["onConexaoSelect"];
+  currentMode?: Layout3DCanvasProps["mode"];
   dom?: HTMLCanvasElement;
   animateToView?: (theta: number, phi: number, radius?: number) => void;
 }
@@ -40,6 +51,12 @@ export function Layout3DCanvas({
   onTransform,
   mode,
   alturaLiberada = false,
+  conexoes = [],
+  modoConexao = false,
+  conexaoPontoTemp = null,
+  selectedConexaoId = null,
+  onConectarClick,
+  onConexaoSelect,
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
