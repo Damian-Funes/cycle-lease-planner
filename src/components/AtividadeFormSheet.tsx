@@ -207,6 +207,19 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
             </Popover>
           </div>
 
+          {isConnected && (
+            <div className="flex items-center gap-2 pt-2">
+              <Switch
+                id="criar-meet-sheet"
+                checked={!!form.watch("criar_meet")}
+                onCheckedChange={(v) => form.setValue("criar_meet", v)}
+              />
+              <Label htmlFor="criar-meet-sheet" className="text-sm cursor-pointer flex items-center gap-1">
+                <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
+              </Label>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={mutation.isPending}>
