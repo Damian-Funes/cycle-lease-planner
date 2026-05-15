@@ -29,6 +29,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ActivityFeed from "@/components/ActivityFeed";
+import OrgPropostas from "@/components/OrgPropostas";
+import OrgOrcamentos from "@/components/OrgOrcamentos";
+import OrgLayouts from "@/components/OrgLayouts";
+import OrgKpis from "@/components/OrgKpis";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
@@ -250,9 +254,12 @@ export default function OrganizacaoDetalhe() {
         {/* CENTRO */}
         <section>
           <Tabs defaultValue="visao">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="visao">Visão Geral</TabsTrigger>
               <TabsTrigger value="pessoas">Pessoas ({pessoas.length})</TabsTrigger>
+              <TabsTrigger value="propostas">Propostas SmartCycle</TabsTrigger>
+              <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
+              <TabsTrigger value="layouts">Layouts</TabsTrigger>
               <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
               <TabsTrigger value="atividades">Atividades</TabsTrigger>
               <TabsTrigger value="notas">Notas</TabsTrigger>
@@ -270,7 +277,7 @@ export default function OrganizacaoDetalhe() {
               </Card>
               <Card className="p-4">
                 <h3 className="font-semibold text-sm mb-2">Últimas Atividades</h3>
-                <p className="text-sm text-muted-foreground">Em breve.</p>
+                <ActivityFeed entityType="organizacao" entityId={org.id} />
               </Card>
             </TabsContent>
 
@@ -331,6 +338,16 @@ export default function OrganizacaoDetalhe() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="propostas" className="mt-4">
+              <OrgPropostas organizacaoId={id} />
+            </TabsContent>
+            <TabsContent value="orcamentos" className="mt-4">
+              <OrgOrcamentos organizacaoId={id} />
+            </TabsContent>
+            <TabsContent value="layouts" className="mt-4">
+              <OrgLayouts organizacaoId={id} organizacaoNome={org.nome} />
+            </TabsContent>
+
             <TabsContent value="oportunidades" className="mt-4">
               <Card className="p-8 text-center text-muted-foreground text-sm">Em breve</Card>
             </TabsContent>
@@ -349,13 +366,7 @@ export default function OrganizacaoDetalhe() {
             <h3 className="font-semibold text-sm mb-2">Próximas Atividades</h3>
             <p className="text-sm text-muted-foreground">Nenhuma agendada.</p>
           </Card>
-          <Card className="p-4 space-y-3">
-            <h3 className="font-semibold text-sm">Resumo</h3>
-            <Stat label="Total de deals" value="—" />
-            <Stat label="Valor pipeline" value="—" />
-            <Stat label="Deals ganhos" value="—" />
-            <p className="text-xs text-muted-foreground pt-2 border-t">Disponível em sprints futuros.</p>
-          </Card>
+          <OrgKpis organizacaoId={id} />
         </aside>
       </main>
 

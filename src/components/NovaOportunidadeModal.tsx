@@ -50,6 +50,9 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   defaultOrganizacaoId?: string;
   defaultPipelineId?: string;
+  defaultTitulo?: string;
+  defaultValor?: number;
+  onCreated?: (id: string) => void;
 }
 
 const formatBRL = (v: number) =>
@@ -60,6 +63,9 @@ export default function NovaOportunidadeModal({
   onOpenChange,
   defaultOrganizacaoId,
   defaultPipelineId,
+  defaultTitulo,
+  defaultValor,
+  onCreated,
 }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -153,17 +159,17 @@ export default function NovaOportunidadeModal({
       const meProfile = profiles.find((p) => p.user_id === user?.id);
       const firstPipeline = defaultPipelineId || pipelines[0]?.id || "";
       form.reset({
-        titulo: "",
+        titulo: defaultTitulo ?? "",
         pipeline_id: firstPipeline,
         etapa_id: "",
         organizacao_id: defaultOrganizacaoId ?? "",
-        valor_estimado: 0,
+        valor_estimado: defaultValor ?? 0,
         probabilidade: 50,
         data_fechamento_prevista: null,
         responsavel_id: meProfile?.id ?? "",
         observacoes: "",
       });
-      setValorRaw("");
+      setValorRaw(defaultValor ? formatBRL(defaultValor) : "");
       setPessoasSel([]);
     }
   }, [open]); // eslint-disable-line
@@ -243,9 +249,13 @@ export default function NovaOportunidadeModal({
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["oportunidades"] });
-      toast.success("Oportunidade criada", {
-        action: { label: "Ver detalhes", onClick: () => (window.location.href = `/crm/deal/${id}`) },
-      });
+      if (onCreated) {
+        onCreated(id);
+      } else {
+        toast.success("Oportunidade criada", {
+          action: { label: "Ver detalhes", onClick: () => (window.location.href = `/crm/deal/${id}`) },
+        });
+      }
       onOpenChange(false);
     },
     onError: (err: any) => toast.error("Erro ao salvar", { description: err?.message }),

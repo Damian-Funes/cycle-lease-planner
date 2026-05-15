@@ -544,6 +544,7 @@ export type Database = {
           created_by: string | null
           id: string
           observacoes: string | null
+          organizacao_id: string | null
           origem_id: string
           origem_tipo: string
           piso_comprimento_mm: number
@@ -562,6 +563,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           observacoes?: string | null
+          organizacao_id?: string | null
           origem_id: string
           origem_tipo: string
           piso_comprimento_mm?: number
@@ -580,6 +582,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           observacoes?: string | null
+          organizacao_id?: string | null
           origem_id?: string
           origem_tipo?: string
           piso_comprimento_mm?: number
@@ -591,7 +594,15 @@ export type Database = {
           unidade?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "layouts_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       oportunidade_pessoas: {
         Row: {
@@ -763,6 +774,7 @@ export type Database = {
           condicoes_pagamento: string | null
           contato_nome: string | null
           created_at: string
+          dados_congelados: boolean
           desconto_tipo: string
           desconto_valor: number
           frete: number
@@ -772,6 +784,8 @@ export type Database = {
           nome_cliente: string
           numero_orcamento: string | null
           observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
           prazo_entrega: string | null
           status: string | null
           subtotal: number
@@ -787,6 +801,7 @@ export type Database = {
           condicoes_pagamento?: string | null
           contato_nome?: string | null
           created_at?: string
+          dados_congelados?: boolean
           desconto_tipo?: string
           desconto_valor?: number
           frete?: number
@@ -796,6 +811,8 @@ export type Database = {
           nome_cliente: string
           numero_orcamento?: string | null
           observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
           subtotal?: number
@@ -811,6 +828,7 @@ export type Database = {
           condicoes_pagamento?: string | null
           contato_nome?: string | null
           created_at?: string
+          dados_congelados?: boolean
           desconto_tipo?: string
           desconto_valor?: number
           frete?: number
@@ -820,6 +838,8 @@ export type Database = {
           nome_cliente?: string
           numero_orcamento?: string | null
           observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
           subtotal?: number
@@ -827,7 +847,29 @@ export type Database = {
           updated_at?: string
           validade_dias?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orcamentos_reforma: {
         Row: {
@@ -838,6 +880,7 @@ export type Database = {
           condicoes_pagamento: string | null
           contato_nome: string | null
           created_at: string
+          dados_congelados: boolean
           desconto_tipo: string
           desconto_valor: number
           frete: number
@@ -847,6 +890,8 @@ export type Database = {
           nome_cliente: string
           numero_orcamento: string | null
           observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
           prazo_entrega: string | null
           status: string | null
           subtotal: number
@@ -862,6 +907,7 @@ export type Database = {
           condicoes_pagamento?: string | null
           contato_nome?: string | null
           created_at?: string
+          dados_congelados?: boolean
           desconto_tipo?: string
           desconto_valor?: number
           frete?: number
@@ -871,6 +917,8 @@ export type Database = {
           nome_cliente: string
           numero_orcamento?: string | null
           observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
           subtotal?: number
@@ -886,6 +934,7 @@ export type Database = {
           condicoes_pagamento?: string | null
           contato_nome?: string | null
           created_at?: string
+          dados_congelados?: boolean
           desconto_tipo?: string
           desconto_valor?: number
           frete?: number
@@ -895,6 +944,8 @@ export type Database = {
           nome_cliente?: string
           numero_orcamento?: string | null
           observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
           prazo_entrega?: string | null
           status?: string | null
           subtotal?: number
@@ -902,7 +953,29 @@ export type Database = {
           updated_at?: string
           validade_dias?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organizacoes: {
         Row: {
@@ -1119,6 +1192,7 @@ export type Database = {
           cliente_telefone: string | null
           contato_nome: string | null
           created_at: string
+          dados_congelados: boolean
           divida: number
           entrada: number
           id: string
@@ -1129,7 +1203,10 @@ export type Database = {
           nome_cliente: string
           numero_proposta: string | null
           observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
           peso_saco: number
+          pessoa_contato_id: string | null
           reajuste_anual: number
           status: string | null
           tarifa_excedente: number
@@ -1150,6 +1227,7 @@ export type Database = {
           cliente_telefone?: string | null
           contato_nome?: string | null
           created_at?: string
+          dados_congelados?: boolean
           divida: number
           entrada: number
           id?: string
@@ -1160,7 +1238,10 @@ export type Database = {
           nome_cliente: string
           numero_proposta?: string | null
           observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
           peso_saco?: number
+          pessoa_contato_id?: string | null
           reajuste_anual: number
           status?: string | null
           tarifa_excedente: number
@@ -1181,6 +1262,7 @@ export type Database = {
           cliente_telefone?: string | null
           contato_nome?: string | null
           created_at?: string
+          dados_congelados?: boolean
           divida?: number
           entrada?: number
           id?: string
@@ -1191,7 +1273,10 @@ export type Database = {
           nome_cliente?: string
           numero_proposta?: string | null
           observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
           peso_saco?: number
+          pessoa_contato_id?: string | null
           reajuste_anual?: number
           status?: string | null
           tarifa_excedente?: number
@@ -1210,6 +1295,34 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_pessoa_contato_id_fkey"
+            columns: ["pessoa_contato_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
             referencedColumns: ["id"]
           },
         ]

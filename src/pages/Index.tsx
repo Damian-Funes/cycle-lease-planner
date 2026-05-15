@@ -185,12 +185,14 @@ const Index = () => {
     toast({ title: "Novo aluguel iniciado" });
   };
 
-  // Deep-link: ?load=<id> carrega aluguel; ?novo=1 inicia novo
+  // Deep-link: ?load=<id> carrega; ?novo=1 inicia novo; ?organizacao=/?oportunidade= pré-preenche
   useEffect(() => {
     if (authLoading || profile?.status !== "approved") return;
 
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
+    const orgId = searchParams.get("organizacao");
+    const oppId = searchParams.get("oportunidade");
 
     if (loadId) {
       void loadPropostaById(loadId).finally(() => {
@@ -202,6 +204,26 @@ const Index = () => {
     if (novo) {
       setParams(DEFAULT_PARAMS);
       setSavedId(null);
+    }
+
+    if (oppId) {
+      (async () => {
+        const { data: opp } = await supabase
+          .from("oportunidades")
+          .select("organizacao_id")
+          .eq("id", oppId)
+          .maybeSingle();
+        if (opp?.organizacao_id) {
+          setParams((p) => ({ ...p, organizacao_id: opp.organizacao_id, oportunidade_id: oppId }));
+          toast({ title: "Pré-preenchido a partir da oportunidade" });
+        }
+        setSearchParams({}, { replace: true });
+      })();
+      return;
+    }
+
+    if (orgId) {
+      setParams((p) => ({ ...p, organizacao_id: orgId }));
       setSearchParams({}, { replace: true });
       return;
     }
@@ -209,8 +231,11 @@ const Index = () => {
     if (searchParams.get("propostas")) {
       setModalOpen(true);
       setSearchParams({}, { replace: true });
+      return;
     }
-  }, [authLoading, profile?.status, searchParams, setSearchParams, loadPropostaById]);
+
+    if (novo) setSearchParams({}, { replace: true });
+  }, [authLoading, profile?.status, searchParams, setSearchParams, loadPropostaById, toast]);
 
   return (
     <div className="min-h-screen bg-background">

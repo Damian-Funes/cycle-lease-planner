@@ -265,6 +265,13 @@ export default function Orcamento() {
         }
         setSearchParams({}, { replace: true });
       })();
+      return;
+    }
+
+    const orgId = searchParams.get("organizacao");
+    if (orgId) {
+      setParams((p) => ({ ...p, organizacao_id: orgId }));
+      setSearchParams({}, { replace: true });
     }
   }, [authLoading, profile?.status, searchParams, setSearchParams, loadOrcamentoById]);
 
