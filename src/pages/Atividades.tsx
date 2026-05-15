@@ -52,6 +52,7 @@ export default function Atividades() {
   const [respSel, setRespSel] = useState<string>("me");
   const [periodo, setPeriodo] = useState<Periodo>("tudo");
   const [showConcluidas, setShowConcluidas] = useState(false);
+  const [view, setView] = useState<"lista" | "calendario">("lista");
 
   // Modais
   const [novoModal, setNovoModal] = useState(false);
