@@ -159,17 +159,17 @@ export default function NovaOportunidadeModal({
       const meProfile = profiles.find((p) => p.user_id === user?.id);
       const firstPipeline = defaultPipelineId || pipelines[0]?.id || "";
       form.reset({
-        titulo: "",
+        titulo: defaultTitulo ?? "",
         pipeline_id: firstPipeline,
         etapa_id: "",
         organizacao_id: defaultOrganizacaoId ?? "",
-        valor_estimado: 0,
+        valor_estimado: defaultValor ?? 0,
         probabilidade: 50,
         data_fechamento_prevista: null,
         responsavel_id: meProfile?.id ?? "",
         observacoes: "",
       });
-      setValorRaw("");
+      setValorRaw(defaultValor ? formatBRL(defaultValor) : "");
       setPessoasSel([]);
     }
   }, [open]); // eslint-disable-line
