@@ -159,7 +159,6 @@ export default function Reforma() {
     const row = {
       numero_orcamento: numeroOrcamento,
       organizacao_id: params.organizacao_id,
-      pessoa_contato_id: params.pessoa_contato_id || null,
       oportunidade_id: params.oportunidade_id || null,
       nome_cliente: params.clientName || "—",
       contato_nome: params.contatoNome || null,
