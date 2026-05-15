@@ -518,7 +518,7 @@ export default function Catalogo() {
                     </td>
                     <td className="p-3 font-medium">{eq.codigo}</td>
                     <td className="p-3 text-muted-foreground">{eq.descricao}</td>
-                    <td className="p-3 text-right font-semibold">{formatBRL(Number(eq.valor_custo))}</td>
+                    {isAdmin && <td className="p-3 text-right font-semibold">{formatBRL(Number(eq.valor_custo))}</td>}
                     <td className="p-3 text-right font-semibold text-primary">
                       {eq.valor_venda != null ? formatBRL(Number(eq.valor_venda)) : <span className="text-muted-foreground">—</span>}
                     </td>
