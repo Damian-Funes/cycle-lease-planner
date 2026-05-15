@@ -111,11 +111,14 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-12">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-2">O que você quer fazer?</h1>
-          <p className="text-muted-foreground">Escolha uma das opções abaixo para começar</p>
-        </div>
+      <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Visão geral</h2>
+          <CrmWidgets />
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold mb-4">O que você quer fazer?</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {cards.map((c: any) => {
