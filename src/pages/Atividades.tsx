@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video } from "lucide-react";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -30,6 +30,7 @@ interface Atividade {
   id: string; titulo: string; descricao: string | null; data_inicio: string;
   concluida: boolean; evento_automatico: boolean; tipo_id: string | null;
   responsavel_id: string | null; oportunidade_id: string | null; organizacao_id: string | null;
+  google_meet_link?: string | null; erro_sincronizacao?: string | null;
 }
 
 type Periodo = "hoje" | "semana" | "proxima" | "atrasadas" | "tudo";
@@ -184,7 +185,16 @@ export default function Atividades() {
           <Icon className="h-3.5 w-3.5" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className={`text-sm font-medium truncate ${a.concluida ? "line-through text-muted-foreground" : ""}`}>{a.titulo}</div>
+          <div className={`text-sm font-medium truncate ${a.concluida ? "line-through text-muted-foreground" : ""}`}>
+            {a.titulo}
+            {a.google_meet_link && (
+              <a href={a.google_meet_link} target="_blank" rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 ml-2 text-xs text-primary hover:underline align-middle">
+                <Video className="h-3 w-3" /> Meet
+              </a>
+            )}
+          </div>
           <div className="text-xs text-muted-foreground truncate">
             {orgName && <Link to={a.oportunidade_id && opp ? `/organizacoes/${opp.organizacao_id}` : `/organizacoes/${a.organizacao_id}`} className="hover:underline">{orgName}</Link>}
             {opp && a.oportunidade_id && <> → <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline">{opp.titulo}</Link></>}
