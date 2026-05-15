@@ -243,6 +243,8 @@ export default function Reforma() {
     if (authLoading || profile?.status !== "approved") return;
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
+    const orgId = searchParams.get("organizacao");
+    const oppId = searchParams.get("oportunidade");
     if (loadId) {
       void loadById(loadId).finally(() => setSearchParams({}, { replace: true }));
       return;
@@ -250,9 +252,29 @@ export default function Reforma() {
     if (novo) {
       setParams(DEFAULT_REFORMA);
       setSavedId(null);
-      setSearchParams({}, { replace: true });
     }
-  }, [authLoading, profile?.status, searchParams, setSearchParams, loadById]);
+    if (oppId) {
+      (async () => {
+        const { data: opp } = await supabase
+          .from("oportunidades")
+          .select("organizacao_id")
+          .eq("id", oppId)
+          .maybeSingle();
+        if (opp?.organizacao_id) {
+          setParams((p) => ({ ...p, organizacao_id: opp.organizacao_id, oportunidade_id: oppId }));
+          toast({ title: "Pré-preenchido a partir da oportunidade" });
+        }
+        setSearchParams({}, { replace: true });
+      })();
+      return;
+    }
+    if (orgId) {
+      setParams((p) => ({ ...p, organizacao_id: orgId }));
+      setSearchParams({}, { replace: true });
+      return;
+    }
+    if (novo) setSearchParams({}, { replace: true });
+  }, [authLoading, profile?.status, searchParams, setSearchParams, loadById, toast]);
 
   function handleNovo() {
     if (params.clientName || savedId) {
