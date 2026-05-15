@@ -29,6 +29,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ActivityFeed from "@/components/ActivityFeed";
+import OrgPropostas from "@/components/OrgPropostas";
+import OrgOrcamentos from "@/components/OrgOrcamentos";
+import OrgLayouts from "@/components/OrgLayouts";
+import OrgKpis from "@/components/OrgKpis";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
