@@ -38,7 +38,7 @@ function MiniPipeline({ etapas, currentId }: { etapas: Etapa[]; currentId: strin
   );
 }
 
-export default function OportunidadesCliente({ clienteId }: { clienteId: string }) {
+export default function OportunidadesCliente({ organizacaoId }: { organizacaoId: string }) {
   const [novaOpen, setNovaOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -52,17 +52,17 @@ export default function OportunidadesCliente({ clienteId }: { clienteId: string 
   });
 
   const { data: ops = [] } = useQuery({
-    queryKey: ["oportunidades", "cliente", clienteId],
+    queryKey: ["oportunidades", "org", organizacaoId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("oportunidades")
         .select("*")
-        .eq("cliente_id", clienteId)
+        .eq("organizacao_id", organizacaoId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Op[];
     },
-    enabled: !!clienteId,
+    enabled: !!organizacaoId,
   });
 
   return (
@@ -132,7 +132,7 @@ export default function OportunidadesCliente({ clienteId }: { clienteId: string 
         </div>
       )}
 
-      <OportunidadeFormModal open={novaOpen} onOpenChange={setNovaOpen} defaultClienteId={clienteId} />
+      <OportunidadeFormModal open={novaOpen} onOpenChange={setNovaOpen} defaultOrganizacaoId={organizacaoId} />
       <OportunidadeSheet open={sheetOpen} onOpenChange={setSheetOpen} oportunidadeId={activeId} />
     </div>
   );
