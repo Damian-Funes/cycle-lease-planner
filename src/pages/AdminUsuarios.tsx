@@ -148,6 +148,11 @@ export default function AdminUsuarios() {
                       <TableCell>{statusBadge(r.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
+                          {r.status === "approved" && (
+                            <Button size="sm" variant="outline" onClick={() => setPermRow(r)} className="gap-1">
+                              <Shield className="w-3 h-3" /> Permissões
+                            </Button>
+                          )}
                           {r.status !== "approved" && (
                             <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => setStatus(r, "approved")}>Aprovar</Button>
                           )}
