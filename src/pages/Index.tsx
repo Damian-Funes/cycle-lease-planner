@@ -226,14 +226,11 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <input
-              ref={clientNameRef}
-              type="text"
-              placeholder="Nome do cliente"
-              value={params.clientName}
-              onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
-              className={`h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring ${clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}`}
-            />
+            <div className={`h-9 px-3 rounded-md border bg-background text-sm flex items-center min-w-[180px] max-w-[280px] truncate ${clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}`}>
+              <span className={params.clientName ? "text-foreground truncate" : "text-muted-foreground truncate"}>
+                {params.clientName || "Selecione organização na aba Resumo"}
+              </span>
+            </div>
             <NovaPropostaButton onNovoAluguel={handleNova} />
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
