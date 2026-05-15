@@ -230,7 +230,7 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
 export default function Crm() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { isAdmin, profile } = useAuth();
+  const { isAdmin, profile, user } = useAuth();
 
   const [pipelineId, setPipelineId] = useState<string>(() => localStorage.getItem(STORAGE_KEY) ?? "");
   const [novaOpen, setNovaOpen] = useState(false);
