@@ -85,3 +85,30 @@ Totalmente permissivas (autenticado lê/escreve tudo). Serão substituídas por 
 ---
 
 **Fim da Fase 1.** Aguardando autorização "OK, segue para Fase 2".
+
+## Fase 2 — Garantir FKs e índices (executada)
+
+Data: 2026-05-15
+
+### Migração aplicada
+
+```sql
+ALTER TABLE oportunidades ADD COLUMN IF NOT EXISTS organizacao_id UUID REFERENCES organizacoes(id) ON DELETE SET NULL;
+ALTER TABLE atividades    ADD COLUMN IF NOT EXISTS organizacao_id UUID REFERENCES organizacoes(id) ON DELETE SET NULL;
+ALTER TABLE atividades    ADD COLUMN IF NOT EXISTS pessoa_id      UUID REFERENCES pessoas(id)      ON DELETE SET NULL;
+ALTER TABLE propostas     ADD COLUMN IF NOT EXISTS organizacao_id UUID REFERENCES organizacoes(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_oportunidades_organizacao ON oportunidades(organizacao_id);
+CREATE INDEX IF NOT EXISTS idx_atividades_organizacao    ON atividades(organizacao_id);
+CREATE INDEX IF NOT EXISTS idx_atividades_pessoa         ON atividades(pessoa_id);
+CREATE INDEX IF NOT EXISTS idx_propostas_organizacao     ON propostas(organizacao_id);
+```
+
+### Resultado
+
+- Todas as colunas já existiam (criadas em sprints anteriores) — `IF NOT EXISTS` tornou a operação no-op para colunas.
+- Índices criados/garantidos: 4 índices em `(organizacao_id)` / `(pessoa_id)`.
+- Coluna `cliente_id` **mantida** intacta em `contatos`, `propostas`, `atividades` (será removida apenas na Fase 6).
+- Linter retornou 54 avisos **pré-existentes** (RLS permissivas em `clientes`, `contatos`, `oportunidades`, `etc.`) — não causados por esta fase. Serão tratados na Fase 5.
+
+**Fim da Fase 2.** Aguardando autorização "OK, segue para Fase 3".
