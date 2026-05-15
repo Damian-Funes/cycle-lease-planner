@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EquipmentTable from "./EquipmentTable";
+import SeletorOrganizacao from "./SeletorOrganizacao";
 import { generateProposalPdf } from "@/lib/generatePdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
