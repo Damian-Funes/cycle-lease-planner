@@ -63,6 +63,9 @@ export default function NovaOportunidadeModal({
   onOpenChange,
   defaultOrganizacaoId,
   defaultPipelineId,
+  defaultTitulo,
+  defaultValor,
+  onCreated,
 }: Props) {
   const qc = useQueryClient();
   const { user } = useAuth();
