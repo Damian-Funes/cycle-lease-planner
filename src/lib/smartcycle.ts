@@ -21,6 +21,10 @@ export interface SmartCycleParams {
   validadeDias: number;
   localEntrega: string;
   numeroProposta: string;
+  organizacao_id?: string | null;
+  pessoa_contato_id?: string | null;
+  oportunidade_id?: string | null;
+  dados_congelados?: boolean;
 }
 
 export interface YearProjection {
@@ -53,6 +57,10 @@ export const DEFAULT_PARAMS: SmartCycleParams = {
   validadeDias: 10,
   localEntrega: "",
   numeroProposta: "",
+  organizacao_id: null,
+  pessoa_contato_id: null,
+  oportunidade_id: null,
+  dados_congelados: false,
 };
 
 export function calcSomaFatores(reajuste: number, anos: number = 5): number {
