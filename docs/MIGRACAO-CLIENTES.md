@@ -216,3 +216,31 @@ Data: 2026-05-15
 - Frontend não acessa mais `clientes`/`contatos` (validado na Fase 4), portanto o lockdown não quebra nada em produção.
 
 **Fim da Fase 5.** Aguardando autorização "OK, segue para Fase 6" (drop das tabelas `clientes`, `contatos` e cleanup de colunas/arquivos órfãos).
+
+## Fase 6 — Drop legado (executada)
+
+Data: 2026-05-15
+
+### Mudanças no banco
+
+- `DROP TABLE public.contatos` — substituída integralmente por `pessoas`.
+- `DROP TABLE public.clientes` — substituída integralmente por `organizacoes`.
+- `ALTER TABLE atividades DROP COLUMN cliente_id` — substituída por `organizacao_id`.
+- `ALTER TABLE propostas DROP COLUMN cliente_id` — substituída por `organizacao_id`.
+- `fn_log_oportunidade_evento` atualizada para não gravar mais `cliente_id` em `atividades`.
+- `migracao_clientes_log` mantida (registro permanente de auditoria com FK lógica para o cliente original).
+
+### Arquivos removidos do frontend
+
+- `src/components/ClienteFormModal.tsx`
+- `src/components/ContatoFormModal.tsx`
+- `src/components/OportunidadesCliente.tsx`
+
+### Validação
+
+- `rg "cliente_id" src/` retorna apenas:
+  - `src/pages/Dossie.tsx:25` — lookup intencional em `migracao_clientes_log` (redirect de URLs antigas `/dossie/:clienteId` → `/organizacoes/:id`).
+  - `src/integrations/supabase/types.ts` — regenerado automaticamente pelo Supabase após o drop.
+- Linter retornou 52 warnings pré-existentes (RLS permissivas em `oportunidades`, `atividades`, etc.) — fora do escopo desta migração.
+
+**Migração concluída.** Esquema legado `clientes`/`contatos` totalmente removido. Sistema opera 100% sobre `organizacoes`/`pessoas`.
