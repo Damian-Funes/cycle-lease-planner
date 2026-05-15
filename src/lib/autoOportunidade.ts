@@ -32,6 +32,7 @@ export async function criarOportunidadeAuto(opts: {
   if (!etapa?.id) return null;
 
   // 3) cria oportunidade
+  const { data: { user } } = await supabase.auth.getUser();
   const { data: opp, error } = await supabase
     .from("oportunidades")
     .insert({
@@ -42,6 +43,7 @@ export async function criarOportunidadeAuto(opts: {
       valor_estimado: opts.valor || 0,
       probabilidade: etapa.probabilidade_default ?? 50,
       status: "aberta",
+      responsavel_id: user?.id ?? null,
     } as any)
     .select("id")
     .maybeSingle();
