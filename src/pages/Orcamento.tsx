@@ -103,11 +103,8 @@ export default function Orcamento() {
   }
 
   const handleSave = useCallback(async () => {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -134,7 +131,12 @@ export default function Orcamento() {
 
     const row = {
       numero_orcamento: numeroOrcamento,
-      nome_cliente: params.clientName,
+      organizacao_id: params.organizacao_id,
+      pessoa_contato_id: params.pessoa_contato_id || null,
+      oportunidade_id: params.oportunidade_id || null,
+      // Campos texto: o trigger preenche automaticamente quando dados_congelados=false.
+      // Em registros congelados, mantemos o snapshot atual.
+      nome_cliente: params.clientName || "—",
       contato_nome: params.contatoNome || null,
       cliente_endereco: params.clienteEndereco || null,
       cliente_telefone: params.clienteTelefone || null,
