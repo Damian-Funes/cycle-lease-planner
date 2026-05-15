@@ -132,7 +132,7 @@ export default function Orcamento() {
     const row = {
       numero_orcamento: numeroOrcamento,
       organizacao_id: params.organizacao_id,
-      pessoa_contato_id: params.pessoa_contato_id || null,
+      // pessoa_contato_id não existe em orcamentos (apenas em propostas)
       oportunidade_id: params.oportunidade_id || null,
       // Campos texto: o trigger preenche automaticamente quando dados_congelados=false.
       // Em registros congelados, mantemos o snapshot atual.
