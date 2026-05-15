@@ -169,6 +169,15 @@ export default function AdminUsuarios() {
           </>
         )}
       </main>
+
+      {permRow && (
+        <UserPermissionsDialog
+          open={!!permRow}
+          onOpenChange={(v) => !v && setPermRow(null)}
+          userId={permRow.user_id}
+          userLabel={permRow.nome || permRow.email}
+        />
+      )}
     </div>
   );
 }
