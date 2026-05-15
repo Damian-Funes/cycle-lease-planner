@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, X, Loader2, Shield } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
+import UserPermissionsDialog from "@/components/UserPermissionsDialog";
 
 interface ProfileRow {
   id: string;
@@ -25,6 +26,7 @@ export default function AdminUsuarios() {
   const [rows, setRows] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [permRow, setPermRow] = useState<ProfileRow | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -146,6 +148,11 @@ export default function AdminUsuarios() {
                       <TableCell>{statusBadge(r.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
+                          {r.status === "approved" && (
+                            <Button size="sm" variant="outline" onClick={() => setPermRow(r)} className="gap-1">
+                              <Shield className="w-3 h-3" /> Permissões
+                            </Button>
+                          )}
                           {r.status !== "approved" && (
                             <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => setStatus(r, "approved")}>Aprovar</Button>
                           )}
@@ -162,6 +169,15 @@ export default function AdminUsuarios() {
           </>
         )}
       </main>
+
+      {permRow && (
+        <UserPermissionsDialog
+          open={!!permRow}
+          onOpenChange={(v) => !v && setPermRow(null)}
+          userId={permRow.user_id}
+          userLabel={permRow.nome || permRow.email}
+        />
+      )}
     </div>
   );
 }
