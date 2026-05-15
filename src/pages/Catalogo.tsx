@@ -376,15 +376,17 @@ export default function Catalogo() {
                       placeholder="Nome do equipamento"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-muted-foreground">Valor de Custo (R$)</label>
-                    <input
-                      value={form.valor_custo}
-                      onChange={(e) => setForm({ ...form, valor_custo: e.target.value })}
-                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
-                      placeholder="100000"
-                    />
-                  </div>
+                  {isAdmin && (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-muted-foreground">Valor de Custo (R$)</label>
+                      <input
+                        value={form.valor_custo}
+                        onChange={(e) => setForm({ ...form, valor_custo: e.target.value })}
+                        className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                        placeholder="100000"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-muted-foreground">Valor de Venda (R$)</label>
                     <input
