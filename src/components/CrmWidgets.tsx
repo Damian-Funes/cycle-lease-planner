@@ -14,7 +14,7 @@ const fmtBRL = (n: number) =>
 
 export default function CrmWidgets() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const uid = user?.id;
 
   const [opps, setOpps] = useState<any[]>([]);
@@ -26,9 +26,14 @@ export default function CrmWidgets() {
     if (!uid) return;
     (async () => {
       const [oRes, eRes, aRes] = await Promise.all([
-        sb.from("oportunidades").select("*").eq("responsavel_id", uid),
+        (isAdmin
+          ? sb.from("oportunidades").select("*")
+          : sb.from("oportunidades").select("*").eq("responsavel_id", uid)),
         sb.from("etapas_pipeline").select("id, nome, cor, ordem"),
-        sb.from("atividades").select("*").eq("responsavel_id", uid).eq("evento_automatico", false).order("data_inicio", { ascending: true }),
+        (isAdmin
+          ? sb.from("atividades").select("*").eq("evento_automatico", false)
+          : sb.from("atividades").select("*").eq("responsavel_id", uid).eq("evento_automatico", false))
+          .order("data_inicio", { ascending: true }),
       ]);
       const allOpps = oRes.data || [];
       setOpps(allOpps);
@@ -47,7 +52,7 @@ export default function CrmWidgets() {
       });
       setRotting(counts);
     })();
-  }, [uid]);
+  }, [uid, isAdmin]);
 
   // 1) Meu Pipeline
   const minhasAbertas = useMemo(() => opps.filter(o => o.status === "aberta"), [opps]);
