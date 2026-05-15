@@ -83,6 +83,13 @@ const cards = [
     color: "bg-orange-500/10 text-orange-600",
     badgeKey: "atividades",
   },
+  {
+    title: "Relatórios",
+    desc: "Forecast, pipeline health e performance",
+    icon: BarChart3,
+    to: "/relatorios",
+    color: "bg-violet-500/10 text-violet-600",
+  },
 ];
 
 export default function Home() {
