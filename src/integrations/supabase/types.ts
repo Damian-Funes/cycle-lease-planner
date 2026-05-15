@@ -749,13 +749,6 @@ export type Database = {
             referencedRelation: "propostas"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "oportunidades_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       orcamentos: {
@@ -1429,13 +1422,6 @@ export type Database = {
             referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "oportunidades_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       v_relatorio_forecast_mensal: {
@@ -1471,13 +1457,6 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "oportunidades_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1518,13 +1497,6 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "pipelines"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "oportunidades_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
