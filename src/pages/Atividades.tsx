@@ -17,10 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays } from "lucide-react";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import AtividadesCalendar from "@/components/AtividadesCalendar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Tipo { id: string; nome: string; icone: string | null; cor: string | null; ativo: boolean; }
 interface Profile { user_id: string; nome: string | null; email: string; }
