@@ -341,7 +341,7 @@ export default function Orcamento() {
               }))}
               disabled={!!params.dados_congelados}
               onDescongelar={savedId ? async () => {
-                const { error } = await supabase.from("orcamentos").update({ dados_congelados: false }).eq("id", savedId);
+                const { error } = await supabase.from("orcamentos").update({ dados_congelados: false } as any).eq("id", savedId);
                 if (error) throw error;
                 setParams((p) => ({ ...p, dados_congelados: false }));
               } : undefined}
