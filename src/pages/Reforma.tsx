@@ -407,36 +407,27 @@ export default function Reforma() {
               <User className="w-4 h-4 text-primary" /> Dados do Cliente
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Nome / Razão social *</Label>
-              <Input
-                ref={clientNameRef}
-                value={params.clientName}
-                onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
-                className={clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Contato</Label>
-              <Input value={params.contatoNome} onChange={(e) => update("contatoNome", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Endereço</Label>
-              <Input value={params.clienteEndereco} onChange={(e) => update("clienteEndereco", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Telefone</Label>
-              <Input value={params.clienteTelefone} onChange={(e) => update("clienteTelefone", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>CNPJ</Label>
-              <Input value={params.clienteCnpj} onChange={(e) => update("clienteCnpj", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>E-mail</Label>
-              <Input type="email" value={params.clienteEmail} onChange={(e) => update("clienteEmail", e.target.value)} />
-            </div>
+          <CardContent className="space-y-3">
+            {savedId && !params.organizacao_id && (
+              <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription>Este orçamento não está vinculado a uma organização do CRM.</AlertDescription>
+              </Alert>
+            )}
+            <SeletorOrganizacao
+              value={{ organizacao_id: params.organizacao_id, pessoa_contato_id: params.pessoa_contato_id }}
+              onChange={(v) => setParams((p) => ({
+                ...p,
+                organizacao_id: v.organizacao_id ?? null,
+                pessoa_contato_id: v.pessoa_contato_id ?? null,
+              }))}
+              disabled={!!params.dados_congelados}
+              onDescongelar={savedId ? async () => {
+                const { error } = await supabase.from("orcamentos_reforma").update({ dados_congelados: false } as any).eq("id", savedId);
+                if (error) throw error;
+                setParams((p) => ({ ...p, dados_congelados: false }));
+              } : undefined}
+            />
           </CardContent>
         </Card>
 
