@@ -26,6 +26,7 @@ const schema = z.object({
   endereco: z.string().optional().or(z.literal("")),
   cidade: z.string().optional().or(z.literal("")),
   estado: z.string().optional().or(z.literal("")),
+  estado_id: z.string().optional().or(z.literal("")),
   site: z.string().optional().or(z.literal("")),
   telefone_principal: z.string().optional().or(z.literal("")),
   email_principal: z.string().email("E-mail inválido").optional().or(z.literal("")),
@@ -57,6 +58,7 @@ export interface OrganizacaoRow {
   responsavel_id: string | null;
   tags: string[] | null;
   observacoes: string | null;
+  estado_id?: string | null;
 }
 
 interface Props {
@@ -77,6 +79,14 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
     },
   });
 
+  const { data: estados = [] } = useQuery({
+    queryKey: ["estados-lite"],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("estados").select("id, sigla, nome").eq("ativo", true).order("sigla");
+      return (data ?? []) as { id: string; sigla: string; nome: string }[];
+    },
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { nome: "", status: "lead" } as any,
@@ -94,6 +104,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         endereco: organizacao?.endereco ?? "",
         cidade: organizacao?.cidade ?? "",
         estado: organizacao?.estado ?? "",
+        estado_id: organizacao?.estado_id ?? "",
         site: organizacao?.site ?? "",
         telefone_principal: organizacao?.telefone_principal ?? "",
         email_principal: organizacao?.email_principal ?? "",
@@ -116,7 +127,8 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         regiao: v.regiao?.trim() || null,
         endereco: v.endereco?.trim() || null,
         cidade: v.cidade?.trim() || null,
-        estado: v.estado?.trim() || null,
+        estado: v.estado?.trim() || (v.estado_id ? (estados.find(e => e.id === v.estado_id)?.sigla ?? null) : null),
+        estado_id: v.estado_id || null,
         site: v.site?.trim() || null,
         telefone_principal: v.telefone_principal?.trim() || null,
         email_principal: v.email_principal?.trim() || null,
@@ -207,7 +219,23 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
           </div>
           <div className="space-y-1">
             <Label>Estado</Label>
-            <Input {...form.register("estado")} />
+            <Select
+              value={form.watch("estado_id") || "none"}
+              onValueChange={(v) => {
+                const id = v === "none" ? "" : v;
+                form.setValue("estado_id", id);
+                const sigla = estados.find((e) => e.id === id)?.sigla ?? "";
+                form.setValue("estado", sigla);
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">—</SelectItem>
+                {estados.map((e) => (
+                  <SelectItem key={e.id} value={e.id}>{e.sigla} — {e.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label>Site</Label>
