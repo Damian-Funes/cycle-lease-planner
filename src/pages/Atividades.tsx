@@ -283,6 +283,13 @@ export default function Atividades() {
         <main className="space-y-2">
           {loading ? (
             <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : view === "calendario" ? (
+            <AtividadesCalendar
+              atividades={filtradas}
+              tipos={tipos}
+              onSelectAtividade={(a) => setEditAtiv(a as any)}
+              onCreateAt={() => setNovoModal(true)}
+            />
           ) : filtradas.length === 0 ? (
             <Card className="p-12 text-center text-muted-foreground">Nenhuma atividade encontrada</Card>
           ) : (
