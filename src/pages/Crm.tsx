@@ -285,8 +285,8 @@ export default function Crm() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-approved-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email").eq("status", "approved");
-      return (data ?? []) as { id: string; nome: string | null; email: string }[];
+      const { data } = await supabase.from("profiles").select("id, user_id, nome, email").eq("status", "approved");
+      return (data ?? []) as { id: string; user_id: string; nome: string | null; email: string }[];
     },
   });
 
@@ -333,7 +333,7 @@ export default function Crm() {
       if (o.pipeline_id !== pipelineId) return false;
       if (filtroStatus !== "all" && o.status !== filtroStatus) return false;
       if (filtroResp !== "all" && o.responsavel_id !== filtroResp) return false;
-      if (apenasMinhas && o.responsavel_id !== profile?.id) return false;
+      if (apenasMinhas && o.responsavel_id !== user?.id) return false;
       const v = Number(o.valor_estimado) || 0;
       if (v < min || v > max) return false;
       if (q) {
@@ -343,7 +343,7 @@ export default function Crm() {
       }
       return true;
     });
-  }, [oportunidades, pipelineId, filtroStatus, filtroResp, valorMin, valorMax, apenasMinhas, busca, profile]);
+  }, [oportunidades, pipelineId, filtroStatus, filtroResp, valorMin, valorMax, apenasMinhas, busca, user?.id]);
 
   const opsByEtapa = useMemo(() => {
     const map: Record<string, Oportunidade[]> = {};
@@ -596,7 +596,7 @@ export default function Crm() {
             <SelectContent>
               <SelectItem value="all">Todos os responsáveis</SelectItem>
               {profiles.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.nome ?? p.email}</SelectItem>
+                <SelectItem key={p.id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
               ))}
             </SelectContent>
           </Select>
