@@ -718,6 +718,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "v_relatorio_tempo_etapa"
+            referencedColumns: ["etapa_id"]
+          },
+          {
             foreignKeyName: "oportunidades_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
@@ -1296,6 +1303,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "v_relatorio_tempo_etapa"
+            referencedColumns: ["etapa_id"]
+          },
+          {
             foreignKeyName: "oportunidades_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
@@ -1314,6 +1328,117 @@ export type Database = {
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_relatorio_forecast_mensal: {
+        Row: {
+          etapa_cor: string | null
+          etapa_id: string | null
+          etapa_nome: string | null
+          etapa_ordem: number | null
+          forecast_ponderado: number | null
+          mes: string | null
+          pipeline_id: string | null
+          qtd: number | null
+          responsavel_id: string | null
+          valor_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "v_relatorio_tempo_etapa"
+            referencedColumns: ["etapa_id"]
+          },
+          {
+            foreignKeyName: "oportunidades_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_relatorio_motivos_perda: {
+        Row: {
+          motivo: string | null
+          pipeline_id: string | null
+          qtd: number | null
+          valor_total: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_relatorio_performance_vendedor: {
+        Row: {
+          ciclo_medio_dias: number | null
+          deals_fechados: number | null
+          deals_ganhos: number | null
+          deals_perdidos: number | null
+          pipeline_id: string | null
+          responsavel_id: string | null
+          valor_ganho: number | null
+          vendedor_email: string | null
+          vendedor_nome: string | null
+          win_rate: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_relatorio_tempo_etapa: {
+        Row: {
+          amostras: number | null
+          etapa_cor: string | null
+          etapa_id: string | null
+          etapa_nome: string | null
+          etapa_ordem: number | null
+          pipeline_id: string | null
+          tempo_medio_dias: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapas_pipeline_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
             referencedColumns: ["id"]
           },
         ]
