@@ -17,10 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays } from "lucide-react";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import AtividadesCalendar from "@/components/AtividadesCalendar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Tipo { id: string; nome: string; icone: string | null; cor: string | null; ativo: boolean; }
 interface Profile { user_id: string; nome: string | null; email: string; }
@@ -50,6 +52,7 @@ export default function Atividades() {
   const [respSel, setRespSel] = useState<string>("me");
   const [periodo, setPeriodo] = useState<Periodo>("tudo");
   const [showConcluidas, setShowConcluidas] = useState(false);
+  const [view, setView] = useState<"lista" | "calendario">("lista");
 
   // Modais
   const [novoModal, setNovoModal] = useState(false);
@@ -232,6 +235,12 @@ export default function Atividades() {
             <span className="text-destructive font-medium">{countAtrasadas} atrasadas</span> · <span>{countHoje} hoje</span>
           </span>
           <div className="ml-auto flex items-center gap-3">
+            <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="lista" className="text-xs gap-1 px-2"><List className="h-3.5 w-3.5" />Lista</TabsTrigger>
+                <TabsTrigger value="calendario" className="text-xs gap-1 px-2"><CalendarDays className="h-3.5 w-3.5" />Calendário</TabsTrigger>
+              </TabsList>
+            </Tabs>
             <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
             <Button size="sm" onClick={() => setNovoModal(true)}><Plus className="h-4 w-4 mr-1" />Nova</Button>
             <AppHeader />
@@ -274,6 +283,13 @@ export default function Atividades() {
         <main className="space-y-2">
           {loading ? (
             <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : view === "calendario" ? (
+            <AtividadesCalendar
+              atividades={filtradas}
+              tipos={tipos}
+              onSelectAtividade={(a) => setEditAtiv(a as any)}
+              onCreateAt={() => setNovoModal(true)}
+            />
           ) : filtradas.length === 0 ? (
             <Card className="p-12 text-center text-muted-foreground">Nenhuma atividade encontrada</Card>
           ) : (
