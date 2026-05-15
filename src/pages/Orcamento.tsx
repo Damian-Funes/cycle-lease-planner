@@ -193,7 +193,7 @@ export default function Orcamento() {
     } else {
       toast({
         title: "Orçamento salvo!",
-        description: criouOpp ? "Oportunidade criada no funil SmartCycle (etapa Lead)." : undefined,
+        description: criouOpp ? "Oportunidade criada no funil Orçamentos (etapa Lead)." : undefined,
       });
     }
   }, [params, savedId, subtotal, total, toast]);
