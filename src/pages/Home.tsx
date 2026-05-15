@@ -4,6 +4,7 @@ import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, Kanb
 import AppHeader from "@/components/AppHeader";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import CrmWidgets from "@/components/CrmWidgets";
+import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
 
 const cards = [
   {
@@ -105,8 +106,9 @@ export default function Home() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
-        <section>
-          <h2 className="text-lg font-semibold mb-4">Visão geral</h2>
+        <section className="space-y-4">
+          <ProximaReuniaoWidget />
+          <h2 className="text-lg font-semibold">Visão geral</h2>
           <CrmWidgets />
         </section>
 
