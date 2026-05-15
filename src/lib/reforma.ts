@@ -37,6 +37,10 @@ export interface ReformaParams {
   localEntrega: string;
   observacoes: string;
   status: string;
+  organizacao_id?: string | null;
+  pessoa_contato_id?: string | null;
+  oportunidade_id?: string | null;
+  dados_congelados?: boolean;
 }
 
 export const DEFAULT_REFORMA: ReformaParams = {
@@ -57,6 +61,10 @@ export const DEFAULT_REFORMA: ReformaParams = {
   localEntrega: "",
   observacoes: "",
   status: "rascunho",
+  organizacao_id: null,
+  pessoa_contato_id: null,
+  oportunidade_id: null,
+  dados_congelados: false,
 };
 
 export function calcSubtotalReforma(itens: ItemReformaSelecionado[]): number {
