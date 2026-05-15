@@ -352,13 +352,6 @@ export type Database = {
             referencedRelation: "v_oportunidades_kanban"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "historico_oportunidade_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       itens_reforma: {

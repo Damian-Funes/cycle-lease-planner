@@ -1,0 +1,1 @@
+ALTER TABLE public.historico_oportunidade DROP CONSTRAINT IF EXISTS historico_oportunidade_usuario_id_fkey;
