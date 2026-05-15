@@ -26,6 +26,7 @@ export default function AdminUsuarios() {
   const [rows, setRows] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [permRow, setPermRow] = useState<ProfileRow | null>(null);
 
   const load = async () => {
     setLoading(true);
