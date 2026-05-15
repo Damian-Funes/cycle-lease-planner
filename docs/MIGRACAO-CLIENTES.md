@@ -112,3 +112,43 @@ CREATE INDEX IF NOT EXISTS idx_propostas_organizacao     ON propostas(organizaca
 - Linter retornou 54 avisos **pré-existentes** (RLS permissivas em `clientes`, `contatos`, `oportunidades`, `etc.`) — não causados por esta fase. Serão tratados na Fase 5.
 
 **Fim da Fase 2.** Aguardando autorização "OK, segue para Fase 3".
+
+## Fase 3 — Migração de dados (executada)
+
+Data: 2026-05-15
+
+### Ajuste em relação ao plano original
+
+- Removido `UPDATE oportunidades SET organizacao_id ... WHERE cliente_id = ...`: a coluna `oportunidades.cliente_id` **não existe** (a tabela já foi criada com `organizacao_id NOT NULL`). Tentativa anterior falhou com `ERROR 42703: column oportunidades.cliente_id does not exist` e a transação foi totalmente revertida — re-executada sem esse passo.
+
+### Resultado
+
+| Métrica | Valor |
+|---|---|
+| Match por CNPJ | 0 |
+| Match por nome | 0 |
+| **Organizações criadas (caso C)** | **1** |
+| `propostas` atualizadas com `organizacao_id` | 0 |
+| `atividades` atualizadas com `organizacao_id` | 0 |
+| `pessoas` inseridas a partir de `contatos` | 0 (não havia contatos) |
+| Clientes registrados em `migracao_clientes_log` | **1** |
+| Clientes **sem** entrada de log | 0 |
+
+### Mapa cliente → organização
+
+| cliente_id | organizacao_id | Nome | CNPJ |
+|---|---|---|---|
+| `63e1e721-fe20-411e-a317-2a51a40d5719` | `e36ac7af-a99a-461f-b682-66dcaa84d5e7` | LAR COOPERATIVA AGROINDUSTRIAL | 77.752.293/0001-98 |
+
+### Estado pós-migração
+
+- `organizacoes`: 1 registro (era 0)
+- `pessoas`: 1 registro (já existia, nada inserido)
+- `migracao_clientes_log`: 1 registro (auditoria completa)
+- 100% dos clientes mapeados.
+
+### Tabela de auditoria criada
+
+`public.migracao_clientes_log` (permanente, RLS ativo, leitura apenas para `admin`).
+
+**Fim da Fase 3.** Aguardando autorização "OK, segue para Fase 4".
