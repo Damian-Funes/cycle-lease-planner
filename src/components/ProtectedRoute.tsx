@@ -1,15 +1,16 @@
 import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, AppRole } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
 interface Props {
   children: ReactNode;
   requireAdmin?: boolean;
+  allowedRoles?: AppRole[];
 }
 
-export default function ProtectedRoute({ children, requireAdmin = false }: Props) {
-  const { user, profile, isAdmin, loading } = useAuth();
+export default function ProtectedRoute({ children, requireAdmin = false, allowedRoles }: Props) {
+  const { user, profile, isAdmin, hasAnyRole, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
