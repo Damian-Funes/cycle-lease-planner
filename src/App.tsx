@@ -21,6 +21,7 @@ import Dossie from "./pages/Dossie";
 import Crm from "./pages/Crm";
 const DealDetalhe = lazy(() => import("./pages/DealDetalhe"));
 const Atividades = lazy(() => import("./pages/Atividades"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
 import Orcamento from "./pages/Orcamento";
 import Reforma from "./pages/Reforma";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
