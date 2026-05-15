@@ -50,6 +50,9 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   defaultOrganizacaoId?: string;
   defaultPipelineId?: string;
+  defaultTitulo?: string;
+  defaultValor?: number;
+  onCreated?: (id: string) => void;
 }
 
 const formatBRL = (v: number) =>
