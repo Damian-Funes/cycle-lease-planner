@@ -158,10 +158,10 @@ export default function Orcamento() {
 
     let error;
     if (savedId) {
-      const res = await supabase.from("orcamentos").update(row).eq("id", savedId);
+      const res = await supabase.from("orcamentos").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      const res = await supabase.from("orcamentos").insert(row).select("id").maybeSingle();
+      const res = await supabase.from("orcamentos").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) setSavedId(res.data.id);
     }
