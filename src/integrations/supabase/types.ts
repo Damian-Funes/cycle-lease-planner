@@ -151,6 +151,7 @@ export type Database = {
           responsavel_id: string | null
           segmento: string | null
           status: string
+          tags: string[] | null
           updated_at: string
         }
         Insert: {
@@ -165,6 +166,7 @@ export type Database = {
           responsavel_id?: string | null
           segmento?: string | null
           status?: string
+          tags?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -179,6 +181,7 @@ export type Database = {
           responsavel_id?: string | null
           segmento?: string | null
           status?: string
+          tags?: string[] | null
           updated_at?: string
         }
         Relationships: [
