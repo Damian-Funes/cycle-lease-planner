@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
  * vinculada à organização. Retorna o id da oportunidade criada (ou null em erro).
  */
 export async function criarOportunidadeAuto(opts: {
-  pipelineNome: "SmartCycle" | "Reforma";
+  pipelineNome: "SmartCycle" | "Reforma" | "Orçamentos";
   organizacaoId: string;
   titulo: string;
   valor: number;

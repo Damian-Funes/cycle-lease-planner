@@ -175,7 +175,7 @@ export default function Orcamento() {
     if (!error && novoId && !params.oportunidade_id && params.organizacao_id) {
       const { criarOportunidadeAuto } = await import("@/lib/autoOportunidade");
       const oppId = await criarOportunidadeAuto({
-        pipelineNome: "SmartCycle",
+        pipelineNome: "Orçamentos",
         organizacaoId: params.organizacao_id,
         titulo: `Orçamento ${numeroOrcamento}`,
         valor: total,
