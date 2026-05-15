@@ -280,11 +280,8 @@ export default function Reforma() {
   }
 
   async function handlePdf() {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id && !params.clientName.trim()) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     if (params.itens.length === 0) {
