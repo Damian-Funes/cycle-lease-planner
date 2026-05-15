@@ -14,6 +14,7 @@ const BUCKET_MODELOS = "modelos-3d";
 const MAX_GLB_MB = 50;
 
 export default function Catalogo() {
+  const { isAdmin } = useAuth();
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
