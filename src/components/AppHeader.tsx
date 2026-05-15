@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, Users, Home } from "lucide-react";
+import { LogOut, User as UserIcon, Users, Home, Plug } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function AppHeader() {
@@ -27,6 +27,9 @@ export default function AppHeader() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate("/")} className="gap-2">
           <Home className="w-4 h-4" /> Início
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/configuracoes/integracoes")} className="gap-2">
+          <Plug className="w-4 h-4" /> Integrações
         </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem onClick={() => navigate("/admin/usuarios")} className="gap-2">

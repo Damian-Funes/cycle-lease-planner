@@ -6,9 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, Loader2, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useGoogleIntegration } from "@/hooks/useGoogleIntegration";
+import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,7 @@ const schema = z.object({
   conteudo: z.string().optional().or(z.literal("")),
   data_atividade: z.date(),
   oportunidade_id: z.string().optional().or(z.literal("")),
+  criar_meet: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,6 +50,7 @@ interface Props {
 export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }: Props) {
   const qc = useQueryClient();
   const [opOpen, setOpOpen] = useState(false);
+  const { isConnected, syncAtividade } = useGoogleIntegration();
 
   const { data: oportunidades = [] } = useQuery({
     queryKey: ["oportunidades-org", organizacaoId],
@@ -64,12 +68,12 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { tipo: "nota", titulo: "", conteudo: "", data_atividade: new Date(), oportunidade_id: "" },
+    defaultValues: { tipo: "nota", titulo: "", conteudo: "", data_atividade: new Date(), oportunidade_id: "", criar_meet: false },
   });
 
   useEffect(() => {
     if (open) {
-      form.reset({ tipo: "nota", titulo: "", conteudo: "", data_atividade: new Date(), oportunidade_id: "" });
+      form.reset({ tipo: "nota", titulo: "", conteudo: "", data_atividade: new Date(), oportunidade_id: "", criar_meet: false });
     }
   }, [open]);
 
@@ -84,11 +88,20 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
         titulo: v.titulo.trim(),
         conteudo: v.conteudo?.trim() || null,
         data_atividade: v.data_atividade.toISOString(),
+        data_inicio: v.data_atividade.toISOString(),
         responsavel_id,
         concluida: true,
+        criar_meet: !!v.criar_meet && isConnected,
       };
-      const { error } = await (supabase as any).from("atividades").insert(payload);
+      const { data: inserted, error } = await (supabase as any)
+        .from("atividades").insert(payload).select("id").single();
       if (error) throw error;
+
+      if (inserted?.id && isConnected && (v.criar_meet || v.tipo === "reuniao")) {
+        const r: any = await syncAtividade(inserted.id, "create");
+        if (r?.google_meet_link) toast.success("Reunião criada no Google Meet");
+        else if (r?.error) toast.error("Falha ao sincronizar Google", { description: r.error });
+      }
     },
     onSuccess: () => {
       toast.success("Atividade registrada");
@@ -193,6 +206,19 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
               </PopoverContent>
             </Popover>
           </div>
+
+          {isConnected && (
+            <div className="flex items-center gap-2 pt-2">
+              <Switch
+                id="criar-meet-sheet"
+                checked={!!form.watch("criar_meet")}
+                onCheckedChange={(v) => form.setValue("criar_meet", v)}
+              />
+              <Label htmlFor="criar-meet-sheet" className="text-sm cursor-pointer flex items-center gap-1">
+                <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
+              </Label>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

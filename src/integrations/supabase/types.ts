@@ -19,18 +19,24 @@ export type Database = {
           concluida: boolean
           conteudo: string | null
           created_at: string
+          criar_meet: boolean
           data_atividade: string
           data_conclusao: string | null
           data_inicio: string | null
           descricao: string | null
           duracao_minutos: number | null
+          erro_sincronizacao: string | null
           evento_automatico: boolean
+          google_calendar_id: string | null
+          google_event_id: string | null
+          google_meet_link: string | null
           id: string
           oportunidade_id: string | null
           organizacao_id: string | null
           pessoa_id: string | null
           responsavel_id: string | null
           resultado: string | null
+          sincronizado_em: string | null
           tipo: string
           tipo_id: string | null
           titulo: string
@@ -40,18 +46,24 @@ export type Database = {
           concluida?: boolean
           conteudo?: string | null
           created_at?: string
+          criar_meet?: boolean
           data_atividade?: string
           data_conclusao?: string | null
           data_inicio?: string | null
           descricao?: string | null
           duracao_minutos?: number | null
+          erro_sincronizacao?: string | null
           evento_automatico?: boolean
+          google_calendar_id?: string | null
+          google_event_id?: string | null
+          google_meet_link?: string | null
           id?: string
           oportunidade_id?: string | null
           organizacao_id?: string | null
           pessoa_id?: string | null
           responsavel_id?: string | null
           resultado?: string | null
+          sincronizado_em?: string | null
           tipo: string
           tipo_id?: string | null
           titulo: string
@@ -61,18 +73,24 @@ export type Database = {
           concluida?: boolean
           conteudo?: string | null
           created_at?: string
+          criar_meet?: boolean
           data_atividade?: string
           data_conclusao?: string | null
           data_inicio?: string | null
           descricao?: string | null
           duracao_minutos?: number | null
+          erro_sincronizacao?: string | null
           evento_automatico?: boolean
+          google_calendar_id?: string | null
+          google_event_id?: string | null
+          google_meet_link?: string | null
           id?: string
           oportunidade_id?: string | null
           organizacao_id?: string | null
           pessoa_id?: string | null
           responsavel_id?: string | null
           resultado?: string | null
+          sincronizado_em?: string | null
           tipo?: string
           tipo_id?: string | null
           titulo?: string
@@ -261,6 +279,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_integration_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          google_email: string | null
+          id: string
+          refresh_token: string
+          scope: string | null
+          token_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          google_email?: string | null
+          id?: string
+          refresh_token: string
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          google_email?: string | null
+          id?: string
+          refresh_token?: string
+          scope?: string | null
+          token_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       historico_oportunidade: {
         Row: {

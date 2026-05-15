@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronUp, Loader2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Video, X } from "lucide-react";
 import { toast } from "sonner";
+import { useGoogleIntegration } from "@/hooks/useGoogleIntegration";
 
 interface TipoAtividade { id: string; nome: string; icone: string | null; cor: string | null; }
 interface Pessoa { id: string; nome: string; }
@@ -39,6 +40,8 @@ export default function NovaAtividadeQuickForm({
   const [resultado, setResultado] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [criarMeet, setCriarMeet] = useState(false);
+  const { isConnected, syncAtividade } = useGoogleIntegration();
 
   useEffect(() => {
     supabase.from("tipos_atividade" as any).select("*").eq("ativo", true).order("ordem").then(({ data }) => {
@@ -50,7 +53,7 @@ export default function NovaAtividadeQuickForm({
 
   const reset = () => {
     setTitulo(""); setDescricao(""); setResultado(""); setConcluida(false);
-    setDuracao("30"); setDuracaoCustom("");
+    setDuracao("30"); setDuracaoCustom(""); setCriarMeet(false);
   };
 
   const salvar = async () => {
@@ -74,11 +77,22 @@ export default function NovaAtividadeQuickForm({
       responsavel_id: auth.user?.id,
       tipo: tipos.find(t => t.id === tipoId)?.nome.toLowerCase() || "nota",
       data_atividade: new Date(data).toISOString(),
+      criar_meet: criarMeet && isConnected,
     };
-    const { error } = await (supabase as any).from("atividades").insert(payload);
+    const { data: inserted, error } = await (supabase as any)
+      .from("atividades").insert(payload).select("id").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Atividade criada");
+
+    // Sync com Google (não bloqueia)
+    if (inserted?.id && isConnected && (criarMeet || tipos.find(t => t.id === tipoId)?.nome.toLowerCase() === "reunião")) {
+      syncAtividade(inserted.id, "create").then((r: any) => {
+        if (r?.google_meet_link) toast.success("Reunião criada no Google Meet");
+        else if (r?.error) toast.error("Falha ao sincronizar Google", { description: r.error });
+      });
+    }
+
     reset();
     onSaved?.();
   };
@@ -155,6 +169,15 @@ export default function NovaAtividadeQuickForm({
       </div>
       {concluida && (
         <Textarea placeholder="Resultado" rows={2} value={resultado} onChange={e => setResultado(e.target.value)} />
+      )}
+
+      {isConnected && (
+        <div className="flex items-center gap-2 pt-1">
+          <Switch id="criar-meet" checked={criarMeet} onCheckedChange={setCriarMeet} />
+          <Label htmlFor="criar-meet" className="text-sm cursor-pointer flex items-center gap-1">
+            <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
+          </Label>
+        </div>
       )}
 
       <div className="flex justify-end gap-2 pt-1">
