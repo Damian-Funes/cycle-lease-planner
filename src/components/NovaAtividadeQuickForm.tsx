@@ -171,6 +171,15 @@ export default function NovaAtividadeQuickForm({
         <Textarea placeholder="Resultado" rows={2} value={resultado} onChange={e => setResultado(e.target.value)} />
       )}
 
+      {isConnected && (
+        <div className="flex items-center gap-2 pt-1">
+          <Switch id="criar-meet" checked={criarMeet} onCheckedChange={setCriarMeet} />
+          <Label htmlFor="criar-meet" className="text-sm cursor-pointer flex items-center gap-1">
+            <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
+          </Label>
+        </div>
+      )}
+
       <div className="flex justify-end gap-2 pt-1">
         <span className="text-xs text-muted-foreground self-center">Ctrl+Enter para salvar · Esc fecha</span>
         <Button size="sm" onClick={salvar} disabled={saving}>
