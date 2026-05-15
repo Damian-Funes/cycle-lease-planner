@@ -47,16 +47,14 @@ const Index = () => {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!params.clientName.trim()) {
+    if (!params.organizacao_id) {
       setClientNameError(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     setSaving(true);
 
-    // Auto-generate numero_proposta on first save
     let numeroProposta = params.numeroProposta;
     if (!numeroProposta) {
       const year = new Date().getFullYear();
@@ -85,7 +83,10 @@ const Index = () => {
     const total10anos = params.entrada + projection.reduce((s, r) => s + r.receitaAnual, 0);
 
     const row = {
-      nome_cliente: params.clientName,
+      organizacao_id: params.organizacao_id,
+      pessoa_contato_id: params.pessoa_contato_id || null,
+      oportunidade_id: params.oportunidade_id || null,
+      nome_cliente: params.clientName || "—",
       valor_projeto: params.valorProjeto,
       entrada: params.entrada,
       divida,
@@ -114,10 +115,10 @@ const Index = () => {
 
     let error;
     if (savedId) {
-      const res = await supabase.from("propostas").update(row).eq("id", savedId);
+      const res = await supabase.from("propostas").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      const res = await supabase.from("propostas").insert(row).select("id").maybeSingle();
+      const res = await supabase.from("propostas").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) setSavedId(res.data.id);
     }
