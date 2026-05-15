@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Plus, Check, Pencil, Trash2, Loader2, Sparkles } from "lucide-react";
+import { Plus, Check, Pencil, Trash2, Loader2, Sparkles, Video } from "lucide-react";
 import * as Icons from "lucide-react";
 import { formatDistanceToNow, isToday, isYesterday, startOfWeek, startOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,6 +30,9 @@ interface Atividade {
   oportunidade_id: string | null;
   organizacao_id: string | null;
   pessoa_id: string | null;
+  google_meet_link?: string | null;
+  google_event_id?: string | null;
+  erro_sincronizacao?: string | null;
 }
 
 interface Tipo { id: string; nome: string; icone: string | null; cor: string | null; }
@@ -186,6 +189,15 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
           </div>
           {a.descricao && <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{a.descricao}</p>}
           {a.resultado && <p className="text-xs italic text-muted-foreground mt-0.5">→ {a.resultado}</p>}
+          {a.google_meet_link && (
+            <a href={a.google_meet_link} target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-1 mt-1 text-xs text-primary hover:underline">
+              <Video className="h-3 w-3" /> Entrar no Google Meet
+            </a>
+          )}
+          {a.erro_sincronizacao && (
+            <p className="text-xs text-destructive mt-0.5">⚠ Sync Google: {a.erro_sincronizacao}</p>
+          )}
           <div className="flex gap-1 mt-1.5">
             <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => concluir(a)}>
               <Check className="h-3 w-3 mr-1" />{a.concluida ? "Reabrir" : "Concluir"}
