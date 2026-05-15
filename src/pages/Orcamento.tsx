@@ -157,20 +157,44 @@ export default function Orcamento() {
     };
 
     let error;
+    let novoId: string | null = savedId;
     if (savedId) {
       const res = await supabase.from("orcamentos").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
       const res = await supabase.from("orcamentos").insert(row as any).select("id").maybeSingle();
       error = res.error;
-      if (res.data) setSavedId(res.data.id);
+      if (res.data) {
+        novoId = res.data.id;
+        setSavedId(res.data.id);
+      }
+    }
+
+    // Cria oportunidade automaticamente se não houver vínculo
+    let criouOpp = false;
+    if (!error && novoId && !params.oportunidade_id && params.organizacao_id) {
+      const { criarOportunidadeAuto } = await import("@/lib/autoOportunidade");
+      const oppId = await criarOportunidadeAuto({
+        pipelineNome: "SmartCycle",
+        organizacaoId: params.organizacao_id,
+        titulo: `Orçamento ${numeroOrcamento}`,
+        valor: total,
+      });
+      if (oppId) {
+        await supabase.from("orcamentos").update({ oportunidade_id: oppId } as any).eq("id", novoId);
+        setParams((p) => ({ ...p, oportunidade_id: oppId }));
+        criouOpp = true;
+      }
     }
 
     setSaving(false);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Orçamento salvo!" });
+      toast({
+        title: "Orçamento salvo!",
+        description: criouOpp ? "Oportunidade criada no funil SmartCycle (etapa Lead)." : undefined,
+      });
     }
   }, [params, savedId, subtotal, total, toast]);
 
