@@ -105,6 +105,39 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          acao: string
+          created_at: string | null
+          dados_antes: Json | null
+          dados_depois: Json | null
+          id: string
+          registro_id: string | null
+          tabela: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string | null
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string
+          registro_id?: string | null
+          tabela: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string | null
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string
+          registro_id?: string | null
+          tabela?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cnpj: string | null
@@ -259,6 +292,36 @@ export type Database = {
           modelo_3d_url?: string | null
           valor_custo?: number
           valor_venda?: number | null
+        }
+        Relationships: []
+      }
+      estados: {
+        Row: {
+          ativo: boolean | null
+          codigo_ibge: string | null
+          created_at: string | null
+          id: string
+          nome: string
+          regiao: string | null
+          sigla: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          codigo_ibge?: string | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          regiao?: string | null
+          sigla: string
+        }
+        Update: {
+          ativo?: boolean | null
+          codigo_ibge?: string | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          regiao?: string | null
+          sigla?: string
         }
         Relationships: []
       }
@@ -773,6 +836,7 @@ export type Database = {
           oportunidade_id: string | null
           organizacao_id: string | null
           prazo_entrega: string | null
+          responsavel_id: string | null
           status: string | null
           subtotal: number
           total: number
@@ -800,6 +864,7 @@ export type Database = {
           oportunidade_id?: string | null
           organizacao_id?: string | null
           prazo_entrega?: string | null
+          responsavel_id?: string | null
           status?: string | null
           subtotal?: number
           total?: number
@@ -827,6 +892,7 @@ export type Database = {
           oportunidade_id?: string | null
           organizacao_id?: string | null
           prazo_entrega?: string | null
+          responsavel_id?: string | null
           status?: string | null
           subtotal?: number
           total?: number
@@ -879,6 +945,7 @@ export type Database = {
           oportunidade_id: string | null
           organizacao_id: string | null
           prazo_entrega: string | null
+          responsavel_id: string | null
           status: string | null
           subtotal: number
           total: number
@@ -906,6 +973,7 @@ export type Database = {
           oportunidade_id?: string | null
           organizacao_id?: string | null
           prazo_entrega?: string | null
+          responsavel_id?: string | null
           status?: string | null
           subtotal?: number
           total?: number
@@ -933,6 +1001,7 @@ export type Database = {
           oportunidade_id?: string | null
           organizacao_id?: string | null
           prazo_entrega?: string | null
+          responsavel_id?: string | null
           status?: string | null
           subtotal?: number
           total?: number
@@ -971,6 +1040,7 @@ export type Database = {
           email_principal: string | null
           endereco: string | null
           estado: string | null
+          estado_id: string | null
           id: string
           nome: string
           nome_fantasia: string | null
@@ -992,6 +1062,7 @@ export type Database = {
           email_principal?: string | null
           endereco?: string | null
           estado?: string | null
+          estado_id?: string | null
           id?: string
           nome: string
           nome_fantasia?: string | null
@@ -1013,6 +1084,7 @@ export type Database = {
           email_principal?: string | null
           endereco?: string | null
           estado?: string | null
+          estado_id?: string | null
           id?: string
           nome?: string
           nome_fantasia?: string | null
@@ -1028,6 +1100,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organizacoes_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organizacoes_responsavel_id_fkey"
             columns: ["responsavel_id"]
@@ -1194,6 +1273,7 @@ export type Database = {
           peso_saco: number
           pessoa_contato_id: string | null
           reajuste_anual: number
+          responsavel_id: string | null
           status: string | null
           tarifa_excedente: number
           tarifa_f1: number
@@ -1229,6 +1309,7 @@ export type Database = {
           peso_saco?: number
           pessoa_contato_id?: string | null
           reajuste_anual: number
+          responsavel_id?: string | null
           status?: string | null
           tarifa_excedente: number
           tarifa_f1: number
@@ -1264,6 +1345,7 @@ export type Database = {
           peso_saco?: number
           pessoa_contato_id?: string | null
           reajuste_anual?: number
+          responsavel_id?: string | null
           status?: string | null
           tarifa_excedente?: number
           tarifa_f1?: number
@@ -1363,6 +1445,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      usuario_estados: {
+        Row: {
+          created_at: string | null
+          estado_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          estado_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          estado_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuario_estados_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1557,6 +1668,17 @@ export type Database = {
     }
     Functions: {
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
+      fn_proximo_comercial_para_estado: {
+        Args: { _estado_id: string }
+        Returns: string
+      }
+      has_any_role: {
+        Args: {
+          _roles: Database["public"]["Enums"]["app_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1565,6 +1687,18 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      pode_ver_organizacao: {
+        Args: {
+          _org_estado_id: string
+          _org_responsavel_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_cobre_estado: {
+        Args: { _estado_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
