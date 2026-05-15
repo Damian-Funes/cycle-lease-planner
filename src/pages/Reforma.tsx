@@ -130,11 +130,8 @@ export default function Reforma() {
   }
 
   const handleSave = useCallback(async () => {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -161,7 +158,10 @@ export default function Reforma() {
 
     const row = {
       numero_orcamento: numeroOrcamento,
-      nome_cliente: params.clientName,
+      organizacao_id: params.organizacao_id,
+      pessoa_contato_id: params.pessoa_contato_id || null,
+      oportunidade_id: params.oportunidade_id || null,
+      nome_cliente: params.clientName || "—",
       contato_nome: params.contatoNome || null,
       cliente_endereco: params.clienteEndereco || null,
       cliente_telefone: params.clienteTelefone || null,
@@ -183,10 +183,10 @@ export default function Reforma() {
 
     let error;
     if (savedId) {
-      const res = await supabase.from("orcamentos_reforma").update(row).eq("id", savedId);
+      const res = await supabase.from("orcamentos_reforma").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      const res = await supabase.from("orcamentos_reforma").insert(row).select("id").maybeSingle();
+      const res = await supabase.from("orcamentos_reforma").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) setSavedId(res.data.id);
     }
