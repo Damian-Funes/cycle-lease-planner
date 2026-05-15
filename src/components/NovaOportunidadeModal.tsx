@@ -249,9 +249,13 @@ export default function NovaOportunidadeModal({
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ["oportunidades"] });
-      toast.success("Oportunidade criada", {
-        action: { label: "Ver detalhes", onClick: () => (window.location.href = `/crm/deal/${id}`) },
-      });
+      if (onCreated) {
+        onCreated(id);
+      } else {
+        toast.success("Oportunidade criada", {
+          action: { label: "Ver detalhes", onClick: () => (window.location.href = `/crm/deal/${id}`) },
+        });
+      }
       onOpenChange(false);
     },
     onError: (err: any) => toast.error("Erro ao salvar", { description: err?.message }),
