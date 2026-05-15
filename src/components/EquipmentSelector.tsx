@@ -133,10 +133,12 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
-                  <Command>
+                  <Command key={equipamentos.length}>
                     <CommandInput placeholder="Digite código ou descrição..." />
                     <CommandList>
-                      <CommandEmpty>Nenhum equipamento encontrado.</CommandEmpty>
+                      <CommandEmpty>
+                        {equipamentos.length === 0 ? "Carregando equipamentos..." : "Nenhum equipamento encontrado."}
+                      </CommandEmpty>
                       <CommandGroup>
                         {equipamentos.map((eq) => (
                           <CommandItem
