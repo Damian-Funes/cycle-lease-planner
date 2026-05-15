@@ -21,6 +21,7 @@ import Dossie from "./pages/Dossie";
 import Crm from "./pages/Crm";
 const DealDetalhe = lazy(() => import("./pages/DealDetalhe"));
 const Atividades = lazy(() => import("./pages/Atividades"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
 import Orcamento from "./pages/Orcamento";
 import Reforma from "./pages/Reforma";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/crm" element={<ProtectedRoute><Crm /></ProtectedRoute>} />
               <Route path="/crm/deal/:id" element={<ProtectedRoute><DealDetalhe /></ProtectedRoute>} />
               <Route path="/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
+              <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
