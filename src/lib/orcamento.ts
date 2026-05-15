@@ -26,6 +26,10 @@ export interface OrcamentoParams {
   localEntrega: string;
   observacoes: string;
   status: string;
+  organizacao_id?: string | null;
+  pessoa_contato_id?: string | null;
+  oportunidade_id?: string | null;
+  dados_congelados?: boolean;
 }
 
 export const DEFAULT_ORCAMENTO: OrcamentoParams = {
@@ -46,6 +50,10 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   localEntrega: "",
   observacoes: "",
   status: "rascunho",
+  organizacao_id: null,
+  pessoa_contato_id: null,
+  oportunidade_id: null,
+  dados_congelados: false,
 };
 
 export function calcSubtotal(itens: ItemOrcamento[]): number {

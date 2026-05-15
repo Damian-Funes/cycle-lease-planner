@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EquipmentTable from "./EquipmentTable";
+import SeletorOrganizacao from "./SeletorOrganizacao";
 import { generateProposalPdf } from "@/lib/generatePdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -149,27 +150,15 @@ export default function ProposalTab({ params, projection, onUpdate, onSave, save
       <Card>
         <CardContent className="pt-5 pb-4 space-y-4">
           <h3 className="font-semibold text-foreground text-sm">Dados do Cliente (para PDF)</h3>
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Contato (At.: Sr(a).)</label>
-              <Input value={params.contatoNome} onChange={(e) => onUpdate("contatoNome", e.target.value)} placeholder="Nome do contato" className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Endereço</label>
-              <Input value={params.clienteEndereco} onChange={(e) => onUpdate("clienteEndereco", e.target.value)} placeholder="Endereço do cliente" className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">Telefone</label>
-              <Input value={params.clienteTelefone} onChange={(e) => onUpdate("clienteTelefone", e.target.value)} placeholder="Telefone" className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">CNPJ</label>
-              <Input value={params.clienteCnpj} onChange={(e) => onUpdate("clienteCnpj", e.target.value)} placeholder="CNPJ do cliente" className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">E-mail</label>
-              <Input value={params.clienteEmail} onChange={(e) => onUpdate("clienteEmail", e.target.value)} placeholder="E-mail do cliente" className="h-8 text-sm" />
-            </div>
+          <SeletorOrganizacao
+            value={{ organizacao_id: params.organizacao_id, pessoa_contato_id: params.pessoa_contato_id }}
+            onChange={(v) => {
+              onUpdate("organizacao_id" as any, (v.organizacao_id ?? "") as any);
+              onUpdate("pessoa_contato_id" as any, (v.pessoa_contato_id ?? "") as any);
+            }}
+            disabled={!!params.dados_congelados}
+          />
+          <div className="grid md:grid-cols-2 gap-3 pt-2">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Local de entrega</label>
               <Input value={params.localEntrega} onChange={(e) => onUpdate("localEntrega", e.target.value)} placeholder="Endereço de entrega" className="h-8 text-sm" />

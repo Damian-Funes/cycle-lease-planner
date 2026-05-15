@@ -47,16 +47,14 @@ const Index = () => {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!params.clientName.trim()) {
+    if (!params.organizacao_id) {
       setClientNameError(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     setSaving(true);
 
-    // Auto-generate numero_proposta on first save
     let numeroProposta = params.numeroProposta;
     if (!numeroProposta) {
       const year = new Date().getFullYear();
@@ -85,7 +83,10 @@ const Index = () => {
     const total10anos = params.entrada + projection.reduce((s, r) => s + r.receitaAnual, 0);
 
     const row = {
-      nome_cliente: params.clientName,
+      organizacao_id: params.organizacao_id,
+      pessoa_contato_id: params.pessoa_contato_id || null,
+      oportunidade_id: params.oportunidade_id || null,
+      nome_cliente: params.clientName || "—",
       valor_projeto: params.valorProjeto,
       entrada: params.entrada,
       divida,
@@ -114,10 +115,10 @@ const Index = () => {
 
     let error;
     if (savedId) {
-      const res = await supabase.from("propostas").update(row).eq("id", savedId);
+      const res = await supabase.from("propostas").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      const res = await supabase.from("propostas").insert(row).select("id").maybeSingle();
+      const res = await supabase.from("propostas").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) setSavedId(res.data.id);
     }
@@ -165,6 +166,10 @@ const Index = () => {
       validadeDias: data.validade_dias ?? 10,
       localEntrega: data.local_entrega || "",
       numeroProposta: data.numero_proposta || "",
+      organizacao_id: (data as any).organizacao_id ?? null,
+      pessoa_contato_id: (data as any).pessoa_contato_id ?? null,
+      oportunidade_id: (data as any).oportunidade_id ?? null,
+      dados_congelados: (data as any).dados_congelados ?? false,
     };
 
     handleLoad(loaded, data.id);
@@ -221,14 +226,11 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <input
-              ref={clientNameRef}
-              type="text"
-              placeholder="Nome do cliente"
-              value={params.clientName}
-              onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
-              className={`h-9 px-3 rounded-md border bg-background text-sm w-48 md:w-64 focus:outline-none focus:ring-2 focus:ring-ring ${clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}`}
-            />
+            <div className={`h-9 px-3 rounded-md border bg-background text-sm flex items-center min-w-[180px] max-w-[280px] truncate ${clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}`}>
+              <span className={params.clientName ? "text-foreground truncate" : "text-muted-foreground truncate"}>
+                {params.clientName || "Selecione organização na aba Resumo"}
+              </span>
+            </div>
             <NovaPropostaButton onNovoAluguel={handleNova} />
             <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

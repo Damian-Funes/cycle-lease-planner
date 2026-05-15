@@ -14,10 +14,12 @@ import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import AppHeader from "@/components/AppHeader";
+import SeletorOrganizacao from "@/components/SeletorOrganizacao";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function fmtBRL(v: number) {
@@ -101,11 +103,8 @@ export default function Orcamento() {
   }
 
   const handleSave = useCallback(async () => {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -132,7 +131,12 @@ export default function Orcamento() {
 
     const row = {
       numero_orcamento: numeroOrcamento,
-      nome_cliente: params.clientName,
+      organizacao_id: params.organizacao_id,
+      pessoa_contato_id: params.pessoa_contato_id || null,
+      oportunidade_id: params.oportunidade_id || null,
+      // Campos texto: o trigger preenche automaticamente quando dados_congelados=false.
+      // Em registros congelados, mantemos o snapshot atual.
+      nome_cliente: params.clientName || "—",
       contato_nome: params.contatoNome || null,
       cliente_endereco: params.clienteEndereco || null,
       cliente_telefone: params.clienteTelefone || null,
@@ -154,10 +158,10 @@ export default function Orcamento() {
 
     let error;
     if (savedId) {
-      const res = await supabase.from("orcamentos").update(row).eq("id", savedId);
+      const res = await supabase.from("orcamentos").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      const res = await supabase.from("orcamentos").insert(row).select("id").maybeSingle();
+      const res = await supabase.from("orcamentos").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) setSavedId(res.data.id);
     }
@@ -212,6 +216,10 @@ export default function Orcamento() {
       localEntrega: data.local_entrega || "",
       observacoes: data.observacoes || "",
       status: data.status || "rascunho",
+      organizacao_id: (data as any).organizacao_id ?? null,
+      pessoa_contato_id: (data as any).pessoa_contato_id ?? null,
+      oportunidade_id: (data as any).oportunidade_id ?? null,
+      dados_congelados: (data as any).dados_congelados ?? false,
     };
 
     handleLoad(loaded, data.id);
@@ -248,19 +256,11 @@ export default function Orcamento() {
       (async () => {
         const { data: opp } = await supabase
           .from("oportunidades")
-          .select("titulo, organizacao_id, organizacoes:organizacao_id(nome, cnpj, email_principal, telefone_principal, endereco)")
+          .select("titulo, organizacao_id")
           .eq("id", oppId)
           .maybeSingle();
-        if (opp) {
-          const o: any = (opp as any).organizacoes;
-          setParams((p) => ({
-            ...p,
-            clientName: o?.nome || opp.titulo || p.clientName,
-            clienteCnpj: o?.cnpj || p.clienteCnpj,
-            clienteEmail: o?.email_principal || p.clienteEmail,
-            clienteTelefone: o?.telefone_principal || p.clienteTelefone,
-            clienteEndereco: o?.endereco || p.clienteEndereco,
-          }));
+        if (opp?.organizacao_id) {
+          setParams((p) => ({ ...p, organizacao_id: opp.organizacao_id, oportunidade_id: oppId }));
           toast({ title: "Pré-preenchido a partir da oportunidade" });
         }
         setSearchParams({}, { replace: true });
@@ -269,11 +269,8 @@ export default function Orcamento() {
   }, [authLoading, profile?.status, searchParams, setSearchParams, loadOrcamentoById]);
 
   async function handlePdf() {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id && !params.clientName.trim()) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     if (params.itens.length === 0) {
@@ -326,37 +323,29 @@ export default function Orcamento() {
               <User className="w-4 h-4 text-primary" /> Dados do Cliente
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="cli-nome">Nome / Razão social *</Label>
-              <Input
-                id="cli-nome"
-                ref={clientNameRef}
-                value={params.clientName}
-                onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
-                className={clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cli-contato">Contato (At.:)</Label>
-              <Input id="cli-contato" value={params.contatoNome} onChange={(e) => update("contatoNome", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="cli-end">Endereço</Label>
-              <Input id="cli-end" value={params.clienteEndereco} onChange={(e) => update("clienteEndereco", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cli-tel">Telefone</Label>
-              <Input id="cli-tel" value={params.clienteTelefone} onChange={(e) => update("clienteTelefone", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="cli-cnpj">CNPJ</Label>
-              <Input id="cli-cnpj" value={params.clienteCnpj} onChange={(e) => update("clienteCnpj", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="cli-email">E-mail</Label>
-              <Input id="cli-email" type="email" value={params.clienteEmail} onChange={(e) => update("clienteEmail", e.target.value)} />
-            </div>
+          <CardContent className="space-y-3">
+            {savedId && !params.organizacao_id && (
+              <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription className="flex items-center justify-between gap-2">
+                  <span>Este orçamento não está vinculado a uma organização do CRM.</span>
+                </AlertDescription>
+              </Alert>
+            )}
+            <SeletorOrganizacao
+              value={{ organizacao_id: params.organizacao_id, pessoa_contato_id: params.pessoa_contato_id }}
+              onChange={(v) => setParams((p) => ({
+                ...p,
+                organizacao_id: v.organizacao_id ?? null,
+                pessoa_contato_id: v.pessoa_contato_id ?? null,
+              }))}
+              disabled={!!params.dados_congelados}
+              onDescongelar={savedId ? async () => {
+                const { error } = await supabase.from("orcamentos").update({ dados_congelados: false } as any).eq("id", savedId);
+                if (error) throw error;
+                setParams((p) => ({ ...p, dados_congelados: false }));
+              } : undefined}
+            />
           </CardContent>
         </Card>
 

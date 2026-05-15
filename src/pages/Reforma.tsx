@@ -17,10 +17,12 @@ import {
   calcTotalReforma,
 } from "@/lib/reforma";
 import AppHeader from "@/components/AppHeader";
+import SeletorOrganizacao from "@/components/SeletorOrganizacao";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Save, FolderOpen, FileDown, Loader2, FileText, User, Wrench, Receipt, Settings, Trash2, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, FolderOpen, FileDown, Loader2, FileText, User, Wrench, Receipt, Settings, Trash2, Plus, X, AlertTriangle } from "lucide-react";
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import { OrcamentoParams } from "@/lib/orcamento";
 import {
@@ -128,11 +130,8 @@ export default function Reforma() {
   }
 
   const handleSave = useCallback(async () => {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -159,7 +158,10 @@ export default function Reforma() {
 
     const row = {
       numero_orcamento: numeroOrcamento,
-      nome_cliente: params.clientName,
+      organizacao_id: params.organizacao_id,
+      pessoa_contato_id: params.pessoa_contato_id || null,
+      oportunidade_id: params.oportunidade_id || null,
+      nome_cliente: params.clientName || "—",
       contato_nome: params.contatoNome || null,
       cliente_endereco: params.clienteEndereco || null,
       cliente_telefone: params.clienteTelefone || null,
@@ -181,10 +183,10 @@ export default function Reforma() {
 
     let error;
     if (savedId) {
-      const res = await supabase.from("orcamentos_reforma").update(row).eq("id", savedId);
+      const res = await supabase.from("orcamentos_reforma").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      const res = await supabase.from("orcamentos_reforma").insert(row).select("id").maybeSingle();
+      const res = await supabase.from("orcamentos_reforma").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) setSavedId(res.data.id);
     }
@@ -226,6 +228,10 @@ export default function Reforma() {
         localEntrega: data.local_entrega || "",
         observacoes: data.observacoes || "",
         status: data.status || "rascunho",
+        organizacao_id: (data as any).organizacao_id ?? null,
+        pessoa_contato_id: (data as any).pessoa_contato_id ?? null,
+        oportunidade_id: (data as any).oportunidade_id ?? null,
+        dados_congelados: (data as any).dados_congelados ?? false,
       });
       setSavedId(data.id);
       setListaOpen(false);
@@ -274,11 +280,8 @@ export default function Reforma() {
   }
 
   async function handlePdf() {
-    if (!params.clientName.trim()) {
-      setClientNameError(true);
-      clientNameRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => clientNameRef.current?.focus(), 300);
-      toast({ title: "Preencha o nome do cliente", variant: "destructive" });
+    if (!params.organizacao_id && !params.clientName.trim()) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
     if (params.itens.length === 0) {
@@ -404,36 +407,27 @@ export default function Reforma() {
               <User className="w-4 h-4 text-primary" /> Dados do Cliente
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Nome / Razão social *</Label>
-              <Input
-                ref={clientNameRef}
-                value={params.clientName}
-                onChange={(e) => { update("clientName", e.target.value); if (clientNameError) setClientNameError(false); }}
-                className={clientNameError ? "border-destructive ring-2 ring-destructive animate-pulse" : ""}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Contato</Label>
-              <Input value={params.contatoNome} onChange={(e) => update("contatoNome", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Endereço</Label>
-              <Input value={params.clienteEndereco} onChange={(e) => update("clienteEndereco", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Telefone</Label>
-              <Input value={params.clienteTelefone} onChange={(e) => update("clienteTelefone", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>CNPJ</Label>
-              <Input value={params.clienteCnpj} onChange={(e) => update("clienteCnpj", e.target.value)} />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>E-mail</Label>
-              <Input type="email" value={params.clienteEmail} onChange={(e) => update("clienteEmail", e.target.value)} />
-            </div>
+          <CardContent className="space-y-3">
+            {savedId && !params.organizacao_id && (
+              <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription>Este orçamento não está vinculado a uma organização do CRM.</AlertDescription>
+              </Alert>
+            )}
+            <SeletorOrganizacao
+              value={{ organizacao_id: params.organizacao_id, pessoa_contato_id: params.pessoa_contato_id }}
+              onChange={(v) => setParams((p) => ({
+                ...p,
+                organizacao_id: v.organizacao_id ?? null,
+                pessoa_contato_id: v.pessoa_contato_id ?? null,
+              }))}
+              disabled={!!params.dados_congelados}
+              onDescongelar={savedId ? async () => {
+                const { error } = await supabase.from("orcamentos_reforma").update({ dados_congelados: false } as any).eq("id", savedId);
+                if (error) throw error;
+                setParams((p) => ({ ...p, dados_congelados: false }));
+              } : undefined}
+            />
           </CardContent>
         </Card>
 
