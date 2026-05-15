@@ -562,23 +562,13 @@ export default function DealDetalhe() {
             </TabsContent>
 
             <TabsContent value="propostas">
-              <Card><CardContent className="pt-6 space-y-3">
-                {proposta ? (
-                  <div className="border rounded p-4">
-                    <div className="font-medium">{proposta.numero_proposta || "Proposta"}</div>
-                    <div className="text-sm text-muted-foreground">{proposta.nome_cliente}</div>
-                    <div className="text-sm">{fmtBRL(proposta.total_10_anos || 0)}</div>
-                    <Button variant="outline" size="sm" className="mt-2" onClick={() => patch({ proposta_id: null }).then(carregar)}>
-                      Desvincular
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground mb-3">Nenhuma proposta vinculada.</p>
-                    <Button onClick={() => { carregarPropostas(); setVincPropDialog(true); }}>Vincular proposta</Button>
-                  </div>
-                )}
-              </CardContent></Card>
+              <DealPropostasOrcamentos
+                oportunidadeId={deal.id}
+                organizacaoId={deal.organizacao_id}
+                propostaVinculada={proposta}
+                onDesvincular={() => patch({ proposta_id: null }).then(carregar)}
+                onAbrirVincular={() => { carregarPropostas(); setVincPropDialog(true); }}
+              />
             </TabsContent>
 
             <TabsContent value="historico">
