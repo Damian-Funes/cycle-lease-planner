@@ -17,10 +17,12 @@ import {
   calcTotalReforma,
 } from "@/lib/reforma";
 import AppHeader from "@/components/AppHeader";
+import SeletorOrganizacao from "@/components/SeletorOrganizacao";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Save, FolderOpen, FileDown, Loader2, FileText, User, Wrench, Receipt, Settings, Trash2, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, FolderOpen, FileDown, Loader2, FileText, User, Wrench, Receipt, Settings, Trash2, Plus, X, AlertTriangle } from "lucide-react";
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import { OrcamentoParams } from "@/lib/orcamento";
 import {
