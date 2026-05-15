@@ -492,7 +492,7 @@ export default function Catalogo() {
                   <th className="text-left p-3 font-medium w-16">Modelo</th>
                   <th className="text-left p-3 font-medium">Código</th>
                   <th className="text-left p-3 font-medium">Descrição</th>
-                  <th className="text-right p-3 font-medium">Valor Custo</th>
+                  {isAdmin && <th className="text-right p-3 font-medium">Valor Custo</th>}
                   <th className="text-right p-3 font-medium">Valor Venda</th>
                   <th className="text-center p-3 font-medium">Status</th>
                   <th className="p-3 w-24"></th>
