@@ -8,11 +8,13 @@ import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { GlbOrientationEditor } from "@/components/GlbOrientationEditor";
+import { useAuth } from "@/hooks/useAuth";
 
 const BUCKET_MODELOS = "modelos-3d";
 const MAX_GLB_MB = 50;
 
 export default function Catalogo() {
+  const { isAdmin } = useAuth();
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<string | null>(null);
@@ -374,15 +376,17 @@ export default function Catalogo() {
                       placeholder="Nome do equipamento"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-muted-foreground">Valor de Custo (R$)</label>
-                    <input
-                      value={form.valor_custo}
-                      onChange={(e) => setForm({ ...form, valor_custo: e.target.value })}
-                      className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
-                      placeholder="100000"
-                    />
-                  </div>
+                  {isAdmin && (
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-muted-foreground">Valor de Custo (R$)</label>
+                      <input
+                        value={form.valor_custo}
+                        onChange={(e) => setForm({ ...form, valor_custo: e.target.value })}
+                        className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
+                        placeholder="100000"
+                      />
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-muted-foreground">Valor de Venda (R$)</label>
                     <input
@@ -488,7 +492,7 @@ export default function Catalogo() {
                   <th className="text-left p-3 font-medium w-16">Modelo</th>
                   <th className="text-left p-3 font-medium">Código</th>
                   <th className="text-left p-3 font-medium">Descrição</th>
-                  <th className="text-right p-3 font-medium">Valor Custo</th>
+                  {isAdmin && <th className="text-right p-3 font-medium">Valor Custo</th>}
                   <th className="text-right p-3 font-medium">Valor Venda</th>
                   <th className="text-center p-3 font-medium">Status</th>
                   <th className="p-3 w-24"></th>
@@ -514,7 +518,7 @@ export default function Catalogo() {
                     </td>
                     <td className="p-3 font-medium">{eq.codigo}</td>
                     <td className="p-3 text-muted-foreground">{eq.descricao}</td>
-                    <td className="p-3 text-right font-semibold">{formatBRL(Number(eq.valor_custo))}</td>
+                    {isAdmin && <td className="p-3 text-right font-semibold">{formatBRL(Number(eq.valor_custo))}</td>}
                     <td className="p-3 text-right font-semibold text-primary">
                       {eq.valor_venda != null ? formatBRL(Number(eq.valor_venda)) : <span className="text-muted-foreground">—</span>}
                     </td>
