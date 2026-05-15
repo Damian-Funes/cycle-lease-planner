@@ -663,6 +663,30 @@ export type Database = {
           },
         ]
       }
+      migracao_clientes_log: {
+        Row: {
+          cliente_data: Json | null
+          cliente_id: string | null
+          id: string
+          migrado_em: string
+          organizacao_id: string | null
+        }
+        Insert: {
+          cliente_data?: Json | null
+          cliente_id?: string | null
+          id?: string
+          migrado_em?: string
+          organizacao_id?: string | null
+        }
+        Update: {
+          cliente_data?: Json | null
+          cliente_id?: string | null
+          id?: string
+          migrado_em?: string
+          organizacao_id?: string | null
+        }
+        Relationships: []
+      }
       oportunidade_pessoas: {
         Row: {
           created_at: string
