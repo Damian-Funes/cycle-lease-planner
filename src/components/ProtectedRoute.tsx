@@ -37,5 +37,9 @@ export default function ProtectedRoute({ children, requireAdmin = false, allowed
     return <Navigate to="/" replace />;
   }
 
+  if (allowedRoles && allowedRoles.length > 0 && !isAdmin && !hasAnyRole(allowedRoles)) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
