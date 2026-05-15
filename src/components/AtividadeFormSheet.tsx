@@ -76,11 +76,7 @@ export default function AtividadeFormSheet({ open, onOpenChange, clienteId }: Pr
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
       const { data: { user } } = await supabase.auth.getUser();
-      let responsavel_id: string | null = null;
-      if (user) {
-        const { data: prof } = await supabase.from("profiles").select("id").eq("user_id", user.id).maybeSingle();
-        responsavel_id = prof?.id ?? null;
-      }
+      const responsavel_id: string | null = user?.id ?? null;
       const payload: any = {
         cliente_id: clienteId,
         oportunidade_id: v.oportunidade_id || null,
