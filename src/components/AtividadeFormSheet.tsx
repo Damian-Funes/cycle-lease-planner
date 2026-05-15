@@ -41,25 +41,25 @@ type FormValues = z.infer<typeof schema>;
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  clienteId: string;
+  organizacaoId: string;
 }
 
-export default function AtividadeFormSheet({ open, onOpenChange, clienteId }: Props) {
+export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }: Props) {
   const qc = useQueryClient();
   const [opOpen, setOpOpen] = useState(false);
 
   const { data: oportunidades = [] } = useQuery({
-    queryKey: ["oportunidades-cliente", clienteId],
+    queryKey: ["oportunidades-org", organizacaoId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("oportunidades")
         .select("id, titulo")
-        .eq("cliente_id", clienteId)
+        .eq("organizacao_id", organizacaoId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as { id: string; titulo: string }[];
     },
-    enabled: !!clienteId && open,
+    enabled: !!organizacaoId && open,
   });
 
   const form = useForm<FormValues>({
@@ -78,7 +78,7 @@ export default function AtividadeFormSheet({ open, onOpenChange, clienteId }: Pr
       const { data: { user } } = await supabase.auth.getUser();
       const responsavel_id: string | null = user?.id ?? null;
       const payload: any = {
-        cliente_id: clienteId,
+        organizacao_id: organizacaoId,
         oportunidade_id: v.oportunidade_id || null,
         tipo: v.tipo,
         titulo: v.titulo.trim(),
@@ -92,7 +92,7 @@ export default function AtividadeFormSheet({ open, onOpenChange, clienteId }: Pr
     },
     onSuccess: () => {
       toast.success("Atividade registrada");
-      qc.invalidateQueries({ queryKey: ["atividades", clienteId] });
+      qc.invalidateQueries({ queryKey: ["atividades", organizacaoId] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error("Erro", { description: err?.message }),

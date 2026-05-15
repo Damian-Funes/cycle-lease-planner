@@ -72,8 +72,6 @@ export default function NovaAtividadeQuickForm({
       organizacao_id: organizacaoId || null,
       pessoa_id: pessoaSel || pessoaId || null,
       responsavel_id: auth.user?.id,
-      // legado
-      cliente_id: organizacaoId || oportunidadeId || auth.user?.id,
       tipo: tipos.find(t => t.id === tipoId)?.nome.toLowerCase() || "nota",
       data_atividade: new Date(data).toISOString(),
     };

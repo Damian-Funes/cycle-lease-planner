@@ -49,13 +49,6 @@ const cards = [
     color: "bg-rose-500/10 text-rose-600",
   },
   {
-    title: "Clientes",
-    desc: "Cadastro e gestão de clientes",
-    icon: Users,
-    to: "/clientes",
-    color: "bg-indigo-500/10 text-indigo-600",
-  },
-  {
     title: "Organizações",
     desc: "Empresas e contatos (CRM)",
     icon: Building2,

@@ -15,10 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Loader2, Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ClienteFormModal from "./ClienteFormModal";
+import OrganizacaoFormModal from "./OrganizacaoFormModal";
 
 const schema = z.object({
-  cliente_id: z.string().uuid("Selecione um cliente"),
+  organizacao_id: z.string().uuid("Selecione uma organização"),
   titulo: z.string().trim().min(1, "Obrigatório"),
   etapa_id: z.string().uuid("Selecione uma etapa"),
   valor_estimado: z.string().optional().or(z.literal("")),
@@ -35,25 +35,25 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   oportunidade?: any | null;
   defaultEtapaId?: string;
-  defaultClienteId?: string;
+  defaultOrganizacaoId?: string;
 }
 
-export default function OportunidadeFormModal({ open, onOpenChange, oportunidade, defaultEtapaId, defaultClienteId }: Props) {
+export default function OportunidadeFormModal({ open, onOpenChange, oportunidade, defaultEtapaId, defaultOrganizacaoId }: Props) {
   const qc = useQueryClient();
   const isEdit = !!oportunidade?.id;
-  const [clienteOpen, setClienteOpen] = useState(false);
-  const [novoClienteOpen, setNovoClienteOpen] = useState(false);
+  const [orgOpen, setOrgOpen] = useState(false);
+  const [novaOrgOpen, setNovaOrgOpen] = useState(false);
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-combobox"],
+  const { data: organizacoes = [] } = useQuery({
+    queryKey: ["organizacoes-combobox"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("clientes")
-        .select("id, razao_social, nome_fantasia")
+        .from("organizacoes")
+        .select("id, nome, nome_fantasia")
         .neq("status", "inativo")
-        .order("razao_social");
+        .order("nome");
       if (error) throw error;
-      return data as { id: string; razao_social: string; nome_fantasia: string | null }[];
+      return data as { id: string; nome: string; nome_fantasia: string | null }[];
     },
   });
 
@@ -85,7 +85,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      cliente_id: "",
+      organizacao_id: "",
       titulo: "",
       etapa_id: "",
       valor_estimado: "",
@@ -99,7 +99,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
   useEffect(() => {
     if (open) {
       form.reset({
-        cliente_id: oportunidade?.cliente_id ?? defaultClienteId ?? "",
+        organizacao_id: oportunidade?.organizacao_id ?? defaultOrganizacaoId ?? "",
         titulo: oportunidade?.titulo ?? "",
         etapa_id: oportunidade?.etapa_id ?? defaultEtapa,
         valor_estimado: oportunidade?.valor_estimado != null ? String(oportunidade.valor_estimado) : "",
@@ -109,12 +109,12 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
         observacoes: oportunidade?.observacoes ?? "",
       });
     }
-  }, [open, oportunidade, defaultEtapa, defaultClienteId]);
+  }, [open, oportunidade, defaultEtapa, defaultOrganizacaoId]);
 
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
       const payload: any = {
-        cliente_id: v.cliente_id,
+        organizacao_id: v.organizacao_id,
         titulo: v.titulo.trim(),
         etapa_id: v.etapa_id,
         valor_estimado: v.valor_estimado ? Number(v.valor_estimado) : null,
@@ -139,7 +139,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
     onError: (err: any) => toast.error("Erro ao salvar", { description: err?.message }),
   });
 
-  const selectedCliente = clientes.find((c) => c.id === form.watch("cliente_id"));
+  const selectedOrg = organizacoes.find((o) => o.id === form.watch("organizacao_id"));
 
   return (
     <>
@@ -151,40 +151,40 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
 
           <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2 space-y-1">
-              <Label>Cliente *</Label>
-              <Popover open={clienteOpen} onOpenChange={setClienteOpen}>
+              <Label>Organização *</Label>
+              <Popover open={orgOpen} onOpenChange={setOrgOpen}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" role="combobox" className="w-full justify-between font-normal">
-                    {selectedCliente ? selectedCliente.razao_social : "Selecione um cliente..."}
+                    {selectedOrg ? selectedOrg.nome : "Selecione uma organização..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Buscar cliente..." />
+                    <CommandInput placeholder="Buscar organização..." />
                     <CommandList>
-                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                      <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
                       <CommandGroup>
                         <CommandItem
                           onSelect={() => {
-                            setClienteOpen(false);
-                            setNovoClienteOpen(true);
+                            setOrgOpen(false);
+                            setNovaOrgOpen(true);
                           }}
                         >
                           <Plus className="mr-2 h-4 w-4" />
-                          Criar novo cliente
+                          Criar nova organização
                         </CommandItem>
-                        {clientes.map((c) => (
+                        {organizacoes.map((o) => (
                           <CommandItem
-                            key={c.id}
-                            value={`${c.razao_social} ${c.nome_fantasia ?? ""}`}
+                            key={o.id}
+                            value={`${o.nome} ${o.nome_fantasia ?? ""}`}
                             onSelect={() => {
-                              form.setValue("cliente_id", c.id, { shouldValidate: true });
-                              setClienteOpen(false);
+                              form.setValue("organizacao_id", o.id, { shouldValidate: true });
+                              setOrgOpen(false);
                             }}
                           >
-                            <Check className={cn("mr-2 h-4 w-4", form.watch("cliente_id") === c.id ? "opacity-100" : "opacity-0")} />
-                            <span className="truncate">{c.razao_social}</span>
+                            <Check className={cn("mr-2 h-4 w-4", form.watch("organizacao_id") === o.id ? "opacity-100" : "opacity-0")} />
+                            <span className="truncate">{o.nome}</span>
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -192,8 +192,8 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
                   </Command>
                 </PopoverContent>
               </Popover>
-              {form.formState.errors.cliente_id && (
-                <p className="text-xs text-destructive">{form.formState.errors.cliente_id.message}</p>
+              {form.formState.errors.organizacao_id && (
+                <p className="text-xs text-destructive">{form.formState.errors.organizacao_id.message}</p>
               )}
             </div>
 
@@ -261,12 +261,11 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
         </DialogContent>
       </Dialog>
 
-      <ClienteFormModal
-        open={novoClienteOpen}
-        onOpenChange={setNovoClienteOpen}
-        onSaved={(c) => {
-          qc.invalidateQueries({ queryKey: ["clientes-combobox"] });
-          form.setValue("cliente_id", c.id, { shouldValidate: true });
+      <OrganizacaoFormModal
+        open={novaOrgOpen}
+        onOpenChange={(v) => {
+          setNovaOrgOpen(v);
+          if (!v) qc.invalidateQueries({ queryKey: ["organizacoes-combobox"] });
         }}
       />
     </>

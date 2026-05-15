@@ -152,3 +152,45 @@ Data: 2026-05-15
 `public.migracao_clientes_log` (permanente, RLS ativo, leitura apenas para `admin`).
 
 **Fim da Fase 3.** Aguardando autorização "OK, segue para Fase 4".
+
+## Fase 4 — Refactor frontend (executada)
+
+Data: 2026-05-15
+
+### Arquivos modificados
+
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/Clientes.tsx` | Substituído por **redirect** → `/organizacoes` (replace) |
+| `src/pages/Dossie.tsx` | Substituído por **redirect**: consulta `migracao_clientes_log` para mapear `cliente_id` → `organizacao_id` e navega para `/organizacoes/:id` (fallback: assume que o param já é id de organização) |
+| `src/pages/Home.tsx` | Removido tile "Clientes" (Organizações já existe) |
+| `src/components/OportunidadeFormModal.tsx` | Refactor completo: `cliente_id` → `organizacao_id`, query em `organizacoes`, label "Cliente" → "Organização", `defaultClienteId` → `defaultOrganizacaoId`, abre `OrganizacaoFormModal` em vez de `ClienteFormModal`. **Corrige bug pré-existente**: a tabela `oportunidades` não tem coluna `cliente_id`, o INSERT antigo estava quebrado. |
+| `src/components/OportunidadeSheet.tsx` | Query: `clientes(id, razao_social)` → `organizacoes(id, nome)`. Link: `/dossie/${cliente_id}` → `/organizacoes/${organizacao_id}`. |
+| `src/components/AtividadeFormSheet.tsx` | Prop `clienteId` → `organizacaoId`. Filtros e INSERT em `organizacao_id`. |
+| `src/components/Timeline.tsx` | Prop `clienteId` → `organizacaoId`. Realtime e queries por `organizacao_id`. |
+| `src/components/OportunidadesCliente.tsx` | Prop `clienteId` → `organizacaoId`. Query por `organizacao_id`. (Componente fica órfão após refactor — marcado para deleção na Fase 6.) |
+| `src/components/NovaAtividadeQuickForm.tsx` | Removido o campo legado `cliente_id` do payload. |
+| `src/App.tsx` | Mantido sem mudanças — rotas `/clientes` e `/dossie/:clienteId` continuam mapeando para os componentes que agora são redirects. |
+
+### Arquivos a DELETAR na Fase 6
+
+- `src/components/ClienteFormModal.tsx` (zero imports)
+- `src/components/ContatoFormModal.tsx` (zero imports)
+- `src/components/OportunidadesCliente.tsx` (zero imports — Dossie virou redirect)
+- `src/pages/Clientes.tsx` (redirect — pode ser substituído por `<Navigate>` no router)
+- `src/pages/Dossie.tsx` (redirect com lookup — manter se houver risco de bookmarks antigos; senão deletar)
+
+### Rotas afetadas
+
+- `/clientes` → redireciona para `/organizacoes`
+- `/dossie/:clienteId` → redireciona para `/organizacoes/:organizacao_id` (via `migracao_clientes_log`)
+
+### Verificações de integridade
+
+- `rg` confirma que **nenhum** componente vivo ainda importa `ClienteFormModal`, `ContatoFormModal` ou referencia `cliente_id` semanticamente como organização. As únicas ocorrências restantes são:
+  - Os arquivos órfãos a deletar na Fase 6.
+  - O redirect em `Dossie.tsx` (lookup intencional na tabela de log).
+  - `src/integrations/supabase/types.ts` (regenerado automaticamente quando `clientes`/`contatos` forem dropados na Fase 6).
+- Build verde.
+
+**Fim da Fase 4.** Aguardando autorização "OK, testei e está funcionando, segue para Fase 5".
