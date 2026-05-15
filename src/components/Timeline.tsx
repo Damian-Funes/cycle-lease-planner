@@ -75,38 +75,38 @@ function TimelineItem({ a }: { a: Atividade }) {
   );
 }
 
-export default function Timeline({ clienteId }: { clienteId: string }) {
+export default function Timeline({ organizacaoId }: { organizacaoId: string }) {
   const qc = useQueryClient();
   const [tiposFiltro, setTiposFiltro] = useState<string[]>([]);
 
   const { data: atividades = [] } = useQuery({
-    queryKey: ["atividades", clienteId],
+    queryKey: ["atividades", organizacaoId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("atividades")
         .select("*, profiles(nome, email)")
-        .eq("cliente_id", clienteId)
+        .eq("organizacao_id", organizacaoId)
         .order("data_atividade", { ascending: false });
       if (error) throw error;
       return data as Atividade[];
     },
-    enabled: !!clienteId,
+    enabled: !!organizacaoId,
   });
 
-  // Realtime: invalida ao mudar atividades, propostas ou oportunidades do cliente
+  // Realtime: invalida ao mudar atividades, propostas ou oportunidades da organização
   useEffect(() => {
-    if (!clienteId) return;
+    if (!organizacaoId) return;
     const channel = supabase
-      .channel(`dossie-${clienteId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "atividades", filter: `cliente_id=eq.${clienteId}` },
-        () => qc.invalidateQueries({ queryKey: ["atividades", clienteId] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "propostas", filter: `cliente_id=eq.${clienteId}` },
-        () => qc.invalidateQueries({ queryKey: ["atividades", clienteId] }))
-      .on("postgres_changes", { event: "*", schema: "public", table: "oportunidades", filter: `cliente_id=eq.${clienteId}` },
-        () => qc.invalidateQueries({ queryKey: ["atividades", clienteId] }))
+      .channel(`org-${organizacaoId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "atividades", filter: `organizacao_id=eq.${organizacaoId}` },
+        () => qc.invalidateQueries({ queryKey: ["atividades", organizacaoId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "propostas", filter: `organizacao_id=eq.${organizacaoId}` },
+        () => qc.invalidateQueries({ queryKey: ["atividades", organizacaoId] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "oportunidades", filter: `organizacao_id=eq.${organizacaoId}` },
+        () => qc.invalidateQueries({ queryKey: ["atividades", organizacaoId] }))
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [clienteId, qc]);
+  }, [organizacaoId, qc]);
 
   const filtered = useMemo(() => {
     if (tiposFiltro.length === 0) return atividades;

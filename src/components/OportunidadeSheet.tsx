@@ -31,7 +31,7 @@ export default function OportunidadeSheet({ open, onOpenChange, oportunidadeId }
       if (!oportunidadeId) return null;
       const { data, error } = await (supabase as any)
         .from("oportunidades")
-        .select("*, clientes(id, razao_social), etapas_pipeline(id, nome, cor)")
+        .select("*, organizacoes(id, nome), etapas_pipeline(id, nome, cor)")
         .eq("id", oportunidadeId)
         .single();
       if (error) throw error;
@@ -111,10 +111,10 @@ export default function OportunidadeSheet({ open, onOpenChange, oportunidadeId }
           <div className="space-y-4 mt-4">
             <div className="text-sm">
               <Link
-                to={`/dossie/${form.cliente_id}`}
+                to={`/organizacoes/${form.organizacao_id}`}
                 className="inline-flex items-center gap-1 text-primary hover:underline"
               >
-                {form.clientes?.razao_social} <ExternalLink className="w-3 h-3" />
+                {form.organizacoes?.nome} <ExternalLink className="w-3 h-3" />
               </Link>
             </div>
 
