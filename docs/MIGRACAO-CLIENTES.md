@@ -193,4 +193,26 @@ Data: 2026-05-15
   - `src/integrations/supabase/types.ts` (regenerado automaticamente quando `clientes`/`contatos` forem dropados na Fase 6).
 - Build verde.
 
-**Fim da Fase 4.** Aguardando autorização "OK, testei e está funcionando, segue para Fase 5".
+**Fim da Fase 4.**
+
+## Fase 5 — Lockdown RLS legado (executada)
+
+Data: 2026-05-15
+
+### Mudanças aplicadas
+
+| Tabela | Antes | Depois |
+|---|---|---|
+| `clientes` | `Permissive access` (ALL, true/true) | `Admin lê clientes (legado)` (SELECT, admin only). Sem INSERT/UPDATE/DELETE. |
+| `contatos` | `Permissive access` (ALL, true/true) | `Admin lê contatos (legado)` (SELECT, admin only). Sem INSERT/UPDATE/DELETE. |
+
+- RLS permanece habilitada nas duas tabelas.
+- Escrita totalmente bloqueada (nenhuma policy de INSERT/UPDATE/DELETE) — congeladas até a Fase 6.
+- Dados preservados (1 cliente, 0 contatos) para auditoria via `migracao_clientes_log`.
+
+### Validação
+
+- Linter retornou 52 warnings pré-existentes (RLS permissivas em `oportunidades`, `atividades`, `pipelines`, `etapas_pipeline`, `tipos_atividade`, `oportunidade_pessoas`, `historico_oportunidade`) — **fora do escopo desta migração de clientes/contatos**. Tratamento separado.
+- Frontend não acessa mais `clientes`/`contatos` (validado na Fase 4), portanto o lockdown não quebra nada em produção.
+
+**Fim da Fase 5.** Aguardando autorização "OK, segue para Fase 6" (drop das tabelas `clientes`, `contatos` e cleanup de colunas/arquivos órfãos).
