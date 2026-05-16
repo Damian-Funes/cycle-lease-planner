@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +20,16 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function OrgPropostas({ organizacaoId }: { organizacaoId: string }) {
   const navigate = useNavigate();
+  const tables = useReadTables();
+  const isMkt = tables.propostas !== "propostas";
   const { data = [], isLoading } = useQuery({
-    queryKey: ["org-propostas", organizacaoId],
+    queryKey: ["org-propostas", organizacaoId, isMkt],
     queryFn: async () => {
       const { data } = await (supabase as any)
-        .from("propostas")
-        .select("id, numero_proposta, created_at, status, valor_projeto, total_10_anos")
+        .from(tables.propostas)
+        .select(isMkt
+          ? "id, numero_proposta, created_at, status"
+          : "id, numero_proposta, created_at, status, valor_projeto, total_10_anos")
         .eq("organizacao_id", organizacaoId)
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -64,8 +69,8 @@ export default function OrgPropostas({ organizacaoId }: { organizacaoId: string 
                 <TableCell>
                   <Badge variant="secondary" className={STATUS_STYLES[p.status] || ""}>{p.status}</Badge>
                 </TableCell>
-                <TableCell className="text-right text-sm">{fmtBRL(p.valor_projeto)}</TableCell>
-                <TableCell className="text-right text-sm font-medium">{fmtBRL(p.total_10_anos)}</TableCell>
+                <TableCell className="text-right text-sm">{isMkt ? "—" : fmtBRL(p.valor_projeto)}</TableCell>
+                <TableCell className="text-right text-sm font-medium">{isMkt ? "—" : fmtBRL(p.total_10_anos)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

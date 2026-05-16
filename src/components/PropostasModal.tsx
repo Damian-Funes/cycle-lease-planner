@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { SmartCycleParams } from "@/lib/smartcycle";
 import { Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -61,6 +62,7 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
   const [propostas, setPropostas] = useState<PropostaRow[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const tables = useReadTables();
 
   useEffect(() => {
     if (open) fetchPropostas();
@@ -68,8 +70,8 @@ export default function PropostasModal({ open, onOpenChange, onLoad }: Props) {
 
   async function fetchPropostas() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("propostas")
+    const { data, error } = await (supabase as any)
+      .from(tables.propostas)
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {

@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Check, ChevronsUpDown, Loader2, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { useGoogleIntegration } from "@/hooks/useGoogleIntegration";
 import { Switch } from "@/components/ui/switch";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -51,12 +52,13 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
   const qc = useQueryClient();
   const [opOpen, setOpOpen] = useState(false);
   const { isConnected, syncAtividade } = useGoogleIntegration();
+  const tables = useReadTables();
 
   const { data: oportunidades = [] } = useQuery({
-    queryKey: ["oportunidades-org", organizacaoId],
+    queryKey: ["oportunidades-org", organizacaoId, tables.oportunidades],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("oportunidades")
+        .from(tables.oportunidades)
         .select("id, titulo")
         .eq("organizacao_id", organizacaoId)
         .order("created_at", { ascending: false });

@@ -359,6 +359,13 @@ export type Database = {
             foreignKeyName: "historico_oportunidade_oportunidade_id_fkey"
             columns: ["oportunidade_id"]
             isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_oportunidade_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
             referencedRelation: "v_oportunidades_kanban"
             referencedColumns: ["id"]
           },
@@ -665,6 +672,13 @@ export type Database = {
             foreignKeyName: "oportunidade_pessoas_oportunidade_id_fkey"
             columns: ["oportunidade_id"]
             isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidade_pessoas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
             referencedRelation: "v_oportunidades_kanban"
             referencedColumns: ["id"]
           },
@@ -783,6 +797,13 @@ export type Database = {
             referencedRelation: "propostas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "oportunidades_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_sem_valores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       orcamentos: {
@@ -876,6 +897,13 @@ export type Database = {
             columns: ["oportunidade_id"]
             isOneToOne: false
             referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
             referencedColumns: ["id"]
           },
           {
@@ -985,6 +1013,13 @@ export type Database = {
             columns: ["oportunidade_id"]
             isOneToOne: false
             referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
             referencedColumns: ["id"]
           },
           {
@@ -1337,6 +1372,13 @@ export type Database = {
             foreignKeyName: "propostas_oportunidade_id_fkey"
             columns: ["oportunidade_id"]
             isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
             referencedRelation: "v_oportunidades_kanban"
             referencedColumns: ["id"]
           },
@@ -1438,6 +1480,408 @@ export type Database = {
       }
     }
     Views: {
+      oportunidades_sem_valores: {
+        Row: {
+          concorrente_vencedor: string | null
+          created_at: string | null
+          data_fechamento_prevista: string | null
+          data_fechamento_real: string | null
+          etapa_id: string | null
+          id: string | null
+          motivo_perda: string | null
+          notas: string | null
+          observacoes: string | null
+          ordem_coluna: number | null
+          organizacao_id: string | null
+          pipeline_id: string | null
+          probabilidade: number | null
+          proxima_atividade_em: string | null
+          responsavel_id: string | null
+          status: string | null
+          titulo: string | null
+          ultima_atividade_em: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          concorrente_vencedor?: string | null
+          created_at?: string | null
+          data_fechamento_prevista?: string | null
+          data_fechamento_real?: string | null
+          etapa_id?: string | null
+          id?: string | null
+          motivo_perda?: string | null
+          notas?: string | null
+          observacoes?: string | null
+          ordem_coluna?: number | null
+          organizacao_id?: string | null
+          pipeline_id?: string | null
+          probabilidade?: number | null
+          proxima_atividade_em?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          titulo?: string | null
+          ultima_atividade_em?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          concorrente_vencedor?: string | null
+          created_at?: string | null
+          data_fechamento_prevista?: string | null
+          data_fechamento_real?: string | null
+          etapa_id?: string | null
+          id?: string | null
+          motivo_perda?: string | null
+          notas?: string | null
+          observacoes?: string | null
+          ordem_coluna?: number | null
+          organizacao_id?: string | null
+          pipeline_id?: string | null
+          probabilidade?: number | null
+          proxima_atividade_em?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          titulo?: string | null
+          ultima_atividade_em?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "v_relatorio_tempo_etapa"
+            referencedColumns: ["etapa_id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamentos_reforma_sem_valores: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          condicoes_pagamento: string | null
+          contato_nome: string | null
+          created_at: string | null
+          dados_congelados: boolean | null
+          id: string | null
+          local_entrega: string | null
+          nome_cliente: string | null
+          numero_orcamento: string | null
+          observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          prazo_entrega: string | null
+          responsavel_id: string | null
+          status: string | null
+          updated_at: string | null
+          validade_dias: number | null
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          id?: string | null
+          local_entrega?: string | null
+          nome_cliente?: string | null
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          prazo_entrega?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          id?: string | null
+          local_entrega?: string | null
+          nome_cliente?: string | null
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          prazo_entrega?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamentos_sem_valores: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          condicoes_pagamento: string | null
+          contato_nome: string | null
+          created_at: string | null
+          dados_congelados: boolean | null
+          id: string | null
+          local_entrega: string | null
+          nome_cliente: string | null
+          numero_orcamento: string | null
+          observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          prazo_entrega: string | null
+          responsavel_id: string | null
+          status: string | null
+          updated_at: string | null
+          validade_dias: number | null
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          id?: string | null
+          local_entrega?: string | null
+          nome_cliente?: string | null
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          prazo_entrega?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          condicoes_pagamento?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          id?: string | null
+          local_entrega?: string | null
+          nome_cliente?: string | null
+          numero_orcamento?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          prazo_entrega?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      propostas_sem_valores: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          contato_nome: string | null
+          created_at: string | null
+          dados_congelados: boolean | null
+          id: string | null
+          local_entrega: string | null
+          nome_cliente: string | null
+          numero_proposta: string | null
+          observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          peso_saco: number | null
+          pessoa_contato_id: string | null
+          responsavel_id: string | null
+          status: string | null
+          updated_at: string | null
+          validade_dias: number | null
+          vol_min_f2_pct: number | null
+          volume_minimo_calculado: number | null
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          id?: string | null
+          local_entrega?: string | null
+          nome_cliente?: string | null
+          numero_proposta?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          peso_saco?: number | null
+          pessoa_contato_id?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+          vol_min_f2_pct?: number | null
+          volume_minimo_calculado?: number | null
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          id?: string | null
+          local_entrega?: string | null
+          nome_cliente?: string | null
+          numero_proposta?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          peso_saco?: number | null
+          pessoa_contato_id?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validade_dias?: number | null
+          vol_min_f2_pct?: number | null
+          volume_minimo_calculado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_pessoa_contato_id_fkey"
+            columns: ["pessoa_contato_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_oportunidades_kanban: {
         Row: {
           created_at: string | null
@@ -1648,6 +2092,10 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      pode_ver_oportunidade: {
+        Args: { _opp_id: string; _user_id: string }
+        Returns: boolean
+      }
       pode_ver_organizacao: {
         Args: {
           _org_estado_id: string

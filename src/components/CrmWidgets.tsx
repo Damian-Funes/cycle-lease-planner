@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useReadTables } from "@/lib/tables";
 import { KanbanSquare, CheckSquare, CalendarClock, Flame, Trophy, ListChecks } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfDay, endOfDay, subWeeks, startOfWeek, endOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +16,7 @@ const fmtBRL = (n: number) =>
 export default function CrmWidgets() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const tables = useReadTables();
   const uid = user?.id;
 
   const [opps, setOpps] = useState<any[]>([]);
@@ -27,8 +29,8 @@ export default function CrmWidgets() {
     (async () => {
       const [oRes, eRes, aRes] = await Promise.all([
         (isAdmin
-          ? sb.from("oportunidades").select("*")
-          : sb.from("oportunidades").select("*").eq("responsavel_id", uid)),
+          ? sb.from(tables.oportunidades).select("*")
+          : sb.from(tables.oportunidades).select("*").eq("responsavel_id", uid)),
         sb.from("etapas_pipeline").select("id, nome, cor, ordem"),
         (isAdmin
           ? sb.from("atividades").select("*").eq("evento_automatico", false)
