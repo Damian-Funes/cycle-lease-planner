@@ -189,6 +189,7 @@ export default function Atividades() {
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium truncate ${a.concluida ? "line-through text-muted-foreground" : ""}`}>
             {a.titulo}
+            <SyncIndicator id={a.id} erro={a.erro_sincronizacao} />
             {a.google_meet_link && (
               <a href={a.google_meet_link} target="_blank" rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
