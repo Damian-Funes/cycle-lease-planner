@@ -491,7 +491,7 @@ export default function NovaOportunidadeModal({
                 <SelectContent>
                   <SelectItem value="none">Sem responsável</SelectItem>
                   {profiles.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome ?? p.email}</SelectItem>
+                    <SelectItem key={p.user_id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
