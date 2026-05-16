@@ -123,19 +123,31 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
   const { data: cnpjData, loading: cnpjLoading, status: cnpjStatus, situacao: cnpjSituacao } =
     useBrasilApiCnpj(cnpjValue);
   const lastAppliedCnpj = useRef<string>("");
+  const lastToastedStatus = useRef<string>("");
 
   useEffect(() => {
     if (cnpjStatus === "not_found") {
-      toast("CNPJ não encontrado, preencha manualmente");
+      if (lastToastedStatus.current !== "not_found") {
+        toast("CNPJ não encontrado, preencha manualmente");
+        lastToastedStatus.current = "not_found";
+      }
       return;
     }
     if (cnpjStatus === "network_error") {
-      toast("Não foi possível buscar agora");
+      if (lastToastedStatus.current !== "network_error") {
+        toast("Não foi possível buscar agora");
+        lastToastedStatus.current = "network_error";
+      }
       return;
     }
-    if (cnpjStatus !== "success" || !cnpjData) return;
+    if (cnpjStatus !== "success" || !cnpjData) {
+      if (cnpjStatus === "idle" || cnpjStatus === "loading") {
+        lastToastedStatus.current = "";
+      }
+      return;
+    }
 
-    const digits = onlyDigits(cnpjValue);
+    const digits = onlyDigits(cnpjData.cnpj);
     if (lastAppliedCnpj.current === digits) return;
     lastAppliedCnpj.current = digits;
 
@@ -161,7 +173,6 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
     setIfEmpty("telefone_principal", cnpjData.ddd_telefone_1);
     setIfEmpty("email_principal", cnpjData.email);
 
-    // UF → estado_id + sigla (ambos)
     if (cnpjData.uf) {
       const uf = cnpjData.uf.toUpperCase();
       const match = estados.find((e) => e.sigla.toUpperCase() === uf);
@@ -174,9 +185,12 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       }
     }
 
-    toast.success("Dados encontrados");
-    if (cnpjSituacao && cnpjSituacao.toUpperCase() !== "ATIVA") {
-      toast.warning(`⚠️ Situação cadastral: ${cnpjSituacao}`);
+    if (lastToastedStatus.current !== "success") {
+      toast.success("Dados encontrados");
+      if (cnpjSituacao && cnpjSituacao.toUpperCase() !== "ATIVA") {
+        toast.warning(`⚠️ Situação cadastral: ${cnpjSituacao}`);
+      }
+      lastToastedStatus.current = "success";
     }
   }, [cnpjStatus, cnpjData, cnpjSituacao]);
 
