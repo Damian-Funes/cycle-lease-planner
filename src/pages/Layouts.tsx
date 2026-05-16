@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, LayoutGrid, Plus, Loader2, FileText, Receipt, Search } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { useReadTables } from "@/lib/tables";
 import { useToast } from "@/hooks/use-toast";
 import { listLayouts, LayoutRow } from "@/lib/layouts";
 import type { ItemProjeto } from "@/lib/equipamentos";
