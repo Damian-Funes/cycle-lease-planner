@@ -74,8 +74,8 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email");
-      return (data ?? []) as { id: string; nome: string | null; email: string }[];
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
+      return (data ?? []) as { user_id: string; nome: string | null; email: string }[];
     },
   });
 
