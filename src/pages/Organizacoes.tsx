@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import OrganizacaoFormModal, { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
+import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "bg-gray-200 text-gray-800 hover:bg-gray-200",
@@ -38,6 +39,7 @@ function initials(name: string) {
 export default function Organizacoes() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("todos");
   const [respFiltro, setRespFiltro] = useState("todos");
@@ -142,7 +144,7 @@ export default function Organizacoes() {
             <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos responsáveis</SelectItem>
-              {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
+              {respFilterProfiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={segFiltro} onValueChange={(v) => { setSegFiltro(v); setPage(0); }}>

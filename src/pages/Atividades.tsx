@@ -69,6 +69,7 @@ function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
 export default function Atividades() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
   const [tipos, setTipos] = useState<Tipo[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);

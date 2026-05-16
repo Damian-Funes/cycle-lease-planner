@@ -14,6 +14,7 @@ import {
 import { ArrowLeft, Plus, Search, Pencil, Loader2, User, Star, Mail, Phone } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PessoaFormModal, { PessoaRow } from "@/components/PessoaFormModal";
+import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 
 interface ProfileLite { user_id: string; nome: string | null; email: string }
 interface OrgLite { id: string; nome: string }
@@ -24,6 +25,7 @@ function initials(name: string) {
 
 export default function Pessoas() {
   const qc = useQueryClient();
+  const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
   const [busca, setBusca] = useState("");
   const [orgFiltro, setOrgFiltro] = useState("todos");
   const [respFiltro, setRespFiltro] = useState("todos");
@@ -104,7 +106,7 @@ export default function Pessoas() {
             <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos responsáveis</SelectItem>
-              {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
+              {respFilterProfiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
             </SelectContent>
           </Select>
           <Button onClick={openNew} className="gap-1"><Plus className="w-4 h-4" /> Nova Pessoa</Button>
