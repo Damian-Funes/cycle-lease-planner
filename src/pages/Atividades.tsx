@@ -39,6 +39,32 @@ type Periodo = "hoje" | "semana" | "proxima" | "atrasadas" | "tudo";
 
 const initials = (s?: string | null) => (s || "?").split(" ").map(x => x[0]).slice(0, 2).join("").toUpperCase();
 
+function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
+  const syncing = useSyncingAtividade(id);
+  if (syncing) {
+    return (
+      <span className="inline-flex items-center gap-1 ml-2 text-xs text-muted-foreground align-middle">
+        <Loader2 className="h-3 w-3 animate-spin" /> sincronizando…
+      </span>
+    );
+  }
+  if (erro) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center ml-2 align-middle text-amber-600">
+              <AlertTriangle className="h-3.5 w-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">{erro}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return null;
+}
+
 export default function Atividades() {
   const { user } = useAuth();
   const navigate = useNavigate();
