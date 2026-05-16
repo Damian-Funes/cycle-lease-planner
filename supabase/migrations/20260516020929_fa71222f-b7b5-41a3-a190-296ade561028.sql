@@ -1,0 +1,1 @@
+ALTER TABLE public.atividades DROP CONSTRAINT IF EXISTS atividades_tipo_check;
