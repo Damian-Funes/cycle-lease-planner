@@ -41,7 +41,27 @@ export default function NovaAtividadeQuickForm({
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [criarMeet, setCriarMeet] = useState(false);
+  const [tipoTocadoManualmente, setTipoTocadoManualmente] = useState(false);
   const { isConnected, syncAtividade } = useGoogleIntegration();
+
+  const handleTipoChange = (v: string) => {
+    setTipoTocadoManualmente(true);
+    setTipoId(v);
+  };
+
+  const handleCriarMeetChange = (v: boolean) => {
+    setCriarMeet(v);
+    if (v) {
+      const reuniao = tipos.find((t) => {
+        const n = t.nome.toLowerCase();
+        return n === "reunião" || n === "reuniao";
+      });
+      if (reuniao && tipoId !== reuniao.id) {
+        setTipoId(reuniao.id);
+        toast.info("Tipo alterado para Reunião automaticamente", { duration: 2000 });
+      }
+    }
+  };
 
   useEffect(() => {
     supabase.from("tipos_atividade" as any).select("*").eq("ativo", true).order("ordem").then(({ data }) => {
