@@ -15,7 +15,8 @@ const fmtBRL = (n: number) =>
 
 export default function CrmWidgets() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, hasRole } = useAuth();
+  const isMarketing = hasRole("marketing");
   const tables = useReadTables();
   const uid = user?.id;
 
@@ -126,8 +127,17 @@ export default function CrmWidgets() {
         <div className="flex items-start justify-between mb-2">
           <div>
             <div className="text-xs text-muted-foreground flex items-center gap-1.5"><KanbanSquare className="w-3.5 h-3.5" /> Meu Pipeline</div>
-            <div className="text-2xl font-bold text-primary mt-1">{fmtBRL(valorPipeline)}</div>
-            <div className="text-xs text-muted-foreground">{minhasAbertas.length} deals em aberto</div>
+            {isMarketing ? (
+              <>
+                <div className="text-2xl font-bold text-primary mt-1">{minhasAbertas.length}</div>
+                <div className="text-xs text-muted-foreground">oportunidades em aberto</div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-primary mt-1">{fmtBRL(valorPipeline)}</div>
+                <div className="text-xs text-muted-foreground">{minhasAbertas.length} deals em aberto</div>
+              </>
+            )}
           </div>
         </div>
         <div className="h-16 mt-2">
@@ -161,7 +171,7 @@ export default function CrmWidgets() {
       {/* 3) Deals Fechando Este Mês */}
       <Card onClick={() => navigate("/crm")} className="p-5 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all">
         <div className="text-xs text-muted-foreground flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" /> Fechando Este Mês</div>
-        <div className="text-2xl font-bold mt-1">{fechandoMes.length} <span className="text-sm font-normal text-muted-foreground">· {fmtBRL(valorFechandoMes)}</span></div>
+        <div className="text-2xl font-bold mt-1">{fechandoMes.length}{!isMarketing && <span className="text-sm font-normal text-muted-foreground"> · {fmtBRL(valorFechandoMes)}</span>}</div>
         <ul className="mt-2 space-y-1">
           {fechandoMes.slice(0, 3).map(o => (
             <li key={o.id} className="text-xs flex items-center justify-between gap-2">
@@ -188,15 +198,17 @@ export default function CrmWidgets() {
       {/* 5) Ganhos do Mês */}
       <Card onClick={() => navigate("/relatorios")} className="p-5 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all">
         <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> Ganhos do Mês</div>
-        <div className="text-2xl font-bold text-emerald-600 mt-1">{fmtBRL(valorGanhosMes)}</div>
+        <div className="text-2xl font-bold text-emerald-600 mt-1">{isMarketing ? ganhosMes.length : fmtBRL(valorGanhosMes)}</div>
         <div className="text-xs text-muted-foreground">{ganhosMes.length} deals fechados</div>
-        <div className="h-12 mt-2">
-          <ResponsiveContainer>
-            <LineChart data={sparkline}>
-              <Line type="monotone" dataKey="v" stroke="#059669" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {!isMarketing && (
+          <div className="h-12 mt-2">
+            <ResponsiveContainer>
+              <LineChart data={sparkline}>
+                <Line type="monotone" dataKey="v" stroke="#059669" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </Card>
 
       {/* 6) Próximas Atividades */}
