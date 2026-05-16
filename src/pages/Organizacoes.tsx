@@ -61,14 +61,14 @@ export default function Organizacoes() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email");
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return (data ?? []) as ProfileLite[];
     },
   });
 
   const profileMap = useMemo(() => {
     const m = new Map<string, ProfileLite>();
-    profiles.forEach((p) => m.set(p.id, p));
+    profiles.forEach((p) => m.set(p.user_id, p));
     return m;
   }, [profiles]);
 
