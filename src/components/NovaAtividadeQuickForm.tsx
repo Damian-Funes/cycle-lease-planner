@@ -130,7 +130,7 @@ export default function NovaAtividadeQuickForm({
       </div>
 
       <div className="flex gap-2">
-        <Select value={tipoId} onValueChange={setTipoId}>
+        <Select value={tipoId} onValueChange={handleTipoChange}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             {tipos.map(t => (
