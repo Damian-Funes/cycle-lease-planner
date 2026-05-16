@@ -22,13 +22,25 @@ async function verifyState(state: string, secret: string): Promise<string | null
 }
 
 function htmlRedirect(target: string, message: string) {
-  return new Response(
-    `<!doctype html><meta charset="utf-8"><title>Conectando…</title>
-<style>body{font-family:system-ui;display:grid;place-items:center;min-height:100vh;margin:0;background:#f9fafb;color:#111}</style>
-<div><h2>${message}</h2><p>Redirecionando…</p></div>
-<script>window.location.replace(${JSON.stringify(target)});</script>`,
-    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-  )
+  const body = `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Conectando...</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#f9fafb;color:#111}</style>
+</head>
+<body>
+<div><h2>${message}</h2><p>Redirecionando...</p></div>
+<script>window.location.replace(${JSON.stringify(target)});</script>
+</body>
+</html>`;
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  })
 }
 
 Deno.serve(async (req) => {
