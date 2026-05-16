@@ -146,6 +146,114 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_propostas_pre_vinculo: {
+        Row: {
+          cliente_cnpj: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_telefone: string | null
+          contato_nome: string | null
+          created_at: string | null
+          dados_congelados: boolean | null
+          divida: number | null
+          entrada: number | null
+          id: string | null
+          itens_projeto: Json | null
+          local_entrega: string | null
+          mensalidade_f1: number | null
+          mensalidade_f2: number | null
+          nome_cliente: string | null
+          numero_proposta: string | null
+          observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          peso_saco: number | null
+          pessoa_contato_id: string | null
+          reajuste_anual: number | null
+          responsavel_id: string | null
+          status: string | null
+          tarifa_excedente: number | null
+          tarifa_f1: number | null
+          tarifa_f2: number | null
+          total_10_anos: number | null
+          updated_at: string | null
+          validade_dias: number | null
+          valor_projeto: number | null
+          vol_min_f2_pct: number | null
+          volume_minimo_calculado: number | null
+        }
+        Insert: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          divida?: number | null
+          entrada?: number | null
+          id?: string | null
+          itens_projeto?: Json | null
+          local_entrega?: string | null
+          mensalidade_f1?: number | null
+          mensalidade_f2?: number | null
+          nome_cliente?: string | null
+          numero_proposta?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          peso_saco?: number | null
+          pessoa_contato_id?: string | null
+          reajuste_anual?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          tarifa_excedente?: number | null
+          tarifa_f1?: number | null
+          tarifa_f2?: number | null
+          total_10_anos?: number | null
+          updated_at?: string | null
+          validade_dias?: number | null
+          valor_projeto?: number | null
+          vol_min_f2_pct?: number | null
+          volume_minimo_calculado?: number | null
+        }
+        Update: {
+          cliente_cnpj?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_telefone?: string | null
+          contato_nome?: string | null
+          created_at?: string | null
+          dados_congelados?: boolean | null
+          divida?: number | null
+          entrada?: number | null
+          id?: string | null
+          itens_projeto?: Json | null
+          local_entrega?: string | null
+          mensalidade_f1?: number | null
+          mensalidade_f2?: number | null
+          nome_cliente?: string | null
+          numero_proposta?: string | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          peso_saco?: number | null
+          pessoa_contato_id?: string | null
+          reajuste_anual?: number | null
+          responsavel_id?: string | null
+          status?: string | null
+          tarifa_excedente?: number | null
+          tarifa_f1?: number | null
+          tarifa_f2?: number | null
+          total_10_anos?: number | null
+          updated_at?: string | null
+          validade_dias?: number | null
+          valor_projeto?: number | null
+          vol_min_f2_pct?: number | null
+          volume_minimo_calculado?: number | null
+        }
+        Relationships: []
+      }
       backup_triggers_pre_pr4: {
         Row: {
           backup_at: string | null
