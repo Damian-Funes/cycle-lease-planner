@@ -290,8 +290,8 @@ export default function Crm() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-approved-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, user_id, nome, email").eq("status", "approved");
-      return (data ?? []) as { id: string; user_id: string; nome: string | null; email: string }[];
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
+      return (data ?? []) as { user_id: string; nome: string | null; email: string }[];
     },
   });
 
@@ -603,7 +603,7 @@ export default function Crm() {
             <SelectContent>
               <SelectItem value="all">Todos os responsáveis</SelectItem>
               {profiles.map((p) => (
-                <SelectItem key={p.id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
+                <SelectItem key={p.user_id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
               ))}
             </SelectContent>
           </Select>
