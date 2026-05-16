@@ -58,3 +58,27 @@ As 5 views disparam o linter `0010_security_definer_view`. **É intencional:** o
 
 ### 3) `tipo_mudanca='valor'` em `historico_oportunidade`
 Marketing não lê esses registros (policy filtra). Eventos `etapa`, `status`, `motivo_perda`, `criada` são visíveis.
+
+## REGRA DE OURO — Referências a usuário
+
+**Toda coluna que referencia usuário (`responsavel_id`, `criador_id`, `usuario_id`, `aprovado_por`, `approved_by`, `created_by`, etc.) armazena `auth.users.id`** — o mesmo valor retornado por `auth.uid()` no backend e `user.id` no frontend.
+
+- ✅ Backend: `NEW.responsavel_id := auth.uid()`
+- ✅ Frontend: `responsavel_id: user.id`
+- ❌ **NUNCA usar `profile.id`** para essa finalidade.
+
+`profiles.id` existe APENAS como chave primária da própria tabela `profiles`. Para join com perfis use `profiles.user_id`.
+
+FKs ajustadas (PR pós-1.5):
+- `organizacoes.responsavel_id` → `profiles(user_id)` ON DELETE SET NULL
+- `pessoas.responsavel_id` → `profiles(user_id)` ON DELETE SET NULL
+- `atividades.responsavel_id` → `profiles(user_id)` (já existia)
+- `oportunidades`, `propostas`, `orcamentos*`: sem FK (mas dados normalizados)
+
+### Padrão para dropdowns de "Responsável"
+```tsx
+const { data: profiles } = useQuery({
+  queryFn: () => supabase.from("profiles").select("user_id, nome, email").eq("status","approved")
+});
+// Select: key={p.user_id} value={p.user_id}
+```
