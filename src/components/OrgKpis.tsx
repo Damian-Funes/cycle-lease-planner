@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -7,15 +8,17 @@ const fmtBRL = (v: number | null | undefined) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function OrgKpis({ organizacaoId }: { organizacaoId: string }) {
+  const tables = useReadTables();
+  const isMkt = tables.propostas !== "propostas";
   const { data, isLoading } = useQuery({
-    queryKey: ["org-kpis", organizacaoId],
+    queryKey: ["org-kpis", organizacaoId, isMkt],
     queryFn: async () => {
       const [props, orcs, orcsRef, ats] = await Promise.all([
-        (supabase as any).from("propostas")
-          .select("status, total_10_anos, updated_at")
+        (supabase as any).from(tables.propostas)
+          .select(isMkt ? "status, updated_at" : "status, total_10_anos, updated_at")
           .eq("organizacao_id", organizacaoId),
-        (supabase as any).from("orcamentos").select("updated_at").eq("organizacao_id", organizacaoId),
-        (supabase as any).from("orcamentos_reforma").select("updated_at").eq("organizacao_id", organizacaoId),
+        (supabase as any).from(tables.orcamentos).select("updated_at").eq("organizacao_id", organizacaoId),
+        (supabase as any).from(tables.orcamentos_reforma).select("updated_at").eq("organizacao_id", organizacaoId),
         (supabase as any).from("atividades").select("updated_at").eq("organizacao_id", organizacaoId).order("updated_at", { ascending: false }).limit(1),
       ]);
       const propostas = (props.data ?? []) as any[];
