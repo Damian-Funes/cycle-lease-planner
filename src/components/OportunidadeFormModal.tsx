@@ -224,7 +224,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
                 <SelectContent>
                   <SelectItem value="none">Sem responsável</SelectItem>
                   {profiles.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>{p.nome ?? p.email}</SelectItem>
+                    <SelectItem key={p.user_id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
