@@ -142,7 +142,7 @@ export default function Organizacoes() {
             <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos responsáveis</SelectItem>
-              {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome || p.email}</SelectItem>)}
+              {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={segFiltro} onValueChange={(v) => { setSegFiltro(v); setPage(0); }}>
