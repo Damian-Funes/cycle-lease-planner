@@ -146,6 +146,27 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_triggers_pre_pr4: {
+        Row: {
+          backup_at: string | null
+          create_statement: string | null
+          tabela: unknown
+          trigger_name: unknown
+        }
+        Insert: {
+          backup_at?: string | null
+          create_statement?: string | null
+          tabela?: unknown
+          trigger_name?: unknown
+        }
+        Update: {
+          backup_at?: string | null
+          create_statement?: string | null
+          tabela?: unknown
+          trigger_name?: unknown
+        }
+        Relationships: []
+      }
       equipamentos: {
         Row: {
           altura_mm: number | null
