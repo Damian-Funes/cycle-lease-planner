@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -11,7 +12,20 @@ export interface GoogleIntegration {
   updated_at: string;
 }
 
+// ---- Sync state (pub/sub global) ----
+const syncingIds = new Set<string>();
+const listeners = new Set<() => void>();
+function notify() { listeners.forEach((l) => l()); }
+function subscribe(l: () => void) { listeners.add(l); return () => { listeners.delete(l); }; }
+function getSnapshot() { return syncingIds.size; } // primitive snapshot OK
+
+export function useSyncingAtividade(id: string | null | undefined) {
+  useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return id ? syncingIds.has(id) : false;
+}
+
 export function useGoogleIntegration() {
+  const qc = useQueryClient();
   const [integration, setIntegration] = useState<GoogleIntegration | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,15 +65,23 @@ export function useGoogleIntegration() {
   }, [integration]);
 
   const syncAtividade = useCallback(async (atividade_id: string, action: "create" | "update" | "delete") => {
-    const { data, error } = await supabase.functions.invoke("google-calendar-sync", {
-      body: { action, atividade_id },
-    });
-    if (error) {
-      console.error("[google-sync]", error);
-      return { ok: false, error: error.message };
+    syncingIds.add(atividade_id); notify();
+    try {
+      const { data, error } = await supabase.functions.invoke("google-calendar-sync", {
+        body: { action, atividade_id },
+      });
+      if (error) {
+        console.error("[google-sync]", error);
+        return { ok: false, error: error.message };
+      }
+      return data as any;
+    } finally {
+      syncingIds.delete(atividade_id); notify();
+      // Invalida caches que listam/usam atividades
+      qc.invalidateQueries({ queryKey: ["atividades"] });
+      qc.invalidateQueries({ queryKey: ["atividade"] });
     }
-    return data as any;
-  }, []);
+  }, [qc]);
 
   return { integration, loading, refresh, connect, disconnect, syncAtividade, isConnected: !!integration };
 }

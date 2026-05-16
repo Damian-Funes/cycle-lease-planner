@@ -41,7 +41,27 @@ export default function NovaAtividadeQuickForm({
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [criarMeet, setCriarMeet] = useState(false);
+  const [tipoTocadoManualmente, setTipoTocadoManualmente] = useState(false);
   const { isConnected, syncAtividade } = useGoogleIntegration();
+
+  const handleTipoChange = (v: string) => {
+    setTipoTocadoManualmente(true);
+    setTipoId(v);
+  };
+
+  const handleCriarMeetChange = (v: boolean) => {
+    setCriarMeet(v);
+    if (v) {
+      const reuniao = tipos.find((t) => {
+        const n = t.nome.toLowerCase();
+        return n === "reunião" || n === "reuniao";
+      });
+      if (reuniao && tipoId !== reuniao.id) {
+        setTipoId(reuniao.id);
+        toast.info("Tipo alterado para Reunião automaticamente", { duration: 2000 });
+      }
+    }
+  };
 
   useEffect(() => {
     supabase.from("tipos_atividade" as any).select("*").eq("ativo", true).order("ordem").then(({ data }) => {
@@ -110,7 +130,7 @@ export default function NovaAtividadeQuickForm({
       </div>
 
       <div className="flex gap-2">
-        <Select value={tipoId} onValueChange={setTipoId}>
+        <Select value={tipoId} onValueChange={handleTipoChange}>
           <SelectTrigger className="w-[160px]"><SelectValue placeholder="Tipo" /></SelectTrigger>
           <SelectContent>
             {tipos.map(t => (
@@ -173,7 +193,7 @@ export default function NovaAtividadeQuickForm({
 
       {isConnected && (
         <div className="flex items-center gap-2 pt-1">
-          <Switch id="criar-meet" checked={criarMeet} onCheckedChange={setCriarMeet} />
+          <Switch id="criar-meet" checked={criarMeet} onCheckedChange={handleCriarMeetChange} />
           <Label htmlFor="criar-meet" className="text-sm cursor-pointer flex items-center gap-1">
             <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
           </Label>

@@ -17,7 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle } from "lucide-react";
+import { useSyncingAtividade } from "@/hooks/useGoogleIntegration";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -36,6 +38,32 @@ interface Atividade {
 type Periodo = "hoje" | "semana" | "proxima" | "atrasadas" | "tudo";
 
 const initials = (s?: string | null) => (s || "?").split(" ").map(x => x[0]).slice(0, 2).join("").toUpperCase();
+
+function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
+  const syncing = useSyncingAtividade(id);
+  if (syncing) {
+    return (
+      <span className="inline-flex items-center gap-1 ml-2 text-xs text-muted-foreground align-middle">
+        <Loader2 className="h-3 w-3 animate-spin" /> sincronizando…
+      </span>
+    );
+  }
+  if (erro) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center ml-2 align-middle text-amber-600">
+              <AlertTriangle className="h-3.5 w-3.5" />
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">{erro}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  return null;
+}
 
 export default function Atividades() {
   const { user } = useAuth();
@@ -187,6 +215,7 @@ export default function Atividades() {
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium truncate ${a.concluida ? "line-through text-muted-foreground" : ""}`}>
             {a.titulo}
+            <SyncIndicator id={a.id} erro={a.erro_sincronizacao} />
             {a.google_meet_link && (
               <a href={a.google_meet_link} target="_blank" rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
