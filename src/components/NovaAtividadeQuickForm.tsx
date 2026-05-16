@@ -193,7 +193,7 @@ export default function NovaAtividadeQuickForm({
 
       {isConnected && (
         <div className="flex items-center gap-2 pt-1">
-          <Switch id="criar-meet" checked={criarMeet} onCheckedChange={setCriarMeet} />
+          <Switch id="criar-meet" checked={criarMeet} onCheckedChange={handleCriarMeetChange} />
           <Label htmlFor="criar-meet" className="text-sm cursor-pointer flex items-center gap-1">
             <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
           </Label>
