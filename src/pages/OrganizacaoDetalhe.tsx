@@ -58,16 +58,19 @@ export default function OrganizacaoDetalhe() {
   const [editingPessoa, setEditingPessoa] = useState<PessoaRow | null>(null);
   const [vincularOpen, setVincularOpen] = useState(false);
 
-  const { data: org, isLoading } = useQuery({
+  const { data: org, isLoading, isError } = useQuery({
     queryKey: ["organizacao", id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("organizacoes").select("*").eq("id", id).single();
+        .from("organizacoes").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      return data as OrganizacaoRow;
+      return (data ?? null) as OrganizacaoRow | null;
     },
     enabled: !!id,
+    retry: false,
   });
+
+  const orgExiste = !!org;
 
   const { data: pessoas = [] } = useQuery({
     queryKey: ["pessoas", "org", id],
@@ -75,7 +78,7 @@ export default function OrganizacaoDetalhe() {
       const { data } = await (supabase as any).from("pessoas").select("*").eq("organizacao_id", id).order("nome");
       return (data ?? []) as PessoaRow[];
     },
-    enabled: !!id,
+    enabled: !!id && orgExiste,
   });
 
   const { data: profiles = [] } = useQuery({
@@ -84,6 +87,7 @@ export default function OrganizacaoDetalhe() {
       const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return (data ?? []) as { user_id: string; nome: string | null; email: string }[];
     },
+    enabled: orgExiste,
   });
   const profileMap = useMemo(() => new Map(profiles.map((p) => [p.user_id, p])), [profiles]);
 
