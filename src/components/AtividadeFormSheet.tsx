@@ -215,7 +215,13 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
               <Switch
                 id="criar-meet-sheet"
                 checked={!!form.watch("criar_meet")}
-                onCheckedChange={(v) => form.setValue("criar_meet", v)}
+                onCheckedChange={(v) => {
+                  form.setValue("criar_meet", v);
+                  if (v && form.getValues("tipo") !== "reuniao") {
+                    form.setValue("tipo", "reuniao");
+                    toast.info("Tipo alterado para Reunião automaticamente", { duration: 2000 });
+                  }
+                }}
               />
               <Label htmlFor="criar-meet-sheet" className="text-sm cursor-pointer flex items-center gap-1">
                 <Video className="h-3.5 w-3.5 text-primary" /> Criar reunião Google Meet
