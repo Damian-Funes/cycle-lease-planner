@@ -53,13 +53,13 @@ export default function Pessoas() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email");
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return (data ?? []) as ProfileLite[];
     },
   });
 
   const orgMap = useMemo(() => new Map(orgs.map((o) => [o.id, o])), [orgs]);
-  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
+  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.user_id, p])), [profiles]);
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
