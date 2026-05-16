@@ -261,7 +261,10 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             <div className="relative">
               <Input
                 value={form.watch("cnpj") || ""}
-                onChange={(e) => form.setValue("cnpj", formatCnpj(e.target.value))}
+                onChange={(e) => {
+                  form.setValue("cnpj", formatCnpj(e.target.value));
+                  if (form.formState.errors.cnpj) form.clearErrors("cnpj");
+                }}
                 placeholder="00.000.000/0000-00"
                 maxLength={18}
                 inputMode="numeric"
@@ -271,6 +274,9 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
                 <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
               )}
             </div>
+            {form.formState.errors.cnpj && (
+              <p className="text-xs text-destructive">{form.formState.errors.cnpj.message as string}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Segmento</Label>
