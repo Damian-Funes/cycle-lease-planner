@@ -33,6 +33,7 @@ import OrgPropostas from "@/components/OrgPropostas";
 import OrgOrcamentos from "@/components/OrgOrcamentos";
 import OrgLayouts from "@/components/OrgLayouts";
 import OrgKpis from "@/components/OrgKpis";
+import SemPermissao from "@/components/SemPermissao";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
