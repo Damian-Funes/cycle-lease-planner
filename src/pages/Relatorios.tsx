@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Lock } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,10 +28,29 @@ const COLORS = ["#059669", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"
 
 export default function Relatorios() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isMarketing = hasRole("marketing");
   const [pipelineId, setPipelineId] = useState<string>("todos");
   const [responsavelId, setResponsavelId] = useState<string>("todos");
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+
+  if (isMarketing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto p-6">
+          <Card className="p-12 text-center max-w-xl mx-auto">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h1 className="text-xl font-semibold mb-2">Sem permissão</h1>
+            <p className="text-sm text-muted-foreground">
+              Você não tem permissão para visualizar relatórios financeiros.
+            </p>
+          </Card>
+        </main>
+      </div>
+    );
+  }
 
   const [pipelines, setPipelines] = useState<any[]>([]);
   const [vendedores, setVendedores] = useState<any[]>([]);

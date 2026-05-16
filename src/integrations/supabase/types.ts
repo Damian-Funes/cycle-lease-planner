@@ -369,6 +369,13 @@ export type Database = {
             referencedRelation: "v_oportunidades_kanban"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "historico_oportunidade_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
         ]
       }
       itens_reforma: {
@@ -683,6 +690,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "oportunidade_pessoas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "oportunidade_pessoas_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
@@ -914,6 +928,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orcamentos_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
@@ -1027,6 +1048,13 @@ export type Database = {
             columns: ["oportunidade_id"]
             isOneToOne: false
             referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
             referencedColumns: ["id"]
           },
           {
@@ -1383,6 +1411,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "propostas_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
@@ -1665,6 +1700,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orcamentos_reforma_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
@@ -1760,6 +1802,13 @@ export type Database = {
             columns: ["oportunidade_id"]
             isOneToOne: false
             referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
             referencedColumns: ["id"]
           },
           {
@@ -1867,6 +1916,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "propostas_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
@@ -1908,6 +1964,62 @@ export type Database = {
           ultima_atividade_em: string | null
           updated_at: string | null
           valor_estimado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "etapas_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "v_relatorio_tempo_etapa"
+            referencedColumns: ["etapa_id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_oportunidades_kanban_sem_valores: {
+        Row: {
+          created_at: string | null
+          data_fechamento_prevista: string | null
+          data_fechamento_real: string | null
+          dias_sem_atividade: number | null
+          etapa_cor: string | null
+          etapa_id: string | null
+          etapa_rotting_days: number | null
+          id: string | null
+          motivo_perda: string | null
+          ordem_coluna: number | null
+          organizacao_id: string | null
+          organizacao_nome: string | null
+          pipeline_id: string | null
+          proxima_atividade_em: string | null
+          responsavel_email: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          rotting_status: string | null
+          status: string | null
+          titulo: string | null
+          ultima_atividade_em: string | null
+          updated_at: string | null
         }
         Relationships: [
           {
