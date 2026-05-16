@@ -72,7 +72,7 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-approved"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email").eq("status", "approved");
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return data ?? [];
     },
   });
