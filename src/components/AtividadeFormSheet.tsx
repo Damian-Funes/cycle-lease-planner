@@ -123,7 +123,10 @@ export default function AtividadeFormSheet({ open, onOpenChange, organizacaoId }
         <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="space-y-4 mt-4">
           <div className="space-y-1">
             <Label>Tipo *</Label>
-            <Select value={form.watch("tipo")} onValueChange={(v) => form.setValue("tipo", v as any)}>
+            <Select
+              value={form.watch("tipo")}
+              onValueChange={(v) => form.setValue("tipo", v as any, { shouldDirty: true })}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TIPOS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
