@@ -246,7 +246,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Organização" : "Nova Organização"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2 space-y-1">
             <Label>Nome *</Label>
             <Input {...form.register("nome")} />
