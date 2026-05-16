@@ -156,7 +156,6 @@ export default function NovaOportunidadeModal({
   // Reset on open
   useEffect(() => {
     if (open) {
-      const meProfile = profiles.find((p) => p.user_id === user?.id);
       const firstPipeline = defaultPipelineId || pipelines[0]?.id || "";
       form.reset({
         titulo: defaultTitulo ?? "",
@@ -166,7 +165,7 @@ export default function NovaOportunidadeModal({
         valor_estimado: defaultValor ?? 0,
         probabilidade: 50,
         data_fechamento_prevista: null,
-        responsavel_id: meProfile?.id ?? "",
+        responsavel_id: user?.id ?? "",
         observacoes: "",
       });
       setValorRaw(defaultValor ? formatBRL(defaultValor) : "");
