@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { Equipamento } from "@/lib/equipamentos";
 import { OrcamentoParams, ItemOrcamento, DEFAULT_ORCAMENTO, calcSubtotal, calcDescontoAplicado, calcTotal } from "@/lib/orcamento";
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
