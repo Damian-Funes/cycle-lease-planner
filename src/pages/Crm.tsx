@@ -19,6 +19,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useReadTables } from "@/lib/tables";
 import AppHeader from "@/components/AppHeader";
 import NovaOportunidadeModal from "@/components/NovaOportunidadeModal";
 import { Card } from "@/components/ui/card";
@@ -77,7 +78,7 @@ const ROTTING_MAP: Record<RottingStatus, { border: string; emoji: string; label:
   no_activity: { border: "border-l-rose-500",    emoji: "⚠️", label: "Sem atividade" },
 };
 
-function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
+function OpCard({ op, etapa, hideValor }: { op: Oportunidade; etapa?: Etapa; hideValor?: boolean }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: op.id,
@@ -140,9 +141,11 @@ function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
         </Link>
       )}
       <div className="flex items-end justify-between mb-2">
-        <span className="text-base font-bold">
-          {op.valor_estimado ? fmtBRL(Number(op.valor_estimado)) : "—"}
-        </span>
+        {hideValor ? <span /> : (
+          <span className="text-base font-bold">
+            {op.valor_estimado ? fmtBRL(Number(op.valor_estimado)) : "—"}
+          </span>
+        )}
         <Avatar className="w-7 h-7">
           <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
         </Avatar>
@@ -169,7 +172,7 @@ function OpCard({ op, etapa }: { op: Oportunidade; etapa?: Etapa }) {
 }
 
 /* ---------- Column ---------- */
-function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
+function Column({ etapa, ops, hideValor }: { etapa: Etapa; ops: Oportunidade[]; hideValor?: boolean }) {
   const total = ops.reduce((s, o) => s + (Number(o.valor_estimado) || 0), 0);
   const cor = etapa.cor ?? "#94a3b8";
   const ids = ops.map((o) => o.id);
@@ -204,7 +207,7 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
           </div>
         </div>
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium">{fmtBRL(total)}</span>
+          <span className="font-medium">{hideValor ? `${ops.length} oportunidade${ops.length === 1 ? "" : "s"}` : fmtBRL(total)}</span>
           <span className="text-muted-foreground">{etapa.probabilidade_default}% prob.</span>
         </div>
       </div>
@@ -215,7 +218,7 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
           className={`flex-1 p-2 space-y-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/5" : ""}`}
         >
           {ops.map((op) => (
-            <OpCard key={op.id} op={op} etapa={etapa} />
+            <OpCard key={op.id} op={op} etapa={etapa} hideValor={hideValor} />
           ))}
           {ops.length === 0 && (
             <div className="text-center text-xs text-muted-foreground py-6">Solte aqui</div>
@@ -230,7 +233,9 @@ function Column({ etapa, ops }: { etapa: Etapa; ops: Oportunidade[] }) {
 export default function Crm() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { isAdmin, profile, user } = useAuth();
+  const { isAdmin, profile, user, hasRole } = useAuth();
+  const isMarketing = hasRole("marketing");
+  const tables = useReadTables();
 
   const [pipelineId, setPipelineId] = useState<string>(() => localStorage.getItem(STORAGE_KEY) ?? "");
   const [novaOpen, setNovaOpen] = useState(false);
@@ -270,15 +275,15 @@ export default function Crm() {
   });
 
   const { data: oportunidades = [] } = useQuery({
-    queryKey: ["oportunidades"],
+    queryKey: ["oportunidades", tables.oportunidades_kanban],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("v_oportunidades_kanban")
+        .from(tables.oportunidades_kanban)
         .select("*")
         .order("ordem_coluna", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Oportunidade[];
+      return (data as any[]).map((o) => ({ valor_estimado: 0, probabilidade: 0, ...o })) as Oportunidade[];
     },
   });
 
