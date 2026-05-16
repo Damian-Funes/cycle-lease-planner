@@ -603,7 +603,7 @@ export default function Crm() {
             <SelectContent>
               <SelectItem value="all">Todos os responsáveis</SelectItem>
               {profiles.map((p) => (
-                <SelectItem key={p.id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
+                <SelectItem key={p.user_id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
               ))}
             </SelectContent>
           </Select>
