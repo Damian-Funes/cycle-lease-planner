@@ -28,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
   lead: "Lead", prospect: "Prospect", ativo: "Ativo", inativo: "Inativo", perdido: "Perdido",
 };
 
-interface ProfileLite { id: string; nome: string | null; email: string }
+interface ProfileLite { user_id: string; nome: string | null; email: string }
 const PAGE_SIZE = 25;
 
 function initials(name: string) {
