@@ -15,7 +15,7 @@ import { ArrowLeft, Plus, Search, Pencil, Loader2, User, Star, Mail, Phone } fro
 import AppHeader from "@/components/AppHeader";
 import PessoaFormModal, { PessoaRow } from "@/components/PessoaFormModal";
 
-interface ProfileLite { id: string; nome: string | null; email: string }
+interface ProfileLite { user_id: string; nome: string | null; email: string }
 interface OrgLite { id: string; nome: string }
 
 function initials(name: string) {
