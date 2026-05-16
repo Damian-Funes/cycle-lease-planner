@@ -556,24 +556,26 @@ export default function Crm() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <Target className="w-3 h-3" /> Total no Pipeline
+              <Target className="w-3 h-3" /> Oportunidades no Pipeline
             </div>
             <div className="text-2xl font-bold leading-tight">{kpis.totalCount}</div>
-            <div className="text-xs text-muted-foreground">{fmtBRL(kpis.totalValor)}</div>
+            {!isMarketing && <div className="text-xs text-muted-foreground">{fmtBRL(kpis.totalValor)}</div>}
           </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-              <TrendingUp className="w-3 h-3" /> Forecast Ponderado
-            </div>
-            <div className="text-2xl font-bold leading-tight">{fmtBRL(kpis.ponderado)}</div>
-            <div className="text-xs text-muted-foreground">Σ valor × prob.</div>
-          </Card>
+          {!isMarketing && (
+            <Card className="p-4">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                <TrendingUp className="w-3 h-3" /> Forecast Ponderado
+              </div>
+              <div className="text-2xl font-bold leading-tight">{fmtBRL(kpis.ponderado)}</div>
+              <div className="text-xs text-muted-foreground">Σ valor × prob.</div>
+            </Card>
+          )}
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
               <Trophy className="w-3 h-3" /> Ganhas no Mês
             </div>
             <div className="text-2xl font-bold leading-tight">{kpis.ganhasMes}</div>
-            <div className="text-xs text-muted-foreground">{fmtBRL(kpis.ganhasMesValor)}</div>
+            {!isMarketing && <div className="text-xs text-muted-foreground">{fmtBRL(kpis.ganhasMesValor)}</div>}
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
@@ -643,7 +645,7 @@ export default function Crm() {
             <div className="flex-1 overflow-x-auto">
               <div className="flex gap-3 pb-4 min-h-full">
                 {etapasPipeline.map((etapa) => (
-                  <Column key={etapa.id} etapa={etapa} ops={opsByEtapa[etapa.id] ?? []} />
+                  <Column key={etapa.id} etapa={etapa} ops={opsByEtapa[etapa.id] ?? []} hideValor={isMarketing} />
                 ))}
               </div>
             </div>
@@ -652,9 +654,11 @@ export default function Crm() {
                 <div className="bg-card border rounded-md p-3 shadow-lg w-72">
                   <div className="font-semibold text-sm">{activeOp.titulo}</div>
                   <div className="text-xs text-muted-foreground">{activeOp.organizacao_nome}</div>
-                  <div className="text-base font-bold mt-1">
-                    {activeOp.valor_estimado ? fmtBRL(Number(activeOp.valor_estimado)) : "—"}
-                  </div>
+                  {!isMarketing && (
+                    <div className="text-base font-bold mt-1">
+                      {activeOp.valor_estimado ? fmtBRL(Number(activeOp.valor_estimado)) : "—"}
+                    </div>
+                  )}
                 </div>
               )}
             </DragOverlay>
