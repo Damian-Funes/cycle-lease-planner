@@ -118,6 +118,68 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
     }
   }, [open, organizacao]);
 
+  // Autocomplete CNPJ via BrasilAPI
+  const cnpjValue = form.watch("cnpj") || "";
+  const { data: cnpjData, loading: cnpjLoading, status: cnpjStatus, situacao: cnpjSituacao } =
+    useBrasilApiCnpj(cnpjValue);
+  const lastAppliedCnpj = useRef<string>("");
+
+  useEffect(() => {
+    if (cnpjStatus === "not_found") {
+      toast("CNPJ não encontrado, preencha manualmente");
+      return;
+    }
+    if (cnpjStatus === "network_error") {
+      toast("Não foi possível buscar agora");
+      return;
+    }
+    if (cnpjStatus !== "success" || !cnpjData) return;
+
+    const digits = onlyDigits(cnpjValue);
+    if (lastAppliedCnpj.current === digits) return;
+    lastAppliedCnpj.current = digits;
+
+    const setIfEmpty = (field: keyof FormValues, value: string | null | undefined) => {
+      const current = (form.getValues(field) as string | undefined)?.trim();
+      if (!current && value) form.setValue(field, value as any, { shouldDirty: true });
+    };
+
+    setIfEmpty("nome", cnpjData.razao_social);
+    setIfEmpty("nome_fantasia", cnpjData.nome_fantasia);
+
+    const enderecoParts = [
+      cnpjData.logradouro,
+      cnpjData.numero,
+      cnpjData.complemento,
+      cnpjData.bairro,
+    ]
+      .map((p) => (p ?? "").toString().trim())
+      .filter(Boolean);
+    if (enderecoParts.length) setIfEmpty("endereco", enderecoParts.join(", "));
+
+    setIfEmpty("cidade", cnpjData.municipio);
+    setIfEmpty("telefone_principal", cnpjData.ddd_telefone_1);
+    setIfEmpty("email_principal", cnpjData.email);
+
+    // UF → estado_id + sigla (ambos)
+    if (cnpjData.uf) {
+      const uf = cnpjData.uf.toUpperCase();
+      const match = estados.find((e) => e.sigla.toUpperCase() === uf);
+      if (match) {
+        const currentEstadoId = (form.getValues("estado_id") as string | undefined)?.trim();
+        if (!currentEstadoId) {
+          form.setValue("estado_id", match.id, { shouldDirty: true });
+          form.setValue("estado", match.sigla, { shouldDirty: true });
+        }
+      }
+    }
+
+    toast.success("Dados encontrados");
+    if (cnpjSituacao && cnpjSituacao.toUpperCase() !== "ATIVA") {
+      toast.warning(`⚠️ Situação cadastral: ${cnpjSituacao}`);
+    }
+  }, [cnpjStatus, cnpjData, cnpjSituacao]);
+
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
       const payload: any = {
