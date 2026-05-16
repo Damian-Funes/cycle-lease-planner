@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RequireRole from "@/components/RequireRole";
 import GlobalShortcuts from "@/components/GlobalShortcuts";
 import Auth from "./pages/Auth";
 import Pendente from "./pages/Pendente";
@@ -69,9 +70,9 @@ const App = () => (
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
-              <Route path="/reforma/catalogo" element={<ProtectedRoute requireAdmin><ReformaCatalogo /></ProtectedRoute>} />
-              <Route path="/admin/usuarios" element={<ProtectedRoute requireAdmin><AdminUsuarios /></ProtectedRoute>} />
-              <Route path="/admin/pipelines" element={<ProtectedRoute requireAdmin><AdminPipelines /></ProtectedRoute>} />
+              <Route path="/reforma/catalogo" element={<ProtectedRoute><RequireRole roles={["admin"]}><ReformaCatalogo /></RequireRole></ProtectedRoute>} />
+              <Route path="/admin/usuarios" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminUsuarios /></RequireRole></ProtectedRoute>} />
+              <Route path="/admin/pipelines" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminPipelines /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/integracoes" element={<ProtectedRoute><ConfiguracoesIntegracoes /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
