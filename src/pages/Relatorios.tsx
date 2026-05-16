@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Card } from "@/components/ui/card";
+import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const COLORS = ["#059669", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981"
 
 export default function Relatorios() {
   const navigate = useNavigate();
+  const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
   const { hasRole } = useAuth();
   const isMarketing = hasRole("marketing");
   const [pipelineId, setPipelineId] = useState<string>("todos");
@@ -351,7 +353,7 @@ export default function Relatorios() {
               <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {vendedores.map(v => <SelectItem key={v.user_id} value={v.user_id}>{v.nome || v.email}</SelectItem>)}
+                {respFilterProfiles.map(v => <SelectItem key={v.user_id} value={v.user_id}>{v.nome || v.email}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

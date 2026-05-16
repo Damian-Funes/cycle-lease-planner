@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useReadTables } from "@/lib/tables";
 import AppHeader from "@/components/AppHeader";
 import NovaOportunidadeModal from "@/components/NovaOportunidadeModal";
+import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -287,13 +288,7 @@ export default function Crm() {
     },
   });
 
-  const { data: profiles = [] } = useQuery({
-    queryKey: ["profiles-approved-lite"],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
-      return (data ?? []) as { user_id: string; nome: string | null; email: string }[];
-    },
-  });
+  const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
   /* Default pipeline */
   useEffect(() => {
@@ -602,7 +597,7 @@ export default function Crm() {
             <SelectTrigger className="w-[180px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os responsáveis</SelectItem>
-              {profiles.map((p) => (
+              {respFilterProfiles.map((p) => (
                 <SelectItem key={p.user_id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
               ))}
             </SelectContent>

@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ActivityFeed from "@/components/ActivityFeed";
 import DealPropostasOrcamentos from "@/components/DealPropostasOrcamentos";
+import SemPermissao from "@/components/SemPermissao";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
 
@@ -85,7 +86,7 @@ export default function DealDetalhe() {
       supabase.from("etapas_pipeline").select("*").order("ordem"),
       supabase.from("profiles").select("user_id, nome, email").eq("status", "approved"),
     ]);
-    if (!d) { setLoading(false); toast.error("Oportunidade não encontrada"); return; }
+    if (!d) { setDeal(null); setLoading(false); return; }
     setDeal(d);
     setPipelines(pips || []);
     setEtapas(eps || []);
@@ -343,7 +344,15 @@ export default function DealDetalhe() {
     );
   }
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
-  if (!deal) return <div className="p-8">Não encontrado.</div>;
+  if (!deal) return (
+    <SemPermissao
+      titulo="Oportunidade não encontrada"
+      mensagem="Esta oportunidade não existe ou você não tem permissão para visualizá-la."
+      ctaText="Voltar para o CRM"
+      ctaHref="/crm"
+      icone="search"
+    />
+  );
 
   const statusColor = deal.status === "ganha" ? "bg-emerald-600" : deal.status === "perdida" ? "bg-rose-600" : "bg-blue-600";
   const idxAtual = etapasPipeline.findIndex(e => e.id === deal.etapa_id);

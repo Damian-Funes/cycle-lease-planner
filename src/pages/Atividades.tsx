@@ -25,6 +25,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import AtividadesCalendar from "@/components/AtividadesCalendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 
 interface Tipo { id: string; nome: string; icone: string | null; cor: string | null; ativo: boolean; }
 interface Profile { user_id: string; nome: string | null; email: string; }
@@ -68,6 +69,7 @@ function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
 export default function Atividades() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
   const [tipos, setTipos] = useState<Tipo[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -303,7 +305,7 @@ export default function Atividades() {
               <SelectContent>
                 <SelectItem value="me">Eu</SelectItem>
                 <SelectItem value="all">Todos</SelectItem>
-                {profiles.map(p => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
+                {respFilterProfiles.map(p => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
               </SelectContent>
             </Select>
           </Card>
