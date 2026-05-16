@@ -111,8 +111,8 @@ export default function NovaOportunidadeModal({
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-approved-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, user_id, nome, email").eq("status", "approved");
-      return (data ?? []) as { id: string; user_id: string; nome: string | null; email: string }[];
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
+      return (data ?? []) as { user_id: string; nome: string | null; email: string }[];
     },
   });
 
