@@ -99,7 +99,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       form.reset({
         nome: organizacao?.nome ?? "",
         nome_fantasia: organizacao?.nome_fantasia ?? "",
-        cnpj: organizacao?.cnpj ?? "",
+        cnpj: formatCnpj(organizacao?.cnpj ?? ""),
         segmento: organizacao?.segmento ?? "",
         porte: organizacao?.porte ?? "",
         regiao: organizacao?.regiao ?? "",
@@ -123,7 +123,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       const payload: any = {
         nome: v.nome.trim(),
         nome_fantasia: v.nome_fantasia?.trim() || null,
-        cnpj: v.cnpj?.trim() || null,
+        cnpj: onlyDigits(v.cnpj) || null,
         segmento: v.segmento?.trim() || null,
         porte: v.porte || null,
         regiao: v.regiao?.trim() || null,
@@ -173,7 +173,19 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
           </div>
           <div className="space-y-1">
             <Label>CNPJ</Label>
-            <Input {...form.register("cnpj")} placeholder="00.000.000/0000-00" />
+            <div className="relative">
+              <Input
+                value={form.watch("cnpj") || ""}
+                onChange={(e) => form.setValue("cnpj", formatCnpj(e.target.value))}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+                inputMode="numeric"
+                className={cnpjLoading ? "pr-9" : ""}
+              />
+              {cnpjLoading && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label>Segmento</Label>
