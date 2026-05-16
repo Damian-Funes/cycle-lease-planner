@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,12 +22,16 @@ export default function DealPropostasOrcamentos({
   oportunidadeId, organizacaoId, propostaVinculada, onDesvincular, onAbrirVincular,
 }: Props) {
   const navigate = useNavigate();
+  const tables = useReadTables();
+  const isMkt = tables.propostas !== "propostas";
 
   const { data: propostas = [], isLoading: l1 } = useQuery({
-    queryKey: ["deal-propostas", oportunidadeId],
+    queryKey: ["deal-propostas", oportunidadeId, isMkt],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("propostas")
-        .select("id, numero_proposta, nome_cliente, total_10_anos, status, created_at")
+      const { data } = await (supabase as any).from(tables.propostas)
+        .select(isMkt
+          ? "id, numero_proposta, nome_cliente, status, created_at"
+          : "id, numero_proposta, nome_cliente, total_10_anos, status, created_at")
         .eq("oportunidade_id", oportunidadeId)
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -34,10 +39,12 @@ export default function DealPropostasOrcamentos({
   });
 
   const { data: orcamentos = [], isLoading: l2 } = useQuery({
-    queryKey: ["deal-orcamentos", oportunidadeId],
+    queryKey: ["deal-orcamentos", oportunidadeId, isMkt],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("orcamentos")
-        .select("id, numero_orcamento, nome_cliente, total, status, created_at")
+      const { data } = await (supabase as any).from(tables.orcamentos)
+        .select(isMkt
+          ? "id, numero_orcamento, nome_cliente, status, created_at"
+          : "id, numero_orcamento, nome_cliente, total, status, created_at")
         .eq("oportunidade_id", oportunidadeId)
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -45,10 +52,12 @@ export default function DealPropostasOrcamentos({
   });
 
   const { data: reformas = [], isLoading: l3 } = useQuery({
-    queryKey: ["deal-reformas", oportunidadeId],
+    queryKey: ["deal-reformas", oportunidadeId, isMkt],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("orcamentos_reforma")
-        .select("id, numero_orcamento, nome_cliente, total, status, created_at")
+      const { data } = await (supabase as any).from(tables.orcamentos_reforma)
+        .select(isMkt
+          ? "id, numero_orcamento, nome_cliente, status, created_at"
+          : "id, numero_orcamento, nome_cliente, total, status, created_at")
         .eq("oportunidade_id", oportunidadeId)
         .order("created_at", { ascending: false });
       return data ?? [];

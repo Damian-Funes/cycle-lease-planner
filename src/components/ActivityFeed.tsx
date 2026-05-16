@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -60,6 +61,7 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [editTitulo, setEditTitulo] = useState("");
+  const tables = useReadTables();
 
   const carregar = async () => {
     setLoading(true);
@@ -88,7 +90,7 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
         setPessoas((ps as any) || []);
       }
     } else if (entityType === "organizacao") {
-      const { data: opps } = await supabase.from("oportunidades").select("id").eq("organizacao_id", entityId);
+      const { data: opps } = await (supabase as any).from(tables.oportunidades).select("id").eq("organizacao_id", entityId);
       const { data: ps } = await supabase.from("pessoas").select("id, nome").eq("organizacao_id", entityId);
       const oppIds = (opps || []).map((o: any) => o.id);
       const pessoaIds = (ps || []).map((p: any) => p.id);

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,15 @@ export default function VincularOportunidadeModal({
   const [oppSel, setOppSel] = useState("");
   const [novaOpen, setNovaOpen] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const tables = useReadTables();
+  const isMkt = tables.oportunidades !== "oportunidades";
 
   const { data: oportunidades = [] } = useQuery({
-    queryKey: ["opps-abertas", organizacaoId],
+    queryKey: ["opps-abertas", organizacaoId, isMkt],
     queryFn: async () => {
       const { data } = await (supabase as any)
-        .from("oportunidades")
-        .select("id, titulo, valor_estimado, status")
+        .from(tables.oportunidades)
+        .select(isMkt ? "id, titulo, status" : "id, titulo, valor_estimado, status")
         .eq("organizacao_id", organizacaoId)
         .eq("status", "aberta")
         .order("created_at", { ascending: false });

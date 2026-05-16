@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -24,13 +25,14 @@ const fmtBRL = (v: number | null | undefined) =>
 export default function OportunidadeSheet({ open, onOpenChange, oportunidadeId }: Props) {
   const qc = useQueryClient();
   const [form, setForm] = useState<any>(null);
+  const tables = useReadTables();
 
   const { data: op, isLoading } = useQuery({
-    queryKey: ["oportunidade", oportunidadeId],
+    queryKey: ["oportunidade", oportunidadeId, tables.oportunidades],
     queryFn: async () => {
       if (!oportunidadeId) return null;
       const { data, error } = await (supabase as any)
-        .from("oportunidades")
+        .from(tables.oportunidades)
         .select("*, organizacoes(id, nome), etapas_pipeline(id, nome, cor)")
         .eq("id", oportunidadeId)
         .single();

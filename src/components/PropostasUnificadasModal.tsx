@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useReadTables } from "@/lib/tables";
 import { Trash2, Loader2, FileText, Receipt, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +62,8 @@ export default function PropostasUnificadasModal({
   const [busca, setBusca] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const tables = useReadTables();
+  const isMkt = tables.propostas !== "propostas";
 
   useEffect(() => {
     if (open) fetchAll();
@@ -69,8 +72,14 @@ export default function PropostasUnificadasModal({
   async function fetchAll() {
     setLoading(true);
     const [{ data: prop, error: e1 }, { data: orc, error: e2 }] = await Promise.all([
-      supabase.from("propostas").select("id, numero_proposta, nome_cliente, total_10_anos, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("orcamentos").select("id, numero_orcamento, nome_cliente, total, status, created_at").order("created_at", { ascending: false }),
+      (supabase as any).from(tables.propostas).select(
+        isMkt ? "id, numero_proposta, nome_cliente, status, created_at"
+              : "id, numero_proposta, nome_cliente, total_10_anos, status, created_at"
+      ).order("created_at", { ascending: false }),
+      (supabase as any).from(tables.orcamentos).select(
+        isMkt ? "id, numero_orcamento, nome_cliente, status, created_at"
+              : "id, numero_orcamento, nome_cliente, total, status, created_at"
+      ).order("created_at", { ascending: false }),
     ]);
     if (e1 || e2) {
       toast({ title: "Erro", description: (e1 || e2)?.message, variant: "destructive" });
