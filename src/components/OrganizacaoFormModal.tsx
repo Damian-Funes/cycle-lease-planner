@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
+import { useBrasilApiCnpj } from "@/hooks/useBrasilApiCnpj";
+import { formatCnpj, onlyDigits } from "@/lib/cnpj";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -97,7 +99,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       form.reset({
         nome: organizacao?.nome ?? "",
         nome_fantasia: organizacao?.nome_fantasia ?? "",
-        cnpj: organizacao?.cnpj ?? "",
+        cnpj: formatCnpj(organizacao?.cnpj ?? ""),
         segmento: organizacao?.segmento ?? "",
         porte: organizacao?.porte ?? "",
         regiao: organizacao?.regiao ?? "",
@@ -116,12 +118,74 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
     }
   }, [open, organizacao]);
 
+  // Autocomplete CNPJ via BrasilAPI
+  const cnpjValue = form.watch("cnpj") || "";
+  const { data: cnpjData, loading: cnpjLoading, status: cnpjStatus, situacao: cnpjSituacao } =
+    useBrasilApiCnpj(cnpjValue);
+  const lastAppliedCnpj = useRef<string>("");
+
+  useEffect(() => {
+    if (cnpjStatus === "not_found") {
+      toast("CNPJ não encontrado, preencha manualmente");
+      return;
+    }
+    if (cnpjStatus === "network_error") {
+      toast("Não foi possível buscar agora");
+      return;
+    }
+    if (cnpjStatus !== "success" || !cnpjData) return;
+
+    const digits = onlyDigits(cnpjValue);
+    if (lastAppliedCnpj.current === digits) return;
+    lastAppliedCnpj.current = digits;
+
+    const setIfEmpty = (field: keyof FormValues, value: string | null | undefined) => {
+      const current = (form.getValues(field) as string | undefined)?.trim();
+      if (!current && value) form.setValue(field, value as any, { shouldDirty: true });
+    };
+
+    setIfEmpty("nome", cnpjData.razao_social);
+    setIfEmpty("nome_fantasia", cnpjData.nome_fantasia);
+
+    const enderecoParts = [
+      cnpjData.logradouro,
+      cnpjData.numero,
+      cnpjData.complemento,
+      cnpjData.bairro,
+    ]
+      .map((p) => (p ?? "").toString().trim())
+      .filter(Boolean);
+    if (enderecoParts.length) setIfEmpty("endereco", enderecoParts.join(", "));
+
+    setIfEmpty("cidade", cnpjData.municipio);
+    setIfEmpty("telefone_principal", cnpjData.ddd_telefone_1);
+    setIfEmpty("email_principal", cnpjData.email);
+
+    // UF → estado_id + sigla (ambos)
+    if (cnpjData.uf) {
+      const uf = cnpjData.uf.toUpperCase();
+      const match = estados.find((e) => e.sigla.toUpperCase() === uf);
+      if (match) {
+        const currentEstadoId = (form.getValues("estado_id") as string | undefined)?.trim();
+        if (!currentEstadoId) {
+          form.setValue("estado_id", match.id, { shouldDirty: true });
+          form.setValue("estado", match.sigla, { shouldDirty: true });
+        }
+      }
+    }
+
+    toast.success("Dados encontrados");
+    if (cnpjSituacao && cnpjSituacao.toUpperCase() !== "ATIVA") {
+      toast.warning(`⚠️ Situação cadastral: ${cnpjSituacao}`);
+    }
+  }, [cnpjStatus, cnpjData, cnpjSituacao]);
+
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
       const payload: any = {
         nome: v.nome.trim(),
         nome_fantasia: v.nome_fantasia?.trim() || null,
-        cnpj: v.cnpj?.trim() || null,
+        cnpj: onlyDigits(v.cnpj) || null,
         segmento: v.segmento?.trim() || null,
         porte: v.porte || null,
         regiao: v.regiao?.trim() || null,
@@ -171,7 +235,19 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
           </div>
           <div className="space-y-1">
             <Label>CNPJ</Label>
-            <Input {...form.register("cnpj")} placeholder="00.000.000/0000-00" />
+            <div className="relative">
+              <Input
+                value={form.watch("cnpj") || ""}
+                onChange={(e) => form.setValue("cnpj", formatCnpj(e.target.value))}
+                placeholder="00.000.000/0000-00"
+                maxLength={18}
+                inputMode="numeric"
+                className={cnpjLoading ? "pr-9" : ""}
+              />
+              {cnpjLoading && (
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label>Segmento</Label>
