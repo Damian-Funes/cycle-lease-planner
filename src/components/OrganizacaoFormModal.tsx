@@ -194,6 +194,15 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
     }
   }, [cnpjStatus, cnpjData, cnpjSituacao]);
 
+  const onSubmit = (v: FormValues) => {
+    const cnpjDigits = onlyDigits(v.cnpj);
+    if (cnpjDigits && cnpjDigits.length !== 14) {
+      form.setError("cnpj", { message: "CNPJ deve ter 14 dígitos" });
+      return;
+    }
+    mutation.mutate(v);
+  };
+
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
       const payload: any = {
