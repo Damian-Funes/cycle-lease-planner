@@ -123,19 +123,31 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
   const { data: cnpjData, loading: cnpjLoading, status: cnpjStatus, situacao: cnpjSituacao } =
     useBrasilApiCnpj(cnpjValue);
   const lastAppliedCnpj = useRef<string>("");
+  const lastToastedStatus = useRef<string>("");
 
   useEffect(() => {
     if (cnpjStatus === "not_found") {
-      toast("CNPJ não encontrado, preencha manualmente");
+      if (lastToastedStatus.current !== "not_found") {
+        toast("CNPJ não encontrado, preencha manualmente");
+        lastToastedStatus.current = "not_found";
+      }
       return;
     }
     if (cnpjStatus === "network_error") {
-      toast("Não foi possível buscar agora");
+      if (lastToastedStatus.current !== "network_error") {
+        toast("Não foi possível buscar agora");
+        lastToastedStatus.current = "network_error";
+      }
       return;
     }
-    if (cnpjStatus !== "success" || !cnpjData) return;
+    if (cnpjStatus !== "success" || !cnpjData) {
+      if (cnpjStatus === "idle" || cnpjStatus === "loading") {
+        lastToastedStatus.current = "";
+      }
+      return;
+    }
 
-    const digits = onlyDigits(cnpjValue);
+    const digits = onlyDigits(cnpjData.cnpj);
     if (lastAppliedCnpj.current === digits) return;
     lastAppliedCnpj.current = digits;
 
@@ -161,7 +173,6 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
     setIfEmpty("telefone_principal", cnpjData.ddd_telefone_1);
     setIfEmpty("email_principal", cnpjData.email);
 
-    // UF → estado_id + sigla (ambos)
     if (cnpjData.uf) {
       const uf = cnpjData.uf.toUpperCase();
       const match = estados.find((e) => e.sigla.toUpperCase() === uf);
@@ -174,11 +185,23 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       }
     }
 
-    toast.success("Dados encontrados");
-    if (cnpjSituacao && cnpjSituacao.toUpperCase() !== "ATIVA") {
-      toast.warning(`⚠️ Situação cadastral: ${cnpjSituacao}`);
+    if (lastToastedStatus.current !== "success") {
+      toast.success("Dados encontrados");
+      if (cnpjSituacao && cnpjSituacao.toUpperCase() !== "ATIVA") {
+        toast.warning(`⚠️ Situação cadastral: ${cnpjSituacao}`);
+      }
+      lastToastedStatus.current = "success";
     }
   }, [cnpjStatus, cnpjData, cnpjSituacao]);
+
+  const onSubmit = (v: FormValues) => {
+    const cnpjDigits = onlyDigits(v.cnpj);
+    if (cnpjDigits && cnpjDigits.length !== 14) {
+      form.setError("cnpj", { message: "CNPJ deve ter 14 dígitos" });
+      return;
+    }
+    mutation.mutate(v);
+  };
 
   const mutation = useMutation({
     mutationFn: async (v: FormValues) => {
@@ -223,7 +246,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Organização" : "Nova Organização"}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={form.handleSubmit((v) => mutation.mutate(v))} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="sm:col-span-2 space-y-1">
             <Label>Nome *</Label>
             <Input {...form.register("nome")} />
@@ -238,7 +261,10 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             <div className="relative">
               <Input
                 value={form.watch("cnpj") || ""}
-                onChange={(e) => form.setValue("cnpj", formatCnpj(e.target.value))}
+                onChange={(e) => {
+                  form.setValue("cnpj", formatCnpj(e.target.value));
+                  if (form.formState.errors.cnpj) form.clearErrors("cnpj");
+                }}
                 placeholder="00.000.000/0000-00"
                 maxLength={18}
                 inputMode="numeric"
@@ -248,6 +274,9 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
                 <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
               )}
             </div>
+            {form.formState.errors.cnpj && (
+              <p className="text-xs text-destructive">{form.formState.errors.cnpj.message as string}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label>Segmento</Label>
