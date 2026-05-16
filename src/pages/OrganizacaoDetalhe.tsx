@@ -203,7 +203,7 @@ export default function OrganizacaoDetalhe() {
                 <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Nenhum" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum</SelectItem>
-                  {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome || p.email}</SelectItem>)}
+                  {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
                 </SelectContent>
               </Select>
               {resp && (
