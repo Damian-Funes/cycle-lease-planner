@@ -86,7 +86,7 @@ export default function DealDetalhe() {
       supabase.from("etapas_pipeline").select("*").order("ordem"),
       supabase.from("profiles").select("user_id, nome, email").eq("status", "approved"),
     ]);
-    if (!d) { setLoading(false); toast.error("Oportunidade não encontrada"); return; }
+    if (!d) { setDeal(null); setLoading(false); return; }
     setDeal(d);
     setPipelines(pips || []);
     setEtapas(eps || []);
