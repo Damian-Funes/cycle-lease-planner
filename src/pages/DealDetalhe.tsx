@@ -27,6 +27,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ActivityFeed from "@/components/ActivityFeed";
 import DealPropostasOrcamentos from "@/components/DealPropostasOrcamentos";
+import { useAuth } from "@/hooks/useAuth";
+import { Lock } from "lucide-react";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -40,9 +42,7 @@ interface Profile { user_id: string; nome: string | null; email: string; }
 export default function DealDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasRole } = (() => {
-    try { return require("@/hooks/useAuth").useAuth(); } catch { return { hasRole: () => false }; }
-  })();
+  const { hasRole } = useAuth();
   const isMarketing = hasRole("marketing");
 
   const [loading, setLoading] = useState(true);
@@ -326,6 +326,22 @@ export default function DealDetalhe() {
     carregar();
   };
 
+  if (isMarketing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AppHeader />
+        <main className="container mx-auto p-6">
+          <Card className="p-12 text-center max-w-xl mx-auto">
+            <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h1 className="text-xl font-semibold mb-2">Sem permissão</h1>
+            <p className="text-sm text-muted-foreground">
+              Você não tem permissão para visualizar detalhes financeiros de oportunidades.
+            </p>
+          </Card>
+        </main>
+      </div>
+    );
+  }
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   if (!deal) return <div className="p-8">Não encontrado.</div>;
 
