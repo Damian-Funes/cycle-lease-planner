@@ -28,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
   lead: "Lead", prospect: "Prospect", ativo: "Ativo", inativo: "Inativo", perdido: "Perdido",
 };
 
-interface ProfileLite { id: string; nome: string | null; email: string }
+interface ProfileLite { user_id: string; nome: string | null; email: string }
 const PAGE_SIZE = 25;
 
 function initials(name: string) {
@@ -61,14 +61,14 @@ export default function Organizacoes() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email");
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return (data ?? []) as ProfileLite[];
     },
   });
 
   const profileMap = useMemo(() => {
     const m = new Map<string, ProfileLite>();
-    profiles.forEach((p) => m.set(p.id, p));
+    profiles.forEach((p) => m.set(p.user_id, p));
     return m;
   }, [profiles]);
 
@@ -142,7 +142,7 @@ export default function Organizacoes() {
             <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos responsáveis</SelectItem>
-              {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome || p.email}</SelectItem>)}
+              {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={segFiltro} onValueChange={(v) => { setSegFiltro(v); setPage(0); }}>

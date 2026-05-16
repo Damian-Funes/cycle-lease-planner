@@ -15,7 +15,7 @@ import { ArrowLeft, Plus, Search, Pencil, Loader2, User, Star, Mail, Phone } fro
 import AppHeader from "@/components/AppHeader";
 import PessoaFormModal, { PessoaRow } from "@/components/PessoaFormModal";
 
-interface ProfileLite { id: string; nome: string | null; email: string }
+interface ProfileLite { user_id: string; nome: string | null; email: string }
 interface OrgLite { id: string; nome: string }
 
 function initials(name: string) {
@@ -53,13 +53,13 @@ export default function Pessoas() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email");
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return (data ?? []) as ProfileLite[];
     },
   });
 
   const orgMap = useMemo(() => new Map(orgs.map((o) => [o.id, o])), [orgs]);
-  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
+  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.user_id, p])), [profiles]);
 
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -104,7 +104,7 @@ export default function Pessoas() {
             <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Responsável" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos responsáveis</SelectItem>
-              {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome || p.email}</SelectItem>)}
+              {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
             </SelectContent>
           </Select>
           <Button onClick={openNew} className="gap-1"><Plus className="w-4 h-4" /> Nova Pessoa</Button>

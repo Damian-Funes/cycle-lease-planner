@@ -81,11 +81,11 @@ export default function OrganizacaoDetalhe() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email");
-      return (data ?? []) as { id: string; nome: string | null; email: string }[];
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
+      return (data ?? []) as { user_id: string; nome: string | null; email: string }[];
     },
   });
-  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
+  const profileMap = useMemo(() => new Map(profiles.map((p) => [p.user_id, p])), [profiles]);
 
   const updateMutation = useMutation({
     mutationFn: async (patch: Partial<OrganizacaoRow>) => {
@@ -203,7 +203,7 @@ export default function OrganizacaoDetalhe() {
                 <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Nenhum" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum</SelectItem>
-                  {profiles.map((p) => <SelectItem key={p.id} value={p.id}>{p.nome || p.email}</SelectItem>)}
+                  {profiles.map((p) => <SelectItem key={p.user_id} value={p.user_id}>{p.nome || p.email}</SelectItem>)}
                 </SelectContent>
               </Select>
               {resp && (

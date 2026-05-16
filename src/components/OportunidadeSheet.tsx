@@ -53,7 +53,7 @@ export default function OportunidadeSheet({ open, onOpenChange, oportunidadeId }
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-approved"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id, nome, email").eq("status", "approved");
+      const { data } = await supabase.from("profiles").select("user_id, nome, email").eq("status", "approved");
       return data ?? [];
     },
   });
@@ -147,7 +147,7 @@ export default function OportunidadeSheet({ open, onOpenChange, oportunidadeId }
                   <SelectContent>
                     <SelectItem value="none">Sem responsável</SelectItem>
                     {profiles.map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.nome ?? p.email}</SelectItem>
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.nome ?? p.email}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
