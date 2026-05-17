@@ -462,6 +462,13 @@ export default function Catalogo() {
               <p className="text-xs text-muted-foreground mt-3">
                 Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
               </p>
+              {isAdmin && editing !== "new" && editing && (
+                <EquipamentoContidosEditor
+                  paiId={editing}
+                  paiCodigo={form.codigo}
+                  todosEquipamentos={equipamentos}
+                />
+              )}
               <div className="flex gap-2 mt-4">
                 <Button
                   size="sm"
