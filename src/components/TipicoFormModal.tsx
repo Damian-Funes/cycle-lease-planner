@@ -50,7 +50,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("equipamentos").select("codigo,descricao").eq("ativo", true).order("codigo").then(({ data }) => {
+    supabase.from("equipamentos").select("codigo,descricao,valor_venda").eq("ativo", true).order("codigo").then(({ data }) => {
       if (data) setEquipamentos(data as EqLite[]);
     });
   }, [open]);
