@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, LayoutGrid, ExternalLink } from "lucide-react";
+import PlantaImage from "@/components/PlantaImage";
 
 export default function OrgLayouts({ organizacaoId, organizacaoNome }: { organizacaoId: string; organizacaoNome: string }) {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function OrgLayouts({ organizacaoId, organizacaoNome }: { organiz
             <Card key={l.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden">
                 {l.piso_imagem_url
-                  ? <img src={l.piso_imagem_url} alt="" className="w-full h-full object-cover" />
+                  ? <PlantaImage source={l.piso_imagem_url} alt="" className="w-full h-full object-cover" fallback={<LayoutGrid className="w-8 h-8 text-muted-foreground/40" />} />
                   : <LayoutGrid className="w-8 h-8 text-muted-foreground/40" />}
               </div>
               <div className="p-3 space-y-1">
