@@ -39,12 +39,38 @@ export default function LayoutEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
   const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "connect">("translate");
   const [alturaLiberada, setAlturaLiberada] = useState(false);
   const [conexoes, setConexoes] = useState<ConexaoRow[]>([]);
   const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
+
+  const handleSelect = useCallback((id: string | null, shift?: boolean) => {
+    if (id === null) {
+      if (!shift) {
+        setSelectedId(null);
+        setSelectedIds([]);
+      }
+      return;
+    }
+    if (shift) {
+      setSelectedIds((cur) => {
+        if (cur.includes(id)) {
+          const next = cur.filter((x) => x !== id);
+          setSelectedId(next[next.length - 1] ?? null);
+          return next;
+        }
+        const next = [...cur, id];
+        setSelectedId(id);
+        return next;
+      });
+    } else {
+      setSelectedId(id);
+      setSelectedIds([id]);
+    }
+  }, []);
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
