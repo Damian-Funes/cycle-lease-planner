@@ -276,7 +276,7 @@ export default function Orcamento() {
         if ("error" in r) {
           toast({ title: r.error, variant: "destructive" });
         } else {
-          setParams((p) => ({ ...p, itens: tipicoParaItensOrcamento(r.encontrados) }));
+          setParams((p) => ({ ...p, itens: tipicoParaItensOrcamento(r.resolvidos) }));
           if (r.naoEncontrados.length > 0) {
             toast({
               title: `${r.naoEncontrados.length} código(s) não encontrado(s)`,

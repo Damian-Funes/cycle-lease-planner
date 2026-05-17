@@ -1,11 +1,16 @@
 export type TipicoTipo = "orcamento" | "aluguel";
 
+export interface TipicoItem {
+  codigo: string;
+  quantidade: number;
+}
+
 export interface Tipico {
   id: string;
   nome: string;
   descricao: string | null;
   tipo: TipicoTipo;
-  codigos: string[];
+  itens: TipicoItem[];
   capacidade_sacos_ano: number;
   valor_referencia: number;
   destacado: boolean;
@@ -19,7 +24,7 @@ export interface TipicoInput {
   nome: string;
   descricao?: string | null;
   tipo: TipicoTipo;
-  codigos: string[];
+  itens: TipicoItem[];
   capacidade_sacos_ano: number;
   valor_referencia: number;
   destacado?: boolean;
@@ -27,4 +32,8 @@ export interface TipicoInput {
 
 export function formatSacosAno(v: number): string {
   return `${v.toLocaleString("pt-BR")} sc/ano`;
+}
+
+export function totalEquipamentos(itens: TipicoItem[]): number {
+  return itens.reduce((s, i) => s + (i.quantidade || 0), 0);
 }

@@ -237,7 +237,7 @@ const Index = () => {
         if ("error" in r) {
           toast({ title: r.error, variant: "destructive" });
         } else {
-          const itens = tipicoParaItensProjeto(r.encontrados);
+          const itens = tipicoParaItensProjeto(r.resolvidos);
           updateItens(itens);
           if (r.naoEncontrados.length > 0) {
             toast({

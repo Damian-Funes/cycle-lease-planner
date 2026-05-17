@@ -6,12 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ChevronsUpDown, X, AlertTriangle, Loader2 } from "lucide-react";
+import { ChevronsUpDown, Trash2, Plus, AlertTriangle, Loader2, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Tipico, TipicoInput, TipicoTipo } from "@/lib/tipicos";
+import { Tipico, TipicoInput, TipicoItem, TipicoTipo } from "@/lib/tipicos";
 import { useCreateTipico, useUpdateTipico } from "@/hooks/useTipicos";
 import { toast } from "sonner";
 
@@ -28,13 +28,17 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipo, setTipo] = useState<TipicoTipo>("orcamento");
-  const [codigos, setCodigos] = useState<string[]>([]);
+  const [itens, setItens] = useState<TipicoItem[]>([]);
   const [capacidade, setCapacidade] = useState("");
   const [valorRef, setValorRef] = useState("");
   const [destacado, setDestacado] = useState(false);
   const [equipamentos, setEquipamentos] = useState<EqLite[]>([]);
-  const [comboOpen, setComboOpen] = useState(false);
+
+  // Linha de adição
+  const [selectedCodigo, setSelectedCodigo] = useState("");
   const [codigoLivre, setCodigoLivre] = useState("");
+  const [novaQtd, setNovaQtd] = useState(1);
+  const [comboOpen, setComboOpen] = useState(false);
 
   const create = useCreateTipico();
   const update = useUpdateTipico();
@@ -53,43 +57,58 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
       setNome(tipico.nome);
       setDescricao(tipico.descricao ?? "");
       setTipo(tipico.tipo);
-      setCodigos(tipico.codigos);
+      setItens(Array.isArray(tipico.itens) ? tipico.itens : []);
       setCapacidade(String(tipico.capacidade_sacos_ano));
       setValorRef(String(tipico.valor_referencia));
       setDestacado(tipico.destacado);
     } else {
-      setNome(""); setDescricao(""); setTipo("orcamento"); setCodigos([]);
+      setNome(""); setDescricao(""); setTipo("orcamento"); setItens([]);
       setCapacidade(""); setValorRef(""); setDestacado(false);
     }
-    setCodigoLivre("");
+    setSelectedCodigo(""); setCodigoLivre(""); setNovaQtd(1);
   }, [open, tipico]);
 
   const codigosSet = new Set(equipamentos.map((e) => e.codigo));
-  const naoCadastrados = codigos.filter((c) => !codigosSet.has(c));
+  const descPorCodigo = new Map(equipamentos.map((e) => [e.codigo, e.descricao]));
 
-  function addCodigo(c: string) {
-    const code = c.trim();
-    if (!code) return;
-    if (codigos.includes(code)) return;
-    setCodigos([...codigos, code]);
+  function addItem(codigo: string, quantidade: number) {
+    const c = codigo.trim();
+    if (!c) return;
+    if (!Number.isInteger(quantidade) || quantidade <= 0) {
+      toast.error("Quantidade deve ser inteiro maior que zero");
+      return;
+    }
+    const idx = itens.findIndex((i) => i.codigo === c);
+    if (idx >= 0) {
+      setItens(itens.map((it, i) => i === idx ? { ...it, quantidade: it.quantidade + quantidade } : it));
+    } else {
+      setItens([...itens, { codigo: c, quantidade }]);
+    }
+    setSelectedCodigo(""); setCodigoLivre(""); setNovaQtd(1);
   }
-  function removeCodigo(c: string) {
-    setCodigos(codigos.filter((x) => x !== c));
+
+  function removeItem(idx: number) {
+    setItens(itens.filter((_, i) => i !== idx));
+  }
+
+  function changeQtd(idx: number, q: number) {
+    if (!Number.isInteger(q) || q <= 0) return;
+    setItens(itens.map((it, i) => i === idx ? { ...it, quantidade: q } : it));
   }
 
   async function handleSubmit() {
     if (!nome.trim()) return toast.error("Nome obrigatório");
     const cap = parseInt(capacidade.replace(/\D/g, ""), 10);
-    const val = parseFloat(valorRef.replace(/\./g, "").replace(",", "."));
+    const val = parseFloat(String(valorRef).replace(/\./g, "").replace(",", "."));
     if (!cap || cap <= 0) return toast.error("Capacidade deve ser maior que zero");
     if (!val || val <= 0) return toast.error("Valor de referência deve ser maior que zero");
-    if (codigos.length === 0) return toast.error("Adicione ao menos um código");
+    if (itens.length === 0) return toast.error("Adicione ao menos um equipamento");
 
     const payload: TipicoInput = {
       nome: nome.trim(),
       descricao: descricao.trim() || null,
       tipo,
-      codigos,
+      itens,
       capacidade_sacos_ano: cap,
       valor_referencia: val,
       destacado,
@@ -108,6 +127,8 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
       toast.error(e.message ?? "Erro ao salvar");
     }
   }
+
+  const naoCadCount = itens.filter((i) => !codigosSet.has(i.codigo)).length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -154,65 +175,145 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
               <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} placeholder="Detalhes do típico..." />
             </div>
 
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label>Códigos de equipamentos *</Label>
-              <div className="flex gap-2">
-                <Popover open={comboOpen} onOpenChange={setComboOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" role="combobox" className="flex-1 justify-between font-normal">
-                      Buscar no catálogo...
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
-                    <Command>
-                      <CommandInput placeholder="Código ou descrição..." />
-                      <CommandList>
-                        <CommandEmpty>Nenhum equipamento.</CommandEmpty>
-                        <CommandGroup>
-                          {equipamentos.map((eq) => (
-                            <CommandItem
-                              key={eq.codigo}
-                              value={`${eq.codigo} ${eq.descricao}`}
-                              onSelect={() => { addCodigo(eq.codigo); setComboOpen(false); }}
-                            >
-                              {eq.codigo} — {eq.descricao}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <Input
-                  placeholder="Código livre"
-                  value={codigoLivre}
-                  onChange={(e) => setCodigoLivre(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); addCodigo(codigoLivre); setCodigoLivre(""); }
-                  }}
-                  className="w-40"
-                />
-                <Button type="button" variant="secondary" onClick={() => { addCodigo(codigoLivre); setCodigoLivre(""); }}>+</Button>
+            <div className="sm:col-span-2 space-y-2">
+              <Label>Equipamentos *</Label>
+
+              {/* Linha de adição */}
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <span className="text-xs text-muted-foreground">Catálogo</span>
+                  <Popover open={comboOpen} onOpenChange={setComboOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" className="w-full justify-between h-9 font-normal">
+                        {selectedCodigo
+                          ? `${selectedCodigo} — ${descPorCodigo.get(selectedCodigo) ?? ""}`
+                          : "Selecione um equipamento..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
+                      <Command>
+                        <CommandInput placeholder="Código ou descrição..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum equipamento.</CommandEmpty>
+                          <CommandGroup>
+                            {equipamentos.map((eq) => (
+                              <CommandItem
+                                key={eq.codigo}
+                                value={`${eq.codigo} ${eq.descricao}`}
+                                onSelect={() => { setSelectedCodigo(eq.codigo); setComboOpen(false); }}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", selectedCodigo === eq.codigo ? "opacity-100" : "opacity-0")} />
+                                {eq.codigo} — {eq.descricao}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="w-20 space-y-1">
+                  <span className="text-xs text-muted-foreground">Qtd</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={novaQtd}
+                    onChange={(e) => setNovaQtd(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="h-9 text-center"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  className="gap-1 h-9"
+                  onClick={() => addItem(selectedCodigo, novaQtd)}
+                  disabled={!selectedCodigo}
+                >
+                  <Plus className="w-4 h-4" /> Adicionar
+                </Button>
               </div>
 
-              {codigos.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-2">
-                  {codigos.map((c) => {
-                    const naoCad = !codigosSet.has(c);
-                    return (
-                      <Badge key={c} variant={naoCad ? "outline" : "secondary"} className={naoCad ? "border-amber-500 text-amber-700" : ""}>
-                        {c}
-                        {naoCad && <AlertTriangle className="w-3 h-3 ml-1 text-amber-600" />}
-                        <button onClick={() => removeCodigo(c)} className="ml-1 hover:text-destructive"><X className="w-3 h-3" /></button>
-                      </Badge>
-                    );
-                  })}
+              {/* Linha de código livre */}
+              <div className="flex gap-2 items-end flex-wrap">
+                <div className="flex-1 min-w-[200px] space-y-1">
+                  <span className="text-xs text-muted-foreground">Código livre (não cadastrado)</span>
+                  <Input
+                    value={codigoLivre}
+                    onChange={(e) => setCodigoLivre(e.target.value)}
+                    placeholder="Ex: GLT-9999"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") { e.preventDefault(); addItem(codigoLivre, novaQtd); }
+                    }}
+                  />
                 </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="gap-1 h-9"
+                  onClick={() => addItem(codigoLivre, novaQtd)}
+                  disabled={!codigoLivre.trim()}
+                >
+                  <Plus className="w-4 h-4" /> Adicionar livre
+                </Button>
+              </div>
+
+              {/* Tabela de itens */}
+              {itens.length > 0 ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-muted/50 text-muted-foreground">
+                        <th className="text-left p-2 font-medium">Código</th>
+                        <th className="text-left p-2 font-medium hidden sm:table-cell">Descrição</th>
+                        <th className="text-center p-2 font-medium w-20">Qtd</th>
+                        <th className="p-2 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {itens.map((it, idx) => {
+                        const naoCad = !codigosSet.has(it.codigo);
+                        return (
+                          <tr key={`${it.codigo}-${idx}`} className="border-t">
+                            <td className="p-2 font-mono font-medium">
+                              <div className="flex items-center gap-1">
+                                {it.codigo}
+                                {naoCad && <AlertTriangle className="w-3 h-3 text-amber-600" />}
+                              </div>
+                            </td>
+                            <td className="p-2 text-muted-foreground hidden sm:table-cell">
+                              {naoCad ? <span className="text-amber-600 text-xs">não cadastrado</span> : (descPorCodigo.get(it.codigo) ?? "—")}
+                            </td>
+                            <td className="p-2 text-center">
+                              <Input
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={it.quantidade}
+                                onChange={(e) => changeQtd(idx, parseInt(e.target.value) || 1)}
+                                className="w-16 h-7 text-center"
+                              />
+                            </td>
+                            <td className="p-2">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-3 border rounded-lg">
+                  Nenhum equipamento adicionado.
+                </p>
               )}
-              {naoCadastrados.length > 0 && (
-                <p className="text-xs text-amber-600 flex items-center gap-1 pt-1">
-                  <AlertTriangle className="w-3 h-3" /> {naoCadastrados.length} código(s) não cadastrado(s) no catálogo
+
+              {naoCadCount > 0 && (
+                <p className="text-xs text-amber-600 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {naoCadCount} código(s) não cadastrado(s) no catálogo
                 </p>
               )}
             </div>

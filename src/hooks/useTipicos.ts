@@ -17,14 +17,17 @@ export function useTipicos(opts: ListOpts = {}) {
       if (opts.tipo && opts.tipo !== "todos") q = q.eq("tipo", opts.tipo);
       const { data, error } = await q;
       if (error) throw error;
-      let rows = (data ?? []) as Tipico[];
+      let rows = (data ?? []).map((r: any) => ({
+        ...r,
+        itens: Array.isArray(r.itens) ? r.itens : [],
+      })) as Tipico[];
       if (opts.busca) {
         const b = opts.busca.toLowerCase();
         rows = rows.filter(
           (t) =>
             t.nome.toLowerCase().includes(b) ||
             t.descricao?.toLowerCase().includes(b) ||
-            t.codigos.some((c) => c.toLowerCase().includes(b))
+            t.itens.some((i) => i.codigo.toLowerCase().includes(b))
         );
       }
       return rows;
@@ -67,9 +70,13 @@ export function useUpdateTipico() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<TipicoInput> & { arquivado?: boolean } }) => {
-      // tipo é imutável após criar — strip se vier
-      const { tipo, ...rest } = patch as any;
-      const { data, error } = await supabase.from("tipicos").update(rest).eq("id", id).select().single();
+      // Whitelist de campos editáveis. Qualquer outro (tipo, id, created_by, created_at, updated_at) é descartado.
+      const allowed = ["nome", "descricao", "itens", "capacidade_sacos_ano", "valor_referencia", "destacado", "arquivado"] as const;
+      const clean: Record<string, any> = {};
+      for (const k of allowed) {
+        if (k in patch) clean[k] = (patch as any)[k];
+      }
+      const { data, error } = await supabase.from("tipicos").update(clean).eq("id", id).select().single();
       if (error) throw error;
       return data as Tipico;
     },
