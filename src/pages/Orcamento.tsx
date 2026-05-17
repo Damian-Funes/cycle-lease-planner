@@ -266,6 +266,32 @@ export default function Orcamento() {
     if (novo) {
       setParams(DEFAULT_ORCAMENTO);
       setSavedId(null);
+    }
+
+    const tipicoId = searchParams.get("tipico");
+    if (tipicoId) {
+      (async () => {
+        const { carregarTipico, tipicoParaItensOrcamento } = await import("@/lib/tipicoLoader");
+        const r = await carregarTipico(tipicoId, "orcamento");
+        if ("error" in r) {
+          toast({ title: r.error, variant: "destructive" });
+        } else {
+          setParams((p) => ({ ...p, itens: tipicoParaItensOrcamento(r.encontrados) }));
+          if (r.naoEncontrados.length > 0) {
+            toast({
+              title: `${r.naoEncontrados.length} código(s) não encontrado(s)`,
+              description: r.naoEncontrados.join(", "),
+            });
+          } else {
+            toast({ title: `Típico "${r.tipico.nome}" aplicado` });
+          }
+        }
+        setSearchParams({}, { replace: true });
+      })();
+      return;
+    }
+
+    if (novo) {
       setSearchParams({}, { replace: true });
       return;
     }

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3 } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import CrmWidgets from "@/components/CrmWidgets";
@@ -20,6 +20,13 @@ const cards = [
     icon: Receipt,
     to: "/orcamento?novo=1",
     color: "bg-amber-500/10 text-amber-600",
+  },
+  {
+    title: "Biblioteca de Típicos",
+    desc: "Templates pré-configurados de orçamentos e aluguéis",
+    icon: Library,
+    to: "/tipicos",
+    color: "bg-indigo-500/10 text-indigo-600",
   },
   {
     title: "Propostas",

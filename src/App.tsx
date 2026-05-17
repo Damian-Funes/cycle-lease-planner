@@ -26,6 +26,7 @@ const Relatorios = lazy(() => import("./pages/Relatorios"));
 import Orcamento from "./pages/Orcamento";
 import Reforma from "./pages/Reforma";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
+import Tipicos from "./pages/Tipicos";
 import NotFound from "./pages/NotFound";
 
 const Layouts = lazy(() => import("./pages/Layouts"));
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
+              <Route path="/tipicos" element={<ProtectedRoute><Tipicos /></ProtectedRoute>} />
               <Route path="/reforma/catalogo" element={<ProtectedRoute><RequireRole roles={["admin"]}><ReformaCatalogo /></RequireRole></ProtectedRoute>} />
               <Route path="/admin/usuarios" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminUsuarios /></RequireRole></ProtectedRoute>} />
               <Route path="/admin/pipelines" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminPipelines /></RequireRole></ProtectedRoute>} />
