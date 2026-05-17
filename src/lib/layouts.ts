@@ -24,7 +24,7 @@ export interface LayoutItemRow {
   pos_x_mm: number;
   pos_y_mm: number;
   pos_z_mm?: number;
-  rotacao: 0 | 90 | 180 | 270;
+  rotacao: number; // graus 0–359 (snap de 15°)
   ordem: number;
   rotulo_customizado: string | null;
   equipamento_id: string;
