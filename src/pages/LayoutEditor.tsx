@@ -282,6 +282,7 @@ export default function LayoutEditor() {
     }
     await refreshItems();
     setSelectedId(data.id);
+    setSelectedIds([data.id]);
   }
 
   async function updateLayoutMeta(patch: Partial<LayoutRow>) {
