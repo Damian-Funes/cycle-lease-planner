@@ -229,6 +229,30 @@ const Index = () => {
       setSavedId(null);
     }
 
+    const tipicoId = searchParams.get("tipico");
+    if (tipicoId) {
+      (async () => {
+        const { carregarTipico, tipicoParaItensProjeto } = await import("@/lib/tipicoLoader");
+        const r = await carregarTipico(tipicoId, "aluguel");
+        if ("error" in r) {
+          toast({ title: r.error, variant: "destructive" });
+        } else {
+          const itens = tipicoParaItensProjeto(r.encontrados);
+          updateItens(itens);
+          if (r.naoEncontrados.length > 0) {
+            toast({
+              title: `${r.naoEncontrados.length} código(s) não encontrado(s)`,
+              description: r.naoEncontrados.join(", "),
+            });
+          } else {
+            toast({ title: `Típico "${r.tipico.nome}" aplicado` });
+          }
+        }
+        setSearchParams({}, { replace: true });
+      })();
+      return;
+    }
+
     if (oppId) {
       (async () => {
         const { data: opp } = await supabase
