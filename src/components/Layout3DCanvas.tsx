@@ -505,7 +505,8 @@ export function Layout3DCanvas({
     ctxRef.current.onConectarClick = onConectarClick;
     ctxRef.current.onConexaoSelect = onConexaoSelect;
     ctxRef.current.currentMode = mode;
-  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode]);
+    ctxRef.current.selectedIds = selectedIds;
+  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode, selectedIds]);
 
   useEffect(() => {
     const c = ctxRef.current;
