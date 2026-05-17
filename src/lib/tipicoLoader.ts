@@ -82,8 +82,9 @@ export function tipicoParaItensOrcamento(resolvidos: ResolvedItem[]): ItemOrcame
         equipamento_id: eq.id,
         codigo: eq.codigo,
         descricao: eq.descricao,
-        valor_unitario: Number(eq.valor_venda ?? eq.valor_custo ?? 0),
+        valor_unitario: eq.valor_venda != null ? Number(eq.valor_venda) : 0,
         quantidade: r.quantidade,
+        sem_preco_venda: eq.valor_venda == null,
       };
     });
 }
