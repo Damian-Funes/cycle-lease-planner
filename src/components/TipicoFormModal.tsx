@@ -59,12 +59,12 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
       setDescricao(tipico.descricao ?? "");
       setTipo(tipico.tipo);
       setItens(Array.isArray(tipico.itens) ? tipico.itens : []);
-      setCapacidade(String(tipico.capacidade_sacos_ano));
+      setCapacidade(String(tipico.capacidade_sacos_ano ?? 1));
       setValorRef(String(tipico.valor_referencia));
       setDestacado(tipico.destacado);
     } else {
       setNome(""); setDescricao(""); setTipo("orcamento"); setItens([]);
-      setCapacidade(""); setValorRef(""); setDestacado(false);
+      setCapacidade("1"); setValorRef(""); setDestacado(false);
     }
     setSelectedCodigo(""); setCodigoLivre(""); setNovaQtd(1);
   }, [open, tipico]);
@@ -103,9 +103,8 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
   async function handleSubmit() {
     if (!nome.trim()) return toast.error("Nome obrigatório");
-    const cap = parseInt(capacidade.replace(/\D/g, ""), 10);
+    const cap = parseInt(String(capacidade).replace(/\D/g, ""), 10) || 1;
     const val = parseFloat(String(valorRef).replace(/\./g, "").replace(",", "."));
-    if (!cap || cap <= 0) return toast.error("Capacidade deve ser maior que zero");
     if (!val || val <= 0) return toast.error("Valor de referência deve ser maior que zero");
     if (itens.length === 0) return toast.error("Adicione ao menos um equipamento");
 
@@ -160,10 +159,6 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Capacidade (sc/ano) *</Label>
-              <Input type="number" min={1} value={capacidade} onChange={(e) => setCapacidade(e.target.value)} placeholder="Ex: 40000" />
-            </div>
 
             <div className="space-y-1.5">
               <Label>Valor de Referência (R$) *</Label>

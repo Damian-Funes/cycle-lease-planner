@@ -117,15 +117,9 @@ export default function Tipicos() {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Capacidade</div>
-                      <div className="font-semibold">{formatSacosAno(t.capacidade_sacos_ano)}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">Valor ref.</div>
-                      <div className="font-semibold text-primary">{formatBRL(t.valor_referencia)}</div>
-                    </div>
+                  <div className="text-sm">
+                    <div className="text-xs text-muted-foreground">Valor de referência</div>
+                    <div className="font-semibold text-primary">{formatBRL(t.valor_referencia)}</div>
                   </div>
 
                   <div>
