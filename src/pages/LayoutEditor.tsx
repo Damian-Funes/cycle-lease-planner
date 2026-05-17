@@ -483,6 +483,21 @@ export default function LayoutEditor() {
     );
   }
 
+  // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
+  const ocultosSet = useMemo(() => {
+    const paiParaFilhos = buildPaiParaFilhos(contidosPares);
+    const presentes = new Set(items.map((i) => i.equipamento_id));
+    return calcularOcultos(presentes, paiParaFilhos);
+  }, [contidosPares, items]);
+  const itemsVisiveis = useMemo(
+    () => items.filter((i) => !ocultosSet.has(i.equipamento_id)),
+    [items, ocultosSet],
+  );
+  const conexoesVisiveis = useMemo(() => {
+    const idsVis = new Set(itemsVisiveis.map((i) => i.item_id));
+    return conexoes.filter((c) => idsVis.has(c.item_origem_id) && idsVis.has(c.item_destino_id));
+  }, [conexoes, itemsVisiveis]);
+
   const selectedItem = items.find((i) => i.item_id === selectedId) || null;
   const equipamentosFiltrados = equipamentos.filter((eq) => {
     const q = busca.trim().toLowerCase();
