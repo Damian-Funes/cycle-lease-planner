@@ -258,9 +258,6 @@ export function Layout3DCanvas({
     tc.showY = false;
     tc.setMode("translate");
     tc.addEventListener("dragging-changed", (e) => {
-      orbit.locked = Boolean((e as { value: unknown }).value);
-    });
-    tc.addEventListener("dragging-changed", (e) => {
       const dragging = Boolean((e as { value: unknown }).value);
       orbit.locked = dragging;
       const c = ctxRef.current;
