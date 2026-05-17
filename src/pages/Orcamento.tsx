@@ -276,7 +276,8 @@ export default function Orcamento() {
         if ("error" in r) {
           toast({ title: r.error, variant: "destructive" });
         } else {
-          setParams((p) => ({ ...p, itens: tipicoParaItensOrcamento(r.resolvidos) }));
+          const novosItens = tipicoParaItensOrcamento(r.resolvidos);
+          setParams((p) => ({ ...p, itens: novosItens }));
           if (r.naoEncontrados.length > 0) {
             toast({
               title: `${r.naoEncontrados.length} código(s) não encontrado(s)`,
@@ -284,6 +285,14 @@ export default function Orcamento() {
             });
           } else {
             toast({ title: `Típico "${r.tipico.nome}" aplicado` });
+          }
+          const semPreco = novosItens.filter((i) => i.sem_preco_venda).length;
+          if (semPreco > 0) {
+            toast({
+              title: `${semPreco} equipamento(s) sem preço de venda cadastrado`,
+              description: "Preencha o valor unitário antes de enviar ao cliente.",
+              variant: "destructive",
+            });
           }
         }
         setSearchParams({}, { replace: true });
@@ -484,7 +493,13 @@ export default function Orcamento() {
                   </thead>
                   <tbody>
                     {params.itens.map((it, idx) => (
-                      <tr key={`${it.equipamento_id}-${idx}`} className="border-t hover:bg-muted/30 transition-colors">
+                      <tr
+                        key={`${it.equipamento_id}-${idx}`}
+                        className={cn(
+                          "border-t hover:bg-muted/30 transition-colors",
+                          it.sem_preco_venda && "bg-amber-50/60"
+                        )}
+                      >
                         <td className="p-2 font-medium">{it.codigo}</td>
                         <td className="p-2 text-muted-foreground">{it.descricao}</td>
                         <td className="p-2 text-center">
@@ -496,7 +511,10 @@ export default function Orcamento() {
                             className="w-16 h-7 px-1 rounded border bg-background text-sm text-center focus:outline-none focus:ring-1 focus:ring-ring"
                           />
                         </td>
-                        <td className="p-2 text-right tabular-nums">{fmtBRL(it.valor_unitario)}</td>
+                        <td className={cn("p-2 text-right tabular-nums", it.sem_preco_venda && "text-amber-700 font-semibold")}>
+                          {fmtBRL(it.valor_unitario)}
+                          {it.sem_preco_venda && <span title="Sem preço de venda cadastrado" className="ml-1">*</span>}
+                        </td>
                         <td className="p-2 text-right font-medium">{fmtBRL(it.valor_unitario * it.quantidade)}</td>
                         <td className="p-2">
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeItem(idx)}>
