@@ -585,7 +585,7 @@ export default function LayoutEditor() {
                   onTransform={handleTransform}
                   mode={transformMode}
                   alturaLiberada={alturaLiberada}
-                  conexoes={conexoes}
+                  conexoes={conexoesVisiveis}
                   modoConexao={transformMode === "connect"}
                   conexaoPontoTemp={conexaoPontoTemp}
                   selectedConexaoId={selectedConexaoId}
