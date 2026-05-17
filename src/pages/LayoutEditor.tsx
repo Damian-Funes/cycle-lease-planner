@@ -126,7 +126,7 @@ export default function LayoutEditor() {
         handleConexaoDelete(selectedConexaoId);
         return;
       }
-      if (!selectedId) return;
+      if (!selectedId && selectedIds.length === 0) return;
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         rotateSelected();
@@ -138,7 +138,7 @@ export default function LayoutEditor() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, items, selectedConexaoId, transformMode]);
+  }, [selectedId, selectedIds, items, selectedConexaoId, transformMode]);
 
   /* ---- ações ---- */
   async function persistItem(itemId: string, patch: Partial<LayoutItemRow>) {
