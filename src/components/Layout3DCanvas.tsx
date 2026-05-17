@@ -657,25 +657,31 @@ export function Layout3DCanvas({
     });
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
-  const prevSelectedRef = useRef<string | null>(null);
+  const prevSelectedIdsRef = useRef<string[]>([]);
   useEffect(() => {
     const c = ctxRef.current;
     if (!c.tc || !c.groups) return;
 
-    const prev = prevSelectedRef.current;
-    if (prev && c.groups[prev]) {
-      restaurarOpacidade(c.groups[prev]);
-    }
+    const allSel = selectedIds && selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    const prev = prevSelectedIdsRef.current;
+
+    // restaurar opacidade dos que sairam
+    prev.forEach((id) => {
+      if (!allSel.includes(id) && c.groups?.[id]) restaurarOpacidade(c.groups[id]);
+    });
+    // aplicar transparencia nos novos
+    allSel.forEach((id) => {
+      if (!prev.includes(id) && c.groups?.[id]) tornarTransparente(c.groups[id]);
+    });
 
     if (selectedId && c.groups[selectedId]) {
       c.tc.attach(c.groups[selectedId]);
-      tornarTransparente(c.groups[selectedId]);
     } else {
       c.tc.detach();
     }
 
-    prevSelectedRef.current = selectedId;
-  }, [selectedId, items, pisoLarguraMm, pisoComprimentoMm]);
+    prevSelectedIdsRef.current = allSel;
+  }, [selectedId, selectedIds, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Renderiza conexoes
   useEffect(() => {
