@@ -576,7 +576,7 @@ export default function LayoutEditor() {
             <div ref={containerRef} className="w-full h-full bg-muted/30">
               {layout && (
                 <Layout3DCanvas
-                  items={items}
+                  items={itemsVisiveis}
                   pisoLarguraMm={layout.piso_largura_mm}
                   pisoComprimentoMm={layout.piso_comprimento_mm}
                   selectedId={selectedId}
