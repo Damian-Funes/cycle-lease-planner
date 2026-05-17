@@ -276,6 +276,24 @@ export default function LayoutEditor() {
       });
       return;
     }
+    // Bloqueia se este equipamento já é representado por um pai presente no layout.
+    const paiParaFilhos = buildPaiParaFilhos(contidosPares);
+    const filhoParaPais = buildFilhoParaPais(contidosPares);
+    const presentes = new Set(items.map((i) => i.equipamento_id));
+    const ocultos = calcularOcultos(presentes, paiParaFilhos);
+    if (ocultos.has(eq.id)) {
+      const paisIds = Array.from(filhoParaPais.get(eq.id) ?? []);
+      const codigosPais = paisIds
+        .map((pid) => equipamentos.find((e) => e.id === pid)?.codigo)
+        .filter(Boolean)
+        .join(", ");
+      toast({
+        title: "Já representado",
+        description: `Este item já está incluso no desenho de ${codigosPais || "outro equipamento"}.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const ordem = items.length;
     const x = Math.min(layout.piso_largura_mm / 2, eq.largura_mm / 2 + 1000);
     const y = Math.min(layout.piso_comprimento_mm / 2, eq.comprimento_mm / 2 + 1000);
