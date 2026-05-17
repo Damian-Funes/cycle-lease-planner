@@ -159,23 +159,29 @@ export default function LayoutEditor() {
   }
 
   async function rotateSelected() {
-    if (!selectedId) return;
-    const item = items.find((i) => i.item_id === selectedId);
-    if (!item) return;
-    const newRot = (((item.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
-    setItems((cur) => cur.map((i) => (i.item_id === selectedId ? { ...i, rotacao: newRot } : i)));
-    await persistItem(selectedId, { rotacao: newRot });
+    const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
+    const updates: { id: string; rot: 0 | 90 | 180 | 270 }[] = [];
+    setItems((cur) => cur.map((i) => {
+      if (!ids.includes(i.item_id)) return i;
+      const newRot = (((i.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
+      updates.push({ id: i.item_id, rot: newRot });
+      return { ...i, rotacao: newRot };
+    }));
+    await Promise.all(updates.map((u) => persistItem(u.id, { rotacao: u.rot })));
   }
 
   async function removeSelected() {
-    if (!selectedId) return;
-    const { error } = await supabase.from("layout_equipamentos").delete().eq("id", selectedId);
+    const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from("layout_equipamentos").delete().in("id", ids);
     if (error) {
       toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
       return;
     }
-    setItems((cur) => cur.filter((i) => i.item_id !== selectedId));
+    setItems((cur) => cur.filter((i) => !ids.includes(i.item_id)));
     setSelectedId(null);
+    setSelectedIds([]);
   }
 
   async function handleConectarClick(itemId: string, xmm: number, ymm: number, zmm: number) {
