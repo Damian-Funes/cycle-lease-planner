@@ -1433,6 +1433,51 @@ export type Database = {
           },
         ]
       }
+      tipicos: {
+        Row: {
+          arquivado: boolean
+          capacidade_sacos_ano: number
+          codigos: string[]
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          destacado: boolean
+          id: string
+          nome: string
+          tipo: Database["public"]["Enums"]["tipico_tipo"]
+          updated_at: string
+          valor_referencia: number
+        }
+        Insert: {
+          arquivado?: boolean
+          capacidade_sacos_ano: number
+          codigos?: string[]
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          destacado?: boolean
+          id?: string
+          nome: string
+          tipo: Database["public"]["Enums"]["tipico_tipo"]
+          updated_at?: string
+          valor_referencia: number
+        }
+        Update: {
+          arquivado?: boolean
+          capacidade_sacos_ano?: number
+          codigos?: string[]
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          destacado?: boolean
+          id?: string
+          nome?: string
+          tipo?: Database["public"]["Enums"]["tipico_tipo"]
+          updated_at?: string
+          valor_referencia?: number
+        }
+        Relationships: []
+      }
       tipos_atividade: {
         Row: {
           ativo: boolean
@@ -2234,6 +2279,7 @@ export type Database = {
         | "operacao"
         | "viewer"
         | "agente_leitor"
+      tipico_tipo: "orcamento" | "aluguel"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2374,6 +2420,7 @@ export const Constants = {
         "viewer",
         "agente_leitor",
       ],
+      tipico_tipo: ["orcamento", "aluguel"],
     },
   },
 } as const
