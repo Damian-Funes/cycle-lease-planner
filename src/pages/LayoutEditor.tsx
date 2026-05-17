@@ -39,12 +39,38 @@ export default function LayoutEditor() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
   const [transformMode, setTransformMode] = useState<"translate" | "rotate" | "connect">("translate");
   const [alturaLiberada, setAlturaLiberada] = useState(false);
   const [conexoes, setConexoes] = useState<ConexaoRow[]>([]);
   const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
+
+  const handleSelect = useCallback((id: string | null, shift?: boolean) => {
+    if (id === null) {
+      if (!shift) {
+        setSelectedId(null);
+        setSelectedIds([]);
+      }
+      return;
+    }
+    if (shift) {
+      setSelectedIds((cur) => {
+        if (cur.includes(id)) {
+          const next = cur.filter((x) => x !== id);
+          setSelectedId(next[next.length - 1] ?? null);
+          return next;
+        }
+        const next = [...cur, id];
+        setSelectedId(id);
+        return next;
+      });
+    } else {
+      setSelectedId(id);
+      setSelectedIds([id]);
+    }
+  }, []);
 
   /* ---- carregar tudo ---- */
   const refreshItems = useCallback(async () => {
@@ -100,7 +126,7 @@ export default function LayoutEditor() {
         handleConexaoDelete(selectedConexaoId);
         return;
       }
-      if (!selectedId) return;
+      if (!selectedId && selectedIds.length === 0) return;
       if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         rotateSelected();
@@ -112,7 +138,7 @@ export default function LayoutEditor() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, items, selectedConexaoId, transformMode]);
+  }, [selectedId, selectedIds, items, selectedConexaoId, transformMode]);
 
   /* ---- ações ---- */
   async function persistItem(itemId: string, patch: Partial<LayoutItemRow>) {
@@ -133,23 +159,29 @@ export default function LayoutEditor() {
   }
 
   async function rotateSelected() {
-    if (!selectedId) return;
-    const item = items.find((i) => i.item_id === selectedId);
-    if (!item) return;
-    const newRot = (((item.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
-    setItems((cur) => cur.map((i) => (i.item_id === selectedId ? { ...i, rotacao: newRot } : i)));
-    await persistItem(selectedId, { rotacao: newRot });
+    const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
+    const updates: { id: string; rot: 0 | 90 | 180 | 270 }[] = [];
+    setItems((cur) => cur.map((i) => {
+      if (!ids.includes(i.item_id)) return i;
+      const newRot = (((i.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
+      updates.push({ id: i.item_id, rot: newRot });
+      return { ...i, rotacao: newRot };
+    }));
+    await Promise.all(updates.map((u) => persistItem(u.id, { rotacao: u.rot })));
   }
 
   async function removeSelected() {
-    if (!selectedId) return;
-    const { error } = await supabase.from("layout_equipamentos").delete().eq("id", selectedId);
+    const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    if (ids.length === 0) return;
+    const { error } = await supabase.from("layout_equipamentos").delete().in("id", ids);
     if (error) {
       toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
       return;
     }
-    setItems((cur) => cur.filter((i) => i.item_id !== selectedId));
+    setItems((cur) => cur.filter((i) => !ids.includes(i.item_id)));
     setSelectedId(null);
+    setSelectedIds([]);
   }
 
   async function handleConectarClick(itemId: string, xmm: number, ymm: number, zmm: number) {
@@ -250,6 +282,7 @@ export default function LayoutEditor() {
     }
     await refreshItems();
     setSelectedId(data.id);
+    setSelectedIds([data.id]);
   }
 
   async function updateLayoutMeta(patch: Partial<LayoutRow>) {
@@ -506,7 +539,8 @@ export default function LayoutEditor() {
                   pisoLarguraMm={layout.piso_largura_mm}
                   pisoComprimentoMm={layout.piso_comprimento_mm}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  selectedIds={selectedIds}
+                  onSelect={handleSelect}
                   onTransform={handleTransform}
                   mode={transformMode}
                   alturaLiberada={alturaLiberada}
@@ -569,9 +603,13 @@ export default function LayoutEditor() {
               </div>
 
               {/* HUD ações sobre o item selecionado */}
-              {selectedItem && (
+              {(selectedIds.length > 0 || selectedItem) && (
                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-background border rounded-lg shadow-md px-2 py-1 flex items-center gap-1 z-20">
-                  <span className="text-xs text-muted-foreground px-2">{selectedItem.codigo} · {selectedItem.nome}</span>
+                  <span className="text-xs text-muted-foreground px-2">
+                    {selectedIds.length > 1
+                      ? `${selectedIds.length} equipamentos selecionados`
+                      : selectedItem ? `${selectedItem.codigo} · ${selectedItem.nome}` : ""}
+                  </span>
                   <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={rotateSelected} title="Rotacionar (R)">
                     <RotateCw className="w-3.5 h-3.5" /> 90°
                   </Button>
@@ -601,8 +639,8 @@ export default function LayoutEditor() {
               ) : items.map((it) => (
                 <button
                   key={it.item_id}
-                  onClick={() => setSelectedId(it.item_id)}
-                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedId === it.item_id ? "bg-primary/10 border-primary" : "hover:bg-muted/50"}`}
+                  onClick={(e) => handleSelect(it.item_id, e.shiftKey)}
+                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedIds.includes(it.item_id) ? "bg-primary/10 border-primary" : "hover:bg-muted/50"}`}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">

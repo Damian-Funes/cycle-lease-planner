@@ -18,7 +18,8 @@ export interface Layout3DCanvasProps {
   pisoLarguraMm: number;
   pisoComprimentoMm: number;
   selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedIds?: string[];
+  onSelect: (id: string | null, shift?: boolean) => void;
   onTransform: (id: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) => void;
   mode: "translate" | "rotate" | "connect";
   alturaLiberada?: boolean;
@@ -28,6 +29,13 @@ export interface Layout3DCanvasProps {
   selectedConexaoId?: string | null;
   onConectarClick?: (itemId: string, x: number, y: number, z: number) => void;
   onConexaoSelect?: (id: string | null) => void;
+}
+
+interface DragBaseline { x: number; y: number; z: number; rotY: number }
+interface DragState {
+  baselines: Map<string, DragBaseline>;
+  primaryStart: DragBaseline | null;
+  primaryId: string | null;
 }
 
 interface CanvasCtx {
@@ -45,6 +53,8 @@ interface CanvasCtx {
   currentMode?: Layout3DCanvasProps["mode"];
   dom?: HTMLCanvasElement;
   animateToView?: (theta: number, phi: number, radius?: number) => void;
+  selectedIds?: string[];
+  dragState?: DragState | null;
 }
 
 export function Layout3DCanvas({
@@ -52,6 +62,7 @@ export function Layout3DCanvas({
   pisoLarguraMm,
   pisoComprimentoMm,
   selectedId,
+  selectedIds = [],
   onSelect,
   onTransform,
   mode,
@@ -247,16 +258,56 @@ export function Layout3DCanvas({
     tc.showY = false;
     tc.setMode("translate");
     tc.addEventListener("dragging-changed", (e) => {
-      orbit.locked = Boolean((e as { value: unknown }).value);
+      const dragging = Boolean((e as { value: unknown }).value);
+      orbit.locked = dragging;
+      const c = ctxRef.current;
+      if (dragging) {
+        const ids = c.selectedIds && c.selectedIds.length > 0 ? c.selectedIds : (tc.object?.userData.itemId ? [tc.object.userData.itemId as string] : []);
+        const baselines = new Map<string, DragBaseline>();
+        ids.forEach((id) => {
+          const g = c.groups?.[id];
+          if (g) baselines.set(id, { x: g.position.x, y: g.position.y, z: g.position.z, rotY: g.rotation.y });
+        });
+        const primaryObj = tc.object;
+        c.dragState = {
+          baselines,
+          primaryStart: primaryObj ? { x: primaryObj.position.x, y: primaryObj.position.y, z: primaryObj.position.z, rotY: primaryObj.rotation.y } : null,
+          primaryId: (primaryObj?.userData.itemId as string) ?? null,
+        };
+      } else {
+        const ds = c.dragState;
+        if (ds) {
+          ds.baselines.forEach((_b, id) => {
+            const g = c.groups?.[id];
+            if (!g) return;
+            const posXmm = Math.round(g.position.x * 1000);
+            const posYmm = Math.round(g.position.z * 1000);
+            const posZmm = Math.round(g.position.y * 1000);
+            const rotacaoDeg = Math.round(((g.rotation.y * 180) / Math.PI + 360) % 360);
+            c.onTransform?.(id, posXmm, posYmm, posZmm, rotacaoDeg);
+          });
+        }
+        c.dragState = null;
+      }
     });
     tc.addEventListener("objectChange", () => {
+      const c = ctxRef.current;
       const obj = tc.object;
       if (!obj || !obj.userData.itemId) return;
-      const posXmm = Math.round(obj.position.x * 1000);
-      const posYmm = Math.round(obj.position.z * 1000);
-      const posZmm = Math.round(obj.position.y * 1000);
-      const rotacaoDeg = Math.round(((obj.rotation.y * 180) / Math.PI + 360) % 360);
-      ctxRef.current.onTransform?.(obj.userData.itemId, posXmm, posYmm, posZmm, rotacaoDeg);
+      const ds = c.dragState;
+      if (ds && ds.primaryStart && ds.baselines.size > 1) {
+        const dx = obj.position.x - ds.primaryStart.x;
+        const dy = obj.position.y - ds.primaryStart.y;
+        const dz = obj.position.z - ds.primaryStart.z;
+        const drot = obj.rotation.y - ds.primaryStart.rotY;
+        ds.baselines.forEach((b, id) => {
+          if (id === ds.primaryId) return;
+          const g = c.groups?.[id];
+          if (!g) return;
+          g.position.set(b.x + dx, b.y + dy, b.z + dz);
+          g.rotation.y = b.rotY + drot;
+        });
+      }
     });
     const tcAny = tc as unknown as { getHelper?: () => THREE.Object3D };
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
@@ -363,11 +414,12 @@ export function Layout3DCanvas({
 
       const groupsArr = Object.values(c.groups || {}) as THREE.Object3D[];
       const hits = raycaster.intersectObjects(groupsArr, true);
+      const shift = e.shiftKey;
       if (hits.length > 0) {
         let obj: THREE.Object3D | null = hits[0].object;
         while (obj && !obj.userData.itemId) obj = obj.parent;
-        if (obj) c.onSelect?.(obj.userData.itemId as string);
-      } else {
+        if (obj) c.onSelect?.(obj.userData.itemId as string, shift);
+      } else if (!shift) {
         c.onSelect?.(null);
         c.onConexaoSelect?.(null);
       }
@@ -453,7 +505,8 @@ export function Layout3DCanvas({
     ctxRef.current.onConectarClick = onConectarClick;
     ctxRef.current.onConexaoSelect = onConexaoSelect;
     ctxRef.current.currentMode = mode;
-  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode]);
+    ctxRef.current.selectedIds = selectedIds;
+  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode, selectedIds]);
 
   useEffect(() => {
     const c = ctxRef.current;
@@ -604,25 +657,31 @@ export function Layout3DCanvas({
     });
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
-  const prevSelectedRef = useRef<string | null>(null);
+  const prevSelectedIdsRef = useRef<string[]>([]);
   useEffect(() => {
     const c = ctxRef.current;
     if (!c.tc || !c.groups) return;
 
-    const prev = prevSelectedRef.current;
-    if (prev && c.groups[prev]) {
-      restaurarOpacidade(c.groups[prev]);
-    }
+    const allSel = selectedIds && selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
+    const prev = prevSelectedIdsRef.current;
+
+    // restaurar opacidade dos que sairam
+    prev.forEach((id) => {
+      if (!allSel.includes(id) && c.groups?.[id]) restaurarOpacidade(c.groups[id]);
+    });
+    // aplicar transparencia nos novos
+    allSel.forEach((id) => {
+      if (!prev.includes(id) && c.groups?.[id]) tornarTransparente(c.groups[id]);
+    });
 
     if (selectedId && c.groups[selectedId]) {
       c.tc.attach(c.groups[selectedId]);
-      tornarTransparente(c.groups[selectedId]);
     } else {
       c.tc.detach();
     }
 
-    prevSelectedRef.current = selectedId;
-  }, [selectedId, items, pisoLarguraMm, pisoComprimentoMm]);
+    prevSelectedIdsRef.current = allSel;
+  }, [selectedId, selectedIds, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Renderiza conexoes
   useEffect(() => {
