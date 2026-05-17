@@ -18,7 +18,8 @@ export interface Layout3DCanvasProps {
   pisoLarguraMm: number;
   pisoComprimentoMm: number;
   selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selectedIds?: string[];
+  onSelect: (id: string | null, shift?: boolean) => void;
   onTransform: (id: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) => void;
   mode: "translate" | "rotate" | "connect";
   alturaLiberada?: boolean;
@@ -28,6 +29,13 @@ export interface Layout3DCanvasProps {
   selectedConexaoId?: string | null;
   onConectarClick?: (itemId: string, x: number, y: number, z: number) => void;
   onConexaoSelect?: (id: string | null) => void;
+}
+
+interface DragBaseline { x: number; y: number; z: number; rotY: number }
+interface DragState {
+  baselines: Map<string, DragBaseline>;
+  primaryStart: DragBaseline | null;
+  primaryId: string | null;
 }
 
 interface CanvasCtx {
@@ -45,6 +53,8 @@ interface CanvasCtx {
   currentMode?: Layout3DCanvasProps["mode"];
   dom?: HTMLCanvasElement;
   animateToView?: (theta: number, phi: number, radius?: number) => void;
+  selectedIds?: string[];
+  dragState?: DragState | null;
 }
 
 export function Layout3DCanvas({
