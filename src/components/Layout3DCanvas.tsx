@@ -260,14 +260,57 @@ export function Layout3DCanvas({
     tc.addEventListener("dragging-changed", (e) => {
       orbit.locked = Boolean((e as { value: unknown }).value);
     });
+    tc.addEventListener("dragging-changed", (e) => {
+      const dragging = Boolean((e as { value: unknown }).value);
+      orbit.locked = dragging;
+      const c = ctxRef.current;
+      if (dragging) {
+        const ids = c.selectedIds && c.selectedIds.length > 0 ? c.selectedIds : (tc.object?.userData.itemId ? [tc.object.userData.itemId as string] : []);
+        const baselines = new Map<string, DragBaseline>();
+        ids.forEach((id) => {
+          const g = c.groups?.[id];
+          if (g) baselines.set(id, { x: g.position.x, y: g.position.y, z: g.position.z, rotY: g.rotation.y });
+        });
+        const primaryObj = tc.object;
+        c.dragState = {
+          baselines,
+          primaryStart: primaryObj ? { x: primaryObj.position.x, y: primaryObj.position.y, z: primaryObj.position.z, rotY: primaryObj.rotation.y } : null,
+          primaryId: (primaryObj?.userData.itemId as string) ?? null,
+        };
+      } else {
+        const ds = c.dragState;
+        if (ds) {
+          ds.baselines.forEach((_b, id) => {
+            const g = c.groups?.[id];
+            if (!g) return;
+            const posXmm = Math.round(g.position.x * 1000);
+            const posYmm = Math.round(g.position.z * 1000);
+            const posZmm = Math.round(g.position.y * 1000);
+            const rotacaoDeg = Math.round(((g.rotation.y * 180) / Math.PI + 360) % 360);
+            c.onTransform?.(id, posXmm, posYmm, posZmm, rotacaoDeg);
+          });
+        }
+        c.dragState = null;
+      }
+    });
     tc.addEventListener("objectChange", () => {
+      const c = ctxRef.current;
       const obj = tc.object;
       if (!obj || !obj.userData.itemId) return;
-      const posXmm = Math.round(obj.position.x * 1000);
-      const posYmm = Math.round(obj.position.z * 1000);
-      const posZmm = Math.round(obj.position.y * 1000);
-      const rotacaoDeg = Math.round(((obj.rotation.y * 180) / Math.PI + 360) % 360);
-      ctxRef.current.onTransform?.(obj.userData.itemId, posXmm, posYmm, posZmm, rotacaoDeg);
+      const ds = c.dragState;
+      if (ds && ds.primaryStart && ds.baselines.size > 1) {
+        const dx = obj.position.x - ds.primaryStart.x;
+        const dy = obj.position.y - ds.primaryStart.y;
+        const dz = obj.position.z - ds.primaryStart.z;
+        const drot = obj.rotation.y - ds.primaryStart.rotY;
+        ds.baselines.forEach((b, id) => {
+          if (id === ds.primaryId) return;
+          const g = c.groups?.[id];
+          if (!g) return;
+          g.position.set(b.x + dx, b.y + dy, b.z + dz);
+          g.rotation.y = b.rotY + drot;
+        });
+      }
     });
     const tcAny = tc as unknown as { getHelper?: () => THREE.Object3D };
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
