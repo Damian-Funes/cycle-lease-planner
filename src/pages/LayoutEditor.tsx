@@ -49,6 +49,7 @@ export default function LayoutEditor() {
   const [conexoes, setConexoes] = useState<ConexaoRow[]>([]);
   const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
+  const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
     if (id === null) {
