@@ -35,7 +35,6 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   const [tipo, setTipo] = useState<TipicoTipo>("orcamento");
   const [itens, setItens] = useState<TipicoItem[]>([]);
   const [capacidade, setCapacidade] = useState("");
-  const [valorRef, setValorRef] = useState("");
   const [destacado, setDestacado] = useState(false);
   const [equipamentos, setEquipamentos] = useState<EqLite[]>([]);
 
