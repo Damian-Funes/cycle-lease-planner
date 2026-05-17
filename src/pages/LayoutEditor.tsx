@@ -154,7 +154,8 @@ export default function LayoutEditor() {
   }
 
   async function handleTransform(itemId: string, posXmm: number, posYmm: number, posZmm: number, rotacaoDeg: number) {
-    const rotInt = ((Math.round(rotacaoDeg / 90) * 90) % 360) as 0 | 90 | 180 | 270;
+    // Snap fino de 15° — permite qualquer ângulo no ciclo completo de 360°.
+    const rotInt = ((Math.round(rotacaoDeg / 15) * 15) % 360 + 360) % 360;
     setItems((cur) => cur.map((i) => (i.item_id === itemId ? { ...i, pos_x_mm: posXmm, pos_y_mm: posYmm, pos_z_mm: posZmm, rotacao: rotInt } : i)));
     await persistItem(itemId, { pos_x_mm: posXmm, pos_y_mm: posYmm, pos_z_mm: posZmm, rotacao: rotInt } as Partial<LayoutItemRow>);
   }
@@ -162,10 +163,11 @@ export default function LayoutEditor() {
   async function rotateSelected() {
     const ids = selectedIds.length > 0 ? selectedIds : (selectedId ? [selectedId] : []);
     if (ids.length === 0) return;
-    const updates: { id: string; rot: 0 | 90 | 180 | 270 }[] = [];
+    const updates: { id: string; rot: number }[] = [];
     setItems((cur) => cur.map((i) => {
       if (!ids.includes(i.item_id)) return i;
-      const newRot = (((i.rotacao + 90) % 360) as 0 | 90 | 180 | 270);
+      // Incremento de 15° para permitir percorrer todos os 360°.
+      const newRot = ((i.rotacao + 15) % 360 + 360) % 360;
       updates.push({ id: i.item_id, rot: newRot });
       return { ...i, rotacao: newRot };
     }));
