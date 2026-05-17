@@ -677,18 +677,24 @@ export default function LayoutEditor() {
             <TabsContent value="items" className="p-3 space-y-2 m-0">
               {items.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhum equipamento. Adicione pela aba Catálogo.</p>
-              ) : items.map((it) => (
+              ) : items.map((it) => {
+                const oculto = ocultosSet.has(it.equipamento_id);
+                return (
                 <button
                   key={it.item_id}
                   onClick={(e) => handleSelect(it.item_id, e.shiftKey)}
-                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedIds.includes(it.item_id) ? "bg-primary/10 border-primary" : "hover:bg-muted/50"}`}
+                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedIds.includes(it.item_id) ? "bg-primary/10 border-primary" : "hover:bg-muted/50"} ${oculto ? "opacity-60" : ""}`}
+                  title={oculto ? "Oculto no desenho (já representado por outro equipamento)" : undefined}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
                       {it.imagem_url ? <img src={it.imagem_url} alt="" className="w-full h-full object-contain" /> : <Box className="w-4 h-4 text-muted-foreground" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{it.codigo}</div>
+                      <div className="text-sm font-medium truncate flex items-center gap-1">
+                        {it.codigo}
+                        {oculto && <span className="text-[10px] font-normal px-1 py-0.5 rounded bg-muted text-muted-foreground">oculto</span>}
+                      </div>
                       <div className="text-xs text-muted-foreground truncate">{it.nome}</div>
                       <div className="text-xs text-muted-foreground">
                         {Math.round(it.pos_x_mm)}, {Math.round(it.pos_y_mm)} mm · {it.rotacao}°
@@ -696,7 +702,8 @@ export default function LayoutEditor() {
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </TabsContent>
 
             {/* Aba 2 */}
