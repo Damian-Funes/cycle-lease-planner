@@ -1,53 +1,69 @@
-# PR3 — Polimento UX de permissões e filtros
+# Regra de equipamentos contidos no desenho
 
-## Resumo
-Três melhorias UX: (1) tela "Sem permissão" em vez de redirect silencioso em `/admin/*`; (2) tela "Não encontrado / sem permissão" em rotas de detalhe por UUID; (3) filtros de Responsável restritos por role.
+## Objetivo
 
-## Arquivos a criar
-- `src/components/SemPermissao.tsx` — componente reutilizável (props: `titulo`, `mensagem`, `ctaText`, `ctaHref`, `icone` 'lock'|'search').
-- `src/components/RequireRole.tsx` — wrapper que checa role e renderiza children OU `<SemPermissao />` (sem redirect).
-- `src/hooks/useResponsavelFilterOptions.ts` — retorna profiles disponíveis para filtro baseado em role do usuário logado.
+Quando um equipamento "pai" já representa visualmente outros no desenho (ex: dosador de líquido 0506 já contém caixa de contenção e tombador de IBC 1101), o item filho não deve aparecer no layout — mesmo que continue no orçamento/proposta com sua quantidade original.
 
-## Arquivos a editar
+A regra precisa valer em dois momentos:
+1. **Ao gerar o layout** a partir de proposta/orçamento (não cria o filho).
+2. **No editor**, em tempo real (se o usuário adicionar manualmente, o filho some quando o pai existir; se remover o pai, o filho reaparece como permitido).
 
-### Bloco 1 — Acesso negado em /admin/*
-- `src/App.tsx` — trocar `<ProtectedRoute requireAdmin>` por `<ProtectedRoute><RequireRole role="admin">` nas rotas:
-  - `/admin/usuarios`
-  - `/admin/pipelines`
-  - `/reforma/catalogo`
-  - (manter `requireAdmin` removido nessas rotas; deixa `RequireRole` cuidar do feedback)
+## Decisão de arquitetura
 
-### Bloco 2 — Detalhe por UUID sem permissão
-- `src/pages/OrganizacaoDetalhe.tsx` — quando query principal retorna `null` (ou erro), renderizar `<SemPermissao variante="nao-encontrado">` e **abortar queries filhas**. Hoje as queries de pessoas/atividades/oportunidades disparam mesmo sem org.
-- `src/pages/DealDetalhe.tsx` — mesmo padrão para oportunidade.
-- `src/pages/Dossie.tsx` — verificar e aplicar mesmo padrão (cliente por UUID).
-- (não existem rotas `/pessoas/:id`, `/proposta/:id`, `/orcamento/:id` standalone — pessoas é só lista; propostas/orçamentos abrem em modal.)
+Vou usar uma **nova tabela `equipamento_contidos`** no banco (pai → filho), administrada pela tela do **Catálogo** (área protegida por senha que já existe).
 
-### Bloco 3 — Filtro de Responsável por role
-Roles que enxergam outros: `admin`, `gerente_comercial`, `viewer`, `financeiro`, `engenharia`, `operacao`, `marketing`.
-Roles que só veem "Eu"/"Todos": `comercial`, `rtv`.
+Justificativa (já que pediu para eu escolher sem errar):
+- Cadastrar no próprio equipamento (coluna array) funcionaria, mas relacionar via tabela é mais limpo, audita melhor, evita duplicidade e permite mostrar "este código está contido em X" nos dois lados.
+- Fixar no código foi descartado: você pediu para "não cometer erros" e disse que provavelmente surgirão mais pares no futuro — toda alteração exigiria deploy.
+- Reaproveitar a tela do Catálogo evita criar nova rota e mantém a gestão de equipamentos num lugar só.
 
-- `src/pages/Atividades.tsx:301-308` — usar `useResponsavelFilterOptions()`.
-- `src/pages/Crm.tsx:~604` — idem.
-- `src/pages/Organizacoes.tsx:~144` — idem.
-- `src/pages/Pessoas.tsx:~106` — idem.
-- `src/pages/Relatorios.tsx` — verificar e aplicar se houver.
+## O que será feito
 
-**Não tocar** em dropdowns de criação/edição (OrganizacaoFormModal, PessoaFormModal, NovaOportunidadeModal, OportunidadeFormModal, OportunidadeSheet, NovaAtividadeQuickForm, AtividadeFormSheet, DealDetalhe dropdown de atribuição).
+### 1. Banco (migration)
+
+Nova tabela `equipamento_contidos`:
+- `equipamento_pai_id` (FK lógica para `equipamentos.id`)
+- `equipamento_filho_id` (FK lógica para `equipamentos.id`)
+- UNIQUE (pai, filho), CHECK pai ≠ filho
+- RLS: admin gerencia, usuários aprovados leem.
+
+### 2. Catálogo (admin)
+
+Na linha/edição de cada equipamento, adicionar seção **"Itens já inclusos no desenho"**:
+- Multi-select de outros equipamentos do catálogo.
+- Salvar grava em `equipamento_contidos`.
+- Mostra também o caminho inverso ("este item está contido em: …") só como info.
+
+### 3. Geração de layout (`src/pages/Layouts.tsx`)
+
+No fluxo "Novo Layout":
+- Carregar todos os pares `(pai, filho)` cujos pais estão nos itens da proposta/orçamento.
+- Construir o conjunto de `equipamento_id` "ocultos" = filhos cujos pais estão presentes.
+- Pular esses itens no loop de inserts — quantidade do orçamento é ignorada **só para o desenho**.
+- Toast informativo: "N item(s) ocultado(s) por já estarem representados: 1101, 0318M30…".
+
+### 4. Editor de Layout (`src/pages/LayoutEditor.tsx`)
+
+- Carregar pares uma vez ao abrir.
+- Calcular `ocultos` reativo a `items`: filho oculto sse pai presente.
+- Render 2D/3D e lista de items filtram por `!ocultos.has(equipamento_id)`.
+- Ao adicionar manualmente um filho cujo pai já está na cena: bloquear com toast ("Já está representado por 0506").
+- Ao remover o pai, filhos previamente "ocultos" voltam a aparecer automaticamente (continuam existindo no banco).
+
+### 5. Pares iniciais
+
+Migration popula a tabela com:
+- `0506` → `1101`
+- (máquina pai dos `0318M30` e `0318M35` — preciso confirmar qual código é antes de inserir; deixo um TODO se não souber)
 
 ## Detalhes técnicos
 
-`useResponsavelFilterOptions` retorna `{ profiles: Profile[], showOthers: boolean }`:
-- Se `showOthers` for `false`, o componente do filtro só renderiza "Eu"/"Todos".
-- Lista de profiles é buscada via React Query (já tem padrão no projeto).
+- Origem da verdade: `equipamento_contidos`. O orçamento/proposta **não** é modificado — preço e quantidades seguem como estão.
+- Performance: 1 query extra por abertura do editor / geração; cache em memória.
+- Conexões (`layout_conexoes`) envolvendo um item oculto deixam de ser desenhadas enquanto o filho estiver oculto (filtro no render, sem deletar do banco).
+- Backwards compat: layouts existentes que já têm o filho inserido continuam mostrando-o; a regra só age quando há também o pai no mesmo layout. Opcional: botão "Limpar duplicados" no editor que apaga os filhos cobertos (proponho deixar para depois).
 
-`RequireRole` lê `useAuth().hasAnyRole(roles)`; se loading → spinner; se não permitido → `<SemPermissao titulo="Acesso negado" mensagem="Esta página requer perfil admin." ctaText="Voltar para a Home" ctaHref="/" icone="lock" />`.
+## Pontos abertos para confirmar depois
 
-`SemPermissao` usa tokens semânticos (bg-background, text-muted-foreground, primary), ícone Lucide (`Lock` ou `SearchX`), centralizado vertical/horizontal, layout limpo.
-
-## Verificação
-- Build TS limpo (harness roda automaticamente).
-- Smoke test mental: comercial.teste em `/admin/usuarios` → tela "Acesso negado"; em `/organizacoes/<uuid-inválido>` → "Não encontrado"; em filtro de `/atividades` → só "Eu"/"Todos".
-
-## Pós-aprovação
-Após o build passar, sugerir Publish (não posso publicar por você, só apresentar o botão).
+- Qual é o código do "pai" que já contém `0318M30` e `0318M35`? (para semear na migration)
+- Deve existir botão "Limpar itens duplicados" para sanear layouts antigos?
