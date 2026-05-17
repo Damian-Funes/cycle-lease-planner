@@ -315,8 +315,8 @@ export default function LayoutEditor() {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
       return;
     }
-    const { data } = supabase.storage.from(PLANTAS_BUCKET).getPublicUrl(path);
-    await updateLayoutMeta({ piso_imagem_url: data.publicUrl });
+    // Bucket privado: armazenamos apenas o path; URL assinada é gerada na renderização.
+    await updateLayoutMeta({ piso_imagem_url: path });
     toast({ title: "Planta enviada" });
   }
 
@@ -749,7 +749,7 @@ export default function LayoutEditor() {
                 <Label>Planta do cliente (background)</Label>
                 {layout.piso_imagem_url && (
                   <div className="rounded border bg-muted/30 p-2">
-                    <img src={layout.piso_imagem_url} alt="Planta" className="w-full h-32 object-contain" />
+                    <PlantaImage source={layout.piso_imagem_url} alt="Planta" className="w-full h-32 object-contain" />
                     <div className="space-y-1 mt-2">
                       <div className="text-xs text-muted-foreground">Opacidade: {Math.round(layout.piso_imagem_opacidade * 100)}%</div>
                       <Slider
