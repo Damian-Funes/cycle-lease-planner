@@ -42,7 +42,8 @@ export function useTipico(id: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase.from("tipicos").select("*").eq("id", id!).maybeSingle();
       if (error) throw error;
-      return data as Tipico | null;
+      if (!data) return null;
+      return { ...(data as any), itens: Array.isArray((data as any).itens) ? (data as any).itens : [] } as Tipico;
     },
   });
 }
@@ -56,11 +57,11 @@ export function useCreateTipico() {
       } = await supabase.auth.getUser();
       const { data, error } = await supabase
         .from("tipicos")
-        .insert({ ...input, created_by: user?.id ?? null })
+        .insert({ ...(input as any), created_by: user?.id ?? null })
         .select()
         .single();
       if (error) throw error;
-      return data as Tipico;
+      return { ...(data as any), itens: Array.isArray((data as any).itens) ? (data as any).itens : [] } as Tipico;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tipicos"] }),
   });
@@ -76,9 +77,9 @@ export function useUpdateTipico() {
       for (const k of allowed) {
         if (k in patch) clean[k] = (patch as any)[k];
       }
-      const { data, error } = await supabase.from("tipicos").update(clean).eq("id", id).select().single();
+      const { data, error } = await supabase.from("tipicos").update(clean as any).eq("id", id).select().single();
       if (error) throw error;
-      return data as Tipico;
+      return { ...(data as any), itens: Array.isArray((data as any).itens) ? (data as any).itens : [] } as Tipico;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["tipicos"] });
