@@ -166,8 +166,15 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
 
             <div className="space-y-1.5">
-              <Label>Valor de Referência (R$) *</Label>
-              <Input value={valorRef} onChange={(e) => setValorRef(e.target.value)} placeholder="Ex: 850000,00" />
+              <Label>Valor de Referência (calculado)</Label>
+              <div className="h-9 px-3 flex items-center rounded-md border bg-muted/40 text-sm font-semibold text-primary">
+                {formatBRL(valorRefCalc)}
+              </div>
+              {itensSemPreco.length > 0 && (
+                <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {itensSemPreco.length} item(ns) sem valor de venda no catálogo
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-2 pt-6">
