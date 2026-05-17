@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,7 @@ interface EqLite { codigo: string; descricao: string }
 
 export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   const editing = !!tipico;
+  const dialogContentRef = useRef<HTMLDivElement | null>(null);
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipo, setTipo] = useState<TipicoTipo>("orcamento");
@@ -132,7 +133,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent ref={dialogContentRef} className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar Típico" : "Novo Típico"}</DialogTitle>
         </DialogHeader>
@@ -191,7 +192,13 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-[60]" align="start" side="bottom" avoidCollisions={false}>
+                    <PopoverContent
+                      container={dialogContentRef.current}
+                      className="w-[--radix-popover-trigger-width] p-0 bg-popover z-[60]"
+                      align="start"
+                      side="bottom"
+                      avoidCollisions={false}
+                    >
                       <Command>
                         <CommandInput placeholder="Código ou descrição..." />
                         <CommandList className="max-h-[240px] overflow-y-auto overscroll-contain">
