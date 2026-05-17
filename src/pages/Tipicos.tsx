@@ -129,12 +129,14 @@ export default function Tipicos() {
                   </div>
 
                   <div>
-                    <div className="text-xs text-muted-foreground mb-1">{t.codigos.length} código(s)</div>
+                    <div className="text-xs text-muted-foreground mb-1">{t.itens.length} equipamento(s)</div>
                     <div className="flex flex-wrap gap-1">
-                      {t.codigos.slice(0, 4).map((c) => (
-                        <Badge key={c} variant="outline" className="text-[10px] font-mono">{c}</Badge>
+                      {t.itens.slice(0, 4).map((i, idx) => (
+                        <Badge key={`${i.codigo}-${idx}`} variant="outline" className="text-[10px] font-mono">
+                          {i.codigo}<span className="ml-1 opacity-60">×{i.quantidade}</span>
+                        </Badge>
                       ))}
-                      {t.codigos.length > 4 && <Badge variant="outline" className="text-[10px]">+{t.codigos.length - 4}</Badge>}
+                      {t.itens.length > 4 && <Badge variant="outline" className="text-[10px]">+{t.itens.length - 4}</Badge>}
                     </div>
                   </div>
 
