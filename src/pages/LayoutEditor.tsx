@@ -474,15 +474,6 @@ export default function LayoutEditor() {
     pdf.save(fname);
   }
 
-  /* ---- render ---- */
-  if (loading || !layout) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
   const ocultosSet = useMemo(() => {
     const paiParaFilhos = buildPaiParaFilhos(contidosPares);
@@ -497,6 +488,15 @@ export default function LayoutEditor() {
     const idsVis = new Set(itemsVisiveis.map((i) => i.item_id));
     return conexoes.filter((c) => idsVis.has(c.item_origem_id) && idsVis.has(c.item_destino_id));
   }, [conexoes, itemsVisiveis]);
+
+  /* ---- render ---- */
+  if (loading || !layout) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const selectedItem = items.find((i) => i.item_id === selectedId) || null;
   const equipamentosFiltrados = equipamentos.filter((eq) => {
