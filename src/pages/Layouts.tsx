@@ -299,6 +299,8 @@ function NovoLayoutModal({
         naoEncontrados.push(item.codigo);
         continue;
       }
+      // Se este equipamento já é representado por outro presente, não desenhar.
+      if (ocultos.has(eq.id)) continue;
       if (!eq.imagem_url) {
         semImagem.push(eq.codigo);
       }
@@ -327,10 +329,11 @@ function NovoLayoutModal({
     setCriando(false);
     onOpenChange(false);
 
-    if (naoEncontrados.length > 0 || semImagem.length > 0) {
+    if (naoEncontrados.length > 0 || semImagem.length > 0 || codigosOcultos.length > 0) {
       const partes: string[] = [];
       if (naoEncontrados.length > 0) partes.push(`${naoEncontrados.length} item(s) sem cadastro: ${naoEncontrados.join(", ")}`);
       if (semImagem.length > 0) partes.push(`${semImagem.length} sem imagem: ${semImagem.join(", ")}`);
+      if (codigosOcultos.length > 0) partes.push(`${codigosOcultos.length} já representado(s) por outro item: ${codigosOcultos.join(", ")}`);
       toast({ title: "Layout criado com avisos", description: partes.join(" · ") });
     } else {
       toast({ title: "Layout criado!" });
