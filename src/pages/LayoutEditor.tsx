@@ -639,8 +639,8 @@ export default function LayoutEditor() {
               ) : items.map((it) => (
                 <button
                   key={it.item_id}
-                  onClick={() => setSelectedId(it.item_id)}
-                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedId === it.item_id ? "bg-primary/10 border-primary" : "hover:bg-muted/50"}`}
+                  onClick={(e) => handleSelect(it.item_id, e.shiftKey)}
+                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedIds.includes(it.item_id) ? "bg-primary/10 border-primary" : "hover:bg-muted/50"}`}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
