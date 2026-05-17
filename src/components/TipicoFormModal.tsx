@@ -73,6 +73,9 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
   const codigosSet = new Set(equipamentos.map((e) => e.codigo));
   const descPorCodigo = new Map(equipamentos.map((e) => [e.codigo, e.descricao]));
+  const valorPorCodigo = new Map(equipamentos.map((e) => [e.codigo, Number(e.valor_venda) || 0]));
+  const valorRefCalc = itens.reduce((s, i) => s + (valorPorCodigo.get(i.codigo) ?? 0) * i.quantidade, 0);
+  const itensSemPreco = itens.filter((i) => !valorPorCodigo.get(i.codigo));
 
   function addItem(codigo: string, quantidade: number) {
     const c = codigo.trim();
