@@ -8,6 +8,7 @@ import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { GlbOrientationEditor } from "@/components/GlbOrientationEditor";
+import { EquipamentoContidosEditor } from "@/components/EquipamentoContidosEditor";
 import { useAuth } from "@/hooks/useAuth";
 
 const BUCKET_MODELOS = "modelos-3d";
@@ -461,6 +462,13 @@ export default function Catalogo() {
               <p className="text-xs text-muted-foreground mt-3">
                 Dimensões e categoria são usadas no <strong>Layout Generator</strong> para renderizar o equipamento em escala.
               </p>
+              {isAdmin && editing !== "new" && editing && (
+                <EquipamentoContidosEditor
+                  paiId={editing}
+                  paiCodigo={form.codigo}
+                  todosEquipamentos={equipamentos}
+                />
+              )}
               <div className="flex gap-2 mt-4">
                 <Button
                   size="sm"

@@ -263,6 +263,21 @@ function NovoLayoutModal({
     }
     const equipMap = new Map(equipamentos.map((e) => [e.id, e]));
 
+    // 2b. Regra "itens contidos": filhos cujos pais estão presentes não vão para o desenho.
+    const { listContidos, buildPaiParaFilhos, calcularOcultos } = await import("@/lib/equipamentoContidos");
+    let ocultos = new Set<string>();
+    let codigosOcultos: string[] = [];
+    try {
+      const pares = await listContidos();
+      const paiParaFilhos = buildPaiParaFilhos(pares);
+      ocultos = calcularOcultos(equipamentoIds, paiParaFilhos);
+      codigosOcultos = Array.from(ocultos)
+        .map((id) => equipMap.get(id)?.codigo)
+        .filter(Boolean) as string[];
+    } catch {
+      // se falhar, segue sem filtrar
+    }
+
     const inserts: Array<{
       layout_id: string;
       equipamento_id: string;
@@ -284,6 +299,8 @@ function NovoLayoutModal({
         naoEncontrados.push(item.codigo);
         continue;
       }
+      // Se este equipamento já é representado por outro presente, não desenhar.
+      if (ocultos.has(eq.id)) continue;
       if (!eq.imagem_url) {
         semImagem.push(eq.codigo);
       }
@@ -312,10 +329,11 @@ function NovoLayoutModal({
     setCriando(false);
     onOpenChange(false);
 
-    if (naoEncontrados.length > 0 || semImagem.length > 0) {
+    if (naoEncontrados.length > 0 || semImagem.length > 0 || codigosOcultos.length > 0) {
       const partes: string[] = [];
       if (naoEncontrados.length > 0) partes.push(`${naoEncontrados.length} item(s) sem cadastro: ${naoEncontrados.join(", ")}`);
       if (semImagem.length > 0) partes.push(`${semImagem.length} sem imagem: ${semImagem.join(", ")}`);
+      if (codigosOcultos.length > 0) partes.push(`${codigosOcultos.length} já representado(s) por outro item: ${codigosOcultos.join(", ")}`);
       toast({ title: "Layout criado com avisos", description: partes.join(" · ") });
     } else {
       toast({ title: "Layout criado!" });

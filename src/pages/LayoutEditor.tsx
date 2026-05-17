@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
 } from "@/lib/layouts";
 import type { Equipamento } from "@/lib/equipamentos";
 import { CATEGORIAS } from "@/lib/equipamentos";
+import { listContidos, buildPaiParaFilhos, buildFilhoParaPais, calcularOcultos, type ContidoRow } from "@/lib/equipamentoContidos";
+
 
 const PLANTAS_BUCKET = "plantas-cliente";
 
@@ -47,6 +49,7 @@ export default function LayoutEditor() {
   const [conexoes, setConexoes] = useState<ConexaoRow[]>([]);
   const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
+  const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
     if (id === null) {
@@ -89,9 +92,10 @@ export default function LayoutEditor() {
     if (!id) return;
     (async () => {
       setLoading(true);
-      const [{ data: lay }, eqRes] = await Promise.all([
+      const [{ data: lay }, eqRes, paresRes] = await Promise.all([
         supabase.from("layouts").select("*").eq("id", id).maybeSingle(),
         supabase.from("equipamentos").select("*").eq("ativo", true).order("codigo"),
+        listContidos().catch(() => [] as ContidoRow[]),
       ]);
       if (!lay) {
         toast({ title: "Layout não encontrado", variant: "destructive" });
@@ -100,6 +104,7 @@ export default function LayoutEditor() {
       }
       setLayout(lay as LayoutRow);
       setEquipamentos((eqRes.data ?? []) as Equipamento[]);
+      setContidosPares(paresRes as ContidoRow[]);
       await refreshItems();
       await refreshConexoes();
       setLoading(false);
@@ -267,6 +272,24 @@ export default function LayoutEditor() {
       toast({
         title: "Dimensões obrigatórias",
         description: "Cadastre largura e comprimento no Catálogo antes de adicionar ao layout.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Bloqueia se este equipamento já é representado por um pai presente no layout.
+    const paiParaFilhos = buildPaiParaFilhos(contidosPares);
+    const filhoParaPais = buildFilhoParaPais(contidosPares);
+    const presentes = new Set(items.map((i) => i.equipamento_id));
+    const ocultos = calcularOcultos(presentes, paiParaFilhos);
+    if (ocultos.has(eq.id)) {
+      const paisIds = Array.from(filhoParaPais.get(eq.id) ?? []);
+      const codigosPais = paisIds
+        .map((pid) => equipamentos.find((e) => e.id === pid)?.codigo)
+        .filter(Boolean)
+        .join(", ");
+      toast({
+        title: "Já representado",
+        description: `Este item já está incluso no desenho de ${codigosPais || "outro equipamento"}.`,
         variant: "destructive",
       });
       return;
@@ -460,6 +483,21 @@ export default function LayoutEditor() {
     );
   }
 
+  // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
+  const ocultosSet = useMemo(() => {
+    const paiParaFilhos = buildPaiParaFilhos(contidosPares);
+    const presentes = new Set(items.map((i) => i.equipamento_id));
+    return calcularOcultos(presentes, paiParaFilhos);
+  }, [contidosPares, items]);
+  const itemsVisiveis = useMemo(
+    () => items.filter((i) => !ocultosSet.has(i.equipamento_id)),
+    [items, ocultosSet],
+  );
+  const conexoesVisiveis = useMemo(() => {
+    const idsVis = new Set(itemsVisiveis.map((i) => i.item_id));
+    return conexoes.filter((c) => idsVis.has(c.item_origem_id) && idsVis.has(c.item_destino_id));
+  }, [conexoes, itemsVisiveis]);
+
   const selectedItem = items.find((i) => i.item_id === selectedId) || null;
   const equipamentosFiltrados = equipamentos.filter((eq) => {
     const q = busca.trim().toLowerCase();
@@ -538,7 +576,7 @@ export default function LayoutEditor() {
             <div ref={containerRef} className="w-full h-full bg-muted/30">
               {layout && (
                 <Layout3DCanvas
-                  items={items}
+                  items={itemsVisiveis}
                   pisoLarguraMm={layout.piso_largura_mm}
                   pisoComprimentoMm={layout.piso_comprimento_mm}
                   selectedId={selectedId}
@@ -547,7 +585,7 @@ export default function LayoutEditor() {
                   onTransform={handleTransform}
                   mode={transformMode}
                   alturaLiberada={alturaLiberada}
-                  conexoes={conexoes}
+                  conexoes={conexoesVisiveis}
                   modoConexao={transformMode === "connect"}
                   conexaoPontoTemp={conexaoPontoTemp}
                   selectedConexaoId={selectedConexaoId}
@@ -639,18 +677,24 @@ export default function LayoutEditor() {
             <TabsContent value="items" className="p-3 space-y-2 m-0">
               {items.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-6">Nenhum equipamento. Adicione pela aba Catálogo.</p>
-              ) : items.map((it) => (
+              ) : items.map((it) => {
+                const oculto = ocultosSet.has(it.equipamento_id);
+                return (
                 <button
                   key={it.item_id}
                   onClick={(e) => handleSelect(it.item_id, e.shiftKey)}
-                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedIds.includes(it.item_id) ? "bg-primary/10 border-primary" : "hover:bg-muted/50"}`}
+                  className={`w-full text-left p-2 rounded-md border transition-colors ${selectedIds.includes(it.item_id) ? "bg-primary/10 border-primary" : "hover:bg-muted/50"} ${oculto ? "opacity-60" : ""}`}
+                  title={oculto ? "Oculto no desenho (já representado por outro equipamento)" : undefined}
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded bg-muted/40 flex items-center justify-center overflow-hidden shrink-0">
                       {it.imagem_url ? <img src={it.imagem_url} alt="" className="w-full h-full object-contain" /> : <Box className="w-4 h-4 text-muted-foreground" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{it.codigo}</div>
+                      <div className="text-sm font-medium truncate flex items-center gap-1">
+                        {it.codigo}
+                        {oculto && <span className="text-[10px] font-normal px-1 py-0.5 rounded bg-muted text-muted-foreground">oculto</span>}
+                      </div>
                       <div className="text-xs text-muted-foreground truncate">{it.nome}</div>
                       <div className="text-xs text-muted-foreground">
                         {Math.round(it.pos_x_mm)}, {Math.round(it.pos_y_mm)} mm · {it.rotacao}°
@@ -658,7 +702,8 @@ export default function LayoutEditor() {
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </TabsContent>
 
             {/* Aba 2 */}
