@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type WheelEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +97,10 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
     setItens(itens.map((it, i) => i === idx ? { ...it, quantidade: q } : it));
   }
 
+  function releaseWheelFromNumberInput(event: WheelEvent<HTMLInputElement>) {
+    event.currentTarget.blur();
+  }
+
   async function handleSubmit() {
     if (!nome.trim()) return toast.error("Nome obrigatório");
     const cap = parseInt(capacidade.replace(/\D/g, ""), 10);
@@ -133,12 +137,12 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent ref={dialogContentRef} className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent ref={dialogContentRef} className="flex max-h-[90vh] max-w-2xl flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{editing ? "Editar Típico" : "Novo Típico"}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-2 pr-1" data-tipico-scroll>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2 space-y-1.5">
               <Label>Nome *</Label>
@@ -228,6 +232,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
                     step={1}
                     value={novaQtd}
                     onChange={(e) => setNovaQtd(Math.max(1, parseInt(e.target.value) || 1))}
+                    onWheel={releaseWheelFromNumberInput}
                     className="h-9 text-center"
                   />
                 </div>
@@ -267,7 +272,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
               {/* Tabela de itens */}
               {itens.length > 0 ? (
-                <div className="border rounded-lg overflow-hidden">
+                <div className="max-h-[38vh] overflow-y-auto rounded-lg border overscroll-contain">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/50 text-muted-foreground">
@@ -298,6 +303,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
                                 step={1}
                                 value={it.quantidade}
                                 onChange={(e) => changeQtd(idx, parseInt(e.target.value) || 1)}
+                                onWheel={releaseWheelFromNumberInput}
                                 className="w-16 h-7 text-center"
                               />
                             </td>
@@ -327,7 +333,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
