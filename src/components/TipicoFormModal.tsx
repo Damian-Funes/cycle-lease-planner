@@ -159,10 +159,6 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Capacidade (sc/ano) *</Label>
-              <Input type="number" min={1} value={capacidade} onChange={(e) => setCapacidade(e.target.value)} placeholder="Ex: 40000" />
-            </div>
 
             <div className="space-y-1.5">
               <Label>Valor de Referência (R$) *</Label>
