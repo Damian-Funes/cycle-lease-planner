@@ -59,7 +59,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
       setDescricao(tipico.descricao ?? "");
       setTipo(tipico.tipo);
       setItens(Array.isArray(tipico.itens) ? tipico.itens : []);
-      setCapacidade(String(tipico.capacidade_sacos_ano));
+      setCapacidade(String(tipico.capacidade_sacos_ano ?? 1));
       setValorRef(String(tipico.valor_referencia));
       setDestacado(tipico.destacado);
     } else {
