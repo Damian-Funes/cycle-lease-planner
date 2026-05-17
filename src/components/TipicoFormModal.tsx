@@ -191,10 +191,10 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-[60]" align="start" side="bottom" avoidCollisions={false}>
                       <Command>
                         <CommandInput placeholder="Código ou descrição..." />
-                        <CommandList>
+                        <CommandList className="max-h-[240px] overflow-y-auto overscroll-contain">
                           <CommandEmpty>Nenhum equipamento.</CommandEmpty>
                           <CommandGroup>
                             {equipamentos.map((eq) => (
