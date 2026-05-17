@@ -263,6 +263,21 @@ function NovoLayoutModal({
     }
     const equipMap = new Map(equipamentos.map((e) => [e.id, e]));
 
+    // 2b. Regra "itens contidos": filhos cujos pais estão presentes não vão para o desenho.
+    const { listContidos, buildPaiParaFilhos, calcularOcultos } = await import("@/lib/equipamentoContidos");
+    let ocultos = new Set<string>();
+    let codigosOcultos: string[] = [];
+    try {
+      const pares = await listContidos();
+      const paiParaFilhos = buildPaiParaFilhos(pares);
+      ocultos = calcularOcultos(equipamentoIds, paiParaFilhos);
+      codigosOcultos = Array.from(ocultos)
+        .map((id) => equipMap.get(id)?.codigo)
+        .filter(Boolean) as string[];
+    } catch {
+      // se falhar, segue sem filtrar
+    }
+
     const inserts: Array<{
       layout_id: string;
       equipamento_id: string;
