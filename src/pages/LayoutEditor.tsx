@@ -22,6 +22,8 @@ import {
 } from "@/lib/layouts";
 import type { Equipamento } from "@/lib/equipamentos";
 import { CATEGORIAS } from "@/lib/equipamentos";
+import { listContidos, buildPaiParaFilhos, buildFilhoParaPais, calcularOcultos, type ContidoRow } from "@/lib/equipamentoContidos";
+import { useMemo } from "react";
 
 const PLANTAS_BUCKET = "plantas-cliente";
 
