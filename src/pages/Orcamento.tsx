@@ -255,11 +255,17 @@ export default function Orcamento() {
 
     const loadId = searchParams.get("load");
     const novo = searchParams.get("novo");
+    const tipicoId = searchParams.get("tipico");
+    const propostas = searchParams.get("propostas");
+    const oppId = searchParams.get("oportunidade");
+    const orgId = searchParams.get("organizacao");
+
+    if (!loadId && !novo && !tipicoId && !propostas && !oppId && !orgId) return;
+
+    setSearchParams({}, { replace: true });
 
     if (loadId) {
-      void loadOrcamentoById(loadId).finally(() => {
-        setSearchParams({}, { replace: true });
-      });
+      void loadOrcamentoById(loadId);
       return;
     }
 
@@ -268,51 +274,48 @@ export default function Orcamento() {
       setSavedId(null);
     }
 
-    const tipicoId = searchParams.get("tipico");
     if (tipicoId) {
-      (async () => {
+      void (async () => {
         const { carregarTipico, tipicoParaItensOrcamento } = await import("@/lib/tipicoLoader");
         const r = await carregarTipico(tipicoId, "orcamento");
         if ("error" in r) {
           toast({ title: r.error, variant: "destructive" });
-        } else {
-          const novosItens = tipicoParaItensOrcamento(r.resolvidos);
-          setParams((p) => ({ ...p, itens: novosItens }));
-          if (r.naoEncontrados.length > 0) {
-            toast({
-              title: `${r.naoEncontrados.length} código(s) não encontrado(s)`,
-              description: r.naoEncontrados.join(", "),
-            });
-          } else {
-            toast({ title: `Típico "${r.tipico.nome}" aplicado` });
-          }
-          const semPreco = novosItens.filter((i) => i.sem_preco_venda).length;
-          if (semPreco > 0) {
-            toast({
-              title: `${semPreco} equipamento(s) sem preço de venda cadastrado`,
-              description: "Preencha o valor unitário antes de enviar ao cliente.",
-              variant: "destructive",
-            });
-          }
+          return;
         }
-        setSearchParams({}, { replace: true });
+
+        const novosItens = tipicoParaItensOrcamento(r.resolvidos);
+        setParams((p) => ({ ...p, itens: novosItens }));
+
+        if (r.naoEncontrados.length > 0) {
+          toast({
+            title: `${r.naoEncontrados.length} código(s) não encontrado(s)`,
+            description: r.naoEncontrados.join(", "),
+          });
+        } else {
+          toast({ title: `Típico "${r.tipico.nome}" aplicado` });
+        }
+
+        const semPreco = novosItens.filter((i) => i.sem_preco_venda).length;
+        if (semPreco > 0) {
+          toast({
+            title: `${semPreco} equipamento(s) sem preço de venda cadastrado`,
+            description: "Preencha o valor unitário antes de enviar ao cliente.",
+            variant: "destructive",
+          });
+        }
       })();
       return;
     }
 
-    if (novo) {
-      setSearchParams({}, { replace: true });
+    if (novo) return;
+
+    if (propostas) {
+      setModalOpen(true);
       return;
     }
 
-    if (searchParams.get("propostas")) {
-      setModalOpen(true);
-      setSearchParams({}, { replace: true });
-    }
-
-    const oppId = searchParams.get("oportunidade");
     if (oppId) {
-      (async () => {
+      void (async () => {
         const { data: opp } = await supabase
           .from("oportunidades")
           .select("titulo, organizacao_id")
@@ -322,17 +325,14 @@ export default function Orcamento() {
           setParams((p) => ({ ...p, organizacao_id: opp.organizacao_id, oportunidade_id: oppId }));
           toast({ title: "Pré-preenchido a partir da oportunidade" });
         }
-        setSearchParams({}, { replace: true });
       })();
       return;
     }
 
-    const orgId = searchParams.get("organizacao");
     if (orgId) {
       setParams((p) => ({ ...p, organizacao_id: orgId }));
-      setSearchParams({}, { replace: true });
     }
-  }, [authLoading, profile?.status, searchParams, setSearchParams, loadOrcamentoById]);
+  }, [authLoading, profile?.status, searchParams, setSearchParams, loadOrcamentoById, toast]);
 
   async function handlePdf() {
     if (!params.organizacao_id && !params.clientName.trim()) {
