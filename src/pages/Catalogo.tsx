@@ -8,6 +8,7 @@ import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { GlbOrientationEditor } from "@/components/GlbOrientationEditor";
+import { EquipamentoContidosEditor } from "@/components/EquipamentoContidosEditor";
 import { useAuth } from "@/hooks/useAuth";
 
 const BUCKET_MODELOS = "modelos-3d";
