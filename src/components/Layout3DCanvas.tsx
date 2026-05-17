@@ -62,6 +62,7 @@ export function Layout3DCanvas({
   pisoLarguraMm,
   pisoComprimentoMm,
   selectedId,
+  selectedIds = [],
   onSelect,
   onTransform,
   mode,
