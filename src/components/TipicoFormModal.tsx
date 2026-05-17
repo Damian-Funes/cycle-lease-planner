@@ -64,7 +64,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
       setDestacado(tipico.destacado);
     } else {
       setNome(""); setDescricao(""); setTipo("orcamento"); setItens([]);
-      setCapacidade(""); setValorRef(""); setDestacado(false);
+      setCapacidade("1"); setValorRef(""); setDestacado(false);
     }
     setSelectedCodigo(""); setCodigoLivre(""); setNovaQtd(1);
   }, [open, tipico]);
