@@ -539,7 +539,8 @@ export default function LayoutEditor() {
                   pisoLarguraMm={layout.piso_largura_mm}
                   pisoComprimentoMm={layout.piso_comprimento_mm}
                   selectedId={selectedId}
-                  onSelect={setSelectedId}
+                  selectedIds={selectedIds}
+                  onSelect={handleSelect}
                   onTransform={handleTransform}
                   mode={transformMode}
                   alturaLiberada={alturaLiberada}
