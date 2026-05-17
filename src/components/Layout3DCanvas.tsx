@@ -414,11 +414,12 @@ export function Layout3DCanvas({
 
       const groupsArr = Object.values(c.groups || {}) as THREE.Object3D[];
       const hits = raycaster.intersectObjects(groupsArr, true);
+      const shift = e.shiftKey;
       if (hits.length > 0) {
         let obj: THREE.Object3D | null = hits[0].object;
         while (obj && !obj.userData.itemId) obj = obj.parent;
-        if (obj) c.onSelect?.(obj.userData.itemId as string);
-      } else {
+        if (obj) c.onSelect?.(obj.userData.itemId as string, shift);
+      } else if (!shift) {
         c.onSelect?.(null);
         c.onConexaoSelect?.(null);
       }
