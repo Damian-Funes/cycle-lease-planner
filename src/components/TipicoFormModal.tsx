@@ -109,7 +109,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   async function handleSubmit() {
     if (!nome.trim()) return toast.error("Nome obrigatório");
     const cap = parseInt(String(capacidade).replace(/\D/g, ""), 10) || 1;
-    const val = parseFloat(String(valorRef).replace(/\./g, "").replace(",", "."));
+    const val = valorRefCalc;
     if (!val || val <= 0) return toast.error("Valor de referência deve ser maior que zero");
     if (itens.length === 0) return toast.error("Adicione ao menos um equipamento");
 
