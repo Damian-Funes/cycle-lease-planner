@@ -92,9 +92,10 @@ export default function LayoutEditor() {
     if (!id) return;
     (async () => {
       setLoading(true);
-      const [{ data: lay }, eqRes] = await Promise.all([
+      const [{ data: lay }, eqRes, paresRes] = await Promise.all([
         supabase.from("layouts").select("*").eq("id", id).maybeSingle(),
         supabase.from("equipamentos").select("*").eq("ativo", true).order("codigo"),
+        listContidos().catch(() => [] as ContidoRow[]),
       ]);
       if (!lay) {
         toast({ title: "Layout não encontrado", variant: "destructive" });
@@ -103,6 +104,7 @@ export default function LayoutEditor() {
       }
       setLayout(lay as LayoutRow);
       setEquipamentos((eqRes.data ?? []) as Equipamento[]);
+      setContidosPares(paresRes as ContidoRow[]);
       await refreshItems();
       await refreshConexoes();
       setLoading(false);
