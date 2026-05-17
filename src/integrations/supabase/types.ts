@@ -146,6 +146,56 @@ export type Database = {
         }
         Relationships: []
       }
+      equipamento_contidos: {
+        Row: {
+          created_at: string
+          equipamento_filho_id: string
+          equipamento_pai_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          equipamento_filho_id: string
+          equipamento_pai_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          equipamento_filho_id?: string
+          equipamento_pai_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipamento_contidos_equipamento_filho_id_fkey"
+            columns: ["equipamento_filho_id"]
+            isOneToOne: false
+            referencedRelation: "equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipamento_contidos_equipamento_filho_id_fkey"
+            columns: ["equipamento_filho_id"]
+            isOneToOne: false
+            referencedRelation: "vw_layout_completo"
+            referencedColumns: ["equipamento_id"]
+          },
+          {
+            foreignKeyName: "equipamento_contidos_equipamento_pai_id_fkey"
+            columns: ["equipamento_pai_id"]
+            isOneToOne: false
+            referencedRelation: "equipamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipamento_contidos_equipamento_pai_id_fkey"
+            columns: ["equipamento_pai_id"]
+            isOneToOne: false
+            referencedRelation: "vw_layout_completo"
+            referencedColumns: ["equipamento_id"]
+          },
+        ]
+      }
       equipamentos: {
         Row: {
           altura_mm: number | null
