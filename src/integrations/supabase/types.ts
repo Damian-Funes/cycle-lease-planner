@@ -1443,6 +1443,7 @@ export type Database = {
           descricao: string | null
           destacado: boolean
           id: string
+          itens: Json
           nome: string
           tipo: Database["public"]["Enums"]["tipico_tipo"]
           updated_at: string
@@ -1457,6 +1458,7 @@ export type Database = {
           descricao?: string | null
           destacado?: boolean
           id?: string
+          itens?: Json
           nome: string
           tipo: Database["public"]["Enums"]["tipico_tipo"]
           updated_at?: string
@@ -1471,6 +1473,7 @@ export type Database = {
           descricao?: string | null
           destacado?: boolean
           id?: string
+          itens?: Json
           nome?: string
           tipo?: Database["public"]["Enums"]["tipico_tipo"]
           updated_at?: string
