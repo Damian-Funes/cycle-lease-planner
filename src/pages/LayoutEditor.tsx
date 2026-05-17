@@ -603,9 +603,13 @@ export default function LayoutEditor() {
               </div>
 
               {/* HUD ações sobre o item selecionado */}
-              {selectedItem && (
+              {(selectedIds.length > 0 || selectedItem) && (
                 <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-background border rounded-lg shadow-md px-2 py-1 flex items-center gap-1 z-20">
-                  <span className="text-xs text-muted-foreground px-2">{selectedItem.codigo} · {selectedItem.nome}</span>
+                  <span className="text-xs text-muted-foreground px-2">
+                    {selectedIds.length > 1
+                      ? `${selectedIds.length} equipamentos selecionados`
+                      : selectedItem ? `${selectedItem.codigo} · ${selectedItem.nome}` : ""}
+                  </span>
                   <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={rotateSelected} title="Rotacionar (R)">
                     <RotateCw className="w-3.5 h-3.5" /> 90°
                   </Button>
