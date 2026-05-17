@@ -21,7 +21,11 @@ interface Props {
   tipico?: Tipico | null;
 }
 
-interface EqLite { codigo: string; descricao: string }
+interface EqLite { codigo: string; descricao: string; valor_venda: number | null }
+
+function formatBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   const editing = !!tipico;
