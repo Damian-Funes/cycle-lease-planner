@@ -21,7 +21,11 @@ interface Props {
   tipico?: Tipico | null;
 }
 
-interface EqLite { codigo: string; descricao: string }
+interface EqLite { codigo: string; descricao: string; valor_venda: number | null }
+
+function formatBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   const editing = !!tipico;
@@ -31,7 +35,6 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   const [tipo, setTipo] = useState<TipicoTipo>("orcamento");
   const [itens, setItens] = useState<TipicoItem[]>([]);
   const [capacidade, setCapacidade] = useState("");
-  const [valorRef, setValorRef] = useState("");
   const [destacado, setDestacado] = useState(false);
   const [equipamentos, setEquipamentos] = useState<EqLite[]>([]);
 
@@ -47,7 +50,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    supabase.from("equipamentos").select("codigo,descricao").eq("ativo", true).order("codigo").then(({ data }) => {
+    supabase.from("equipamentos").select("codigo,descricao,valor_venda").eq("ativo", true).order("codigo").then(({ data }) => {
       if (data) setEquipamentos(data as EqLite[]);
     });
   }, [open]);
@@ -60,17 +63,19 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
       setTipo(tipico.tipo);
       setItens(Array.isArray(tipico.itens) ? tipico.itens : []);
       setCapacidade(String(tipico.capacidade_sacos_ano ?? 1));
-      setValorRef(String(tipico.valor_referencia));
       setDestacado(tipico.destacado);
     } else {
       setNome(""); setDescricao(""); setTipo("orcamento"); setItens([]);
-      setCapacidade("1"); setValorRef(""); setDestacado(false);
+      setCapacidade("1"); setDestacado(false);
     }
     setSelectedCodigo(""); setCodigoLivre(""); setNovaQtd(1);
   }, [open, tipico]);
 
   const codigosSet = new Set(equipamentos.map((e) => e.codigo));
   const descPorCodigo = new Map(equipamentos.map((e) => [e.codigo, e.descricao]));
+  const valorPorCodigo = new Map(equipamentos.map((e) => [e.codigo, Number(e.valor_venda) || 0]));
+  const valorRefCalc = itens.reduce((s, i) => s + (valorPorCodigo.get(i.codigo) ?? 0) * i.quantidade, 0);
+  const itensSemPreco = itens.filter((i) => !valorPorCodigo.get(i.codigo));
 
   function addItem(codigo: string, quantidade: number) {
     const c = codigo.trim();
@@ -104,7 +109,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
   async function handleSubmit() {
     if (!nome.trim()) return toast.error("Nome obrigatório");
     const cap = parseInt(String(capacidade).replace(/\D/g, ""), 10) || 1;
-    const val = parseFloat(String(valorRef).replace(/\./g, "").replace(",", "."));
+    const val = valorRefCalc;
     if (!val || val <= 0) return toast.error("Valor de referência deve ser maior que zero");
     if (itens.length === 0) return toast.error("Adicione ao menos um equipamento");
 
@@ -161,8 +166,15 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
 
             <div className="space-y-1.5">
-              <Label>Valor de Referência (R$) *</Label>
-              <Input value={valorRef} onChange={(e) => setValorRef(e.target.value)} placeholder="Ex: 850000,00" />
+              <Label>Valor de Referência (calculado)</Label>
+              <div className="h-9 px-3 flex items-center rounded-md border bg-muted/40 text-sm font-semibold text-primary">
+                {formatBRL(valorRefCalc)}
+              </div>
+              {itensSemPreco.length > 0 && (
+                <p className="text-[11px] text-amber-600 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> {itensSemPreco.length} item(ns) sem valor de venda no catálogo
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-2 pt-6">
