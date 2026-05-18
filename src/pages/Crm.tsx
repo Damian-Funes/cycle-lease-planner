@@ -514,6 +514,29 @@ export default function Crm() {
     setConfirmMove(null);
   };
 
+  const confirmDateAndMove = () => {
+    if (!needsDate || !needsDate.data) return;
+    const { op, toEtapaId, data } = needsDate;
+    const targetEtapa = etapasPipeline.find((x) => x.id === toEtapaId);
+    if (!targetEtapa) { setNeedsDate(null); return; }
+
+    const prev = qc.getQueryData<Oportunidade[]>(["oportunidades"]);
+    qc.setQueryData<Oportunidade[]>(["oportunidades"], (curr) =>
+      curr?.map((o) => (o.id === op.id
+        ? { ...o, etapa_id: toEtapaId, probabilidade: targetEtapa.probabilidade_default, data_fechamento_prevista: data }
+        : o))
+    );
+
+    moveCardMutation.mutate(
+      { id: op.id, etapa_id: toEtapaId, extra: { probabilidade: targetEtapa.probabilidade_default, data_fechamento_prevista: data } },
+      {
+        onError: () => { if (prev) qc.setQueryData(["oportunidades"], prev); },
+        onSuccess: () => toast.success("Oportunidade movida"),
+      }
+    );
+    setNeedsDate(null);
+  };
+
   /* Render */
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col">
