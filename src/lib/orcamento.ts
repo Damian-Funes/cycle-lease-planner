@@ -40,7 +40,9 @@ export interface OrcamentoParams {
   montagemEhFazenda?: boolean;
   montagemKmHotelLocal?: number;
   montagemObservacoes?: string;
-  montagemValorTotal?: number;
+  montagemCustoTotal?: number;
+  montagemPrecoTotal?: number;
+  montagemMargemAplicada?: number;
 }
 
 export const DEFAULT_ORCAMENTO: OrcamentoParams = {
