@@ -13,6 +13,7 @@ import { OrcamentoParams, ItemOrcamento, DEFAULT_ORCAMENTO, calcSubtotal, calcDe
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
+import ItemAvulsoModal from "@/components/ItemAvulsoModal";
 import AppHeader from "@/components/AppHeader";
 import SeletorOrganizacao from "@/components/SeletorOrganizacao";
 import { Alert, AlertDescription } from "@/components/ui/alert";
