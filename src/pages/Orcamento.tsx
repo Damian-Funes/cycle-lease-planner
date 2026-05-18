@@ -276,7 +276,7 @@ export default function Orcamento() {
         const totalFinal = Math.max(0, subtotal - desc) + (Number(params.frete) || 0) + montagemPreco;
         await supabase.from("orcamentos").update({ total: totalFinal } as any).eq("id", novoId);
       }
-      await fetchDiasSugerido(novoId);
+      
     }
 
     setSaving(false);
