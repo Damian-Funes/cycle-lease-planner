@@ -5,7 +5,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { ViewHelper } from "three/examples/jsm/helpers/ViewHelper.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
+import { Loader2, Box, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Maximize2 } from "lucide-react";
 import type { LayoutItemRow, ConexaoRow } from "@/lib/layouts";
 import {
   tornarTransparente,
@@ -53,6 +53,7 @@ interface CanvasCtx {
   currentMode?: Layout3DCanvasProps["mode"];
   dom?: HTMLCanvasElement;
   animateToView?: (theta: number, phi: number, radius?: number) => void;
+  fitAll?: () => void;
   selectedIds?: string[];
   dragState?: DragState | null;
 }
@@ -186,6 +187,47 @@ export function Layout3DCanvas({
         const ease = 1 - Math.pow(1 - t, 3);
         orbit.theta = startTheta + (targetTheta - startTheta) * ease;
         orbit.phi = startPhi + (targetPhi - startPhi) * ease;
+        orbit.radius = startRadius + (endRadius - startRadius) * ease;
+        if (t < 1) requestAnimationFrame(tween);
+      };
+      tween();
+    };
+
+    const fitAll = () => {
+      const groups = ctxRef.current.groups;
+      const box = new THREE.Box3();
+      let has = false;
+      if (groups) {
+        Object.values(groups).forEach((g) => {
+          g.updateMatrixWorld(true);
+          const b = new THREE.Box3().setFromObject(g);
+          if (!b.isEmpty()) {
+            box.union(b);
+            has = true;
+          }
+        });
+      }
+      if (!has) {
+        box.min.set(0, 0, 0);
+        box.max.set(floorW, 2, floorH);
+      }
+      const center = new THREE.Vector3();
+      const size = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z, 2);
+      const fovRad = (camera.fov * Math.PI) / 180;
+      const fitRadius = (maxDim / 2) / Math.tan(fovRad / 2) * 1.5;
+      const startTarget = orbit.target.clone();
+      const endTarget = new THREE.Vector3(center.x, 0, center.z);
+      const startRadius = orbit.radius;
+      const endRadius = Math.max(fitRadius, 5);
+      const dur = 500;
+      const t0 = performance.now();
+      const tween = () => {
+        const t = Math.min(1, (performance.now() - t0) / dur);
+        const ease = 1 - Math.pow(1 - t, 3);
+        orbit.target.lerpVectors(startTarget, endTarget, ease);
         orbit.radius = startRadius + (endRadius - startRadius) * ease;
         if (t < 1) requestAnimationFrame(tween);
       };
@@ -461,7 +503,7 @@ export function Layout3DCanvas({
       previewMarker: null,
       onTransform, onSelect, onConectarClick, onConexaoSelect,
       currentMode: mode,
-      dom, animateToView,
+      dom, animateToView, fitAll,
     };
 
     return () => {
@@ -835,6 +877,14 @@ export function Layout3DCanvas({
         <div className="w-px h-5 bg-border mx-0.5" />
         <button onClick={() => goToView("iso")} className={btnCls} title="Vista isométrica">
           <Box className="w-3.5 h-3.5" /> Iso
+        </button>
+        <div className="w-px h-5 bg-border mx-0.5" />
+        <button
+          onClick={() => ctxRef.current.fitAll?.()}
+          className={btnCls}
+          title="Enquadrar tudo (centraliza o desenho na tela)"
+        >
+          <Maximize2 className="w-3.5 h-3.5" /> Enquadrar
         </button>
       </div>
       {Object.keys(loadingGlb).length > 0 && (
