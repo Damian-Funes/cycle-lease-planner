@@ -349,8 +349,7 @@ export default function Orcamento() {
     };
 
     handleLoad(loaded, data.id);
-    fetchDiasSugerido(data.id);
-  }, [toast, fetchDiasSugerido]);
+  }, [toast]);
 
   // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
   useEffect(() => {
