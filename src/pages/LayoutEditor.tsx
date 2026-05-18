@@ -392,6 +392,8 @@ export default function LayoutEditor() {
     }
 
     if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
+    // Restaura uma vista útil para o usuário após captura
+    api.fitAll();
 
     if (capturas.length === 0) {
       toast({
