@@ -133,7 +133,13 @@ export default function EquipmentSelector({ itens, onItensChange, valorProjeto, 
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
-                  <Command key={equipamentos.length}>
+                  <Command
+                    key={equipamentos.length}
+                    filter={(value, search) => {
+                      if (!search) return 1;
+                      return value.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0;
+                    }}
+                  >
                     <CommandInput placeholder="Digite código ou descrição..." />
                     <CommandList>
                       <CommandEmpty>
