@@ -437,7 +437,27 @@ export default function Orcamento() {
       toast({ title: "Adicione ao menos um item", variant: "destructive" });
       return;
     }
-    await generateOrcamentoPdf(params);
+    // Salva primeiro para garantir que o trigger recalcule montagem_preco_total
+    await handleSave();
+    let pdfParams = params;
+    if (savedId) {
+      const { data: fresh } = await supabase
+        .from("orcamentos")
+        .select("montagem_custo_total, montagem_preco_total, montagem_margem_aplicada, montagem_dias, frete")
+        .eq("id", savedId)
+        .maybeSingle();
+      if (fresh) {
+        pdfParams = {
+          ...params,
+          frete: Number((fresh as any).frete) || 0,
+          montagemDias: Number((fresh as any).montagem_dias) || 0,
+          montagemCustoTotal: Number((fresh as any).montagem_custo_total) || 0,
+          montagemPrecoTotal: Number((fresh as any).montagem_preco_total) || 0,
+          montagemMargemAplicada: Number((fresh as any).montagem_margem_aplicada) || 0,
+        };
+      }
+    }
+    await generateOrcamentoPdf(pdfParams);
   }
 
   return (
