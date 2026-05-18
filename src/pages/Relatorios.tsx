@@ -440,21 +440,30 @@ export default function Relatorios() {
 
           <Card className="p-4">
             <div className="text-sm font-medium mb-3">Forecast por Mês (próximos 6 meses)</div>
-            <div className="h-72">
-              <ResponsiveContainer>
-                <BarChart data={forecastChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
-                  <Legend />
-                  {etapasParaStack.map((en, i) => (
-                    <Bar key={en} dataKey={en} stackId="a" fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {etapasParaStack.length === 0 ? (
+              <div className="h-40 flex flex-col items-center justify-center text-center text-sm text-muted-foreground gap-1 border border-dashed rounded-md">
+                <CalendarIcon className="w-6 h-6 opacity-50" />
+                <div>Nenhuma oportunidade com data prevista de fechamento.</div>
+                <div className="text-xs">Defina "Data de fechamento prevista" nos deals para visualizar a projeção mensal.{semDataPrevista > 0 && ` (${semDataPrevista} sem data)`}</div>
+              </div>
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer>
+                  <BarChart data={forecastChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
+                    <Legend />
+                    {etapasParaStack.map((en, i) => (
+                      <Bar key={en} dataKey={en} stackId="a" fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </Card>
+
         </section>
 
         {/* SEÇÃO 2 — PIPELINE HEALTH */}
