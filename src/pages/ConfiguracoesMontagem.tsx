@@ -83,6 +83,7 @@ export default function ConfiguracoesMontagem() {
   const [diariaHosp, setDiariaHosp] = useState("");
   const [diariaAlim, setDiariaAlim] = useState("");
   const [cidade, setCidade] = useState("Maringá");
+  const [margem, setMargem] = useState("107");
 
   useEffect(() => {
     (async () => {
