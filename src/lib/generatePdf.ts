@@ -177,9 +177,8 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   const volumeF2 = Math.round(volumeMin * (params.volumeMinF2Pct / 100));
   const subtotalF1 = projection.filter(r => r.fase === 1).reduce((s, r) => s + r.receitaAnual, 0);
   const subtotalF2 = projection.filter(r => r.fase === 2).reduce((s, r) => s + r.receitaAnual, 0);
-  // Total para o cliente: Entrada + receitas das fases (a dívida é quitada pelas mensalidades das fases) + Montagem
-  const montagemValor = Number(params.montagemValorTotal) || 0;
-  const totalGeralCliente = params.entrada + subtotalF1 + subtotalF2 + montagemValor;
+  // Total para o cliente: Entrada + receitas das fases (a dívida é quitada pelas mensalidades das fases)
+  const totalGeralCliente = params.entrada + subtotalF1 + subtotalF2;
   const mensF1 = (volumeMin * params.tarifaF1) / 12;
   const mensF2 = (volumeF2 * params.tarifaF2) / 12;
 
