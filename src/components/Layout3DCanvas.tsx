@@ -193,7 +193,47 @@ export function Layout3DCanvas({
       tween();
     };
 
-    const dom = renderer.domElement;
+    const fitAll = () => {
+      const groups = ctxRef.current.groups;
+      const box = new THREE.Box3();
+      let has = false;
+      if (groups) {
+        Object.values(groups).forEach((g) => {
+          g.updateMatrixWorld(true);
+          const b = new THREE.Box3().setFromObject(g);
+          if (!b.isEmpty()) {
+            box.union(b);
+            has = true;
+          }
+        });
+      }
+      if (!has) {
+        box.min.set(0, 0, 0);
+        box.max.set(floorW, 2, floorH);
+      }
+      const center = new THREE.Vector3();
+      const size = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z, 2);
+      const fovRad = (camera.fov * Math.PI) / 180;
+      const fitRadius = (maxDim / 2) / Math.tan(fovRad / 2) * 1.5;
+      const startTarget = orbit.target.clone();
+      const endTarget = new THREE.Vector3(center.x, 0, center.z);
+      const startRadius = orbit.radius;
+      const endRadius = Math.max(fitRadius, 5);
+      const dur = 500;
+      const t0 = performance.now();
+      const tween = () => {
+        const t = Math.min(1, (performance.now() - t0) / dur);
+        const ease = 1 - Math.pow(1 - t, 3);
+        orbit.target.lerpVectors(startTarget, endTarget, ease);
+        orbit.radius = startRadius + (endRadius - startRadius) * ease;
+        if (t < 1) requestAnimationFrame(tween);
+      };
+      tween();
+    };
+
     dom.style.touchAction = "none";
     dom.style.display = "block";
     let lastMouse = { x: 0, y: 0 };
