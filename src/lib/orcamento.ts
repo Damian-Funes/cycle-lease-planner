@@ -65,6 +65,14 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   pessoa_contato_id: null,
   oportunidade_id: null,
   dados_congelados: false,
+  montagemNumeroColaboradores: 0,
+  montagemDias: 0,
+  montagemKmOrigemDestino: 0,
+  montagemNumeroVeiculos: 1,
+  montagemEhFazenda: false,
+  montagemKmHotelLocal: 0,
+  montagemObservacoes: "",
+  montagemValorTotal: 0,
 };
 
 export function calcSubtotal(itens: ItemOrcamento[]): number {
