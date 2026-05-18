@@ -407,10 +407,25 @@ export default function DealDetalhe() {
                 <Input defaultValue={deal.titulo} onBlur={(e) => e.target.value !== deal.titulo && patch({ titulo: e.target.value })} />
               </Field>
               <Field label="Valor (BRL)">
-                <Input type="number" defaultValue={deal.valor_estimado}
-                  onBlur={(e) => patch({ valor_estimado: Number(e.target.value) })} />
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  defaultValue={
+                    deal.valor_estimado
+                      ? Number(deal.valor_estimado).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : ""
+                  }
+                  key={deal.valor_estimado}
+                  onBlur={(e) => {
+                    const raw = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
+                    const n = Number(raw) || 0;
+                    if (n !== Number(deal.valor_estimado)) patch({ valor_estimado: n });
+                    e.target.value = n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  }}
+                />
                 <div className="text-xs text-muted-foreground mt-1">{fmtBRL(deal.valor_estimado)}</div>
               </Field>
+
               <Field label={`Probabilidade: ${deal.probabilidade}%`}>
                 <Slider value={[deal.probabilidade]} max={100} step={5}
                   onValueChange={(v) => setDeal({ ...deal, probabilidade: v[0] })}
