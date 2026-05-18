@@ -34,6 +34,7 @@ const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
 const AdminUsuarios = lazy(() => import("./pages/AdminUsuarios"));
 const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
 const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegracoes"));
+const ConfiguracoesMontagem = lazy(() => import("./pages/ConfiguracoesMontagem"));
 
 const queryClient = new QueryClient();
 
