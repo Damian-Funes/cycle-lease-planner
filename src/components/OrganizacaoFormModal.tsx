@@ -121,6 +121,12 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         responsavel_id: organizacao?.responsavel_id ?? "",
         tags: (organizacao?.tags ?? []).join(", "),
         observacoes: organizacao?.observacoes ?? "",
+        contato_nome: "",
+        contato_cargo: "",
+        contato_email: "",
+        contato_telefone: "",
+        contato_celular: "",
+        contato_decisor: false,
       });
     }
   }, [open, organizacao]);
