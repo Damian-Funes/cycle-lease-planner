@@ -448,10 +448,11 @@ export default function LayoutEditor() {
       const drawAreaH = pageH - drawAreaY - 18;
       const drawAreaW = pageW - 30;
 
-      // Aspect ratio real da imagem capturada
-      const img = new Image();
-      img.src = cap.dataUrl;
-      const ratio = img.width && img.height ? img.width / img.height : drawAreaW / drawAreaH;
+      // Aspect ratio do canvas 3D (todas as capturas têm o mesmo tamanho)
+      const canvasEl = containerRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+      const ratio = canvasEl && canvasEl.height > 0
+        ? canvasEl.width / canvasEl.height
+        : drawAreaW / drawAreaH;
 
       let imgW = drawAreaW;
       let imgH = imgW / ratio;
