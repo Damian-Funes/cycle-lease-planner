@@ -412,6 +412,47 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             <Label>Observações</Label>
             <Textarea rows={3} {...form.register("observacoes")} />
           </div>
+          {!isEdit && (
+            <div className="sm:col-span-2 border rounded-md p-3 space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">Contato principal *</h4>
+                <span className="text-xs text-muted-foreground">Obrigatório ao criar</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Nome *</Label>
+                  <Input {...form.register("contato_nome")} />
+                  {form.formState.errors.contato_nome && <p className="text-xs text-destructive">{form.formState.errors.contato_nome.message as string}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Cargo</Label>
+                  <Input {...form.register("contato_cargo")} />
+                </div>
+                <div className="space-y-1">
+                  <Label>E-mail</Label>
+                  <Input type="email" {...form.register("contato_email")} />
+                  {form.formState.errors.contato_email && <p className="text-xs text-destructive">{form.formState.errors.contato_email.message as string}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Telefone</Label>
+                  <Input {...form.register("contato_telefone")} />
+                  {form.formState.errors.contato_telefone && <p className="text-xs text-destructive">{form.formState.errors.contato_telefone.message as string}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Celular</Label>
+                  <Input {...form.register("contato_celular")} />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer pt-6">
+                  <Checkbox
+                    checked={!!form.watch("contato_decisor")}
+                    onCheckedChange={(c) => form.setValue("contato_decisor", !!c)}
+                  />
+                  <span>É decisor</span>
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">Informe ao menos e-mail, telefone ou celular.</p>
+            </div>
+          )}
           <DialogFooter className="sm:col-span-2 gap-2 mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={mutation.isPending}>
