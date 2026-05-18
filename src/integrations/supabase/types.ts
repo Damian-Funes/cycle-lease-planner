@@ -974,6 +974,7 @@ export type Database = {
           observacoes: string | null
           oportunidade_id: string | null
           organizacao_id: string | null
+          pessoa_contato_id: string | null
           prazo_entrega: string | null
           responsavel_id: string | null
           status: string | null
@@ -1013,6 +1014,7 @@ export type Database = {
           observacoes?: string | null
           oportunidade_id?: string | null
           organizacao_id?: string | null
+          pessoa_contato_id?: string | null
           prazo_entrega?: string | null
           responsavel_id?: string | null
           status?: string | null
@@ -1052,6 +1054,7 @@ export type Database = {
           observacoes?: string | null
           oportunidade_id?: string | null
           organizacao_id?: string | null
+          pessoa_contato_id?: string | null
           prazo_entrega?: string | null
           responsavel_id?: string | null
           status?: string | null
@@ -1101,6 +1104,13 @@ export type Database = {
             columns: ["organizacao_id"]
             isOneToOne: false
             referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_pessoa_contato_id_fkey"
+            columns: ["pessoa_contato_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
             referencedColumns: ["id"]
           },
         ]

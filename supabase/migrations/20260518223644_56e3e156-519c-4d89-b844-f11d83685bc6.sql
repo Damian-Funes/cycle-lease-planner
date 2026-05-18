@@ -1,0 +1,1 @@
+ALTER TABLE public.orcamentos ADD COLUMN IF NOT EXISTS pessoa_contato_id uuid REFERENCES public.pessoas(id) ON DELETE SET NULL;
