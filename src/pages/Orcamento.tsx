@@ -45,6 +45,14 @@ export default function Orcamento() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { loading: authLoading, profile } = useAuth();
 
+  // Taxas de montagem (config global)
+  const [taxasMontagem, setTaxasMontagem] = useState<{
+    valor_dia_colaborador: number;
+    valor_km: number;
+    diaria_hospedagem: number;
+    diaria_alimentacao: number;
+  } | null>(null);
+
   useEffect(() => {
     supabase
       .from("equipamentos")
@@ -53,6 +61,15 @@ export default function Orcamento() {
       .order("codigo")
       .then(({ data }) => {
         if (data) setEquipamentos(data as Equipamento[]);
+      });
+
+    supabase
+      .from("config_montagem" as any)
+      .select("valor_dia_colaborador, valor_km, diaria_hospedagem, diaria_alimentacao")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setTaxasMontagem(data as any);
       });
   }, []);
 
