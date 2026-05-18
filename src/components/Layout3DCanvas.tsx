@@ -256,8 +256,7 @@ export function Layout3DCanvas({
       orbit.theta = theta;
       orbit.phi = phi;
 
-      // Bbox APENAS dos equipamentos — adapta-se ao layout real,
-      // sem incluir o piso inteiro (que deixaria tudo minúsculo).
+      // Bbox APENAS dos equipamentos
       const box = new THREE.Box3();
       let hasGroups = false;
       const groups = ctxRef.current.groups || {};
@@ -270,31 +269,52 @@ export function Layout3DCanvas({
         }
       });
       if (!hasGroups) {
-        // Sem equipamentos — usa o piso inteiro como fallback
         box.min.set(0, 0, 0);
         box.max.set(floorW, 2, floorH);
       }
 
       const center = new THREE.Vector3();
-      const size = new THREE.Vector3();
       box.getCenter(center);
-      box.getSize(size);
-      // Centraliza vertical e horizontalmente no bbox dos equipamentos
       orbit.target.set(center.x, view === "top" ? 0 : center.y, center.z);
+
+      // 1ª passagem: posiciona câmera com raio provisório para obter eixos
+      orbit.radius = Math.max(floorW, floorH) * 1.5;
+      updateCam();
+      camera.updateMatrixWorld(true);
+
+      // Eixos da câmera no mundo
+      const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+      const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+
+      // Projeta os 8 cantos do bbox nos eixos right/up para obter half-extents reais
+      const corners = [
+        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+      ];
+      let halfW = 0;
+      let halfH = 0;
+      for (const c of corners) {
+        const v = c.clone().sub(orbit.target);
+        halfW = Math.max(halfW, Math.abs(v.dot(camRight)));
+        halfH = Math.max(halfH, Math.abs(v.dot(camUp)));
+      }
 
       const aspect = camera.aspect || 1;
       const fovRad = (camera.fov * Math.PI) / 180;
-      const isTop = view === "top";
-      const viewW = isTop ? size.x : Math.max(size.x, size.z);
-      const viewH = isTop ? size.z : size.y;
-      const radiusH = (Math.max(viewH, 0.5) / 2) / Math.tan(fovRad / 2);
-      const radiusW = (Math.max(viewW, 0.5) / 2) / Math.tan(fovRad / 2) / aspect;
-      // Margem reduzida (1.08) — antes era 1.25 e ficava muito longe
-      orbit.radius = Math.max(radiusH, radiusW, 3) * 1.08;
+      const distH = (Math.max(halfH, 0.5)) / Math.tan(fovRad / 2);
+      const distW = (Math.max(halfW, 0.5)) / (Math.tan(fovRad / 2) * aspect);
+      // Margem confortável (1.12) — adapta-se a qualquer layout
+      orbit.radius = Math.max(distH, distW, 3) * 1.12;
 
       updateCam();
 
-      // Iluminação temporária seguindo a câmera (melhora vistas laterais que ficavam chapadas)
+      // Luz extra seguindo a câmera (melhora vistas laterais)
       const camLight = new THREE.DirectionalLight(0xffffff, 0.9);
       camLight.position.copy(camera.position);
       camLight.target.position.copy(orbit.target);
