@@ -532,12 +532,21 @@ export default function Relatorios() {
         {/* SEÇÃO 3 — PERFORMANCE */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Trophy className="w-5 h-5 text-primary" /> Performance</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Win Rate</div><div className="text-2xl font-bold">{winRate}%</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Ciclo Médio</div><div className="text-2xl font-bold">{cicloMedio} dias</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Ticket Médio</div><div className="text-2xl font-bold">{fmtBRL(ticketMedio)}</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Total Vendido</div><div className="text-2xl font-bold text-primary">{fmtBRL(totalVendido)}</div></Card>
-          </div>
+          {oppsFechadasPeriodo.length === 0 ? (
+            <Card className="p-6 text-center text-sm text-muted-foreground border-dashed">
+              <Trophy className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <div className="font-medium text-foreground mb-1">Nenhum deal fechado no período ainda.</div>
+              <div className="text-xs">Marque deals como "Ganha" ou "Perdida" para ver Win Rate, ticket médio e ranking aqui.</div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Win Rate</div><div className="text-2xl font-bold">{winRate}%</div></Card>
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Ciclo Médio</div><div className="text-2xl font-bold">{cicloMedio} dias</div></Card>
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Ticket Médio</div><div className="text-2xl font-bold">{fmtBRL(ticketMedio)}</div></Card>
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Total Vendido</div><div className="text-2xl font-bold text-primary">{fmtBRL(totalVendido)}</div></Card>
+            </div>
+          )}
+
 
           <Card className="p-4">
             <div className="text-sm font-medium mb-3">Deals Ganhos por Mês (12 meses)</div>
