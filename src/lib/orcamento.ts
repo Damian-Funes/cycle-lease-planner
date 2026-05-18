@@ -32,6 +32,15 @@ export interface OrcamentoParams {
   pessoa_contato_id?: string | null;
   oportunidade_id?: string | null;
   dados_congelados?: boolean;
+  // Montagem (todos opcionais — só usados pelo orçamento comercial)
+  montagemNumeroColaboradores?: number;
+  montagemDias?: number;
+  montagemKmOrigemDestino?: number;
+  montagemNumeroVeiculos?: number;
+  montagemEhFazenda?: boolean;
+  montagemKmHotelLocal?: number;
+  montagemObservacoes?: string;
+  montagemValorTotal?: number;
 }
 
 export const DEFAULT_ORCAMENTO: OrcamentoParams = {
@@ -56,6 +65,14 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   pessoa_contato_id: null,
   oportunidade_id: null,
   dados_congelados: false,
+  montagemNumeroColaboradores: 0,
+  montagemDias: 0,
+  montagemKmOrigemDestino: 0,
+  montagemNumeroVeiculos: 1,
+  montagemEhFazenda: false,
+  montagemKmHotelLocal: 0,
+  montagemObservacoes: "",
+  montagemValorTotal: 0,
 };
 
 export function calcSubtotal(itens: ItemOrcamento[]): number {

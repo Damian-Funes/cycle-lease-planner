@@ -20,7 +20,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt, AlertTriangle, HardHat, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 function fmtBRL(v: number) {
@@ -43,6 +45,14 @@ export default function Orcamento() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { loading: authLoading, profile } = useAuth();
 
+  // Taxas de montagem (config global)
+  const [taxasMontagem, setTaxasMontagem] = useState<{
+    valor_dia_colaborador: number;
+    valor_km: number;
+    diaria_hospedagem: number;
+    diaria_alimentacao: number;
+  } | null>(null);
+
   useEffect(() => {
     supabase
       .from("equipamentos")
@@ -51,6 +61,15 @@ export default function Orcamento() {
       .order("codigo")
       .then(({ data }) => {
         if (data) setEquipamentos(data as Equipamento[]);
+      });
+
+    supabase
+      .from("config_montagem" as any)
+      .select("valor_dia_colaborador, valor_km, diaria_hospedagem, diaria_alimentacao")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setTaxasMontagem(data as any);
       });
   }, []);
 
@@ -167,6 +186,13 @@ export default function Orcamento() {
       local_entrega: params.localEntrega || null,
       observacoes: params.observacoes || null,
       status: params.status,
+      montagem_numero_colaboradores: params.montagemNumeroColaboradores ?? 0,
+      montagem_dias: params.montagemDias ?? 0,
+      montagem_km_origem_destino: params.montagemKmOrigemDestino ?? 0,
+      montagem_numero_veiculos: params.montagemNumeroVeiculos ?? 1,
+      montagem_eh_fazenda: params.montagemEhFazenda ?? false,
+      montagem_km_hotel_local: params.montagemKmHotelLocal ?? 0,
+      montagem_observacoes: params.montagemObservacoes || null,
     };
 
     let error;
@@ -197,6 +223,18 @@ export default function Orcamento() {
         await supabase.from("orcamentos").update({ oportunidade_id: oppId } as any).eq("id", novoId);
         setParams((p) => ({ ...p, oportunidade_id: oppId }));
         criouOpp = true;
+      }
+    }
+
+    // Releitura do montagem_valor_total (autoritativo, vem do trigger)
+    if (!error && novoId) {
+      const { data: fresh } = await supabase
+        .from("orcamentos")
+        .select("montagem_valor_total")
+        .eq("id", novoId)
+        .maybeSingle();
+      if (fresh) {
+        setParams((p) => ({ ...p, montagemValorTotal: Number((fresh as any).montagem_valor_total) || 0 }));
       }
     }
 
@@ -257,6 +295,14 @@ export default function Orcamento() {
       pessoa_contato_id: null,
       oportunidade_id: (data as any).oportunidade_id ?? null,
       dados_congelados: (data as any).dados_congelados ?? false,
+      montagemNumeroColaboradores: Number((data as any).montagem_numero_colaboradores) || 0,
+      montagemDias: Number((data as any).montagem_dias) || 0,
+      montagemKmOrigemDestino: Number((data as any).montagem_km_origem_destino) || 0,
+      montagemNumeroVeiculos: Number((data as any).montagem_numero_veiculos) || 1,
+      montagemEhFazenda: !!(data as any).montagem_eh_fazenda,
+      montagemKmHotelLocal: Number((data as any).montagem_km_hotel_local) || 0,
+      montagemObservacoes: (data as any).montagem_observacoes || "",
+      montagemValorTotal: Number((data as any).montagem_valor_total) || 0,
     };
 
     handleLoad(loaded, data.id);
@@ -552,6 +598,174 @@ export default function Orcamento() {
             )}
           </CardContent>
         </Card>
+
+        {/* Montagem */}
+        {(() => {
+          const dias = Number(params.montagemDias) || 0;
+          const cols = Number(params.montagemNumeroColaboradores) || 0;
+          const kmOD = Number(params.montagemKmOrigemDestino) || 0;
+          const veic = Number(params.montagemNumeroVeiculos) || 1;
+          const kmHL = Number(params.montagemKmHotelLocal) || 0;
+          const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0 };
+          const maoObra = dias * cols * Number(t.valor_dia_colaborador);
+          const deslocOD = 2 * kmOD * Number(t.valor_km) * veic;
+          const deslocDiario = params.montagemEhFazenda ? dias * 2 * kmHL * Number(t.valor_km) * veic : 0;
+          const hospedagem = dias * cols * Number(t.diaria_hospedagem);
+          const alimentacao = dias * cols * Number(t.diaria_alimentacao);
+          const totalPreview = maoObra + deslocOD + deslocDiario + hospedagem + alimentacao;
+          const taxasZeradas = taxasMontagem &&
+            !Number(t.valor_dia_colaborador) && !Number(t.valor_km) &&
+            !Number(t.diaria_hospedagem) && !Number(t.diaria_alimentacao);
+          const totalBanco = Number(params.montagemValorTotal) || 0;
+          const divergencia = savedId && Math.abs(totalBanco - totalPreview) > 0.5;
+
+          return (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <HardHat className="w-4 h-4 text-primary" /> Montagem
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {taxasZeradas && (
+                  <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                    <AlertTriangle className="w-4 h-4" />
+                    <AlertDescription>
+                      ⚠ Taxas de montagem não configuradas.{" "}
+                      <Link to="/configuracoes/montagem" className="underline font-medium">
+                        Acesse Configurações &gt; Montagem
+                      </Link>.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <TooltipProvider delayDuration={200}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Nº de colaboradores</Label>
+                      <Input
+                        type="number" min={0} value={cols}
+                        onChange={(e) => update("montagemNumeroColaboradores", Math.max(0, parseInt(e.target.value) || 0))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1">
+                        Dias de montagem
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>Inclua aqui os dias de viagem (ida e volta) na conta total</TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        type="number" min={0} value={dias}
+                        onChange={(e) => update("montagemDias", Math.max(0, parseInt(e.target.value) || 0))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1">
+                        Distância Maringá → local (km, só ida)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>Distância apenas de ida. O cálculo já considera ida + volta automaticamente.</TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        type="number" min={0} step="0.1" value={kmOD}
+                        onChange={(e) => update("montagemKmOrigemDestino", Math.max(0, parseFloat(e.target.value) || 0))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Nº de veículos</Label>
+                      <Input
+                        type="number" min={1} value={veic}
+                        onChange={(e) => update("montagemNumeroVeiculos", Math.max(1, parseInt(e.target.value) || 1))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border rounded-md px-3 py-2 bg-muted/30">
+                    <div>
+                      <div className="text-sm font-medium">É fazenda / equipe retorna ao hotel todos os dias</div>
+                    </div>
+                    <Switch
+                      checked={!!params.montagemEhFazenda}
+                      onCheckedChange={(v) => update("montagemEhFazenda", v)}
+                    />
+                  </div>
+
+                  {params.montagemEhFazenda && (
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1">
+                        Distância fazenda ↔ hotel (km, só ida)
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>Distância apenas de ida. O cálculo já considera ida + volta diários.</TooltipContent>
+                        </Tooltip>
+                      </Label>
+                      <Input
+                        type="number" min={0} step="0.1" value={kmHL}
+                        onChange={(e) => update("montagemKmHotelLocal", Math.max(0, parseFloat(e.target.value) || 0))}
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label>Observações da montagem</Label>
+                    <Textarea
+                      rows={3}
+                      value={params.montagemObservacoes ?? ""}
+                      onChange={(e) => update("montagemObservacoes", e.target.value)}
+                    />
+                  </div>
+                </TooltipProvider>
+
+                {/* Breakdown interno LS */}
+                <div className="rounded-lg border bg-muted/20 p-4 space-y-1.5 text-sm">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                    Breakdown interno (não aparece na proposta)
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mão de obra <span className="text-xs">(dias × colab. × R$/dia)</span></span>
+                    <span className="font-medium tabular-nums">{fmtBRL(maoObra)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deslocamento Maringá ↔ local</span>
+                    <span className="font-medium tabular-nums">{fmtBRL(deslocOD)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Deslocamento diário (fazenda ↔ hotel)</span>
+                    <span className="font-medium tabular-nums">{fmtBRL(deslocDiario)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Hospedagem</span>
+                    <span className="font-medium tabular-nums">{fmtBRL(hospedagem)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Alimentação</span>
+                    <span className="font-medium tabular-nums">{fmtBRL(alimentacao)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 mt-2 border-t">
+                    <span className="font-semibold">TOTAL MONTAGEM</span>
+                    <span className="font-bold text-primary text-xl tabular-nums">
+                      {fmtBRL(savedId ? totalBanco : totalPreview)}
+                    </span>
+                  </div>
+                  {divergencia && (
+                    <div className="text-xs text-amber-700 pt-1">
+                      Preview: {fmtBRL(totalPreview)} — o valor exibido vem do banco (autoritativo).
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Totais e ajustes */}
         <Card>
