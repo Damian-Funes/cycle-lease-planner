@@ -361,12 +361,18 @@ export default function LayoutEditor() {
 
   /* ---- exportar PDF (com 5 vistas) ---- */
   async function handleExportPdf() {
-    if (!layout) return;
-    const api = canvasApiRef.current;
-    if (!api) {
-      toast({ title: "Canvas 3D não está pronto ainda", variant: "destructive" });
+    console.log("[PDF] iniciando export, layout?", !!layout, "api?", !!canvasApiRef.current);
+    if (!layout) {
+      toast({ title: "Layout não carregado", variant: "destructive" });
       return;
     }
+    const api = canvasApiRef.current;
+    if (!api) {
+      toast({ title: "Canvas 3D não está pronto ainda", description: "Aguarde os modelos carregarem e tente novamente.", variant: "destructive" });
+      return;
+    }
+
+    try {
 
     // Desseleciona para a captura sair limpa (sem transparência)
     const idSelecionadoAntes = selectedId;
