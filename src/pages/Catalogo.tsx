@@ -261,6 +261,27 @@ export default function Catalogo() {
     fetchAll();
   }
 
+  const [excluindo, setExcluindo] = useState<Equipamento | null>(null);
+  const [deletando, setDeletando] = useState(false);
+
+  async function handleExcluir() {
+    if (!excluindo) return;
+    setDeletando(true);
+    const { error } = await supabase.from("equipamentos").delete().eq("id", excluindo.id);
+    setDeletando(false);
+    if (error) {
+      toast({
+        title: "Não foi possível excluir",
+        description: "Este produto está vinculado a propostas, orçamentos ou layouts. Mantenha-o desativado.",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Equipamento excluído" });
+      setExcluindo(null);
+      fetchAll();
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
