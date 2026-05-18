@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
@@ -36,6 +37,12 @@ const schema = z.object({
   responsavel_id: z.string().optional().or(z.literal("")),
   tags: z.string().optional().or(z.literal("")),
   observacoes: z.string().optional().or(z.literal("")),
+  contato_nome: z.string().optional().or(z.literal("")),
+  contato_cargo: z.string().optional().or(z.literal("")),
+  contato_email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  contato_telefone: z.string().optional().or(z.literal("")),
+  contato_celular: z.string().optional().or(z.literal("")),
+  contato_decisor: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -114,6 +121,12 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         responsavel_id: organizacao?.responsavel_id ?? "",
         tags: (organizacao?.tags ?? []).join(", "),
         observacoes: organizacao?.observacoes ?? "",
+        contato_nome: "",
+        contato_cargo: "",
+        contato_email: "",
+        contato_telefone: "",
+        contato_celular: "",
+        contato_decisor: false,
       });
     }
   }, [open, organizacao]);
@@ -200,6 +213,20 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       form.setError("cnpj", { message: "CNPJ deve ter 14 dígitos" });
       return;
     }
+    if (!isEdit) {
+      const nome = (v.contato_nome || "").trim();
+      const email = (v.contato_email || "").trim();
+      const tel = (v.contato_telefone || "").trim();
+      const cel = (v.contato_celular || "").trim();
+      if (!nome) {
+        form.setError("contato_nome", { message: "Informe o contato principal" });
+        return;
+      }
+      if (!email && !tel && !cel) {
+        form.setError("contato_telefone", { message: "Informe e-mail, telefone ou celular" });
+        return;
+      }
+    }
     mutation.mutate(v);
   };
 
@@ -227,14 +254,36 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       if (isEdit && organizacao) {
         const { error } = await (supabase as any).from("organizacoes").update(payload).eq("id", organizacao.id);
         if (error) throw error;
-      } else {
-        const { error } = await (supabase as any).from("organizacoes").insert(payload);
-        if (error) throw error;
+        return;
+      }
+      const { data: orgIns, error } = await (supabase as any)
+        .from("organizacoes")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      const orgId = orgIns.id as string;
+      const pessoaPayload = {
+        organizacao_id: orgId,
+        nome: (v.contato_nome || "").trim(),
+        cargo: v.contato_cargo?.trim() || null,
+        email: v.contato_email?.trim() || null,
+        telefone: v.contato_telefone?.trim() || null,
+        celular: v.contato_celular?.trim() || null,
+        e_decisor: !!v.contato_decisor,
+        responsavel_id: v.responsavel_id || null,
+      };
+      const { error: pErr } = await (supabase as any).from("pessoas").insert(pessoaPayload);
+      if (pErr) {
+        await (supabase as any).from("organizacoes").delete().eq("id", orgId);
+        throw new Error(`Falha ao salvar contato: ${pErr.message}`);
       }
     },
     onSuccess: () => {
-      toast.success(isEdit ? "Organização atualizada" : "Organização criada");
+      toast.success(isEdit ? "Organização atualizada" : "Organização e contato criados");
       qc.invalidateQueries({ queryKey: ["organizacoes"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error("Erro ao salvar", { description: err?.message }),
@@ -363,6 +412,47 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             <Label>Observações</Label>
             <Textarea rows={3} {...form.register("observacoes")} />
           </div>
+          {!isEdit && (
+            <div className="sm:col-span-2 border rounded-md p-3 space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">Contato principal *</h4>
+                <span className="text-xs text-muted-foreground">Obrigatório ao criar</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Nome *</Label>
+                  <Input {...form.register("contato_nome")} />
+                  {form.formState.errors.contato_nome && <p className="text-xs text-destructive">{form.formState.errors.contato_nome.message as string}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Cargo</Label>
+                  <Input {...form.register("contato_cargo")} />
+                </div>
+                <div className="space-y-1">
+                  <Label>E-mail</Label>
+                  <Input type="email" {...form.register("contato_email")} />
+                  {form.formState.errors.contato_email && <p className="text-xs text-destructive">{form.formState.errors.contato_email.message as string}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Telefone</Label>
+                  <Input {...form.register("contato_telefone")} />
+                  {form.formState.errors.contato_telefone && <p className="text-xs text-destructive">{form.formState.errors.contato_telefone.message as string}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Celular</Label>
+                  <Input {...form.register("contato_celular")} />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer pt-6">
+                  <Checkbox
+                    checked={!!form.watch("contato_decisor")}
+                    onCheckedChange={(c) => form.setValue("contato_decisor", !!c)}
+                  />
+                  <span>É decisor</span>
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">Informe ao menos e-mail, telefone ou celular.</p>
+            </div>
+          )}
           <DialogFooter className="sm:col-span-2 gap-2 mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={mutation.isPending}>
