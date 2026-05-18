@@ -32,14 +32,14 @@ export interface OrcamentoParams {
   pessoa_contato_id?: string | null;
   oportunidade_id?: string | null;
   dados_congelados?: boolean;
-  // Montagem
-  montagemNumeroColaboradores: number;
-  montagemDias: number;
-  montagemKmOrigemDestino: number;
-  montagemNumeroVeiculos: number;
-  montagemEhFazenda: boolean;
-  montagemKmHotelLocal: number;
-  montagemObservacoes: string;
+  // Montagem (todos opcionais — só usados pelo orçamento comercial)
+  montagemNumeroColaboradores?: number;
+  montagemDias?: number;
+  montagemKmOrigemDestino?: number;
+  montagemNumeroVeiculos?: number;
+  montagemEhFazenda?: boolean;
+  montagemKmHotelLocal?: number;
+  montagemObservacoes?: string;
   montagemValorTotal?: number;
 }
 
