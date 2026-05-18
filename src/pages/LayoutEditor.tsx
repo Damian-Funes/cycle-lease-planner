@@ -398,6 +398,13 @@ export default function LayoutEditor() {
       // pequeno respiro para o navegador
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
       if (url) capturas.push({ ...v, titulo: v.titulo, dataUrl: url });
+      // Após a vista superior, gera uma "planta cotada" 2D
+      if (v.view === "top") {
+        const cotada = renderPlantaCotada(items, layout.piso_largura_mm, layout.piso_comprimento_mm);
+        if (cotada) {
+          capturas.push({ view: "top", titulo: "Planta com Cotas (mm)", dataUrl: cotada });
+        }
+      }
     }
 
     if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
