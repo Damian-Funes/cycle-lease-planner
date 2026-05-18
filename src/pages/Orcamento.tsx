@@ -686,6 +686,7 @@ export default function Orcamento() {
       </main>
 
       <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} onLoadOrcamento={loadOrcamentoById} />
+      <ItemAvulsoModal open={avulsoOpen} onOpenChange={setAvulsoOpen} onAdd={handleAddAvulso} />
     </div>
   );
 }
