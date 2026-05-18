@@ -304,7 +304,24 @@ export default function Relatorios() {
     [perfView]
   );
 
-  return (
+  // ============ HOJE (motivacional) ============
+  const hoje = new Date();
+  const hojeStart = startOfDay(hoje);
+  const hojeEnd = endOfDay(hoje);
+
+  const atividadesHoje = useMemo(
+    () => atividades.filter(a => a.data_inicio && new Date(a.data_inicio) >= hojeStart && new Date(a.data_inicio) <= hojeEnd),
+    [atividades]
+  );
+  const atividadesHojeConcluidas = atividadesHoje.filter(a => a.concluida).length;
+
+  const dealsCriadosPeriodo = useMemo(
+    () => oportunidades.filter(o => o.created_at && new Date(o.created_at) >= range.from && new Date(o.created_at) <= range.to),
+    [oportunidades, range]
+  );
+  const valorDealsCriadosPeriodo = dealsCriadosPeriodo.reduce((s, o) => s + Number(o.valor_estimado || 0), 0);
+
+
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
