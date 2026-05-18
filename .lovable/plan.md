@@ -1,40 +1,40 @@
-# Tornar contato obrigatório ao criar Organização
+# Layouts: um card por proposta/orçamento
 
 ## Problema
 
-Comerciais cadastram organizações sem nenhuma pessoa de contato vinculada, deixando a base sem decisores/contatos para retomar o relacionamento.
+Hoje a página `/layouts` mostra apenas layouts já criados manualmente (3 cards). O esperado é: **cada proposta e cada orçamento da empresa deve aparecer como um card automaticamente**, mesmo que ainda não tenha layout desenhado. Assim, o time vê de uma só vez "para quais clientes ainda falta fazer o layout".
 
-## Regra
+## Como vai funcionar
 
-Ao **criar** uma organização, é obrigatório informar **pelo menos um contato** (pessoa) no mesmo formulário. Sem isso, o formulário não salva.
+A lista de cards passa a ser a **união de todas as propostas + todos os orçamentos** visíveis ao usuário, ordenados do mais recente para o mais antigo. Para cada origem:
 
-Na **edição** de organização existente: continua opcional adicionar/editar contatos pelo modal atual de pessoas. Não bloqueia edição se a org não tem pessoas (legado).
+- Se **já existe** um layout vinculado (`layouts.origem_tipo + origem_id`), o card mostra o status do layout (Rascunho / Aprovado / Arquivado), as dimensões do piso e a data de atualização. Clicar abre `/layouts/{id}`.
+- Se **ainda não existe** layout, o card mostra um selo "Sem layout" em cinza e um botão "Criar layout". Clicar cria o layout sob demanda (mesma lógica do modal atual: posiciona os equipamentos em fila a partir dos itens da origem) e abre o editor.
 
-## UX
+O cabeçalho de cada card mostra: ícone (Proposta/Orçamento), número (ex: `ORC2026-007` ou `SC2026-014`), nome do cliente.
 
-No `OrganizacaoFormModal`, adicionar uma seção **"Contato principal *"** (somente quando criando, não na edição) com os campos:
+## Filtros simples no topo
 
-- **Nome** (obrigatório)
-- **Cargo** (opcional)
-- **E-mail** (opcional, validado se preenchido)
-- **Telefone/Celular** (pelo menos um dos dois obrigatório)
-- Checkbox **"É decisor"**
+- Campo de busca por cliente ou número.
+- Toggles rápidos: **Todos | Sem layout | Com layout**.
+- Toggle de tipo: **Todos | Propostas | Orçamentos**.
 
-Validação no submit: nome do contato e (e-mail OU telefone OU celular) obrigatórios. Mensagens de erro inline.
+## O que acontece com o botão "Novo Layout"
 
-## Fluxo de gravação
+Vira **opcional**, mas é mantido para casos em que o usuário quer escolher dimensões customizadas do piso antes de criar. O fluxo padrão passa a ser "clicar no card da origem".
 
-1. Insert em `organizacoes` → pega `id` retornado.
-2. Insert em `pessoas` com `organizacao_id = <id da org>` e `responsavel_id` = mesmo da org (ou auth.uid()).
-3. Se o insert da pessoa falhar, faz `delete` da org recém-criada (rollback manual) e mostra erro.
-4. Toast: "Organização e contato criados".
+## Detalhes técnicos
 
-## Arquivos a editar
-
-- `src/components/OrganizacaoFormModal.tsx` — adicionar seção de contato condicional ao create, validação e fluxo de gravação em 2 passos com rollback.
+- Em `src/pages/Layouts.tsx`, substituir `listLayouts()` por:
+  1. `select` em `propostas` (id, numero_proposta, nome_cliente, itens_projeto, created_at).
+  2. `select` em `orcamentos` (id, numero_orcamento, nome_cliente, itens, created_at).
+  3. `select` em `layouts` com filtro `origem_id in (...)` para os ids acima.
+  4. Merge em memória: cada origem vira um item com `layout?: LayoutRow`.
+- Reutilizar a função de criação de layout do modal atual (extrair `criarLayoutDeOrigem(origem, larguraMm, comprimentoMm)` para um helper em `src/lib/layouts.ts`) e usar dimensões default (20m × 15m) quando criada pelo card.
+- Cards sem layout ficam com aspecto cinza/dashed, sem mini-thumbnail. Cards com layout mantêm o visual atual.
 
 ## Fora de escopo
 
-- Edição de organização (sem mudança).
-- Migração de organizações antigas sem contato (continuam como estão).
-- Adicionar múltiplos contatos no create (só 1 obrigatório; resto via aba Pessoas depois).
+- Não mexer no editor de layout em si.
+- Não alterar regras de RLS — confiar nas policies existentes de `propostas`, `orcamentos` e `layouts`.
+- Não mostrar propostas/orçamentos arquivados (filtrar por status visível padrão posteriormente, se necessário).
