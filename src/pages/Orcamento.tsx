@@ -334,11 +334,14 @@ export default function Orcamento() {
       montagemEhFazenda: !!(data as any).montagem_eh_fazenda,
       montagemKmHotelLocal: Number((data as any).montagem_km_hotel_local) || 0,
       montagemObservacoes: (data as any).montagem_observacoes || "",
-      montagemValorTotal: Number((data as any).montagem_valor_total) || 0,
+      montagemCustoTotal: Number((data as any).montagem_custo_total) || 0,
+      montagemPrecoTotal: Number((data as any).montagem_preco_total) || 0,
+      montagemMargemAplicada: Number((data as any).montagem_margem_aplicada) || 0,
     };
 
     handleLoad(loaded, data.id);
-  }, [toast]);
+    fetchDiasSugerido(data.id);
+  }, [toast, fetchDiasSugerido]);
 
   // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
   useEffect(() => {
