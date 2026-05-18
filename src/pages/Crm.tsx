@@ -251,6 +251,7 @@ export default function Crm() {
 
   const [activeOp, setActiveOp] = useState<Oportunidade | null>(null);
   const [confirmMove, setConfirmMove] = useState<{ op: Oportunidade; etapa: Etapa; motivo: string; dataReal: string } | null>(null);
+  const [needsDate, setNeedsDate] = useState<{ op: Oportunidade; toEtapaId: string; data: string } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
