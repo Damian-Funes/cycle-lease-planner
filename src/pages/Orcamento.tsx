@@ -186,6 +186,13 @@ export default function Orcamento() {
       local_entrega: params.localEntrega || null,
       observacoes: params.observacoes || null,
       status: params.status,
+      montagem_numero_colaboradores: params.montagemNumeroColaboradores ?? 0,
+      montagem_dias: params.montagemDias ?? 0,
+      montagem_km_origem_destino: params.montagemKmOrigemDestino ?? 0,
+      montagem_numero_veiculos: params.montagemNumeroVeiculos ?? 1,
+      montagem_eh_fazenda: params.montagemEhFazenda ?? false,
+      montagem_km_hotel_local: params.montagemKmHotelLocal ?? 0,
+      montagem_observacoes: params.montagemObservacoes || null,
     };
 
     let error;
