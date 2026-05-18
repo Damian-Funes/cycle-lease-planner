@@ -251,6 +251,7 @@ export default function Crm() {
 
   const [activeOp, setActiveOp] = useState<Oportunidade | null>(null);
   const [confirmMove, setConfirmMove] = useState<{ op: Oportunidade; etapa: Etapa; motivo: string; dataReal: string } | null>(null);
+  const [needsDate, setNeedsDate] = useState<{ op: Oportunidade; toEtapaId: string; data: string } | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -459,6 +460,16 @@ export default function Crm() {
       return;
     }
 
+    // Exige data prevista de fechamento antes de movimentar
+    if (!op.data_fechamento_prevista) {
+      const hoje = new Date();
+      const sugestao = new Date(hoje.getFullYear(), hoje.getMonth() + 1, hoje.getDate())
+        .toISOString().slice(0, 10);
+      setNeedsDate({ op, toEtapaId, data: sugestao });
+      return;
+    }
+
+
     // Optimistic move
     const prev = qc.getQueryData<Oportunidade[]>(["oportunidades"]);
     qc.setQueryData<Oportunidade[]>(["oportunidades"], (curr) =>
@@ -501,6 +512,29 @@ export default function Crm() {
       }
     );
     setConfirmMove(null);
+  };
+
+  const confirmDateAndMove = () => {
+    if (!needsDate || !needsDate.data) return;
+    const { op, toEtapaId, data } = needsDate;
+    const targetEtapa = etapasPipeline.find((x) => x.id === toEtapaId);
+    if (!targetEtapa) { setNeedsDate(null); return; }
+
+    const prev = qc.getQueryData<Oportunidade[]>(["oportunidades"]);
+    qc.setQueryData<Oportunidade[]>(["oportunidades"], (curr) =>
+      curr?.map((o) => (o.id === op.id
+        ? { ...o, etapa_id: toEtapaId, probabilidade: targetEtapa.probabilidade_default, data_fechamento_prevista: data }
+        : o))
+    );
+
+    moveCardMutation.mutate(
+      { id: op.id, etapa_id: toEtapaId, extra: { probabilidade: targetEtapa.probabilidade_default, data_fechamento_prevista: data } },
+      {
+        onError: () => { if (prev) qc.setQueryData(["oportunidades"], prev); },
+        onSuccess: () => toast.success("Oportunidade movida"),
+      }
+    );
+    setNeedsDate(null);
   };
 
   /* Render */
@@ -720,6 +754,38 @@ export default function Crm() {
               onClick={confirmFinalMove}
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Exige data prevista antes de mover */}
+      <AlertDialog open={!!needsDate} onOpenChange={(v) => !v && setNeedsDate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Defina a data prevista de fechamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para movimentar "{needsDate?.op.titulo}" é necessário informar quando você espera fechar este deal. Isso alimenta o forecast mensal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {needsDate && (
+            <div className="space-y-1">
+              <Label>Data prevista *</Label>
+              <Input
+                type="date"
+                value={needsDate.data}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setNeedsDate({ ...needsDate, data: e.target.value })}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!needsDate?.data}
+              onClick={confirmDateAndMove}
+            >
+              Salvar e mover
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
