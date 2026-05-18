@@ -29,6 +29,14 @@ export interface Layout3DCanvasProps {
   selectedConexaoId?: string | null;
   onConectarClick?: (itemId: string, x: number, y: number, z: number) => void;
   onConexaoSelect?: (id: string | null) => void;
+  onReady?: (api: Layout3DCanvasApi) => void;
+}
+
+export type ViewName = "top" | "front" | "back" | "left" | "right" | "iso";
+
+export interface Layout3DCanvasApi {
+  captureView: (view: ViewName) => string | null;
+  fitAll: () => void;
 }
 
 interface DragBaseline { x: number; y: number; z: number; rotY: number }
@@ -74,6 +82,7 @@ export function Layout3DCanvas({
   selectedConexaoId = null,
   onConectarClick,
   onConexaoSelect,
+  onReady,
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
@@ -232,6 +241,57 @@ export function Layout3DCanvas({
         if (t < 1) requestAnimationFrame(tween);
       };
       tween();
+    };
+
+    const captureView = (view: ViewName): string | null => {
+      const baseRadius = Math.max(floorW, floorH) * 1.2;
+      const presets: Record<ViewName, [number, number, number]> = {
+        top:   [-Math.PI / 2, 0.05,                 baseRadius],
+        front: [-Math.PI / 2, Math.PI / 2 - 0.05,   baseRadius],
+        back:  [ Math.PI / 2, Math.PI / 2 - 0.05,   baseRadius],
+        left:  [ Math.PI,     Math.PI / 2 - 0.05,   baseRadius],
+        right: [ 0,           Math.PI / 2 - 0.05,   baseRadius],
+        iso:   [-Math.PI / 4, Math.PI / 3.5,        baseRadius * 1.15],
+      };
+      const [theta, phi] = presets[view];
+      orbit.theta = theta;
+      orbit.phi = phi;
+
+      // Computa bbox dos grupos + piso (para enquadrar o desenho)
+      const box = new THREE.Box3();
+      const groups = ctxRef.current.groups || {};
+      Object.values(groups).forEach((g) => {
+        g.updateMatrixWorld(true);
+        const b = new THREE.Box3().setFromObject(g);
+        if (!b.isEmpty()) box.union(b);
+      });
+      box.expandByPoint(new THREE.Vector3(0, 0, 0));
+      box.expandByPoint(new THREE.Vector3(floorW, 0, floorH));
+
+      const center = new THREE.Vector3();
+      const size = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+      orbit.target.set(center.x, 0, center.z);
+
+      const aspect = camera.aspect || 1;
+      const fovRad = (camera.fov * Math.PI) / 180;
+      const isTop = view === "top";
+      // Para vista superior, ajusta com base em X/Z; para laterais, considera altura também.
+      const viewW = isTop ? size.x : Math.max(size.x, size.z);
+      const viewH = isTop ? size.z : size.y;
+      const radiusH = (Math.max(viewH, 0.5) / 2) / Math.tan(fovRad / 2);
+      const radiusW = (Math.max(viewW, 0.5) / 2) / Math.tan(fovRad / 2) / aspect;
+      orbit.radius = Math.max(radiusH, radiusW, 5) * 1.25;
+
+      updateCam();
+      try {
+        renderer.render(scene, camera);
+        return renderer.domElement.toDataURL("image/png");
+      } catch (e) {
+        console.error("[captureView] falha:", e);
+        return null;
+      }
     };
 
     const dom = renderer.domElement;
@@ -505,6 +565,13 @@ export function Layout3DCanvas({
       currentMode: mode,
       dom, animateToView, fitAll,
     };
+
+    // Expõe API ao parent para captura de múltiplas vistas (PDF, etc).
+    // Aguarda um frame para garantir que groups foram populados pelo effect de items.
+    if (onReady) {
+      const api: Layout3DCanvasApi = { captureView, fitAll };
+      requestAnimationFrame(() => onReady(api));
+    }
 
     return () => {
       cancelAnimationFrame(raf);

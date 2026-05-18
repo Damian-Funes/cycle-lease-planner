@@ -12,7 +12,7 @@ import {
   Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
-import { Layout3DCanvas } from "@/components/Layout3DCanvas";
+import { Layout3DCanvas, type Layout3DCanvasApi, type ViewName } from "@/components/Layout3DCanvas";
 import PlantaImage from "@/components/PlantaImage";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,10 @@ export default function LayoutEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasApiRef = useRef<Layout3DCanvasApi | null>(null);
+  const handleCanvasReady = useCallback((api: Layout3DCanvasApi) => {
+    canvasApiRef.current = api;
+  }, []);
 
   const [layout, setLayout] = useState<LayoutRow | null>(null);
   const [items, setItems] = useState<LayoutItemRow[]>([]);
@@ -355,78 +359,115 @@ export default function LayoutEditor() {
     }, 300);
   }
 
-  /* ---- exportar PDF ---- */
+  /* ---- exportar PDF (com 5 vistas) ---- */
   async function handleExportPdf() {
     if (!layout) return;
-    const canvas = containerRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
-    if (!canvas) {
-      toast({ title: "Canvas 3D não encontrado", variant: "destructive" });
+    const api = canvasApiRef.current;
+    if (!api) {
+      toast({ title: "Canvas 3D não está pronto ainda", variant: "destructive" });
       return;
     }
-    // Restaura opacidade temporariamente para captura (desselecionando)
+
+    // Desseleciona para a captura sair limpa (sem transparência)
     const idSelecionadoAntes = selectedId;
     if (idSelecionadoAntes) {
       setSelectedId(null);
-      // aguarda 2 frames para o useEffect restaurar opacidade e o renderer pintar
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     }
 
-    let dataUrl: string;
-    try {
-      dataUrl = canvas.toDataURL("image/png");
-    } catch (err) {
-      console.error("[PDF] toDataURL falhou:", err);
-      toast({
-        title: "Não foi possível gerar o PDF",
-        description: "Falha ao capturar imagem do canvas 3D.",
-        variant: "destructive",
-      });
-      if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
-      return;
+    const vistas: { view: ViewName; titulo: string }[] = [
+      { view: "top",   titulo: "Vista Superior (Planta)" },
+      { view: "iso",   titulo: "Vista Isométrica" },
+      { view: "front", titulo: "Vista Frontal" },
+      { view: "left",  titulo: "Vista Lateral Esquerda" },
+      { view: "right", titulo: "Vista Lateral Direita" },
+    ];
+
+    const capturas: { view: ViewName; titulo: string; dataUrl: string }[] = [];
+    for (const v of vistas) {
+      const url = api.captureView(v.view);
+      // pequeno respiro para o navegador
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      if (url) capturas.push({ ...v, titulo: v.titulo, dataUrl: url });
     }
 
     if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
+    // Restaura uma vista útil para o usuário após captura
+    api.fitAll();
+
+    if (capturas.length === 0) {
+      toast({
+        title: "Não foi possível gerar o PDF",
+        description: "Falha ao capturar imagens do canvas 3D.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
 
-    // Cabeçalho
-    pdf.setFontSize(16);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("LS DO BRASIL — FOLHA DE LAYOUT", 15, 15);
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    const meta = [
-      `Cliente: ${layout.cliente || "—"}`,
-      `Cidade: ${layout.cidade || "—"}`,
-      `Unidade: ${layout.unidade || "—"}`,
-      `Revisão: ${layout.revisao}`,
-      `Data: ${new Date().toLocaleDateString("pt-BR")}`,
-    ].join("    ");
-    pdf.text(meta, 15, 22);
+    const drawHeader = (subtitulo: string) => {
+      pdf.setFontSize(16);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("LS DO BRASIL — FOLHA DE LAYOUT", 15, 15);
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const meta = [
+        `Cliente: ${layout.cliente || "—"}`,
+        `Cidade: ${layout.cidade || "—"}`,
+        `Unidade: ${layout.unidade || "—"}`,
+        `Revisão: ${layout.revisao}`,
+        `Data: ${new Date().toLocaleDateString("pt-BR")}`,
+      ].join("    ");
+      pdf.text(meta, 15, 22);
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(subtitulo, 15, 30);
+    };
 
-    // Vista em planta
-    const drawAreaY = 30;
-    const drawAreaH = pageH - drawAreaY - 20;
-    const ratio = layout.piso_largura_mm / layout.piso_comprimento_mm;
-    let imgW = pageW - 30;
-    let imgH = imgW / ratio;
-    if (imgH > drawAreaH) {
-      imgH = drawAreaH;
-      imgW = imgH * ratio;
-    }
-    const imgX = (pageW - imgW) / 2;
-    pdf.addImage(dataUrl, "PNG", imgX, drawAreaY, imgW, imgH);
+    const drawFooter = () => {
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        `Piso ${(layout.piso_largura_mm / 1000).toFixed(1)}m × ${(layout.piso_comprimento_mm / 1000).toFixed(1)}m`,
+        15,
+        pageH - 10,
+      );
+      pdf.text("LS do Brasil — Maringá/PR", pageW - 60, pageH - 10);
+    };
 
-    pdf.setFontSize(8);
-    pdf.text(
-      `Escala aprox. 1:${Math.round(layout.piso_largura_mm / imgW)} · Piso ${(layout.piso_largura_mm / 1000).toFixed(1)}m × ${(layout.piso_comprimento_mm / 1000).toFixed(1)}m`,
-      15,
-      pageH - 10,
-    );
-    pdf.text("LS do Brasil — Maringá/PR", pageW - 60, pageH - 10);
+    // Uma página por vista — imagem ocupa o máximo possível, centralizada
+    capturas.forEach((cap, idx) => {
+      if (idx > 0) pdf.addPage();
+      drawHeader(cap.titulo);
 
-    // Página 2: lista de equipamentos
+      // Área de desenho
+      const drawAreaY = 34;
+      const drawAreaH = pageH - drawAreaY - 18;
+      const drawAreaW = pageW - 30;
+
+      // Aspect ratio do canvas 3D (todas as capturas têm o mesmo tamanho)
+      const canvasEl = containerRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+      const ratio = canvasEl && canvasEl.height > 0
+        ? canvasEl.width / canvasEl.height
+        : drawAreaW / drawAreaH;
+
+      let imgW = drawAreaW;
+      let imgH = imgW / ratio;
+      if (imgH > drawAreaH) {
+        imgH = drawAreaH;
+        imgW = imgH * ratio;
+      }
+      const imgX = (pageW - imgW) / 2;
+      const imgY = drawAreaY + (drawAreaH - imgH) / 2; // centraliza verticalmente também
+      pdf.addImage(cap.dataUrl, "PNG", imgX, imgY, imgW, imgH);
+
+      drawFooter();
+    });
+
+    // Página final: lista de equipamentos
     pdf.addPage();
     pdf.setFontSize(14);
     pdf.setFont("helvetica", "bold");
@@ -591,6 +632,7 @@ export default function LayoutEditor() {
                   selectedConexaoId={selectedConexaoId}
                   onConectarClick={handleConectarClick}
                   onConexaoSelect={setSelectedConexaoId}
+                  onReady={handleCanvasReady}
                 />
               )}
 
