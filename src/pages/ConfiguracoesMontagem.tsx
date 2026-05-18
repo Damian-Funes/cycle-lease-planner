@@ -183,6 +183,23 @@ export default function ConfiguracoesMontagem() {
               <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Maringá" />
             </div>
 
+            <div className="space-y-2">
+              <Label>Margem comercial (markup)</Label>
+              <p className="text-xs text-muted-foreground">
+                Markup aplicado sobre o custo total da montagem. Exemplo: 107% significa que o preço final ao cliente = custo × 2,07
+              </p>
+              <div className="flex items-stretch rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                <Input
+                  className="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  value={margem}
+                  inputMode="decimal"
+                  onChange={(e) => setMargem(maskPercent(e.target.value))}
+                  placeholder="107"
+                />
+                <span className="px-3 flex items-center bg-muted text-muted-foreground text-sm">%</span>
+              </div>
+            </div>
+
             <div className="pt-2 flex justify-end">
               <Button onClick={handleSave} disabled={saving} className="gap-2">
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
