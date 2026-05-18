@@ -503,7 +503,7 @@ export function Layout3DCanvas({
       previewMarker: null,
       onTransform, onSelect, onConectarClick, onConexaoSelect,
       currentMode: mode,
-      dom, animateToView,
+      dom, animateToView, fitAll,
     };
 
     return () => {
