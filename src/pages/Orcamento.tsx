@@ -43,7 +43,7 @@ export default function Orcamento() {
   const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { loading: authLoading, profile } = useAuth();
+  const { loading: authLoading, profile, isAdmin } = useAuth();
 
   // Taxas de montagem (config global)
   const [taxasMontagem, setTaxasMontagem] = useState<{
