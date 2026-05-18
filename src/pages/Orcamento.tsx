@@ -211,7 +211,7 @@ export default function Orcamento() {
       local_entrega: params.localEntrega || null,
       observacoes: params.observacoes || null,
       status: params.status,
-      montagem_numero_colaboradores: params.montagemNumeroColaboradores ?? 0,
+      montagem_numero_colaboradores: 4,
       montagem_dias: params.montagemDias ?? 0,
       montagem_km_origem_destino: params.montagemKmOrigemDestino ?? 0,
       montagem_numero_veiculos: params.montagemNumeroVeiculos ?? 1,
