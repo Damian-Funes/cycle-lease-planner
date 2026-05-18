@@ -1,69 +1,58 @@
-# Regra de equipamentos contidos no desenho
+# Itens avulsos no Orçamento de Venda
 
-## Objetivo
+Permitir adicionar itens fora do catálogo (ex: haste de agitador, peças, partes de equipamento) dentro de um orçamento, com opção de salvar no catálogo para reutilização.
 
-Quando um equipamento "pai" já representa visualmente outros no desenho (ex: dosador de líquido 0506 já contém caixa de contenção e tombador de IBC 1101), o item filho não deve aparecer no layout — mesmo que continue no orçamento/proposta com sua quantidade original.
+## Escopo
 
-A regra precisa valer em dois momentos:
-1. **Ao gerar o layout** a partir de proposta/orçamento (não cria o filho).
-2. **No editor**, em tempo real (se o usuário adicionar manualmente, o filho some quando o pai existir; se remover o pai, o filho reaparece como permitido).
+- Apenas Orçamento de **Venda** (Reforma fica para depois).
+- Itens avulsos somam normalmente no total e refletem no valor da oportunidade no CRM (já funciona automaticamente, pois o total do orçamento é o que alimenta o CRM).
 
-## Decisão de arquitetura
+## Fluxo
 
-Vou usar uma **nova tabela `equipamento_contidos`** no banco (pai → filho), administrada pela tela do **Catálogo** (área protegida por senha que já existe).
+Na seção "Itens do Orçamento", ao lado do botão "+ Adicionar" do seletor de equipamento, adicionar um botão **"+ Item avulso"** que abre um modal com:
 
-Justificativa (já que pediu para eu escolher sem errar):
-- Cadastrar no próprio equipamento (coluna array) funcionaria, mas relacionar via tabela é mais limpo, audita melhor, evita duplicidade e permite mostrar "este código está contido em X" nos dois lados.
-- Fixar no código foi descartado: você pediu para "não cometer erros" e disse que provavelmente surgirão mais pares no futuro — toda alteração exigiria deploy.
-- Reaproveitar a tela do Catálogo evita criar nova rota e mantém a gestão de equipamentos num lugar só.
+- **Código** (obrigatório, auto-uppercase)
+- **Descrição** (obrigatório, auto-uppercase)
+- **Valor unitário** (obrigatório, formatação pt-BR em tempo real)
+- **Quantidade** (default 1)
+- Checkbox **"Salvar no catálogo para reutilizar"**
 
-## O que será feito
+Comportamento:
+- Item entra na lista normalmente, marcado visualmente como "avulso" (badge cinza ao lado do código).
+- Se "Salvar no catálogo" marcado: cria registro em `equipamentos` com `valor_custo=0`, `valor_venda=<valor>`, `categoria='Peças/Partes'`, `ativo=true`. Próximos orçamentos encontram via seletor normal.
 
-### 1. Banco (migration)
+## Estrutura técnica
 
-Nova tabela `equipamento_contidos`:
-- `equipamento_pai_id` (FK lógica para `equipamentos.id`)
-- `equipamento_filho_id` (FK lógica para `equipamentos.id`)
-- UNIQUE (pai, filho), CHECK pai ≠ filho
-- RLS: admin gerencia, usuários aprovados leem.
+**Sem migração de schema.** O JSONB `itens` em `orcamentos` já é flexível; adiciona-se um flag opcional:
 
-### 2. Catálogo (admin)
+```ts
+interface ItemOrcamento {
+  equipamento_id: string;   // "avulso" quando avulso (não vincula a equipamentos)
+  codigo: string;
+  descricao: string;
+  valor_unitario: number;
+  quantidade: number;
+  sem_preco_venda?: boolean;
+  avulso?: boolean;         // NOVO: marca item criado manualmente
+}
+```
 
-Na linha/edição de cada equipamento, adicionar seção **"Itens já inclusos no desenho"**:
-- Multi-select de outros equipamentos do catálogo.
-- Salvar grava em `equipamento_contidos`.
-- Mostra também o caminho inverso ("este item está contido em: …") só como info.
+Quando "Salvar no catálogo" estiver marcado, inserir em `equipamentos` antes de adicionar à lista; o `equipamento_id` passa a ser o uuid retornado (e `avulso` fica false, virou catálogo).
 
-### 3. Geração de layout (`src/pages/Layouts.tsx`)
+## Arquivos a editar
 
-No fluxo "Novo Layout":
-- Carregar todos os pares `(pai, filho)` cujos pais estão nos itens da proposta/orçamento.
-- Construir o conjunto de `equipamento_id` "ocultos" = filhos cujos pais estão presentes.
-- Pular esses itens no loop de inserts — quantidade do orçamento é ignorada **só para o desenho**.
-- Toast informativo: "N item(s) ocultado(s) por já estarem representados: 1101, 0318M30…".
+- `src/lib/orcamento.ts` — adicionar campo `avulso?: boolean` na interface.
+- `src/components/ItemAvulsoModal.tsx` — novo modal com formulário.
+- `src/pages/Orcamento.tsx` — botão "+ Item avulso", integração com modal, badge visual na linha do item avulso.
 
-### 4. Editor de Layout (`src/pages/LayoutEditor.tsx`)
+## Validações
 
-- Carregar pares uma vez ao abrir.
-- Calcular `ocultos` reativo a `items`: filho oculto sse pai presente.
-- Render 2D/3D e lista de items filtram por `!ocultos.has(equipamento_id)`.
-- Ao adicionar manualmente um filho cujo pai já está na cena: bloquear com toast ("Já está representado por 0506").
-- Ao remover o pai, filhos previamente "ocultos" voltam a aparecer automaticamente (continuam existindo no banco).
+- Código e descrição: trim, uppercase, não vazios, max 100 chars.
+- Valor unitário: número > 0.
+- Se "Salvar no catálogo": checar duplicidade de código em `equipamentos` antes de inserir; se já existir, avisa e usa o existente.
 
-### 5. Pares iniciais
+## Fora de escopo
 
-Migration popula a tabela com:
-- `0506` → `1101`
-- (máquina pai dos `0318M30` e `0318M35` — preciso confirmar qual código é antes de inserir; deixo um TODO se não souber)
-
-## Detalhes técnicos
-
-- Origem da verdade: `equipamento_contidos`. O orçamento/proposta **não** é modificado — preço e quantidades seguem como estão.
-- Performance: 1 query extra por abertura do editor / geração; cache em memória.
-- Conexões (`layout_conexoes`) envolvendo um item oculto deixam de ser desenhadas enquanto o filho estiver oculto (filtro no render, sem deletar do banco).
-- Backwards compat: layouts existentes que já têm o filho inserido continuam mostrando-o; a regra só age quando há também o pai no mesmo layout. Opcional: botão "Limpar duplicados" no editor que apaga os filhos cobertos (proponho deixar para depois).
-
-## Pontos abertos para confirmar depois
-
-- Qual é o código do "pai" que já contém `0318M30` e `0318M35`? (para semear na migration)
-- Deve existir botão "Limpar itens duplicados" para sanear layouts antigos?
+- Reformas (será feito depois, se solicitado).
+- Edição de itens avulsos já adicionados (mantém comportamento atual: remove e re-adiciona).
+- Categoria customizável no modal (fica fixa "Peças/Partes" para os salvos).
