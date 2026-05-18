@@ -84,8 +84,9 @@ export function calcDescontoAplicado(subtotal: number, tipo: DescontoTipo, valor
   return valor;
 }
 
-export function calcTotal(p: Pick<OrcamentoParams, "itens" | "descontoTipo" | "descontoValor" | "frete">): number {
+export function calcTotal(p: Pick<OrcamentoParams, "itens" | "descontoTipo" | "descontoValor" | "frete" | "montagemValorTotal">): number {
   const sub = calcSubtotal(p.itens);
   const desc = calcDescontoAplicado(sub, p.descontoTipo, p.descontoValor);
-  return Math.max(0, sub - desc) + (Number(p.frete) || 0);
+  const montagem = Number(p.montagemValorTotal) || 0;
+  return Math.max(0, sub - desc) + (Number(p.frete) || 0) + montagem;
 }
