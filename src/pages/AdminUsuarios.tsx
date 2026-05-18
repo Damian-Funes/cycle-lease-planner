@@ -71,8 +71,13 @@ export default function AdminUsuarios() {
       }
       return;
     }
-    toast.success("Usuário excluído");
-    load();
+    const orfaos = (data as any)?.orfaos;
+    if (orfaos && Object.keys(orfaos).length > 0) {
+      const det = Object.entries(orfaos).map(([k, v]) => `${k}: ${v}`).join(", ");
+      toast.success(`Usuário excluído. Registros sem responsável: ${det}`);
+    } else {
+      toast.success("Usuário excluído");
+    }
   };
 
   const setStatus = async (row: ProfileRow, status: "approved" | "rejected") => {
