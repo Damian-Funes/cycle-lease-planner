@@ -78,6 +78,7 @@ export default function AdminUsuarios() {
     } else {
       toast.success("Usuário excluído");
     }
+    load();
   };
 
   const setStatus = async (row: ProfileRow, status: "approved" | "rejected") => {
