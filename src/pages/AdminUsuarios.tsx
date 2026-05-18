@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, Loader2, Shield } from "lucide-react";
+import { ArrowLeft, Check, X, Loader2, Shield, Trash2 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
 import UserPermissionsDialog from "@/components/UserPermissionsDialog";
@@ -40,6 +40,31 @@ export default function AdminUsuarios() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const handleDelete = async (row: ProfileRow) => {
+    const ok = window.confirm(
+      `Excluir definitivamente "${row.nome || row.email}"? Esta ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+    setBusy(row.id);
+    const { data, error } = await supabase.functions.invoke("admin-delete-user", {
+      body: { user_id: row.user_id },
+    });
+    setBusy(null);
+    if (error || (data as any)?.error) {
+      const msg = (data as any)?.error || error?.message || "Erro ao excluir";
+      const vinc = (data as any)?.vinculos;
+      if (vinc) {
+        const det = Object.entries(vinc).map(([k, v]) => `${k}: ${v}`).join(", ");
+        toast.error(`${msg} (${det})`);
+      } else {
+        toast.error(msg);
+      }
+      return;
+    }
+    toast.success("Usuário excluído");
+    load();
+  };
 
   const setStatus = async (row: ProfileRow, status: "approved" | "rejected") => {
     setBusy(row.id);
