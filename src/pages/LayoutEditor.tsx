@@ -37,6 +37,7 @@ export default function LayoutEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasApiRef = useRef<Layout3DCanvasApi | null>(null);
   const handleCanvasReady = useCallback((api: Layout3DCanvasApi) => {
+    console.log("[Layout3D] API pronta");
     canvasApiRef.current = api;
   }, []);
 
