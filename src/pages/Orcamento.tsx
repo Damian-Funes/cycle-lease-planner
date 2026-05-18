@@ -969,11 +969,19 @@ export default function Orcamento() {
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Prazo de entrega</Label>
-              <Input
-                placeholder="Ex.: 30 dias após confirmação"
-                value={params.prazoEntrega}
-                onChange={(e) => update("prazoEntrega", e.target.value)}
-              />
+              <Select
+                value={params.prazoEntrega || ""}
+                onValueChange={(v) => update("prazoEntrega", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o prazo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {["A combinar", "90 dias", "120 dias", "150 dias", "210 dias"].map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label>Validade da oferta (dias)</Label>
