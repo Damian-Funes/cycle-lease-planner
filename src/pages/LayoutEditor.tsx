@@ -37,6 +37,7 @@ export default function LayoutEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasApiRef = useRef<Layout3DCanvasApi | null>(null);
   const handleCanvasReady = useCallback((api: Layout3DCanvasApi) => {
+    console.log("[Layout3D] API pronta");
     canvasApiRef.current = api;
   }, []);
 
@@ -361,12 +362,18 @@ export default function LayoutEditor() {
 
   /* ---- exportar PDF (com 5 vistas) ---- */
   async function handleExportPdf() {
-    if (!layout) return;
-    const api = canvasApiRef.current;
-    if (!api) {
-      toast({ title: "Canvas 3D não está pronto ainda", variant: "destructive" });
+    console.log("[PDF] iniciando export, layout?", !!layout, "api?", !!canvasApiRef.current);
+    if (!layout) {
+      toast({ title: "Layout não carregado", variant: "destructive" });
       return;
     }
+    const api = canvasApiRef.current;
+    if (!api) {
+      toast({ title: "Canvas 3D não está pronto ainda", description: "Aguarde os modelos carregarem e tente novamente.", variant: "destructive" });
+      return;
+    }
+
+    try {
 
     // Desseleciona para a captura sair limpa (sem transparência)
     const idSelecionadoAntes = selectedId;
@@ -385,7 +392,9 @@ export default function LayoutEditor() {
 
     const capturas: { view: ViewName; titulo: string; dataUrl: string }[] = [];
     for (const v of vistas) {
+      console.log("[PDF] capturando vista:", v.view);
       const url = api.captureView(v.view);
+      console.log("[PDF] dataUrl tamanho:", url?.length ?? 0);
       // pequeno respiro para o navegador
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
       if (url) capturas.push({ ...v, titulo: v.titulo, dataUrl: url });
@@ -395,6 +404,7 @@ export default function LayoutEditor() {
     // Restaura uma vista útil para o usuário após captura
     api.fitAll();
 
+    console.log("[PDF] total capturas:", capturas.length);
     if (capturas.length === 0) {
       toast({
         title: "Não foi possível gerar o PDF",
@@ -511,8 +521,18 @@ export default function LayoutEditor() {
     pdf.setFontSize(8);
     pdf.text("LS do Brasil — Maringá/PR", pageW - 60, pageH - 10);
 
-    const fname = `LAYOUT_${(layout.cliente || "cliente").replace(/[^\w]+/g, "_")}_${layout.revisao}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    pdf.save(fname);
+      const fname = `LAYOUT_${(layout.cliente || "cliente").replace(/[^\w]+/g, "_")}_${layout.revisao}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      console.log("[PDF] salvando arquivo:", fname);
+      pdf.save(fname);
+      console.log("[PDF] save() chamado");
+    } catch (err) {
+      console.error("[PDF] erro inesperado:", err);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    }
   }
 
   // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
