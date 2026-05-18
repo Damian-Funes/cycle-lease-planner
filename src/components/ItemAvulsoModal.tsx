@@ -29,6 +29,14 @@ export default function ItemAvulsoModal({ open, onOpenChange, onAdd }: Props) {
     setCodigo(""); setDescricao(""); setValor(0); setQuantidade(1); setSalvarCatalogo(false);
   }
 
+  const valorFormatado = valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function handleValorChange(raw: string) {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) { setValor(0); return; }
+    setValor(parseInt(digits, 10) / 100);
+  }
+
   async function handleAdd() {
     const cod = codigo.trim().toUpperCase().slice(0, 100);
     const desc = descricao.trim().toUpperCase().slice(0, 200);
