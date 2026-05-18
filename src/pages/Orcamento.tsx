@@ -330,6 +330,7 @@ export default function Orcamento() {
       descontoValor: Number(data.desconto_valor) || 0,
       frete: Number(data.frete) || 0,
       condicoesPagamento: data.condicoes_pagamento || "",
+      formaPagamentoId: (data as any).forma_pagamento_id ?? null,
       prazoEntrega: data.prazo_entrega || "",
       validadeDias: data.validade_dias ?? 10,
       localEntrega: data.local_entrega || "",
