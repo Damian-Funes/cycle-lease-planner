@@ -597,6 +597,17 @@ export default function Catalogo() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleAtivo(eq)} title={eq.ativo ? "Desativar" : "Ativar"}>
                           {eq.ativo ? <PowerOff className="w-3.5 h-3.5 text-destructive" /> : <Power className="w-3.5 h-3.5 text-primary" />}
                         </Button>
+                        {isAdmin && !eq.ativo && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setExcluindo(eq)}
+                            title="Excluir definitivamente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
