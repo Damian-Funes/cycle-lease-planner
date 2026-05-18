@@ -54,6 +54,22 @@ interface ConfigRow {
   diaria_hospedagem: number;
   diaria_alimentacao: number;
   cidade_origem: string;
+  margem_percentual: number;
+}
+
+function maskPercent(raw: string): string {
+  let s = raw.replace(/[^\d,]/g, "");
+  const firstComma = s.indexOf(",");
+  if (firstComma !== -1) {
+    s = s.slice(0, firstComma + 1) + s.slice(firstComma + 1).replace(/,/g, "");
+    const [int, dec = ""] = s.split(",");
+    s = int + "," + dec.slice(0, 2);
+  }
+  const [intPart, decPart] = s.split(",");
+  let intNum = parseInt(intPart || "0", 10);
+  if (isNaN(intNum)) intNum = 0;
+  if (intNum > 999) intNum = 999;
+  return decPart !== undefined ? `${intNum},${decPart}` : String(intNum);
 }
 
 export default function ConfiguracoesMontagem() {
