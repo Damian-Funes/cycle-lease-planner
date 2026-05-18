@@ -210,7 +210,9 @@ export default function Orcamento() {
       desconto_valor: params.descontoValor,
       frete: params.frete,
       total,
-      condicoes_pagamento: params.condicoesPagamento || null,
+      forma_pagamento_id: params.formaPagamentoId || null,
+      // Se há forma selecionada, limpa o legacy. Senão preserva (orçamentos antigos).
+      condicoes_pagamento: params.formaPagamentoId ? null : (params.condicoesPagamento || null),
       prazo_entrega: params.prazoEntrega || null,
       validade_dias: params.validadeDias,
       local_entrega: params.localEntrega || null,
