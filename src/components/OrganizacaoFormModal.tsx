@@ -213,6 +213,20 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       form.setError("cnpj", { message: "CNPJ deve ter 14 dígitos" });
       return;
     }
+    if (!isEdit) {
+      const nome = (v.contato_nome || "").trim();
+      const email = (v.contato_email || "").trim();
+      const tel = (v.contato_telefone || "").trim();
+      const cel = (v.contato_celular || "").trim();
+      if (!nome) {
+        form.setError("contato_nome", { message: "Informe o contato principal" });
+        return;
+      }
+      if (!email && !tel && !cel) {
+        form.setError("contato_telefone", { message: "Informe e-mail, telefone ou celular" });
+        return;
+      }
+    }
     mutation.mutate(v);
   };
 
@@ -240,14 +254,36 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       if (isEdit && organizacao) {
         const { error } = await (supabase as any).from("organizacoes").update(payload).eq("id", organizacao.id);
         if (error) throw error;
-      } else {
-        const { error } = await (supabase as any).from("organizacoes").insert(payload);
-        if (error) throw error;
+        return;
+      }
+      const { data: orgIns, error } = await (supabase as any)
+        .from("organizacoes")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      const orgId = orgIns.id as string;
+      const pessoaPayload = {
+        organizacao_id: orgId,
+        nome: (v.contato_nome || "").trim(),
+        cargo: v.contato_cargo?.trim() || null,
+        email: v.contato_email?.trim() || null,
+        telefone: v.contato_telefone?.trim() || null,
+        celular: v.contato_celular?.trim() || null,
+        e_decisor: !!v.contato_decisor,
+        responsavel_id: v.responsavel_id || null,
+      };
+      const { error: pErr } = await (supabase as any).from("pessoas").insert(pessoaPayload);
+      if (pErr) {
+        await (supabase as any).from("organizacoes").delete().eq("id", orgId);
+        throw new Error(`Falha ao salvar contato: ${pErr.message}`);
       }
     },
     onSuccess: () => {
-      toast.success(isEdit ? "Organização atualizada" : "Organização criada");
+      toast.success(isEdit ? "Organização atualizada" : "Organização e contato criados");
       qc.invalidateQueries({ queryKey: ["organizacoes"] });
+      qc.invalidateQueries({ queryKey: ["pessoas"] });
       onOpenChange(false);
     },
     onError: (err: any) => toast.error("Erro ao salvar", { description: err?.message }),
