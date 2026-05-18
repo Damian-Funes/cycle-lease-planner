@@ -516,7 +516,10 @@ export default function Orcamento() {
                           it.sem_preco_venda && "bg-amber-50/60"
                         )}
                       >
-                        <td className="p-2 font-medium">{it.codigo}</td>
+                        <td className="p-2 font-medium">
+                          {it.codigo}
+                          {it.avulso && <span className="ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground border">avulso</span>}
+                        </td>
                         <td className="p-2 text-muted-foreground">{it.descricao}</td>
                         <td className="p-2 text-center">
                           <input
