@@ -184,6 +184,11 @@ export default function AdminUsuarios() {
                           {r.status !== "rejected" && (
                             <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => setStatus(r, "rejected")}>Rejeitar</Button>
                           )}
+                          {r.user_id !== user?.id && (
+                            <Button size="sm" variant="destructive" disabled={busy === r.id} onClick={() => handleDelete(r)} className="gap-1">
+                              <Trash2 className="w-3 h-3" /> Excluir
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
