@@ -38,6 +38,8 @@ export default function Layouts() {
   const [layouts, setLayouts] = useState<LayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [novoOpen, setNovoOpen] = useState(false);
+  const [excluindo, setExcluindo] = useState<LayoutRow | null>(null);
+  const [deletando, setDeletando] = useState(false);
 
   useEffect(() => {
     refresh();
@@ -54,6 +56,26 @@ export default function Layouts() {
       setLoading(false);
     }
   }
+
+  async function handleExcluir() {
+    if (!excluindo) return;
+    setDeletando(true);
+    try {
+      await supabase.from("layout_conexoes").delete().eq("layout_id", excluindo.id);
+      await supabase.from("layout_equipamentos").delete().eq("layout_id", excluindo.id);
+      const { error } = await supabase.from("layouts").delete().eq("id", excluindo.id);
+      if (error) throw error;
+      toast({ title: "Layout excluído" });
+      setExcluindo(null);
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao excluir";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setDeletando(false);
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-muted/20">
