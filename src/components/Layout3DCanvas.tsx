@@ -147,10 +147,11 @@ export function Layout3DCanvas({
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
+    // Cimento polido — cinza médio com leve brilho
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xdcdcdc,
-      roughness: 0.92,
-      metalness: 0.0,
+      color: 0x9a9a9a,
+      roughness: 0.55,
+      metalness: 0.08,
     });
     const floor = new THREE.Mesh(floorGeom, floorMat);
     floor.rotation.x = -Math.PI / 2;
@@ -162,11 +163,32 @@ export function Layout3DCanvas({
     const grid = new THREE.GridHelper(
       Math.max(floorW, floorH),
       Math.ceil(Math.max(floorW, floorH) * 2),
-      0xc0c0c0,
-      0xd6d3d1,
+      0x6b6b6b,
+      0x808080,
     );
+    (grid.material as THREE.Material).opacity = 0.35;
+    (grid.material as THREE.Material).transparent = true;
     grid.position.set(floorW / 2, 0.01, floorH / 2);
     scene.add(grid);
+
+    // Vértice fixo de referência (origem 0,0) + arestas das duas laterais ancoradas
+    const anchorPts = [
+      new THREE.Vector3(0, 0.02, 0),
+      new THREE.Vector3(floorW, 0.02, 0),
+      new THREE.Vector3(0, 0.02, 0),
+      new THREE.Vector3(0, 0.02, floorH),
+    ];
+    const anchorGeom = new THREE.BufferGeometry().setFromPoints(anchorPts);
+    const anchorMat = new THREE.LineBasicMaterial({ color: 0xea580c, linewidth: 2 });
+    const anchorLines = new THREE.LineSegments(anchorGeom, anchorMat);
+    scene.add(anchorLines);
+
+    const cornerMarker = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.18, 0.04, 24),
+      new THREE.MeshStandardMaterial({ color: 0xea580c, roughness: 0.5 }),
+    );
+    cornerMarker.position.set(0, 0.025, 0);
+    scene.add(cornerMarker);
 
     const orbit = {
       theta: -Math.PI / 4,
