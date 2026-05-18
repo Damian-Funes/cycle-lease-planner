@@ -219,6 +219,7 @@ export default function Catalogo() {
       largura_mm: toInt(form.largura_mm),
       comprimento_mm: toInt(form.comprimento_mm),
       altura_mm: toInt(form.altura_mm),
+      dias_montagem_padrao: Math.min(999, Math.max(0, parseInt(form.dias_montagem_padrao || "0", 10) || 0)),
     };
 
     if (editing === "new") {
