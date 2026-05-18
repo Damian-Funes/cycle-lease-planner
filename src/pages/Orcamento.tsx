@@ -55,12 +55,6 @@ export default function Orcamento() {
   } | null>(null);
 
   // Dias de montagem sugeridos (view)
-  const [diasSugerido, setDiasSugerido] = useState<{
-    dias_sugeridos: number;
-    tem_maquina_tratamento: boolean;
-    detalhe_maquinas: Array<{ codigo: string; descricao: string; quantidade: number; dias_padrao: number; dias_total: number }>;
-  } | null>(null);
-
   useEffect(() => {
     supabase
       .from("equipamentos")
@@ -81,22 +75,32 @@ export default function Orcamento() {
       });
   }, []);
 
-  const fetchDiasSugerido = useCallback(async (orcId: string) => {
-    const { data } = await (supabase as any)
-      .from("vw_dias_montagem_sugerido")
-      .select("dias_sugeridos, tem_maquina_tratamento, detalhe_maquinas")
-      .eq("orcamento_id", orcId)
-      .maybeSingle();
-    if (data) {
-      setDiasSugerido({
-        dias_sugeridos: Number(data.dias_sugeridos) || 0,
-        tem_maquina_tratamento: !!data.tem_maquina_tratamento,
-        detalhe_maquinas: Array.isArray(data.detalhe_maquinas) ? data.detalhe_maquinas : [],
-      });
-    } else {
-      setDiasSugerido(null);
+  // Calcula dias sugeridos em tempo real a partir dos itens selecionados (sem precisar salvar)
+  const diasSugerido = useMemo(() => {
+    const detalhe: Array<{ codigo: string; descricao: string; quantidade: number; dias_padrao: number; dias_total: number }> = [];
+    let total = 0;
+    for (const it of params.itens) {
+      const eq = equipamentos.find((e) => e.id === it.equipamento_id);
+      const diasPadrao = Number((eq as any)?.dias_montagem_padrao) || 0;
+      if (eq && diasPadrao > 0) {
+        const qtd = Number(it.quantidade) || 0;
+        const diasTotal = qtd * diasPadrao;
+        total += diasTotal;
+        detalhe.push({
+          codigo: eq.codigo,
+          descricao: eq.descricao,
+          quantidade: qtd,
+          dias_padrao: diasPadrao,
+          dias_total: diasTotal,
+        });
+      }
     }
-  }, []);
+    return {
+      dias_sugeridos: total,
+      tem_maquina_tratamento: detalhe.length > 0,
+      detalhe_maquinas: detalhe,
+    };
+  }, [params.itens, equipamentos]);
 
   const subtotal = useMemo(() => calcSubtotal(params.itens), [params.itens]);
   const desconto = useMemo(
