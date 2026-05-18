@@ -214,7 +214,7 @@ export default function Orcamento() {
       montagem_numero_colaboradores: 4,
       montagem_dias: params.montagemDias ?? 0,
       montagem_km_origem_destino: params.montagemKmOrigemDestino ?? 0,
-      montagem_numero_veiculos: params.montagemNumeroVeiculos ?? 1,
+      montagem_numero_veiculos: 1,
       montagem_eh_fazenda: params.montagemEhFazenda ?? false,
       montagem_km_hotel_local: params.montagemKmHotelLocal ?? 0,
       montagem_observacoes: params.montagemObservacoes || null,
