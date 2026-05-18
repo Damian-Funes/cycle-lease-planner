@@ -211,10 +211,10 @@ export default function Orcamento() {
       local_entrega: params.localEntrega || null,
       observacoes: params.observacoes || null,
       status: params.status,
-      montagem_numero_colaboradores: params.montagemNumeroColaboradores ?? 0,
+      montagem_numero_colaboradores: 4,
       montagem_dias: params.montagemDias ?? 0,
       montagem_km_origem_destino: params.montagemKmOrigemDestino ?? 0,
-      montagem_numero_veiculos: params.montagemNumeroVeiculos ?? 1,
+      montagem_numero_veiculos: 1,
       montagem_eh_fazenda: params.montagemEhFazenda ?? false,
       montagem_km_hotel_local: params.montagemKmHotelLocal ?? 0,
       montagem_observacoes: params.montagemObservacoes || null,
@@ -644,9 +644,9 @@ export default function Orcamento() {
           const autoDias = !!diasSugerido?.tem_maquina_tratamento;
           const diasField = autoDias ? Number(diasSugerido?.dias_sugeridos) || 0 : Number(params.montagemDias) || 0;
           const dias = diasField;
-          const cols = Number(params.montagemNumeroColaboradores) || 0;
+          const cols = 4;
           const kmOD = Number(params.montagemKmOrigemDestino) || 0;
-          const veic = Number(params.montagemNumeroVeiculos) || 1;
+          const veic = 1;
           const kmHL = Number(params.montagemKmHotelLocal) || 0;
           const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0, margem_percentual: 0 };
           const margemPct = Number(t.margem_percentual) || 0;
@@ -674,7 +674,11 @@ export default function Orcamento() {
           const divergencia = usarBanco && Math.abs(precoBanco - precoPreview) > 0.5;
 
           const detalheTxt = (diasSugerido?.detalhe_maquinas ?? [])
-            .map((m) => `${m.quantidade}× ${m.codigo} (${m.dias_total} dias)`)
+            .map((m) => {
+              const desc = (m.descricao || m.codigo || "").trim();
+              const short = desc.length > 60 ? desc.slice(0, 59) + "…" : desc;
+              return `${m.quantidade}× ${short} (${m.dias_total} dias)`;
+            })
             .join(" + ");
 
           return (
@@ -710,13 +714,6 @@ export default function Orcamento() {
 
                 <TooltipProvider delayDuration={200}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label>Nº de colaboradores</Label>
-                      <Input
-                        type="number" min={0} value={cols}
-                        onChange={(e) => update("montagemNumeroColaboradores", Math.max(0, parseInt(e.target.value) || 0))}
-                      />
-                    </div>
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1">
                         Dias de montagem
@@ -759,13 +756,6 @@ export default function Orcamento() {
                       <Input
                         type="number" min={0} step="0.1" value={kmOD}
                         onChange={(e) => update("montagemKmOrigemDestino", Math.max(0, parseFloat(e.target.value) || 0))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Nº de veículos</Label>
-                      <Input
-                        type="number" min={1} value={veic}
-                        onChange={(e) => update("montagemNumeroVeiculos", Math.max(1, parseInt(e.target.value) || 1))}
                       />
                     </div>
                   </div>
