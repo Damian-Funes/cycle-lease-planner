@@ -617,6 +617,31 @@ export default function Catalogo() {
           </div>
         )}
       </main>
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {excluindo && (
+                <>
+                  O equipamento <strong>{excluindo.codigo}</strong> — {excluindo.descricao} será removido permanentemente do catálogo. Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleExcluir(); }}
+              disabled={deletando}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletando ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
