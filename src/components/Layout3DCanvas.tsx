@@ -234,6 +234,7 @@ export function Layout3DCanvas({
       tween();
     };
 
+    const dom = renderer.domElement;
     dom.style.touchAction = "none";
     dom.style.display = "block";
     let lastMouse = { x: 0, y: 0 };
