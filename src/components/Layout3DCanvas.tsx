@@ -53,6 +53,7 @@ interface CanvasCtx {
   currentMode?: Layout3DCanvasProps["mode"];
   dom?: HTMLCanvasElement;
   animateToView?: (theta: number, phi: number, radius?: number) => void;
+  fitAll?: () => void;
   selectedIds?: string[];
   dragState?: DragState | null;
 }
