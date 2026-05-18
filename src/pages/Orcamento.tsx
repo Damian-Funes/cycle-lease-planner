@@ -259,13 +259,18 @@ export default function Orcamento() {
         .eq("id", novoId)
         .maybeSingle();
       if (fresh) {
+        const montagemPreco = Number((fresh as any).montagem_preco_total) || 0;
         setParams((p) => ({
           ...p,
           montagemCustoTotal: Number((fresh as any).montagem_custo_total) || 0,
-          montagemPrecoTotal: Number((fresh as any).montagem_preco_total) || 0,
+          montagemPrecoTotal: montagemPreco,
           montagemMargemAplicada: Number((fresh as any).montagem_margem_aplicada) || 0,
           montagemDias: Number((fresh as any).montagem_dias) || 0,
         }));
+        // Recalcula total incluindo montagem (trigger não atualiza coluna total)
+        const desc = calcDescontoAplicado(subtotal, params.descontoTipo, params.descontoValor);
+        const totalFinal = Math.max(0, subtotal - desc) + (Number(params.frete) || 0) + montagemPreco;
+        await supabase.from("orcamentos").update({ total: totalFinal } as any).eq("id", novoId);
       }
       await fetchDiasSugerido(novoId);
     }
