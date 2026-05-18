@@ -1,22 +1,25 @@
-# Botão de exclusão no Catálogo (admin)
+# Botão de exclusão no Catálogo (admin, só inativos)
 
 ## Objetivo
-Permitir que o admin apague produtos definitivamente do catálogo, além do já existente "ativar/desativar".
+Permitir que o admin apague definitivamente produtos do catálogo, mas **apenas quando estiverem desativados** (`ativo = false`). Isso evita exclusão acidental de itens em uso.
 
-## O que muda
-- Em `src/pages/Catalogo.tsx`, na linha de cada equipamento, adicionar um ícone de lixeira ao lado do botão de ativar/desativar.
-- O botão só aparece para usuários com role `admin` (via hook `useUserRole`/`has_role`).
-- Ao clicar, abre `AlertDialog` de confirmação ("Excluir definitivamente? Esta ação não pode ser desfeita").
-- Confirmação executa `DELETE` em `equipamentos` pelo id e recarrega a lista.
+## Fluxo
+1. Admin desativa o produto (botão Power já existente).
+2. Aparece o ícone de lixeira ao lado, somente nos itens inativos.
+3. Clique → `AlertDialog` de confirmação ("Excluir definitivamente? Esta ação não pode ser desfeita").
+4. Confirmação → `DELETE` em `equipamentos` pelo id → recarrega lista.
+
+## Regras de visibilidade do botão
+- Usuário precisa ser `admin` (via role).
+- Produto precisa estar `ativo = false`.
+- Se ambas falsas → botão não renderiza.
 
 ## Tratamento de erro
-Se o equipamento estiver referenciado em propostas/orçamentos/layouts (FK), o Supabase retornará erro. Nesse caso:
-- Mostrar toast explicando que o produto está em uso e sugerir desativar em vez de excluir.
+Se houver FK (proposta/orçamento/layout usando o item), o DELETE falha. Mostrar toast: "Este produto está vinculado a propostas/layouts e não pode ser excluído."
 
-## Permissão
-- UI: ocultar botão para não-admins.
-- Backend: a RLS atual da tabela `equipamentos` já restringe `DELETE` ao admin (a confirmar). Se não, criar policy `DELETE` somente para `has_role(auth.uid(),'admin')`.
+## Permissão no backend
+Adicionar policy de `DELETE` em `equipamentos` restrita a `has_role(auth.uid(),'admin')` (se ainda não existir).
 
 ## Arquivos
-- `src/pages/Catalogo.tsx` — botão + dialog + handler.
-- (Possível) migração para policy `DELETE` admin-only em `equipamentos`.
+- `src/pages/Catalogo.tsx` — botão lixeira condicional + AlertDialog + handler.
+- Migração SQL — policy DELETE admin-only em `equipamentos`.
