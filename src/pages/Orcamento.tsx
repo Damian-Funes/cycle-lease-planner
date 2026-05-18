@@ -251,16 +251,23 @@ export default function Orcamento() {
       }
     }
 
-    // Releitura do montagem_valor_total (autoritativo, vem do trigger)
+    // Releitura autoritativa (custo/preço/margem + dias podem ter sido recalculados por trigger)
     if (!error && novoId) {
       const { data: fresh } = await supabase
         .from("orcamentos")
-        .select("montagem_valor_total")
+        .select("montagem_custo_total, montagem_preco_total, montagem_margem_aplicada, montagem_dias")
         .eq("id", novoId)
         .maybeSingle();
       if (fresh) {
-        setParams((p) => ({ ...p, montagemValorTotal: Number((fresh as any).montagem_valor_total) || 0 }));
+        setParams((p) => ({
+          ...p,
+          montagemCustoTotal: Number((fresh as any).montagem_custo_total) || 0,
+          montagemPrecoTotal: Number((fresh as any).montagem_preco_total) || 0,
+          montagemMargemAplicada: Number((fresh as any).montagem_margem_aplicada) || 0,
+          montagemDias: Number((fresh as any).montagem_dias) || 0,
+        }));
       }
+      await fetchDiasSugerido(novoId);
     }
 
     setSaving(false);
