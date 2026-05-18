@@ -1,58 +1,40 @@
-# Itens avulsos no Orçamento de Venda
+# Tornar contato obrigatório ao criar Organização
 
-Permitir adicionar itens fora do catálogo (ex: haste de agitador, peças, partes de equipamento) dentro de um orçamento, com opção de salvar no catálogo para reutilização.
+## Problema
 
-## Escopo
+Comerciais cadastram organizações sem nenhuma pessoa de contato vinculada, deixando a base sem decisores/contatos para retomar o relacionamento.
 
-- Apenas Orçamento de **Venda** (Reforma fica para depois).
-- Itens avulsos somam normalmente no total e refletem no valor da oportunidade no CRM (já funciona automaticamente, pois o total do orçamento é o que alimenta o CRM).
+## Regra
 
-## Fluxo
+Ao **criar** uma organização, é obrigatório informar **pelo menos um contato** (pessoa) no mesmo formulário. Sem isso, o formulário não salva.
 
-Na seção "Itens do Orçamento", ao lado do botão "+ Adicionar" do seletor de equipamento, adicionar um botão **"+ Item avulso"** que abre um modal com:
+Na **edição** de organização existente: continua opcional adicionar/editar contatos pelo modal atual de pessoas. Não bloqueia edição se a org não tem pessoas (legado).
 
-- **Código** (obrigatório, auto-uppercase)
-- **Descrição** (obrigatório, auto-uppercase)
-- **Valor unitário** (obrigatório, formatação pt-BR em tempo real)
-- **Quantidade** (default 1)
-- Checkbox **"Salvar no catálogo para reutilizar"**
+## UX
 
-Comportamento:
-- Item entra na lista normalmente, marcado visualmente como "avulso" (badge cinza ao lado do código).
-- Se "Salvar no catálogo" marcado: cria registro em `equipamentos` com `valor_custo=0`, `valor_venda=<valor>`, `categoria='Peças/Partes'`, `ativo=true`. Próximos orçamentos encontram via seletor normal.
+No `OrganizacaoFormModal`, adicionar uma seção **"Contato principal *"** (somente quando criando, não na edição) com os campos:
 
-## Estrutura técnica
+- **Nome** (obrigatório)
+- **Cargo** (opcional)
+- **E-mail** (opcional, validado se preenchido)
+- **Telefone/Celular** (pelo menos um dos dois obrigatório)
+- Checkbox **"É decisor"**
 
-**Sem migração de schema.** O JSONB `itens` em `orcamentos` já é flexível; adiciona-se um flag opcional:
+Validação no submit: nome do contato e (e-mail OU telefone OU celular) obrigatórios. Mensagens de erro inline.
 
-```ts
-interface ItemOrcamento {
-  equipamento_id: string;   // "avulso" quando avulso (não vincula a equipamentos)
-  codigo: string;
-  descricao: string;
-  valor_unitario: number;
-  quantidade: number;
-  sem_preco_venda?: boolean;
-  avulso?: boolean;         // NOVO: marca item criado manualmente
-}
-```
+## Fluxo de gravação
 
-Quando "Salvar no catálogo" estiver marcado, inserir em `equipamentos` antes de adicionar à lista; o `equipamento_id` passa a ser o uuid retornado (e `avulso` fica false, virou catálogo).
+1. Insert em `organizacoes` → pega `id` retornado.
+2. Insert em `pessoas` com `organizacao_id = <id da org>` e `responsavel_id` = mesmo da org (ou auth.uid()).
+3. Se o insert da pessoa falhar, faz `delete` da org recém-criada (rollback manual) e mostra erro.
+4. Toast: "Organização e contato criados".
 
 ## Arquivos a editar
 
-- `src/lib/orcamento.ts` — adicionar campo `avulso?: boolean` na interface.
-- `src/components/ItemAvulsoModal.tsx` — novo modal com formulário.
-- `src/pages/Orcamento.tsx` — botão "+ Item avulso", integração com modal, badge visual na linha do item avulso.
-
-## Validações
-
-- Código e descrição: trim, uppercase, não vazios, max 100 chars.
-- Valor unitário: número > 0.
-- Se "Salvar no catálogo": checar duplicidade de código em `equipamentos` antes de inserir; se já existir, avisa e usa o existente.
+- `src/components/OrganizacaoFormModal.tsx` — adicionar seção de contato condicional ao create, validação e fluxo de gravação em 2 passos com rollback.
 
 ## Fora de escopo
 
-- Reformas (será feito depois, se solicitado).
-- Edição de itens avulsos já adicionados (mantém comportamento atual: remove e re-adiciona).
-- Categoria customizável no modal (fica fixa "Peças/Partes" para os salvos).
+- Edição de organização (sem mudança).
+- Migração de organizações antigas sem contato (continuam como estão).
+- Adicionar múltiplos contatos no create (só 1 obrigatório; resto via aba Pessoas depois).
