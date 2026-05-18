@@ -122,6 +122,7 @@ export default function ConfiguracoesMontagem() {
         diaria_hospedagem: parseBR(diariaHosp),
         diaria_alimentacao: parseBR(diariaAlim),
         cidade_origem: cidade,
+        margem_percentual: Math.min(999, Math.max(0, parseBR(margem))),
         updated_at: new Date().toISOString(),
         updated_by: user?.id ?? null,
       })
