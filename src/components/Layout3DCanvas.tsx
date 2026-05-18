@@ -81,6 +81,7 @@ export function Layout3DCanvas({
   selectedConexaoId = null,
   onConectarClick,
   onConexaoSelect,
+  onReady,
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
