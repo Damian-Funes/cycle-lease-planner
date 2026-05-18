@@ -132,11 +132,15 @@ export default function Relatorios() {
   }, [pipelineId, responsavelId, range.from, range.to]);
 
   // ============ FORECAST ============
+  // Inclui TODAS as abertas (mesmo sem data prevista) para não esconder pipeline real.
   const oppsAbertas = useMemo(
-    () => oportunidades.filter(o => o.status === "aberta" && o.data_fechamento_prevista
-      && new Date(o.data_fechamento_prevista) >= range.from
-      && new Date(o.data_fechamento_prevista) <= range.to),
-    [oportunidades, range]
+    () => oportunidades.filter(o => o.status === "aberta"),
+    [oportunidades]
+  );
+
+  const totalPipelineAberto = useMemo(
+    () => oppsAbertas.reduce((s, o) => s + Number(o.valor_estimado || 0), 0),
+    [oppsAbertas]
   );
 
   const forecastPonderado = useMemo(
@@ -147,6 +151,12 @@ export default function Relatorios() {
     () => oppsAbertas.filter(o => Number(o.probabilidade || 0) >= 70).reduce((s, o) => s + Number(o.valor_estimado || 0), 0),
     [oppsAbertas]
   );
+
+  const semDataPrevista = useMemo(
+    () => oppsAbertas.filter(o => !o.data_fechamento_prevista).length,
+    [oppsAbertas]
+  );
+
 
   const forecastChartData = useMemo(() => {
     const meses: { mes: string; mesKey: string }[] = [];
