@@ -498,7 +498,12 @@ export default function Orcamento() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-popover z-50" align="start">
-                    <Command>
+                    <Command
+                      filter={(value, search) => {
+                        if (!search) return 1;
+                        return value.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0;
+                      }}
+                    >
                       <CommandInput placeholder="Digite código ou descrição..." />
                       <CommandList>
                         <CommandEmpty>Nenhum equipamento encontrado.</CommandEmpty>
