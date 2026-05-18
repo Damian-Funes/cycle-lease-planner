@@ -538,6 +538,20 @@ export default function Orcamento() {
                 setParams((p) => ({ ...p, dados_congelados: false }));
               } : undefined}
             />
+            <div className="space-y-1">
+              <Label htmlFor="contato_nome">Nome do contato (pessoa que recebe a proposta)</Label>
+              <Input
+                id="contato_nome"
+                value={params.contatoNome}
+                onChange={(e) => update("contatoNome", e.target.value)}
+                placeholder="Ex: Sergio Rodrigues"
+                disabled={!!params.dados_congelados}
+              />
+              <p className="text-xs text-muted-foreground">
+                Pessoa física dentro da empresa cliente. Ex: "Sergio Rodrigues". Não preencha com o nome da empresa.
+              </p>
+            </div>
+
           </CardContent>
         </Card>
 
