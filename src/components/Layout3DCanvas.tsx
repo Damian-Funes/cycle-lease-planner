@@ -239,6 +239,7 @@ export function Layout3DCanvas({
         orbit.radius = startRadius + (endRadius - startRadius) * ease;
         if (t < 1) requestAnimationFrame(tween);
       };
+      tween();
     };
 
     const captureView = (view: ViewName): string | null => {
