@@ -35,6 +35,10 @@ export default function LayoutEditor() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasApiRef = useRef<Layout3DCanvasApi | null>(null);
+  const handleCanvasReady = useCallback((api: Layout3DCanvasApi) => {
+    canvasApiRef.current = api;
+  }, []);
 
   const [layout, setLayout] = useState<LayoutRow | null>(null);
   const [items, setItems] = useState<LayoutItemRow[]>([]);
