@@ -5,7 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, LayoutGrid, Plus, Loader2, FileText, Receipt, Search } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Plus, Loader2, FileText, Receipt, Search, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +38,8 @@ export default function Layouts() {
   const [layouts, setLayouts] = useState<LayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [novoOpen, setNovoOpen] = useState(false);
+  const [excluindo, setExcluindo] = useState<LayoutRow | null>(null);
+  const [deletando, setDeletando] = useState(false);
 
   useEffect(() => {
     refresh();
@@ -52,6 +56,26 @@ export default function Layouts() {
       setLoading(false);
     }
   }
+
+  async function handleExcluir() {
+    if (!excluindo) return;
+    setDeletando(true);
+    try {
+      await supabase.from("layout_conexoes").delete().eq("layout_id", excluindo.id);
+      await supabase.from("layout_equipamentos").delete().eq("layout_id", excluindo.id);
+      const { error } = await supabase.from("layouts").delete().eq("id", excluindo.id);
+      if (error) throw error;
+      toast({ title: "Layout excluído" });
+      setExcluindo(null);
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao excluir";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setDeletando(false);
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -97,31 +121,42 @@ export default function Layouts() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {layouts.map((l) => (
-              <Link key={l.id} to={`/layouts/${l.id}`}>
-                <Card className="p-4 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all h-full">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {l.origem_tipo === "proposta" ? <FileText className="w-3.5 h-3.5" /> : <Receipt className="w-3.5 h-3.5" />}
-                      <span className="capitalize">{l.origem_tipo}</span>
-                      <span>·</span>
-                      <span>{l.revisao}</span>
+              <div key={l.id} className="relative group">
+                <Link to={`/layouts/${l.id}`}>
+                  <Card className="p-4 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all h-full">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {l.origem_tipo === "proposta" ? <FileText className="w-3.5 h-3.5" /> : <Receipt className="w-3.5 h-3.5" />}
+                        <span className="capitalize">{l.origem_tipo}</span>
+                        <span>·</span>
+                        <span>{l.revisao}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_LABEL[l.status].cls}`}>
+                        {STATUS_LABEL[l.status].label}
+                      </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_LABEL[l.status].cls}`}>
-                      {STATUS_LABEL[l.status].label}
-                    </span>
-                  </div>
-                  <div className="font-semibold mb-0.5 truncate">{l.cliente || "Sem cliente"}</div>
-                  <div className="text-xs text-muted-foreground mb-3 truncate">
-                    {[l.unidade, l.cidade].filter(Boolean).join(" · ") || "—"}
-                  </div>
-                  <div className="aspect-[4/3] rounded-md bg-muted/40 border border-dashed flex items-center justify-center text-xs text-muted-foreground">
-                    {(l.piso_largura_mm / 1000).toFixed(1)}m × {(l.piso_comprimento_mm / 1000).toFixed(1)}m
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Atualizado {new Date(l.updated_at).toLocaleDateString("pt-BR")}
-                  </div>
-                </Card>
-              </Link>
+                    <div className="font-semibold mb-0.5 truncate pr-8">{l.cliente || "Sem cliente"}</div>
+                    <div className="text-xs text-muted-foreground mb-3 truncate">
+                      {[l.unidade, l.cidade].filter(Boolean).join(" · ") || "—"}
+                    </div>
+                    <div className="aspect-[4/3] rounded-md bg-muted/40 border border-dashed flex items-center justify-center text-xs text-muted-foreground">
+                      {(l.piso_largura_mm / 1000).toFixed(1)}m × {(l.piso_comprimento_mm / 1000).toFixed(1)}m
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Atualizado {new Date(l.updated_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </Card>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground transition-opacity"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExcluindo(l); }}
+                  title="Excluir layout"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             ))}
           </div>
         )}
@@ -132,6 +167,24 @@ export default function Layouts() {
         onOpenChange={setNovoOpen}
         onCreated={(id) => navigate(`/layouts/${id}`)}
       />
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir layout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o layout de "{excluindo?.cliente || "—"}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExcluir} disabled={deletando} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deletando ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
