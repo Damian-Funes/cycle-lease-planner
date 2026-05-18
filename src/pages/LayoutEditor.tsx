@@ -517,8 +517,18 @@ export default function LayoutEditor() {
     pdf.setFontSize(8);
     pdf.text("LS do Brasil — Maringá/PR", pageW - 60, pageH - 10);
 
-    const fname = `LAYOUT_${(layout.cliente || "cliente").replace(/[^\w]+/g, "_")}_${layout.revisao}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    pdf.save(fname);
+      const fname = `LAYOUT_${(layout.cliente || "cliente").replace(/[^\w]+/g, "_")}_${layout.revisao}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      console.log("[PDF] salvando arquivo:", fname);
+      pdf.save(fname);
+      console.log("[PDF] save() chamado");
+    } catch (err) {
+      console.error("[PDF] erro inesperado:", err);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    }
   }
 
   // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
