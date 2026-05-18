@@ -460,6 +460,16 @@ export default function Crm() {
       return;
     }
 
+    // Exige data prevista de fechamento antes de movimentar
+    if (!op.data_fechamento_prevista) {
+      const hoje = new Date();
+      const sugestao = new Date(hoje.getFullYear(), hoje.getMonth() + 1, hoje.getDate())
+        .toISOString().slice(0, 10);
+      setNeedsDate({ op, toEtapaId, data: sugestao });
+      return;
+    }
+
+
     // Optimistic move
     const prev = qc.getQueryData<Oportunidade[]>(["oportunidades"]);
     qc.setQueryData<Oportunidade[]>(["oportunidades"], (curr) =>
