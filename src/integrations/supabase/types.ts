@@ -369,6 +369,39 @@ export type Database = {
           },
         ]
       }
+      formas_pagamento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          desconto_padrao_pct: number | null
+          descricao_proposta: string
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          desconto_padrao_pct?: number | null
+          descricao_proposta: string
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          desconto_padrao_pct?: number | null
+          descricao_proposta?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       google_integration_tokens: {
         Row: {
           access_token: string
@@ -921,6 +954,7 @@ export type Database = {
           dados_congelados: boolean
           desconto_tipo: string
           desconto_valor: number
+          forma_pagamento_id: string | null
           frete: number
           id: string
           itens: Json
@@ -959,6 +993,7 @@ export type Database = {
           dados_congelados?: boolean
           desconto_tipo?: string
           desconto_valor?: number
+          forma_pagamento_id?: string | null
           frete?: number
           id?: string
           itens?: Json
@@ -997,6 +1032,7 @@ export type Database = {
           dados_congelados?: boolean
           desconto_tipo?: string
           desconto_valor?: number
+          forma_pagamento_id?: string | null
           frete?: number
           id?: string
           itens?: Json
@@ -1025,6 +1061,13 @@ export type Database = {
           validade_dias?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orcamentos_forma_pagamento_id_fkey"
+            columns: ["forma_pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "formas_pagamento"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orcamentos_oportunidade_id_fkey"
             columns: ["oportunidade_id"]
