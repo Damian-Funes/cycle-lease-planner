@@ -102,6 +102,7 @@ export default function ConfiguracoesMontagem() {
         setDiariaHosp(formatBR(r.diaria_hospedagem));
         setDiariaAlim(formatBR(r.diaria_alimentacao));
         setCidade(r.cidade_origem || "Maringá");
+        setMargem(formatBR(r.margem_percentual ?? 107));
       }
       setLoading(false);
     })();
