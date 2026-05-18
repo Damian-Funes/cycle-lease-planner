@@ -11,9 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, CalendarIcon, TrendingUp, Target, Trophy, DollarSign } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, addMonths, subMonths, differenceInDays } from "date-fns";
+import { ArrowLeft, CalendarIcon, TrendingUp, Target, Trophy, DollarSign, Zap, Flame, CheckCircle2, Plus } from "lucide-react";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, addMonths, subMonths, differenceInDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   LineChart, Line, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList,
@@ -132,11 +133,15 @@ export default function Relatorios() {
   }, [pipelineId, responsavelId, range.from, range.to]);
 
   // ============ FORECAST ============
+  // Inclui TODAS as abertas (mesmo sem data prevista) para não esconder pipeline real.
   const oppsAbertas = useMemo(
-    () => oportunidades.filter(o => o.status === "aberta" && o.data_fechamento_prevista
-      && new Date(o.data_fechamento_prevista) >= range.from
-      && new Date(o.data_fechamento_prevista) <= range.to),
-    [oportunidades, range]
+    () => oportunidades.filter(o => o.status === "aberta"),
+    [oportunidades]
+  );
+
+  const totalPipelineAberto = useMemo(
+    () => oppsAbertas.reduce((s, o) => s + Number(o.valor_estimado || 0), 0),
+    [oppsAbertas]
   );
 
   const forecastPonderado = useMemo(
@@ -147,6 +152,12 @@ export default function Relatorios() {
     () => oppsAbertas.filter(o => Number(o.probabilidade || 0) >= 70).reduce((s, o) => s + Number(o.valor_estimado || 0), 0),
     [oppsAbertas]
   );
+
+  const semDataPrevista = useMemo(
+    () => oppsAbertas.filter(o => !o.data_fechamento_prevista).length,
+    [oppsAbertas]
+  );
+
 
   const forecastChartData = useMemo(() => {
     const meses: { mes: string; mesKey: string }[] = [];
@@ -293,8 +304,26 @@ export default function Relatorios() {
     [perfView]
   );
 
+  // ============ HOJE (motivacional) ============
+  const hoje = new Date();
+  const hojeStart = startOfDay(hoje);
+  const hojeEnd = endOfDay(hoje);
+
+  const atividadesHoje = useMemo(
+    () => atividades.filter(a => a.data_inicio && new Date(a.data_inicio) >= hojeStart && new Date(a.data_inicio) <= hojeEnd),
+    [atividades]
+  );
+  const atividadesHojeConcluidas = atividadesHoje.filter(a => a.concluida).length;
+
+  const dealsCriadosPeriodo = useMemo(
+    () => oportunidades.filter(o => o.created_at && new Date(o.created_at) >= range.from && new Date(o.created_at) <= range.to),
+    [oportunidades, range]
+  );
+  const valorDealsCriadosPeriodo = dealsCriadosPeriodo.reduce((s, o) => s + Number(o.valor_estimado || 0), 0);
+
   return (
     <div className="min-h-screen bg-muted/20">
+
       <header className="bg-background border-b">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -363,6 +392,35 @@ export default function Relatorios() {
           </div>
         </Card>
 
+        {/* SEÇÃO PULSO DE HOJE */}
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Flame className="w-5 h-5 text-orange-500" /> Pulso de Hoje
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-5 bg-gradient-to-br from-orange-500/10 to-amber-500/5 border-orange-500/30">
+              <div className="flex items-center gap-2 text-xs text-orange-700 font-medium"><Zap className="w-3.5 h-3.5" /> Atividades hoje</div>
+              <div className="text-3xl font-bold mt-1">{atividadesHoje.length}</div>
+              <div className="text-xs text-muted-foreground mt-1">{atividadesHojeConcluidas} concluída(s)</div>
+            </Card>
+            <Card className="p-5 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/30">
+              <div className="flex items-center gap-2 text-xs text-emerald-700 font-medium"><CheckCircle2 className="w-3.5 h-3.5" /> Concluídas no período</div>
+              <div className="text-3xl font-bold mt-1">{atividades.filter(a => a.concluida).length}</div>
+              <div className="text-xs text-muted-foreground mt-1">de {atividades.length} total</div>
+            </Card>
+            <Card className="p-5 bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/30">
+              <div className="flex items-center gap-2 text-xs text-blue-700 font-medium"><Plus className="w-3.5 h-3.5" /> Deals criados</div>
+              <div className="text-3xl font-bold mt-1">{dealsCriadosPeriodo.length}</div>
+              <div className="text-xs text-muted-foreground mt-1">{fmtBRL(valorDealsCriadosPeriodo)} em pipeline novo</div>
+            </Card>
+            <Card className="p-5 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/30">
+              <div className="flex items-center gap-2 text-xs text-primary font-medium"><DollarSign className="w-3.5 h-3.5" /> Pipeline total aberto</div>
+              <div className="text-3xl font-bold mt-1">{fmtBRL(totalPipelineAberto)}</div>
+              <div className="text-xs text-muted-foreground mt-1">{oppsAbertas.length} oportunidade(s)</div>
+            </Card>
+          </div>
+        </section>
+
         {/* SEÇÃO 1 — FORECAST */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" /> Forecast</h2>
@@ -370,31 +428,42 @@ export default function Relatorios() {
             <Card className="p-5">
               <div className="text-xs text-muted-foreground">Forecast Ponderado</div>
               <div className="text-3xl font-bold text-primary mt-1">{fmtBRL(forecastPonderado)}</div>
-              <div className="text-xs text-muted-foreground mt-1">{oppsAbertas.length} oportunidades abertas no período</div>
+              <div className="text-xs text-muted-foreground mt-1">{oppsAbertas.length} oportunidades em aberto · soma(valor × prob.)</div>
             </Card>
             <Card className="p-5">
               <div className="text-xs text-muted-foreground">Fechamento Provável (≥ 70%)</div>
               <div className="text-3xl font-bold text-emerald-600 mt-1">{fmtBRL(fechamentoProvavel)}</div>
+              <div className="text-xs text-muted-foreground mt-1">deals com alta probabilidade</div>
             </Card>
           </div>
 
+
           <Card className="p-4">
             <div className="text-sm font-medium mb-3">Forecast por Mês (próximos 6 meses)</div>
-            <div className="h-72">
-              <ResponsiveContainer>
-                <BarChart data={forecastChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
-                  <Legend />
-                  {etapasParaStack.map((en, i) => (
-                    <Bar key={en} dataKey={en} stackId="a" fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            {etapasParaStack.length === 0 ? (
+              <div className="h-40 flex flex-col items-center justify-center text-center text-sm text-muted-foreground gap-1 border border-dashed rounded-md">
+                <CalendarIcon className="w-6 h-6 opacity-50" />
+                <div>Nenhuma oportunidade com data prevista de fechamento.</div>
+                <div className="text-xs">Defina "Data de fechamento prevista" nos deals para visualizar a projeção mensal.{semDataPrevista > 0 && ` (${semDataPrevista} sem data)`}</div>
+              </div>
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer>
+                  <BarChart data={forecastChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis tickFormatter={(v) => `R$ ${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
+                    <Legend />
+                    {etapasParaStack.map((en, i) => (
+                      <Bar key={en} dataKey={en} stackId="a" fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </Card>
+
         </section>
 
         {/* SEÇÃO 2 — PIPELINE HEALTH */}
@@ -463,12 +532,21 @@ export default function Relatorios() {
         {/* SEÇÃO 3 — PERFORMANCE */}
         <section className="space-y-3">
           <h2 className="text-lg font-semibold flex items-center gap-2"><Trophy className="w-5 h-5 text-primary" /> Performance</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Win Rate</div><div className="text-2xl font-bold">{winRate}%</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Ciclo Médio</div><div className="text-2xl font-bold">{cicloMedio} dias</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Ticket Médio</div><div className="text-2xl font-bold">{fmtBRL(ticketMedio)}</div></Card>
-            <Card className="p-4"><div className="text-xs text-muted-foreground">Total Vendido</div><div className="text-2xl font-bold text-primary">{fmtBRL(totalVendido)}</div></Card>
-          </div>
+          {oppsFechadasPeriodo.length === 0 ? (
+            <Card className="p-6 text-center text-sm text-muted-foreground border-dashed">
+              <Trophy className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <div className="font-medium text-foreground mb-1">Nenhum deal fechado no período ainda.</div>
+              <div className="text-xs">Marque deals como "Ganha" ou "Perdida" para ver Win Rate, ticket médio e ranking aqui.</div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Win Rate</div><div className="text-2xl font-bold">{winRate}%</div></Card>
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Ciclo Médio</div><div className="text-2xl font-bold">{cicloMedio} dias</div></Card>
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Ticket Médio</div><div className="text-2xl font-bold">{fmtBRL(ticketMedio)}</div></Card>
+              <Card className="p-4"><div className="text-xs text-muted-foreground">Total Vendido</div><div className="text-2xl font-bold text-primary">{fmtBRL(totalVendido)}</div></Card>
+            </div>
+          )}
+
 
           <Card className="p-4">
             <div className="text-sm font-medium mb-3">Deals Ganhos por Mês (12 meses)</div>
