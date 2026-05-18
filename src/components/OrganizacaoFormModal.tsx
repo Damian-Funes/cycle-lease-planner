@@ -37,6 +37,12 @@ const schema = z.object({
   responsavel_id: z.string().optional().or(z.literal("")),
   tags: z.string().optional().or(z.literal("")),
   observacoes: z.string().optional().or(z.literal("")),
+  contato_nome: z.string().optional().or(z.literal("")),
+  contato_cargo: z.string().optional().or(z.literal("")),
+  contato_email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  contato_telefone: z.string().optional().or(z.literal("")),
+  contato_celular: z.string().optional().or(z.literal("")),
+  contato_decisor: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
