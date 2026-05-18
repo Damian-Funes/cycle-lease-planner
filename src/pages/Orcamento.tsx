@@ -51,6 +51,14 @@ export default function Orcamento() {
     valor_km: number;
     diaria_hospedagem: number;
     diaria_alimentacao: number;
+    margem_percentual: number;
+  } | null>(null);
+
+  // Dias de montagem sugeridos (view)
+  const [diasSugerido, setDiasSugerido] = useState<{
+    dias_sugeridos: number;
+    tem_maquina_tratamento: boolean;
+    detalhe_maquinas: Array<{ codigo: string; descricao: string; quantidade: number; dias_padrao: number; dias_total: number }>;
   } | null>(null);
 
   useEffect(() => {
@@ -65,12 +73,29 @@ export default function Orcamento() {
 
     supabase
       .from("config_montagem" as any)
-      .select("valor_dia_colaborador, valor_km, diaria_hospedagem, diaria_alimentacao")
+      .select("valor_dia_colaborador, valor_km, diaria_hospedagem, diaria_alimentacao, margem_percentual")
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
         if (data) setTaxasMontagem(data as any);
       });
+  }, []);
+
+  const fetchDiasSugerido = useCallback(async (orcId: string) => {
+    const { data } = await (supabase as any)
+      .from("vw_dias_montagem_sugerido")
+      .select("dias_sugeridos, tem_maquina_tratamento, detalhe_maquinas")
+      .eq("orcamento_id", orcId)
+      .maybeSingle();
+    if (data) {
+      setDiasSugerido({
+        dias_sugeridos: Number(data.dias_sugeridos) || 0,
+        tem_maquina_tratamento: !!data.tem_maquina_tratamento,
+        detalhe_maquinas: Array.isArray(data.detalhe_maquinas) ? data.detalhe_maquinas : [],
+      });
+    } else {
+      setDiasSugerido(null);
+    }
   }, []);
 
   const subtotal = useMemo(() => calcSubtotal(params.itens), [params.itens]);
