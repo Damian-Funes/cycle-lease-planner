@@ -295,6 +295,14 @@ export default function Orcamento() {
       pessoa_contato_id: null,
       oportunidade_id: (data as any).oportunidade_id ?? null,
       dados_congelados: (data as any).dados_congelados ?? false,
+      montagemNumeroColaboradores: Number((data as any).montagem_numero_colaboradores) || 0,
+      montagemDias: Number((data as any).montagem_dias) || 0,
+      montagemKmOrigemDestino: Number((data as any).montagem_km_origem_destino) || 0,
+      montagemNumeroVeiculos: Number((data as any).montagem_numero_veiculos) || 1,
+      montagemEhFazenda: !!(data as any).montagem_eh_fazenda,
+      montagemKmHotelLocal: Number((data as any).montagem_km_hotel_local) || 0,
+      montagemObservacoes: (data as any).montagem_observacoes || "",
+      montagemValorTotal: Number((data as any).montagem_valor_total) || 0,
     };
 
     handleLoad(loaded, data.id);
