@@ -23,6 +23,7 @@ export interface OrcamentoParams {
   descontoValor: number;
   frete: number;
   condicoesPagamento: string;
+  formaPagamentoId?: string | null;
   prazoEntrega: string;
   validadeDias: number;
   localEntrega: string;
@@ -58,6 +59,7 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   descontoValor: 0,
   frete: 0,
   condicoesPagamento: "",
+  formaPagamentoId: null,
   prazoEntrega: "",
   validadeDias: 10,
   localEntrega: "",

@@ -16,6 +16,7 @@ import NovaPropostaButton from "@/components/NovaPropostaButton";
 import ItemAvulsoModal from "@/components/ItemAvulsoModal";
 import AppHeader from "@/components/AppHeader";
 import SeletorOrganizacao from "@/components/SeletorOrganizacao";
+import FormaPagamentoSelector from "@/components/FormaPagamentoSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -209,7 +210,9 @@ export default function Orcamento() {
       desconto_valor: params.descontoValor,
       frete: params.frete,
       total,
-      condicoes_pagamento: params.condicoesPagamento || null,
+      forma_pagamento_id: params.formaPagamentoId || null,
+      // Se há forma selecionada, limpa o legacy. Senão preserva (orçamentos antigos).
+      condicoes_pagamento: params.formaPagamentoId ? null : (params.condicoesPagamento || null),
       prazo_entrega: params.prazoEntrega || null,
       validade_dias: params.validadeDias,
       local_entrega: params.localEntrega || null,
@@ -327,6 +330,7 @@ export default function Orcamento() {
       descontoValor: Number(data.desconto_valor) || 0,
       frete: Number(data.frete) || 0,
       condicoesPagamento: data.condicoes_pagamento || "",
+      formaPagamentoId: (data as any).forma_pagamento_id ?? null,
       prazoEntrega: data.prazo_entrega || "",
       validadeDias: data.validade_dias ?? 10,
       localEntrega: data.local_entrega || "",
@@ -949,6 +953,12 @@ export default function Orcamento() {
           </CardContent>
         </Card>
 
+        <FormaPagamentoSelector
+          formaPagamentoId={params.formaPagamentoId}
+          legacyText={params.condicoesPagamento}
+          onChange={(id) => update("formaPagamentoId", id)}
+        />
+
         {/* Condições */}
         <Card>
           <CardHeader className="pb-3">
@@ -957,14 +967,6 @@ export default function Orcamento() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Condições de pagamento</Label>
-              <Input
-                placeholder="Ex.: 30/60/90 dias, à vista com 5% de desconto..."
-                value={params.condicoesPagamento}
-                onChange={(e) => update("condicoesPagamento", e.target.value)}
-              />
-            </div>
             <div className="space-y-1.5">
               <Label>Prazo de entrega</Label>
               <Input
