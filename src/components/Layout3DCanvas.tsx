@@ -36,6 +36,7 @@ export type ViewName = "top" | "front" | "back" | "left" | "right" | "iso";
 
 export interface Layout3DCanvasApi {
   captureView: (view: ViewName) => string | null;
+  fitAll: () => void;
 }
 
 interface DragBaseline { x: number; y: number; z: number; rotY: number }
