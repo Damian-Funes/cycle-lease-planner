@@ -4,8 +4,18 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento, EquipamentoCategoria, CATEGORIAS } from "@/lib/equipamentos";
 import { formatBRL } from "@/lib/smartcycle";
-import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box, Upload, FileBox } from "lucide-react";
+import { Plus, Pencil, Power, PowerOff, ArrowLeft, Loader2, Save, X, Search, Box, Upload, FileBox, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Link } from "react-router-dom";
 import { GlbOrientationEditor } from "@/components/GlbOrientationEditor";
 import { EquipamentoContidosEditor } from "@/components/EquipamentoContidosEditor";
@@ -249,6 +259,27 @@ export default function Catalogo() {
   async function toggleAtivo(eq: Equipamento) {
     await supabase.from("equipamentos").update({ ativo: !eq.ativo }).eq("id", eq.id);
     fetchAll();
+  }
+
+  const [excluindo, setExcluindo] = useState<Equipamento | null>(null);
+  const [deletando, setDeletando] = useState(false);
+
+  async function handleExcluir() {
+    if (!excluindo) return;
+    setDeletando(true);
+    const { error } = await supabase.from("equipamentos").delete().eq("id", excluindo.id);
+    setDeletando(false);
+    if (error) {
+      toast({
+        title: "Não foi possível excluir",
+        description: "Este produto está vinculado a propostas, orçamentos ou layouts. Mantenha-o desativado.",
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Equipamento excluído" });
+      setExcluindo(null);
+      fetchAll();
+    }
   }
 
   return (
@@ -566,6 +597,17 @@ export default function Catalogo() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleAtivo(eq)} title={eq.ativo ? "Desativar" : "Ativar"}>
                           {eq.ativo ? <PowerOff className="w-3.5 h-3.5 text-destructive" /> : <Power className="w-3.5 h-3.5 text-primary" />}
                         </Button>
+                        {isAdmin && !eq.ativo && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setExcluindo(eq)}
+                            title="Excluir definitivamente"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -575,6 +617,31 @@ export default function Catalogo() {
           </div>
         )}
       </main>
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir definitivamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {excluindo && (
+                <>
+                  O equipamento <strong>{excluindo.codigo}</strong> — {excluindo.descricao} será removido permanentemente do catálogo. Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleExcluir(); }}
+              disabled={deletando}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletando ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
