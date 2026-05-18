@@ -16,6 +16,7 @@ import NovaPropostaButton from "@/components/NovaPropostaButton";
 import ItemAvulsoModal from "@/components/ItemAvulsoModal";
 import AppHeader from "@/components/AppHeader";
 import SeletorOrganizacao from "@/components/SeletorOrganizacao";
+import FormaPagamentoSelector from "@/components/FormaPagamentoSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
