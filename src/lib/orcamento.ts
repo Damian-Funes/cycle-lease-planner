@@ -5,6 +5,7 @@ export interface ItemOrcamento {
   valor_unitario: number;
   quantidade: number;
   sem_preco_venda?: boolean;
+  avulso?: boolean;
 }
 
 export type DescontoTipo = "percentual" | "valor";

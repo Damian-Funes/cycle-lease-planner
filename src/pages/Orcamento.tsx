@@ -13,6 +13,7 @@ import { OrcamentoParams, ItemOrcamento, DEFAULT_ORCAMENTO, calcSubtotal, calcDe
 import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
+import ItemAvulsoModal from "@/components/ItemAvulsoModal";
 import AppHeader from "@/components/AppHeader";
 import SeletorOrganizacao from "@/components/SeletorOrganizacao";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -35,6 +36,7 @@ export default function Orcamento() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [avulsoOpen, setAvulsoOpen] = useState(false);
   const [clientNameError, setClientNameError] = useState(false);
   const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -89,6 +91,17 @@ export default function Orcamento() {
     update("itens", newItens);
     setSelectedId("");
     setQuantidade(1);
+  }
+
+  function handleAddAvulso(item: ItemOrcamento, savedEq?: Equipamento) {
+    update("itens", [...params.itens, item]);
+    if (savedEq) {
+      setEquipamentos((prev) =>
+        prev.some((e) => e.id === savedEq.id)
+          ? prev
+          : [...prev, savedEq].sort((a, b) => a.codigo.localeCompare(b.codigo))
+      );
+    }
   }
 
   function updateItem(idx: number, patch: Partial<ItemOrcamento>) {
@@ -476,6 +489,9 @@ export default function Orcamento() {
               <Button size="sm" onClick={handleAddItem} disabled={!selectedId} className="gap-1 h-9">
                 <Plus className="w-4 h-4" /> Adicionar
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setAvulsoOpen(true)} className="gap-1 h-9">
+                <Plus className="w-4 h-4" /> Item avulso
+              </Button>
             </div>
 
             {params.itens.length > 0 ? (
@@ -500,7 +516,10 @@ export default function Orcamento() {
                           it.sem_preco_venda && "bg-amber-50/60"
                         )}
                       >
-                        <td className="p-2 font-medium">{it.codigo}</td>
+                        <td className="p-2 font-medium">
+                          {it.codigo}
+                          {it.avulso && <span className="ml-2 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground border">avulso</span>}
+                        </td>
                         <td className="p-2 text-muted-foreground">{it.descricao}</td>
                         <td className="p-2 text-center">
                           <input
@@ -667,6 +686,7 @@ export default function Orcamento() {
       </main>
 
       <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} onLoadOrcamento={loadOrcamentoById} />
+      <ItemAvulsoModal open={avulsoOpen} onOpenChange={setAvulsoOpen} onAdd={handleAddAvulso} />
     </div>
   );
 }
