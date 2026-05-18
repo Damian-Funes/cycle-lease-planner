@@ -330,13 +330,13 @@ export default function Catalogo() {
           </div>
         </div>
 
-        {/* Edit/New form */}
-        {editing && (
-          <Card className="border-primary">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{editing === "new" ? "Novo Equipamento" : "Editar Equipamento"}</CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Edit/New form (modal) */}
+        <Dialog open={!!editing} onOpenChange={(o) => { if (!o) cancelEdit(); }}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editing === "new" ? "Novo Equipamento" : "Editar Equipamento"}</DialogTitle>
+            </DialogHeader>
+            <div>
               <div className="grid sm:grid-cols-[120px_1fr] gap-4">
                 {/* Upload Modelo 3D */}
                 <div className="space-y-2">
@@ -543,9 +543,10 @@ export default function Catalogo() {
                   <X className="w-4 h-4" /> Cancelar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* List */}
         {loading ? (
