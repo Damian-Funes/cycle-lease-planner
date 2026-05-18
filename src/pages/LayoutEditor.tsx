@@ -27,6 +27,179 @@ import { listContidos, buildPaiParaFilhos, buildFilhoParaPais, calcularOcultos, 
 
 const PLANTAS_BUCKET = "plantas-cliente";
 
+/* ---------- Planta cotada (2D puro) ---------- */
+function renderPlantaCotada(
+  items: LayoutItemRow[],
+  pisoW: number,
+  pisoH: number,
+): string | null {
+  try {
+    // Resolução de saída
+    const PAD = 600; // mm de margem extra para cotas externas
+    const totalW = pisoW + PAD * 2;
+    const totalH = pisoH + PAD * 2;
+    const PX_PER_MM = Math.min(2200 / totalW, 1600 / totalH); // alvo ~A3 paisagem
+    const cw = Math.round(totalW * PX_PER_MM);
+    const ch = Math.round(totalH * PX_PER_MM);
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Fundo branco
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Helpers mm→px (origem do piso no canto sup-esq da área do piso)
+    const ox = PAD * PX_PER_MM;
+    const oy = PAD * PX_PER_MM;
+    const mx = (mm: number) => ox + mm * PX_PER_MM;
+    const my = (mm: number) => oy + mm * PX_PER_MM;
+
+    // Piso (cimento polido)
+    ctx.fillStyle = "#bfbfbf";
+    ctx.fillRect(mx(0), my(0), pisoW * PX_PER_MM, pisoH * PX_PER_MM);
+    // Grid 1m
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= pisoW; x += 1000) {
+      ctx.beginPath(); ctx.moveTo(mx(x), my(0)); ctx.lineTo(mx(x), my(pisoH)); ctx.stroke();
+    }
+    for (let y = 0; y <= pisoH; y += 1000) {
+      ctx.beginPath(); ctx.moveTo(mx(0), my(y)); ctx.lineTo(mx(pisoW), my(y)); ctx.stroke();
+    }
+    // Contorno do piso
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(mx(0), my(0), pisoW * PX_PER_MM, pisoH * PX_PER_MM);
+
+    // Vértice de origem (canto vermelho)
+    ctx.fillStyle = "#dc2626";
+    ctx.beginPath(); ctx.arc(mx(0), my(0), 8, 0, Math.PI * 2); ctx.fill();
+
+    // Cotas totais do piso
+    const dimColor = "#1e3a8a";
+    const drawDimLine = (x1: number, y1: number, x2: number, y2: number, label: string) => {
+      ctx.strokeStyle = dimColor;
+      ctx.fillStyle = dimColor;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      // Pequenas setas
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      const a = 6;
+      const draw = (x: number, y: number, dir: number) => {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - a * Math.cos(dir - 0.4), y - a * Math.sin(dir - 0.4));
+        ctx.lineTo(x - a * Math.cos(dir + 0.4), y - a * Math.sin(dir + 0.4));
+        ctx.closePath(); ctx.fill();
+      };
+      draw(x1, y1, ang + Math.PI);
+      draw(x2, y2, ang);
+      // Label
+      ctx.font = "bold 14px Inter, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const lx = (x1 + x2) / 2;
+      const ly = (y1 + y2) / 2;
+      const horizontal = Math.abs(x2 - x1) > Math.abs(y2 - y1);
+      const padBg = 3;
+      const m = ctx.measureText(label);
+      const tw = m.width + padBg * 2;
+      const th = 18;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(lx - tw / 2, ly - th / 2, tw, th);
+      ctx.strokeStyle = dimColor;
+      ctx.strokeRect(lx - tw / 2, ly - th / 2, tw, th);
+      ctx.fillStyle = dimColor;
+      ctx.fillText(label, lx, ly);
+    };
+
+    // Cotas totais do piso (em cima e à esquerda, fora do piso)
+    const totalOffset = 28;
+    drawDimLine(mx(0), my(0) - totalOffset, mx(pisoW), my(0) - totalOffset, `${pisoW} mm`);
+    drawDimLine(mx(0) - totalOffset, my(0), mx(0) - totalOffset, my(pisoH), `${pisoH} mm`);
+
+    // Para cada equipamento: desenha bbox e cotas até as 2 paredes mais próximas
+    items.forEach((it, idx) => {
+      const w = it.largura_mm ?? 800;
+      const h = it.comprimento_mm ?? 800;
+      const rot = ((it.rotacao ?? 0) * Math.PI) / 180;
+      const bbW = Math.abs(w * Math.cos(rot)) + Math.abs(h * Math.sin(rot));
+      const bbH = Math.abs(w * Math.sin(rot)) + Math.abs(h * Math.cos(rot));
+      const cx = it.pos_x_mm;
+      const cy = it.pos_y_mm;
+      const left = cx - bbW / 2;
+      const right = cx + bbW / 2;
+      const top = cy - bbH / 2;
+      const bottom = cy + bbH / 2;
+
+      // Retângulo do equipamento
+      const fill = it.cor_categoria || "#0F6E56";
+      ctx.fillStyle = fill + "cc";
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(mx(left), my(top), bbW * PX_PER_MM, bbH * PX_PER_MM);
+      ctx.strokeRect(mx(left), my(top), bbW * PX_PER_MM, bbH * PX_PER_MM);
+
+      // Código/etiqueta
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 12px Inter, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const labelTxt = it.codigo || String(idx + 1);
+      ctx.fillText(labelTxt, mx(cx), my(cy));
+
+      // Cota horizontal: parede mais próxima (esq vs dir) até a borda do equipamento
+      const dLeft = left;
+      const dRight = pisoW - right;
+      if (dLeft <= dRight) {
+        // cota até esquerda, desenhada na metade vertical do equipamento
+        const yMid = my((top + bottom) / 2);
+        // Linhas de chamada (extensão fina)
+        ctx.strokeStyle = dimColor;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(mx(0), yMid); ctx.lineTo(mx(left), yMid); ctx.stroke();
+        ctx.setLineDash([]);
+        drawDimLine(mx(0), yMid, mx(left), yMid, `${Math.round(dLeft)} mm`);
+      } else {
+        const yMid = my((top + bottom) / 2);
+        ctx.strokeStyle = dimColor;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(mx(right), yMid); ctx.lineTo(mx(pisoW), yMid); ctx.stroke();
+        ctx.setLineDash([]);
+        drawDimLine(mx(right), yMid, mx(pisoW), yMid, `${Math.round(dRight)} mm`);
+      }
+
+      // Cota vertical: parede mais próxima (sup vs inf)
+      const dTop = top;
+      const dBottom = pisoH - bottom;
+      if (dTop <= dBottom) {
+        const xMid = mx((left + right) / 2);
+        ctx.strokeStyle = dimColor;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(xMid, my(0)); ctx.lineTo(xMid, my(top)); ctx.stroke();
+        ctx.setLineDash([]);
+        drawDimLine(xMid, my(0), xMid, my(top), `${Math.round(dTop)} mm`);
+      } else {
+        const xMid = mx((left + right) / 2);
+        ctx.strokeStyle = dimColor;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(xMid, my(bottom)); ctx.lineTo(xMid, my(pisoH)); ctx.stroke();
+        ctx.setLineDash([]);
+        drawDimLine(xMid, my(bottom), xMid, my(pisoH), `${Math.round(dBottom)} mm`);
+      }
+    });
+
+    return canvas.toDataURL("image/png");
+  } catch (e) {
+    console.error("[renderPlantaCotada] falha:", e);
+    return null;
+  }
+}
+
+
 
 
 /* ---------- Página ---------- */
