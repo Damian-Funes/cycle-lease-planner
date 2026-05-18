@@ -29,6 +29,14 @@ export default function ItemAvulsoModal({ open, onOpenChange, onAdd }: Props) {
     setCodigo(""); setDescricao(""); setValor(0); setQuantidade(1); setSalvarCatalogo(false);
   }
 
+  const valorFormatado = valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  function handleValorChange(raw: string) {
+    const digits = raw.replace(/\D/g, "");
+    if (!digits) { setValor(0); return; }
+    setValor(parseInt(digits, 10) / 100);
+  }
+
   async function handleAdd() {
     const cod = codigo.trim().toUpperCase().slice(0, 100);
     const desc = descricao.trim().toUpperCase().slice(0, 200);
@@ -127,11 +135,10 @@ export default function ItemAvulsoModal({ open, onOpenChange, onAdd }: Props) {
             <div className="space-y-1">
               <Label>Valor unitário (R$) *</Label>
               <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={valor || ""}
-                onChange={(e) => setValor(Math.max(0, parseFloat(e.target.value) || 0))}
+                inputMode="numeric"
+                value={valorFormatado}
+                onChange={(e) => handleValorChange(e.target.value)}
+                placeholder="0,00"
               />
             </div>
             <div className="space-y-1">
