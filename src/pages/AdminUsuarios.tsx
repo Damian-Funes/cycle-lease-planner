@@ -51,9 +51,18 @@ export default function AdminUsuarios() {
       body: { user_id: row.user_id },
     });
     setBusy(null);
-    if (error || (data as any)?.error) {
-      const msg = (data as any)?.error || error?.message || "Erro ao excluir";
-      const vinc = (data as any)?.vinculos;
+
+    // functions.invoke retorna FunctionsHttpError para qualquer non-2xx (ex: 409),
+    // com data=null. Precisamos ler o corpo da resposta de erro.
+    let errBody: any = null;
+    if (error && (error as any).context && typeof (error as any).context.json === "function") {
+      try { errBody = await (error as any).context.json(); } catch { /* noop */ }
+    }
+    const payload = errBody || data;
+
+    if (error || (payload as any)?.error) {
+      const msg = (payload as any)?.error || error?.message || "Erro ao excluir";
+      const vinc = (payload as any)?.vinculos;
       if (vinc) {
         const det = Object.entries(vinc).map(([k, v]) => `${k}: ${v}`).join(", ");
         toast.error(`${msg} (${det})`);
