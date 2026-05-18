@@ -29,6 +29,24 @@ function maskCurrencyDigits(raw: string): string {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+const CurrencyInput = ({
+  value, onChange, suffix,
+}: { value: string; onChange: (v: string) => void; suffix: string }) => (
+  <div className="flex items-stretch rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+    <span className="px-3 flex items-center bg-muted text-muted-foreground text-sm">R$</span>
+    <Input
+      className="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+      value={value}
+      inputMode="numeric"
+      onChange={(e) => onChange(maskCurrencyDigits(e.target.value))}
+      placeholder="0,00"
+    />
+    <span className="px-3 flex items-center bg-muted text-muted-foreground text-xs whitespace-nowrap">
+      {suffix}
+    </span>
+  </div>
+);
+
 interface ConfigRow {
   id: string;
   valor_dia_colaborador: number;
@@ -95,23 +113,8 @@ export default function ConfiguracoesMontagem() {
     else toast.success("Configurações salvas");
   };
 
-  const CurrencyInput = ({
-    value, onChange, suffix,
-  }: { value: string; onChange: (v: string) => void; suffix: string }) => (
-    <div className="flex items-stretch rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring">
-      <span className="px-3 flex items-center bg-muted text-muted-foreground text-sm">R$</span>
-      <Input
-        className="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
-        value={value}
-        inputMode="numeric"
-        onChange={(e) => onChange(maskCurrencyDigits(e.target.value))}
-        placeholder="0,00"
-      />
-      <span className="px-3 flex items-center bg-muted text-muted-foreground text-xs whitespace-nowrap">
-        {suffix}
-      </span>
-    </div>
-  );
+
+
 
   return (
     <div className="min-h-screen bg-muted/20">
