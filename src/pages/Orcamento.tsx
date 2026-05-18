@@ -953,6 +953,12 @@ export default function Orcamento() {
           </CardContent>
         </Card>
 
+        <FormaPagamentoSelector
+          formaPagamentoId={params.formaPagamentoId}
+          legacyText={params.condicoesPagamento}
+          onChange={(id) => update("formaPagamentoId", id)}
+        />
+
         {/* Condições */}
         <Card>
           <CardHeader className="pb-3">
@@ -961,14 +967,6 @@ export default function Orcamento() {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 md:col-span-2">
-              <Label>Condições de pagamento</Label>
-              <Input
-                placeholder="Ex.: 30/60/90 dias, à vista com 5% de desconto..."
-                value={params.condicoesPagamento}
-                onChange={(e) => update("condicoesPagamento", e.target.value)}
-              />
-            </div>
             <div className="space-y-1.5">
               <Label>Prazo de entrega</Label>
               <Input
