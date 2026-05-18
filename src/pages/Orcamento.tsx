@@ -644,9 +644,9 @@ export default function Orcamento() {
           const autoDias = !!diasSugerido?.tem_maquina_tratamento;
           const diasField = autoDias ? Number(diasSugerido?.dias_sugeridos) || 0 : Number(params.montagemDias) || 0;
           const dias = diasField;
-          const cols = Number(params.montagemNumeroColaboradores) || 0;
+          const cols = 4;
           const kmOD = Number(params.montagemKmOrigemDestino) || 0;
-          const veic = Number(params.montagemNumeroVeiculos) || 1;
+          const veic = 1;
           const kmHL = Number(params.montagemKmHotelLocal) || 0;
           const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0, margem_percentual: 0 };
           const margemPct = Number(t.margem_percentual) || 0;
