@@ -187,6 +187,8 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   const totalsBody: any[] = [["Subtotal", fmtBRL(subtotal)]];
   if (desconto > 0) totalsBody.push([descLabel, `- ${fmtBRL(desconto)}`]);
   if (params.frete > 0) totalsBody.push(["Frete", fmtBRL(params.frete)]);
+  const montagemTotal = Number(params.montagemValorTotal) || 0;
+  if (montagemTotal > 0) totalsBody.push(["Montagem", fmtBRL(montagemTotal)]);
 
   const descW = (pageW - 28) * 0.6;
   const valW = (pageW - 28) * 0.4;
