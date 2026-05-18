@@ -93,6 +93,17 @@ export default function Orcamento() {
     setQuantidade(1);
   }
 
+  function handleAddAvulso(item: ItemOrcamento, savedEq?: Equipamento) {
+    update("itens", [...params.itens, item]);
+    if (savedEq) {
+      setEquipamentos((prev) =>
+        prev.some((e) => e.id === savedEq.id)
+          ? prev
+          : [...prev, savedEq].sort((a, b) => a.codigo.localeCompare(b.codigo))
+      );
+    }
+  }
+
   function updateItem(idx: number, patch: Partial<ItemOrcamento>) {
     update(
       "itens",
