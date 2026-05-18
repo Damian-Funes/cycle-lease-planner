@@ -674,7 +674,11 @@ export default function Orcamento() {
           const divergencia = usarBanco && Math.abs(precoBanco - precoPreview) > 0.5;
 
           const detalheTxt = (diasSugerido?.detalhe_maquinas ?? [])
-            .map((m) => `${m.quantidade}× ${m.codigo} (${m.dias_total} dias)`)
+            .map((m) => {
+              const desc = (m.descricao || m.codigo || "").trim();
+              const short = desc.length > 60 ? desc.slice(0, 59) + "…" : desc;
+              return `${m.quantidade}× ${short} (${m.dias_total} dias)`;
+            })
             .join(" + ");
 
           return (
