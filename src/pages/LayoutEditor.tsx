@@ -522,9 +522,36 @@ export default function LayoutEditor() {
     pdf.text("LS do Brasil — Maringá/PR", pageW - 60, pageH - 10);
 
       const fname = `LAYOUT_${(layout.cliente || "cliente").replace(/[^\w]+/g, "_")}_${layout.revisao}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      console.log("[PDF] salvando arquivo:", fname);
-      pdf.save(fname);
-      console.log("[PDF] save() chamado");
+      console.log("[PDF] gerando blob:", fname);
+
+      // Em iframe (preview), pdf.save() pode ser bloqueado. Gera blob e abre/baixa manualmente.
+      const blob = pdf.output("blob");
+      const url = URL.createObjectURL(blob);
+
+      // 1) Tenta abrir em nova aba (funciona dentro do iframe do preview)
+      const win = window.open(url, "_blank");
+
+      // 2) Também tenta o download direto (caso o navegador permita)
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fname;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+
+      if (!win) {
+        toast({
+          title: "Permita pop-ups para visualizar o PDF",
+          description: "Seu navegador bloqueou a nova aba com o PDF gerado.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "PDF gerado", description: "Aberto em nova aba." });
+      }
+      console.log("[PDF] concluído");
     } catch (err) {
       console.error("[PDF] erro inesperado:", err);
       toast({
