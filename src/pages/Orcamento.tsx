@@ -798,49 +798,56 @@ export default function Orcamento() {
                   </div>
                 </TooltipProvider>
 
-                {/* Breakdown interno LS */}
-                <div className="rounded-lg border bg-muted/20 p-4 space-y-1.5 text-sm">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                    Breakdown interno (não aparece na proposta)
+                {/* Breakdown interno LS — visível apenas para admin */}
+                {isAdmin ? (
+                  <div className="rounded-lg border bg-muted/20 p-4 space-y-1.5 text-sm">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                      Breakdown interno (não aparece na proposta)
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mão de obra <span className="text-xs">(dias × colab. × R$/dia)</span></span>
+                      <span className="font-medium tabular-nums">{fmtBRL(maoObra)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deslocamento Maringá ↔ local</span>
+                      <span className="font-medium tabular-nums">{fmtBRL(deslocOD)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deslocamento diário (fazenda ↔ hotel)</span>
+                      <span className="font-medium tabular-nums">{fmtBRL(deslocDiario)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Hospedagem</span>
+                      <span className="font-medium tabular-nums">{fmtBRL(hospedagem)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Alimentação</span>
+                      <span className="font-medium tabular-nums">{fmtBRL(alimentacao)}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 mt-2 border-t">
+                      <span className="font-semibold">CUSTO TOTAL</span>
+                      <span className="font-semibold tabular-nums">{fmtBRL(custoExib)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Margem aplicada ({margemPct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</span>
+                      <span className="font-medium tabular-nums">{fmtBRL(margemRsExib)}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 mt-2 border-t border-emerald-300">
+                      <span className="font-bold text-emerald-700">PREÇO MONTAGEM <span className="text-xs font-normal">(cliente vê)</span></span>
+                      <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
+                    </div>
+                    {divergencia && (
+                      <div className="text-xs text-amber-700 pt-1">
+                        Preview: {fmtBRL(precoPreview)} — o valor exibido vem do banco (autoritativo).
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mão de obra <span className="text-xs">(dias × colab. × R$/dia)</span></span>
-                    <span className="font-medium tabular-nums">{fmtBRL(maoObra)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deslocamento Maringá ↔ local</span>
-                    <span className="font-medium tabular-nums">{fmtBRL(deslocOD)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Deslocamento diário (fazenda ↔ hotel)</span>
-                    <span className="font-medium tabular-nums">{fmtBRL(deslocDiario)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Hospedagem</span>
-                    <span className="font-medium tabular-nums">{fmtBRL(hospedagem)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Alimentação</span>
-                    <span className="font-medium tabular-nums">{fmtBRL(alimentacao)}</span>
-                  </div>
-                  <div className="flex justify-between pt-2 mt-2 border-t">
-                    <span className="font-semibold">CUSTO TOTAL</span>
-                    <span className="font-semibold tabular-nums">{fmtBRL(custoExib)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Margem aplicada ({margemPct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</span>
-                    <span className="font-medium tabular-nums">{fmtBRL(margemRsExib)}</span>
-                  </div>
-                  <div className="flex justify-between pt-2 mt-2 border-t border-emerald-300">
-                    <span className="font-bold text-emerald-700">PREÇO MONTAGEM <span className="text-xs font-normal">(cliente vê)</span></span>
+                ) : (
+                  <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 flex items-center justify-between">
+                    <span className="font-bold text-emerald-700">PREÇO MONTAGEM</span>
                     <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
                   </div>
-                  {divergencia && (
-                    <div className="text-xs text-amber-700 pt-1">
-                      Preview: {fmtBRL(precoPreview)} — o valor exibido vem do banco (autoritativo).
-                    </div>
-                  )}
-                </div>
+                )}
               </CardContent>
             </Card>
           );
