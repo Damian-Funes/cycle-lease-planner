@@ -152,6 +152,7 @@ export type Database = {
           diaria_alimentacao: number
           diaria_hospedagem: number
           id: string
+          margem_percentual: number
           updated_at: string
           updated_by: string | null
           valor_dia_colaborador: number
@@ -162,6 +163,7 @@ export type Database = {
           diaria_alimentacao?: number
           diaria_hospedagem?: number
           id?: string
+          margem_percentual?: number
           updated_at?: string
           updated_by?: string | null
           valor_dia_colaborador?: number
@@ -172,6 +174,7 @@ export type Database = {
           diaria_alimentacao?: number
           diaria_hospedagem?: number
           id?: string
+          margem_percentual?: number
           updated_at?: string
           updated_by?: string | null
           valor_dia_colaborador?: number
@@ -239,6 +242,7 @@ export type Database = {
           cor_categoria: string | null
           created_at: string | null
           descricao: string
+          dias_montagem_padrao: number
           glb_rotacao_x: number
           glb_rotacao_z: number
           id: string
@@ -257,6 +261,7 @@ export type Database = {
           cor_categoria?: string | null
           created_at?: string | null
           descricao: string
+          dias_montagem_padrao?: number
           glb_rotacao_x?: number
           glb_rotacao_z?: number
           id?: string
@@ -275,6 +280,7 @@ export type Database = {
           cor_categoria?: string | null
           created_at?: string | null
           descricao?: string
+          dias_montagem_padrao?: number
           glb_rotacao_x?: number
           glb_rotacao_z?: number
           id?: string
@@ -919,14 +925,16 @@ export type Database = {
           id: string
           itens: Json
           local_entrega: string | null
+          montagem_custo_total: number
           montagem_dias: number
           montagem_eh_fazenda: boolean
           montagem_km_hotel_local: number
           montagem_km_origem_destino: number
+          montagem_margem_aplicada: number
           montagem_numero_colaboradores: number
           montagem_numero_veiculos: number
           montagem_observacoes: string | null
-          montagem_valor_total: number
+          montagem_preco_total: number
           nome_cliente: string
           numero_orcamento: string | null
           observacoes: string | null
@@ -955,14 +963,16 @@ export type Database = {
           id?: string
           itens?: Json
           local_entrega?: string | null
+          montagem_custo_total?: number
           montagem_dias?: number
           montagem_eh_fazenda?: boolean
           montagem_km_hotel_local?: number
           montagem_km_origem_destino?: number
+          montagem_margem_aplicada?: number
           montagem_numero_colaboradores?: number
           montagem_numero_veiculos?: number
           montagem_observacoes?: string | null
-          montagem_valor_total?: number
+          montagem_preco_total?: number
           nome_cliente: string
           numero_orcamento?: string | null
           observacoes?: string | null
@@ -991,14 +1001,16 @@ export type Database = {
           id?: string
           itens?: Json
           local_entrega?: string | null
+          montagem_custo_total?: number
           montagem_dias?: number
           montagem_eh_fazenda?: boolean
           montagem_km_hotel_local?: number
           montagem_km_origem_destino?: number
+          montagem_margem_aplicada?: number
           montagem_numero_colaboradores?: number
           montagem_numero_veiculos?: number
           montagem_observacoes?: string | null
-          montagem_valor_total?: number
+          montagem_preco_total?: number
           nome_cliente?: string
           numero_orcamento?: string | null
           observacoes?: string | null
@@ -2304,6 +2316,15 @@ export type Database = {
           },
         ]
       }
+      vw_dias_montagem_sugerido: {
+        Row: {
+          detalhe_maquinas: Json | null
+          dias_sugeridos: number | null
+          orcamento_id: string | null
+          tem_maquina_tratamento: boolean | null
+        }
+        Relationships: []
+      }
       vw_layout_completo: {
         Row: {
           altura_mm: number | null
@@ -2341,6 +2362,7 @@ export type Database = {
         Row: {
           alimentacao: number | null
           colaboradores: number | null
+          custo_total: number | null
           deslocamento_diario: number | null
           deslocamento_inicial: number | null
           diaria_alimentacao: number | null
@@ -2351,11 +2373,14 @@ export type Database = {
           km_hotel_local: number | null
           km_origem_destino: number | null
           mao_de_obra: number | null
+          margem_aplicada_pct: number | null
+          margem_aplicada_rs: number | null
+          margem_atual_config: number | null
           numero_veiculos: number | null
           orcamento_id: string | null
+          preco_total: number | null
           valor_dia_colaborador: number | null
           valor_km: number | null
-          valor_total: number | null
         }
         Relationships: []
       }

@@ -54,6 +54,22 @@ interface ConfigRow {
   diaria_hospedagem: number;
   diaria_alimentacao: number;
   cidade_origem: string;
+  margem_percentual: number;
+}
+
+function maskPercent(raw: string): string {
+  let s = raw.replace(/[^\d,]/g, "");
+  const firstComma = s.indexOf(",");
+  if (firstComma !== -1) {
+    s = s.slice(0, firstComma + 1) + s.slice(firstComma + 1).replace(/,/g, "");
+    const [int, dec = ""] = s.split(",");
+    s = int + "," + dec.slice(0, 2);
+  }
+  const [intPart, decPart] = s.split(",");
+  let intNum = parseInt(intPart || "0", 10);
+  if (isNaN(intNum)) intNum = 0;
+  if (intNum > 999) intNum = 999;
+  return decPart !== undefined ? `${intNum},${decPart}` : String(intNum);
 }
 
 export default function ConfiguracoesMontagem() {
@@ -67,6 +83,7 @@ export default function ConfiguracoesMontagem() {
   const [diariaHosp, setDiariaHosp] = useState("");
   const [diariaAlim, setDiariaAlim] = useState("");
   const [cidade, setCidade] = useState("Maringá");
+  const [margem, setMargem] = useState("107");
 
   useEffect(() => {
     (async () => {
@@ -85,6 +102,7 @@ export default function ConfiguracoesMontagem() {
         setDiariaHosp(formatBR(r.diaria_hospedagem));
         setDiariaAlim(formatBR(r.diaria_alimentacao));
         setCidade(r.cidade_origem || "Maringá");
+        setMargem(formatBR(r.margem_percentual ?? 107));
       }
       setLoading(false);
     })();
@@ -104,6 +122,7 @@ export default function ConfiguracoesMontagem() {
         diaria_hospedagem: parseBR(diariaHosp),
         diaria_alimentacao: parseBR(diariaAlim),
         cidade_origem: cidade,
+        margem_percentual: Math.min(999, Math.max(0, parseBR(margem))),
         updated_at: new Date().toISOString(),
         updated_by: user?.id ?? null,
       })
@@ -162,6 +181,23 @@ export default function ConfiguracoesMontagem() {
             <div className="space-y-2">
               <Label>Cidade de origem da equipe</Label>
               <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Maringá" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Margem comercial (markup)</Label>
+              <p className="text-xs text-muted-foreground">
+                Markup aplicado sobre o custo total da montagem. Exemplo: 107% significa que o preço final ao cliente = custo × 2,07
+              </p>
+              <div className="flex items-stretch rounded-md border border-input overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                <Input
+                  className="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  value={margem}
+                  inputMode="decimal"
+                  onChange={(e) => setMargem(maskPercent(e.target.value))}
+                  placeholder="107"
+                />
+                <span className="px-3 flex items-center bg-muted text-muted-foreground text-sm">%</span>
+              </div>
             </div>
 
             <div className="pt-2 flex justify-end">
