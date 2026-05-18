@@ -446,8 +446,27 @@ export default function Catalogo() {
                       className="w-full h-9 px-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring text-right"
                       placeholder="1500"
                     />
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium text-muted-foreground">Dias de montagem (padrão)</label>
+                    <p className="text-xs text-muted-foreground">
+                      Dias-padrão de montagem deste equipamento. Use 0 para acessórios e periféricos (não geram dias automáticos no orçamento). Use valor &gt; 0 apenas para máquinas de tratamento (LSB150, LSB300, LSB130, LSB50, etc).
+                    </p>
+                    <div className="flex items-stretch rounded-md border bg-background overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+                      <input
+                        type="number"
+                        min={0}
+                        max={999}
+                        step={1}
+                        value={form.dias_montagem_padrao}
+                        onChange={(e) => setForm({ ...form, dias_montagem_padrao: e.target.value })}
+                        className="flex-1 h-9 px-3 bg-transparent text-sm focus:outline-none text-right"
+                        placeholder="0"
+                      />
+                      <span className="px-3 flex items-center bg-muted text-muted-foreground text-xs">dias</span>
+                    </div>
                   </div>
                 </div>
+              </div>
               </div>
               {form.modelo_3d_url && uploadStatus === "success" && (
                 <div className="mt-4 pt-4 border-t space-y-2">
