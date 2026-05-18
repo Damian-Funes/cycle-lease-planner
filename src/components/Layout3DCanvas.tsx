@@ -878,6 +878,14 @@ export function Layout3DCanvas({
         <button onClick={() => goToView("iso")} className={btnCls} title="Vista isométrica">
           <Box className="w-3.5 h-3.5" /> Iso
         </button>
+        <div className="w-px h-5 bg-border mx-0.5" />
+        <button
+          onClick={() => ctxRef.current.fitAll?.()}
+          className={btnCls}
+          title="Enquadrar tudo (centraliza o desenho na tela)"
+        >
+          <Maximize2 className="w-3.5 h-3.5" /> Enquadrar
+        </button>
       </div>
       {Object.keys(loadingGlb).length > 0 && (
         <div className="absolute top-3 left-3 bg-background/95 border rounded-lg shadow-md px-3 py-2 flex items-center gap-2 text-xs z-10">
