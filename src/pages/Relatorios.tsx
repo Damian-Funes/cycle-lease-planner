@@ -321,8 +321,9 @@ export default function Relatorios() {
   );
   const valorDealsCriadosPeriodo = dealsCriadosPeriodo.reduce((s, o) => s + Number(o.valor_estimado || 0), 0);
 
-
+  return (
     <div className="min-h-screen bg-muted/20">
+
       <header className="bg-background border-b">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
