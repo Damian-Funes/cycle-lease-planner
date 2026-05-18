@@ -226,6 +226,18 @@ export default function Orcamento() {
       }
     }
 
+    // Releitura do montagem_valor_total (autoritativo, vem do trigger)
+    if (!error && novoId) {
+      const { data: fresh } = await supabase
+        .from("orcamentos")
+        .select("montagem_valor_total")
+        .eq("id", novoId)
+        .maybeSingle();
+      if (fresh) {
+        setParams((p) => ({ ...p, montagemValorTotal: Number((fresh as any).montagem_valor_total) || 0 }));
+      }
+    }
+
     setSaving(false);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
