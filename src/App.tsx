@@ -34,6 +34,7 @@ const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
 const AdminUsuarios = lazy(() => import("./pages/AdminUsuarios"));
 const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
 const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegracoes"));
+const ConfiguracoesMontagem = lazy(() => import("./pages/ConfiguracoesMontagem"));
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
               <Route path="/admin/usuarios" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminUsuarios /></RequireRole></ProtectedRoute>} />
               <Route path="/admin/pipelines" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminPipelines /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/integracoes" element={<ProtectedRoute><ConfiguracoesIntegracoes /></ProtectedRoute>} />
+              <Route path="/configuracoes/montagem" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesMontagem /></RequireRole></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
