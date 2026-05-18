@@ -76,6 +76,7 @@ export default function Catalogo() {
       largura_mm: "",
       comprimento_mm: "",
       altura_mm: "",
+      dias_montagem_padrao: "0",
     });
     setModeloFile(null);
     setModeloFileName("");
