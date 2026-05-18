@@ -392,7 +392,9 @@ export default function LayoutEditor() {
 
     const capturas: { view: ViewName; titulo: string; dataUrl: string }[] = [];
     for (const v of vistas) {
+      console.log("[PDF] capturando vista:", v.view);
       const url = api.captureView(v.view);
+      console.log("[PDF] dataUrl tamanho:", url?.length ?? 0);
       // pequeno respiro para o navegador
       await new Promise<void>((r) => requestAnimationFrame(() => r()));
       if (url) capturas.push({ ...v, titulo: v.titulo, dataUrl: url });
@@ -402,6 +404,7 @@ export default function LayoutEditor() {
     // Restaura uma vista útil para o usuário após captura
     api.fitAll();
 
+    console.log("[PDF] total capturas:", capturas.length);
     if (capturas.length === 0) {
       toast({
         title: "Não foi possível gerar o PDF",
