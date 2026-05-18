@@ -40,7 +40,9 @@ export interface OrcamentoParams {
   montagemEhFazenda?: boolean;
   montagemKmHotelLocal?: number;
   montagemObservacoes?: string;
-  montagemValorTotal?: number;
+  montagemCustoTotal?: number;
+  montagemPrecoTotal?: number;
+  montagemMargemAplicada?: number;
 }
 
 export const DEFAULT_ORCAMENTO: OrcamentoParams = {
@@ -72,7 +74,9 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   montagemEhFazenda: false,
   montagemKmHotelLocal: 0,
   montagemObservacoes: "",
-  montagemValorTotal: 0,
+  montagemCustoTotal: 0,
+  montagemPrecoTotal: 0,
+  montagemMargemAplicada: 0,
 };
 
 export function calcSubtotal(itens: ItemOrcamento[]): number {
@@ -84,9 +88,9 @@ export function calcDescontoAplicado(subtotal: number, tipo: DescontoTipo, valor
   return valor;
 }
 
-export function calcTotal(p: Pick<OrcamentoParams, "itens" | "descontoTipo" | "descontoValor" | "frete" | "montagemValorTotal">): number {
+export function calcTotal(p: Pick<OrcamentoParams, "itens" | "descontoTipo" | "descontoValor" | "frete" | "montagemPrecoTotal">): number {
   const sub = calcSubtotal(p.itens);
   const desc = calcDescontoAplicado(sub, p.descontoTipo, p.descontoValor);
-  const montagem = Number(p.montagemValorTotal) || 0;
+  const montagem = Number(p.montagemPrecoTotal) || 0;
   return Math.max(0, sub - desc) + (Number(p.frete) || 0) + montagem;
 }

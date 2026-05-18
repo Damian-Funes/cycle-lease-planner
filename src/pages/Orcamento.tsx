@@ -51,6 +51,14 @@ export default function Orcamento() {
     valor_km: number;
     diaria_hospedagem: number;
     diaria_alimentacao: number;
+    margem_percentual: number;
+  } | null>(null);
+
+  // Dias de montagem sugeridos (view)
+  const [diasSugerido, setDiasSugerido] = useState<{
+    dias_sugeridos: number;
+    tem_maquina_tratamento: boolean;
+    detalhe_maquinas: Array<{ codigo: string; descricao: string; quantidade: number; dias_padrao: number; dias_total: number }>;
   } | null>(null);
 
   useEffect(() => {
@@ -65,12 +73,29 @@ export default function Orcamento() {
 
     supabase
       .from("config_montagem" as any)
-      .select("valor_dia_colaborador, valor_km, diaria_hospedagem, diaria_alimentacao")
+      .select("valor_dia_colaborador, valor_km, diaria_hospedagem, diaria_alimentacao, margem_percentual")
       .limit(1)
       .maybeSingle()
       .then(({ data }) => {
         if (data) setTaxasMontagem(data as any);
       });
+  }, []);
+
+  const fetchDiasSugerido = useCallback(async (orcId: string) => {
+    const { data } = await (supabase as any)
+      .from("vw_dias_montagem_sugerido")
+      .select("dias_sugeridos, tem_maquina_tratamento, detalhe_maquinas")
+      .eq("orcamento_id", orcId)
+      .maybeSingle();
+    if (data) {
+      setDiasSugerido({
+        dias_sugeridos: Number(data.dias_sugeridos) || 0,
+        tem_maquina_tratamento: !!data.tem_maquina_tratamento,
+        detalhe_maquinas: Array.isArray(data.detalhe_maquinas) ? data.detalhe_maquinas : [],
+      });
+    } else {
+      setDiasSugerido(null);
+    }
   }, []);
 
   const subtotal = useMemo(() => calcSubtotal(params.itens), [params.itens]);
@@ -226,16 +251,23 @@ export default function Orcamento() {
       }
     }
 
-    // Releitura do montagem_valor_total (autoritativo, vem do trigger)
+    // Releitura autoritativa (custo/preço/margem + dias podem ter sido recalculados por trigger)
     if (!error && novoId) {
       const { data: fresh } = await supabase
         .from("orcamentos")
-        .select("montagem_valor_total")
+        .select("montagem_custo_total, montagem_preco_total, montagem_margem_aplicada, montagem_dias")
         .eq("id", novoId)
         .maybeSingle();
       if (fresh) {
-        setParams((p) => ({ ...p, montagemValorTotal: Number((fresh as any).montagem_valor_total) || 0 }));
+        setParams((p) => ({
+          ...p,
+          montagemCustoTotal: Number((fresh as any).montagem_custo_total) || 0,
+          montagemPrecoTotal: Number((fresh as any).montagem_preco_total) || 0,
+          montagemMargemAplicada: Number((fresh as any).montagem_margem_aplicada) || 0,
+          montagemDias: Number((fresh as any).montagem_dias) || 0,
+        }));
       }
+      await fetchDiasSugerido(novoId);
     }
 
     setSaving(false);
@@ -302,11 +334,14 @@ export default function Orcamento() {
       montagemEhFazenda: !!(data as any).montagem_eh_fazenda,
       montagemKmHotelLocal: Number((data as any).montagem_km_hotel_local) || 0,
       montagemObservacoes: (data as any).montagem_observacoes || "",
-      montagemValorTotal: Number((data as any).montagem_valor_total) || 0,
+      montagemCustoTotal: Number((data as any).montagem_custo_total) || 0,
+      montagemPrecoTotal: Number((data as any).montagem_preco_total) || 0,
+      montagemMargemAplicada: Number((data as any).montagem_margem_aplicada) || 0,
     };
 
     handleLoad(loaded, data.id);
-  }, [toast]);
+    fetchDiasSugerido(data.id);
+  }, [toast, fetchDiasSugerido]);
 
   // Deep-link: ?load=<id> carrega orçamento; ?novo=1 inicia novo
   useEffect(() => {
@@ -606,23 +641,41 @@ export default function Orcamento() {
 
         {/* Montagem */}
         {(() => {
-          const dias = Number(params.montagemDias) || 0;
+          const autoDias = !!diasSugerido?.tem_maquina_tratamento;
+          const diasField = autoDias ? Number(diasSugerido?.dias_sugeridos) || 0 : Number(params.montagemDias) || 0;
+          const dias = diasField;
           const cols = Number(params.montagemNumeroColaboradores) || 0;
           const kmOD = Number(params.montagemKmOrigemDestino) || 0;
           const veic = Number(params.montagemNumeroVeiculos) || 1;
           const kmHL = Number(params.montagemKmHotelLocal) || 0;
-          const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0 };
+          const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0, margem_percentual: 0 };
+          const margemPct = Number(t.margem_percentual) || 0;
           const maoObra = dias * cols * Number(t.valor_dia_colaborador);
           const deslocOD = 2 * kmOD * Number(t.valor_km) * veic;
           const deslocDiario = params.montagemEhFazenda ? dias * 2 * kmHL * Number(t.valor_km) * veic : 0;
           const hospedagem = dias * cols * Number(t.diaria_hospedagem);
           const alimentacao = dias * cols * Number(t.diaria_alimentacao);
-          const totalPreview = maoObra + deslocOD + deslocDiario + hospedagem + alimentacao;
+          const custoPreview = maoObra + deslocOD + deslocDiario + hospedagem + alimentacao;
+          const precoPreview = Math.round(custoPreview * (1 + margemPct / 100) * 100) / 100;
+          const margemRsPreview = precoPreview - custoPreview;
+
           const taxasZeradas = taxasMontagem &&
-            !Number(t.valor_dia_colaborador) && !Number(t.valor_km) &&
-            !Number(t.diaria_hospedagem) && !Number(t.diaria_alimentacao);
-          const totalBanco = Number(params.montagemValorTotal) || 0;
-          const divergencia = savedId && Math.abs(totalBanco - totalPreview) > 0.5;
+            (!Number(t.valor_dia_colaborador) || !Number(t.valor_km) ||
+             !Number(t.diaria_hospedagem) || !Number(t.diaria_alimentacao));
+          const margemZerada = taxasMontagem && !margemPct;
+
+          const custoBanco = Number(params.montagemCustoTotal) || 0;
+          const precoBanco = Number(params.montagemPrecoTotal) || 0;
+          const margemRsBanco = Number(params.montagemMargemAplicada) || 0;
+          const usarBanco = !!savedId && precoBanco > 0;
+          const custoExib = usarBanco ? custoBanco : custoPreview;
+          const margemRsExib = usarBanco ? margemRsBanco : margemRsPreview;
+          const precoExib = usarBanco ? precoBanco : precoPreview;
+          const divergencia = usarBanco && Math.abs(precoBanco - precoPreview) > 0.5;
+
+          const detalheTxt = (diasSugerido?.detalhe_maquinas ?? [])
+            .map((m) => `${m.quantidade}× ${m.codigo} (${m.dias_total} dias)`)
+            .join(" + ");
 
           return (
             <Card>
@@ -632,11 +685,22 @@ export default function Orcamento() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {margemZerada && (
+                  <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                    <AlertTriangle className="w-4 h-4" />
+                    <AlertDescription>
+                      ⚠ Margem comercial não configurada.{" "}
+                      <Link to="/configuracoes/montagem" className="underline font-medium">
+                        Acesse Configurações &gt; Montagem
+                      </Link>.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 {taxasZeradas && (
                   <Alert className="bg-amber-50 border-amber-300 text-amber-900">
                     <AlertTriangle className="w-4 h-4" />
                     <AlertDescription>
-                      ⚠ Taxas de montagem não configuradas.{" "}
+                      ⚠ Taxas de montagem incompletas.{" "}
                       <Link to="/configuracoes/montagem" className="underline font-medium">
                         Acesse Configurações &gt; Montagem
                       </Link>.
@@ -656,17 +720,31 @@ export default function Orcamento() {
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1">
                         Dias de montagem
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>Inclua aqui os dias de viagem (ida e volta) na conta total</TooltipContent>
-                        </Tooltip>
+                        {autoDias && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              Os dias são somados automaticamente das máquinas de tratamento selecionadas no orçamento. Para editar manualmente, remova todas as máquinas de tratamento.
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </Label>
                       <Input
                         type="number" min={0} value={dias}
+                        disabled={autoDias}
                         onChange={(e) => update("montagemDias", Math.max(0, parseInt(e.target.value) || 0))}
                       />
+                      {autoDias ? (
+                        <p className="text-xs text-emerald-700">
+                          🔧 Calculado automaticamente: {detalheTxt || `${dias} dias`} {detalheTxt ? `= ${dias} dias` : ""}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Sem máquinas de tratamento no orçamento — digite os dias manualmente
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1">
@@ -756,14 +834,20 @@ export default function Orcamento() {
                     <span className="font-medium tabular-nums">{fmtBRL(alimentacao)}</span>
                   </div>
                   <div className="flex justify-between pt-2 mt-2 border-t">
-                    <span className="font-semibold">TOTAL MONTAGEM</span>
-                    <span className="font-bold text-primary text-xl tabular-nums">
-                      {fmtBRL(savedId ? totalBanco : totalPreview)}
-                    </span>
+                    <span className="font-semibold">CUSTO TOTAL</span>
+                    <span className="font-semibold tabular-nums">{fmtBRL(custoExib)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Margem aplicada ({margemPct.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)</span>
+                    <span className="font-medium tabular-nums">{fmtBRL(margemRsExib)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 mt-2 border-t border-emerald-300">
+                    <span className="font-bold text-emerald-700">PREÇO MONTAGEM <span className="text-xs font-normal">(cliente vê)</span></span>
+                    <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
                   </div>
                   {divergencia && (
                     <div className="text-xs text-amber-700 pt-1">
-                      Preview: {fmtBRL(totalPreview)} — o valor exibido vem do banco (autoritativo).
+                      Preview: {fmtBRL(precoPreview)} — o valor exibido vem do banco (autoritativo).
                     </div>
                   )}
                 </div>
