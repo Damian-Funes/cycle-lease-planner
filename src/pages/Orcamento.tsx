@@ -715,13 +715,6 @@ export default function Orcamento() {
                 <TooltipProvider delayDuration={200}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label>Nº de colaboradores</Label>
-                      <Input
-                        type="number" min={0} value={cols}
-                        onChange={(e) => update("montagemNumeroColaboradores", Math.max(0, parseInt(e.target.value) || 0))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
                       <Label className="flex items-center gap-1">
                         Dias de montagem
                         {autoDias && (
@@ -763,13 +756,6 @@ export default function Orcamento() {
                       <Input
                         type="number" min={0} step="0.1" value={kmOD}
                         onChange={(e) => update("montagemKmOrigemDestino", Math.max(0, parseFloat(e.target.value) || 0))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Nº de veículos</Label>
-                      <Input
-                        type="number" min={1} value={veic}
-                        onChange={(e) => update("montagemNumeroVeiculos", Math.max(1, parseInt(e.target.value) || 1))}
                       />
                     </div>
                   </div>
