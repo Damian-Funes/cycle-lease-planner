@@ -12,7 +12,7 @@ import {
   Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
-import { Layout3DCanvas } from "@/components/Layout3DCanvas";
+import { Layout3DCanvas, type Layout3DCanvasApi, type ViewName } from "@/components/Layout3DCanvas";
 import PlantaImage from "@/components/PlantaImage";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
