@@ -210,7 +210,12 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
                       side="bottom"
                       avoidCollisions={false}
                     >
-                      <Command>
+                      <Command
+                        filter={(value, search) => {
+                          if (!search) return 1;
+                          return value.toLowerCase().includes(search.toLowerCase().trim()) ? 1 : 0;
+                        }}
+                      >
                         <CommandInput placeholder="Código ou descrição..." />
                         <CommandList className="max-h-[240px] overflow-y-auto overscroll-contain">
                           <CommandEmpty>Nenhum equipamento.</CommandEmpty>
