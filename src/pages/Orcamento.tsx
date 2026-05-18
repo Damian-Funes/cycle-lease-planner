@@ -913,13 +913,14 @@ export default function Orcamento() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Frete (R$)</Label>
+                <Label>Frete</Label>
                 <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={params.frete}
-                  onChange={(e) => update("frete", Math.max(0, parseFloat(e.target.value) || 0))}
+                  inputMode="decimal"
+                  value={fmtBRL(params.frete)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    update("frete", digits ? Number(digits) / 100 : 0);
+                  }}
                 />
               </div>
             </div>
