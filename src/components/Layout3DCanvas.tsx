@@ -202,35 +202,111 @@ export function Layout3DCanvas({
       tween();
     };
 
-    const fitAll = () => {
-      const groups = ctxRef.current.groups;
+    const getEquipmentBounds = () => {
       const box = new THREE.Box3();
-      let has = false;
-      if (groups) {
-        Object.values(groups).forEach((g) => {
-          g.updateMatrixWorld(true);
-          const b = new THREE.Box3().setFromObject(g);
-          if (!b.isEmpty()) {
-            box.union(b);
-            has = true;
-          }
-        });
-      }
-      if (!has) {
+      let hasGroups = false;
+      const groups = ctxRef.current.groups || {};
+
+      Object.values(groups).forEach((g) => {
+        g.updateMatrixWorld(true);
+        const b = new THREE.Box3().setFromObject(g);
+        if (!b.isEmpty()) {
+          box.union(b);
+          hasGroups = true;
+        }
+      });
+
+      if (!hasGroups) {
         box.min.set(0, 0, 0);
         box.max.set(floorW, 2, floorH);
       }
+
       const center = new THREE.Vector3();
-      const size = new THREE.Vector3();
       box.getCenter(center);
-      box.getSize(size);
-      const maxDim = Math.max(size.x, size.y, size.z, 2);
-      const fovRad = (camera.fov * Math.PI) / 180;
-      const fitRadius = (maxDim / 2) / Math.tan(fovRad / 2) * 1.5;
+
+      const corners = [
+        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+      ];
+
+      return { box, center, corners, hasGroups };
+    };
+
+    const measureProjectedFit = (corners: THREE.Vector3[]) => {
+      camera.updateProjectionMatrix();
+      camera.updateMatrixWorld(true);
+      const view = camera.matrixWorldInverse;
+
+      let maxAbsX = 0;
+      let maxAbsY = 0;
+      let minDepth = Number.POSITIVE_INFINITY;
+
+      for (const corner of corners) {
+        const worldPos = corner.clone();
+        const camPos = worldPos.clone().applyMatrix4(view);
+        minDepth = Math.min(minDepth, -camPos.z);
+
+        const ndc = worldPos.project(camera);
+        maxAbsX = Math.max(maxAbsX, Math.abs(ndc.x));
+        maxAbsY = Math.max(maxAbsY, Math.abs(ndc.y));
+      }
+
+      return { maxAbsX, maxAbsY, minDepth };
+    };
+
+    const solveAdaptiveRadius = (corners: THREE.Vector3[], initialRadius: number, frameLimit = 0.9) => {
+      const baseRadius = Math.max(initialRadius, 3);
+      orbit.radius = baseRadius;
+      updateCam();
+
+      let probe = measureProjectedFit(corners);
+      let safeRadius = baseRadius;
+
+      for (let i = 0; i < 12; i += 1) {
+        const overflow = Math.max(probe.maxAbsX / frameLimit, probe.maxAbsY / frameLimit);
+        const tooClose = probe.minDepth <= camera.near * 1.5;
+        if (overflow <= 1 && !tooClose) break;
+
+        safeRadius = Math.max(safeRadius * Math.max(overflow, 1.08), safeRadius + 0.75);
+        orbit.radius = safeRadius;
+        updateCam();
+        probe = measureProjectedFit(corners);
+      }
+
+      let low = baseRadius;
+      let high = safeRadius;
+      for (let i = 0; i < 10; i += 1) {
+        const mid = (low + high) / 2;
+        orbit.radius = mid;
+        updateCam();
+        const test = measureProjectedFit(corners);
+        const overflow = Math.max(test.maxAbsX / frameLimit, test.maxAbsY / frameLimit);
+        const tooClose = test.minDepth <= camera.near * 1.5;
+
+        if (overflow <= 1 && !tooClose) {
+          high = mid;
+        } else {
+          low = mid;
+        }
+      }
+
+      return Math.max(high, 3);
+    };
+
+    const fitAll = () => {
+      const { center, corners } = getEquipmentBounds();
       const startTarget = orbit.target.clone();
-      const endTarget = new THREE.Vector3(center.x, 0, center.z);
+      const endTarget = new THREE.Vector3(center.x, center.y, center.z);
       const startRadius = orbit.radius;
-      const endRadius = Math.max(fitRadius, 5);
+      orbit.target.copy(endTarget);
+      const endRadius = solveAdaptiveRadius(corners, Math.max(startRadius, Math.max(floorW, floorH) * 0.8), 0.88);
+      orbit.target.copy(startTarget);
       const dur = 500;
       const t0 = performance.now();
       const tween = () => {
@@ -256,62 +332,9 @@ export function Layout3DCanvas({
       orbit.theta = theta;
       orbit.phi = phi;
 
-      // Bbox APENAS dos equipamentos
-      const box = new THREE.Box3();
-      let hasGroups = false;
-      const groups = ctxRef.current.groups || {};
-      Object.values(groups).forEach((g) => {
-        g.updateMatrixWorld(true);
-        const b = new THREE.Box3().setFromObject(g);
-        if (!b.isEmpty()) {
-          box.union(b);
-          hasGroups = true;
-        }
-      });
-      if (!hasGroups) {
-        box.min.set(0, 0, 0);
-        box.max.set(floorW, 2, floorH);
-      }
-
-      const center = new THREE.Vector3();
-      box.getCenter(center);
+      const { center, corners } = getEquipmentBounds();
       orbit.target.set(center.x, view === "top" ? 0 : center.y, center.z);
-
-      // 1ª passagem: posiciona câmera com raio provisório para obter eixos
-      orbit.radius = Math.max(floorW, floorH) * 1.5;
-      updateCam();
-      camera.updateMatrixWorld(true);
-
-      // Eixos da câmera no mundo
-      const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
-      const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
-
-      // Projeta os 8 cantos do bbox nos eixos right/up para obter half-extents reais
-      const corners = [
-        new THREE.Vector3(box.min.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
-        new THREE.Vector3(box.min.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.min.y, box.max.z),
-        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
-        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
-      ];
-      let halfW = 0;
-      let halfH = 0;
-      for (const c of corners) {
-        const v = c.clone().sub(orbit.target);
-        halfW = Math.max(halfW, Math.abs(v.dot(camRight)));
-        halfH = Math.max(halfH, Math.abs(v.dot(camUp)));
-      }
-
-      const aspect = camera.aspect || 1;
-      const fovRad = (camera.fov * Math.PI) / 180;
-      const distH = (Math.max(halfH, 0.5)) / Math.tan(fovRad / 2);
-      const distW = (Math.max(halfW, 0.5)) / (Math.tan(fovRad / 2) * aspect);
-      // Margem confortável (1.12) — adapta-se a qualquer layout
-      orbit.radius = Math.max(distH, distW, 3) * 1.12;
-
+      orbit.radius = solveAdaptiveRadius(corners, Math.max(orbit.radius, Math.max(floorW, floorH) * 0.8), 0.9);
       updateCam();
 
       // Luz extra seguindo a câmera (melhora vistas laterais)
