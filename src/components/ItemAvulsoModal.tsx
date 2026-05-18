@@ -135,11 +135,10 @@ export default function ItemAvulsoModal({ open, onOpenChange, onAdd }: Props) {
             <div className="space-y-1">
               <Label>Valor unitário (R$) *</Label>
               <Input
-                type="number"
-                min={0}
-                step="0.01"
-                value={valor || ""}
-                onChange={(e) => setValor(Math.max(0, parseFloat(e.target.value) || 0))}
+                inputMode="numeric"
+                value={valorFormatado}
+                onChange={(e) => handleValorChange(e.target.value)}
+                placeholder="0,00"
               />
             </div>
             <div className="space-y-1">
