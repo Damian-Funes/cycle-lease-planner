@@ -29,6 +29,13 @@ export interface Layout3DCanvasProps {
   selectedConexaoId?: string | null;
   onConectarClick?: (itemId: string, x: number, y: number, z: number) => void;
   onConexaoSelect?: (id: string | null) => void;
+  onReady?: (api: Layout3DCanvasApi) => void;
+}
+
+export type ViewName = "top" | "front" | "back" | "left" | "right" | "iso";
+
+export interface Layout3DCanvasApi {
+  captureView: (view: ViewName) => string | null;
 }
 
 interface DragBaseline { x: number; y: number; z: number; rotY: number }
