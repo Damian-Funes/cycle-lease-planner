@@ -218,8 +218,22 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   doc.setTextColor(50);
 
   const lines: string[] = [];
-  if (params.condicoesPagamento) {
-    lines.push(`Condicoes de pagamento: ${toSentenceCase(params.condicoesPagamento)}`);
+
+  // Forma de Pagamento: prioriza FK; fallback para texto legacy. Omite se ambos vazios.
+  let formaPagamentoTexto: string | null = null;
+  if (params.formaPagamentoId) {
+    const { data: fp } = await supabase
+      .from("formas_pagamento")
+      .select("descricao_proposta")
+      .eq("id", params.formaPagamentoId)
+      .maybeSingle();
+    if (fp?.descricao_proposta) formaPagamentoTexto = fp.descricao_proposta;
+  }
+  if (!formaPagamentoTexto && params.condicoesPagamento) {
+    formaPagamentoTexto = params.condicoesPagamento;
+  }
+  if (formaPagamentoTexto) {
+    lines.push(`Forma de Pagamento: ${toSentenceCase(formaPagamentoTexto)}`);
   }
   if (params.prazoEntrega) {
     lines.push(`Prazo de entrega: ${normalizePrazo(params.prazoEntrega)}`);
