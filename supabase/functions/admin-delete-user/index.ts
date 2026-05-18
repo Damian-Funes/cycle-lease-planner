@@ -51,23 +51,24 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check linked records
+    // Set responsavel_id = NULL em todos os registros vinculados (admin reatribui depois)
     const tables = [
       "organizacoes", "pessoas", "oportunidades", "atividades",
       "orcamentos", "propostas", "orcamentos_reforma",
     ];
-    const vinculos: Record<string, number> = {};
+    const orfaos: Record<string, number> = {};
     for (const t of tables) {
-      const { count } = await admin.from(t).select("id", { count: "exact", head: true })
-        .eq("responsavel_id", targetUserId);
-      if (count && count > 0) vinculos[t] = count;
-    }
-
-    if (Object.keys(vinculos).length > 0) {
-      return new Response(JSON.stringify({
-        error: "Usuário possui vínculos. Reatribua antes de excluir.",
-        vinculos,
-      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { data: updated, error: updErr } = await admin
+        .from(t)
+        .update({ responsavel_id: null })
+        .eq("responsavel_id", targetUserId)
+        .select("id");
+      if (updErr) {
+        return new Response(JSON.stringify({
+          error: `Falha ao desvincular ${t}: ${updErr.message}`,
+        }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      if (updated && updated.length > 0) orfaos[t] = updated.length;
     }
 
     // Cleanup dependent rows that are safe to delete
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true }), {
+    return new Response(JSON.stringify({ ok: true, orfaos }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
