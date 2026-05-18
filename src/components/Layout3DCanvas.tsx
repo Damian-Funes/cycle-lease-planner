@@ -565,6 +565,13 @@ export function Layout3DCanvas({
       dom, animateToView, fitAll,
     };
 
+    // Expõe API ao parent para captura de múltiplas vistas (PDF, etc).
+    // Aguarda um frame para garantir que groups foram populados pelo effect de items.
+    if (onReady) {
+      const api: Layout3DCanvasApi = { captureView };
+      requestAnimationFrame(() => onReady(api));
+    }
+
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
