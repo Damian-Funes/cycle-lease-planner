@@ -114,6 +114,7 @@ export default function Catalogo() {
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
       comprimento_mm: eq.comprimento_mm != null ? String(eq.comprimento_mm) : "",
       altura_mm: eq.altura_mm != null ? String(eq.altura_mm) : "",
+      dias_montagem_padrao: (eq as any).dias_montagem_padrao != null ? String((eq as any).dias_montagem_padrao) : "0",
     });
     setModeloFile(null);
     setModeloFileName((eq as any).modelo_3d_url ? "Modelo atual" : "");
