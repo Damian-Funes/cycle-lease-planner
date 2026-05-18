@@ -758,6 +758,38 @@ export default function Crm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Exige data prevista antes de mover */}
+      <AlertDialog open={!!needsDate} onOpenChange={(v) => !v && setNeedsDate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Defina a data prevista de fechamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para movimentar "{needsDate?.op.titulo}" é necessário informar quando você espera fechar este deal. Isso alimenta o forecast mensal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {needsDate && (
+            <div className="space-y-1">
+              <Label>Data prevista *</Label>
+              <Input
+                type="date"
+                value={needsDate.data}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setNeedsDate({ ...needsDate, data: e.target.value })}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!needsDate?.data}
+              onClick={confirmDateAndMove}
+            >
+              Salvar e mover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
