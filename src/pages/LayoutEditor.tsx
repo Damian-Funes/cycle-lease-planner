@@ -595,6 +595,7 @@ export default function LayoutEditor() {
                   selectedConexaoId={selectedConexaoId}
                   onConectarClick={handleConectarClick}
                   onConexaoSelect={setSelectedConexaoId}
+                  onReady={handleCanvasReady}
                 />
               )}
 
