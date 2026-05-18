@@ -489,6 +489,9 @@ export default function Orcamento() {
               <Button size="sm" onClick={handleAddItem} disabled={!selectedId} className="gap-1 h-9">
                 <Plus className="w-4 h-4" /> Adicionar
               </Button>
+              <Button size="sm" variant="outline" onClick={() => setAvulsoOpen(true)} className="gap-1 h-9">
+                <Plus className="w-4 h-4" /> Item avulso
+              </Button>
             </div>
 
             {params.itens.length > 0 ? (
