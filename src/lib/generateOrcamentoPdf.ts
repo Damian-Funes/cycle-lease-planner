@@ -143,10 +143,13 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   doc.setFontSize(10);
   doc.setTextColor(50);
-  const contato = toTitleCase(params.contatoNome || params.clientName);
-  const introText = `At.: Sr(a).: ${contato}\nApresentamos abaixo o orcamento para os itens solicitados:`;
+  const contato = params.contatoNome ? toTitleCase(params.contatoNome) : "";
+  const introText = contato
+    ? `At.: Sr(a).: ${contato}\nApresentamos abaixo o orcamento para os itens solicitados:`
+    : `Apresentamos abaixo o orcamento para os itens solicitados:`;
   doc.text(introText, 14, y);
-  y += 14;
+  y += contato ? 14 : 8;
+
 
   // Tabela de itens
   const itemRows = params.itens.map((it, i) => {
