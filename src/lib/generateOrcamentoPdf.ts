@@ -136,9 +136,32 @@ const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
 export async function generateOrcamentoPdf(params: OrcamentoParams) {
+  // Resolve nome do cliente via organização se estiver vazio ou "—"
+  const rawName = (params.clientName || "").trim();
+  if ((!rawName || rawName === "—" || rawName === "-") && params.organizacao_id) {
+    try {
+      const { data: org } = await supabase
+        .from("organizacoes")
+        .select("nome, endereco, telefone_principal, email_principal, cnpj")
+        .eq("id", params.organizacao_id)
+        .maybeSingle();
+      if (org?.nome) {
+        params = {
+          ...params,
+          clientName: org.nome,
+          clienteEndereco: params.clienteEndereco || org.endereco || "",
+          clienteTelefone: params.clienteTelefone || org.telefone_principal || "",
+          clienteEmail: params.clienteEmail || org.email_principal || "",
+          clienteCnpj: params.clienteCnpj || org.cnpj || "",
+        };
+      }
+    } catch {/* ignore */}
+  }
+
   const logoDataUrl = await preloadLogo();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
   const subtotal = calcSubtotal(params.itens);
   const desconto = calcDescontoAplicado(subtotal, params.descontoTipo, params.descontoValor);
@@ -151,8 +174,8 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   doc.setTextColor(50);
   const contato = params.contatoNome ? toTitleCase(params.contatoNome) : "";
   const introText = contato
-    ? `At.: Sr(a).: ${contato}\nApresentamos abaixo o orcamento para os itens solicitados:`
-    : `Apresentamos abaixo o orcamento para os itens solicitados:`;
+    ? `At.: Sr(a).: ${contato}\nApresentamos abaixo o orçamento para os itens solicitados:`
+    : `Apresentamos abaixo o orçamento para os itens solicitados:`;
   doc.text(introText, 14, y);
   y += contato ? 14 : 8;
 
@@ -177,15 +200,16 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     styles: baseStyles,
     alternateRowStyles: altRowStyles,
     columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
+      0: { cellWidth: 16, halign: "center" },
       1: { cellWidth: "auto" as any },
       2: { cellWidth: 14, halign: "center" },
       3: { cellWidth: 32, halign: "right" },
       4: { cellWidth: 34, halign: "right" },
     },
-    head: [["ITEM", "DESCRICAO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
+    head: [["ITEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
     body: itemRows,
   });
+
 
   y = getLastY(doc) + 8;
 
