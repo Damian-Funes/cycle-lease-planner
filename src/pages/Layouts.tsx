@@ -223,13 +223,32 @@ function NovoLayoutModal({
     const [props, orcs] = await Promise.all([
       supabase
         .from("propostas")
-        .select("id, numero_proposta, nome_cliente, cliente_endereco, cliente_telefone, itens_projeto")
+        .select("id, numero_proposta, nome_cliente, cliente_endereco, cliente_telefone, itens_projeto, organizacao_id")
         .order("created_at", { ascending: false }),
       supabase
         .from("orcamentos")
-        .select("id, numero_orcamento, nome_cliente, cliente_endereco, cliente_telefone, itens")
+        .select("id, numero_orcamento, nome_cliente, cliente_endereco, cliente_telefone, itens, organizacao_id")
         .order("created_at", { ascending: false }),
     ]);
+
+    // Buscar nomes das organizações como fallback quando nome_cliente está vazio
+    const orgIds = new Set<string>();
+    for (const p of props.data ?? []) if (p.organizacao_id) orgIds.add(p.organizacao_id);
+    for (const o of orcs.data ?? []) if (o.organizacao_id) orgIds.add(o.organizacao_id);
+    const orgMap = new Map<string, string>();
+    if (orgIds.size > 0) {
+      const { data: orgs } = await (supabase as any)
+        .from("organizacoes")
+        .select("id, nome")
+        .in("id", Array.from(orgIds));
+      for (const o of orgs ?? []) orgMap.set(o.id, o.nome);
+    }
+    const resolveNome = (nome: string | null | undefined, orgId: string | null | undefined) => {
+      const n = (nome ?? "").trim();
+      if (n && n !== "—") return n;
+      if (orgId && orgMap.get(orgId)) return orgMap.get(orgId)!;
+      return n || "—";
+    };
 
     const lista: OrigemOption[] = [];
     for (const p of props.data ?? []) {
@@ -237,7 +256,7 @@ function NovoLayoutModal({
         id: p.id,
         tipo: "proposta",
         numero: p.numero_proposta,
-        cliente: p.nome_cliente,
+        cliente: resolveNome(p.nome_cliente, (p as any).organizacao_id),
         endereco: p.cliente_endereco,
         telefone: p.cliente_telefone,
         itens: Array.isArray(p.itens_projeto) ? (p.itens_projeto as unknown as ItemProjeto[]) : [],
@@ -248,7 +267,7 @@ function NovoLayoutModal({
         id: o.id,
         tipo: "orcamento",
         numero: o.numero_orcamento,
-        cliente: o.nome_cliente,
+        cliente: resolveNome(o.nome_cliente, (o as any).organizacao_id),
         endereco: o.cliente_endereco,
         telefone: o.cliente_telefone,
         itens: Array.isArray(o.itens) ? (o.itens as unknown as ItemProjeto[]) : [],
@@ -257,6 +276,7 @@ function NovoLayoutModal({
     setOrigens(lista);
     setLoadingOrigens(false);
   }
+
 
   const filtradas = origens.filter((o) => {
     const q = busca.trim().toLowerCase();
