@@ -114,8 +114,8 @@ export async function listLayoutItems(layoutId: string): Promise<LayoutItemRow[]
 
   const equipamentoMap = new Map((equipamentos ?? []).map((equipamento) => [equipamento.id, equipamento]));
 
-  return layoutItems
-    .map((item) => {
+  const itensCompletos = layoutItems
+    .map((item): LayoutItemRow | null => {
       const equipamento = equipamentoMap.get(item.equipamento_id);
       if (!equipamento) return null;
 
@@ -140,7 +140,9 @@ export async function listLayoutItems(layoutId: string): Promise<LayoutItemRow[]
         modelo_3d_url: equipamento.modelo_3d_url,
         glb_rotacao_x: equipamento.glb_rotacao_x,
         glb_rotacao_z: equipamento.glb_rotacao_z,
-      } satisfies LayoutItemRow;
+      };
     })
-    .filter((item): item is LayoutItemRow => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  return itensCompletos;
 }
