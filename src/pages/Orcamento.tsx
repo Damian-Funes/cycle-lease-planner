@@ -712,7 +712,7 @@ export default function Orcamento() {
 
           const custoBanco = Number(params.montagemCustoTotal) || 0;
           const precoBanco = Number(params.montagemPrecoTotal) || 0;
-          const margemRsBanco = Number(params.montagemMargemAplicada) || 0;
+          const margemRsBanco = (Number(params.montagemPrecoTotal) || 0) - (Number(params.montagemCustoTotal) || 0);
           const usarBanco = !!savedId && precoBanco > 0;
           const custoExib = usarBanco ? custoBanco : custoPreview;
           const margemRsExib = usarBanco ? margemRsBanco : margemRsPreview;
