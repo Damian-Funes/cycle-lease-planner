@@ -73,32 +73,52 @@ export default function PropostasUnificadasModal({
     setLoading(true);
     const [{ data: prop, error: e1 }, { data: orc, error: e2 }] = await Promise.all([
       (supabase as any).from(tables.propostas).select(
-        isMkt ? "id, numero_proposta, nome_cliente, status, created_at"
-              : "id, numero_proposta, nome_cliente, total_10_anos, status, created_at"
+        isMkt ? "id, numero_proposta, nome_cliente, organizacao_id, status, created_at"
+              : "id, numero_proposta, nome_cliente, organizacao_id, total_10_anos, status, created_at"
       ).order("created_at", { ascending: false }),
       (supabase as any).from(tables.orcamentos).select(
-        isMkt ? "id, numero_orcamento, nome_cliente, status, created_at"
-              : "id, numero_orcamento, nome_cliente, total, status, created_at"
+        isMkt ? "id, numero_orcamento, nome_cliente, organizacao_id, status, created_at"
+              : "id, numero_orcamento, nome_cliente, organizacao_id, total, status, created_at"
       ).order("created_at", { ascending: false }),
     ]);
     if (e1 || e2) {
       toast({ title: "Erro", description: (e1 || e2)?.message, variant: "destructive" });
     }
+
+    // Resolve nomes faltantes via organizacoes
+    const orgIds = Array.from(new Set([
+      ...((prop || []) as any[]).map((p) => p.organizacao_id),
+      ...((orc || []) as any[]).map((o) => o.organizacao_id),
+    ].filter(Boolean)));
+    let orgMap = new Map<string, string>();
+    if (orgIds.length > 0) {
+      const { data: orgs } = await supabase.from("organizacoes").select("id, nome").in("id", orgIds);
+      orgMap = new Map((orgs || []).map((o: any) => [o.id, o.nome]));
+    }
+    const resolveNome = (raw: string | null | undefined, orgId: string | null | undefined) => {
+      const v = (raw || "").trim();
+      if (v && v !== "—" && v !== "-") return v;
+      return (orgId && orgMap.get(orgId)) || "Sem nome";
+    };
+
     const list: UnifiedRow[] = [
       ...(prop || []).map((p: any) => ({
         id: p.id, tipo: "aluguel" as const, numero: p.numero_proposta,
-        nome_cliente: p.nome_cliente, total: Number(p.total_10_anos) || 0,
+        nome_cliente: resolveNome(p.nome_cliente, p.organizacao_id),
+        total: Number(p.total_10_anos) || 0,
         status: p.status, created_at: p.created_at,
       })),
       ...(orc || []).map((o: any) => ({
         id: o.id, tipo: "orcamento" as const, numero: o.numero_orcamento,
-        nome_cliente: o.nome_cliente, total: Number(o.total) || 0,
+        nome_cliente: resolveNome(o.nome_cliente, o.organizacao_id),
+        total: Number(o.total) || 0,
         status: o.status, created_at: o.created_at,
       })),
     ].sort((a, b) => b.created_at.localeCompare(a.created_at));
     setRows(list);
     setLoading(false);
   }
+
 
   async function handleDelete(row: UnifiedRow) {
     const table = row.tipo === "aluguel" ? "propostas" : "orcamentos";
