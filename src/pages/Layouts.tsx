@@ -325,7 +325,8 @@ function NovoLayoutModal({
     const layoutId = layoutData.id;
 
     // 2. para cada item da proposta/orçamento, busca o equipamento e insere com posição em fila
-    const equipamentoIds = Array.from(new Set(selecionado.itens.map((i) => i.equipamento_id).filter(Boolean)));
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const equipamentoIds = Array.from(new Set(selecionado.itens.map((i) => i.equipamento_id).filter((id): id is string => !!id && UUID_RE.test(id))));
     let equipamentos: { id: string; codigo: string; largura_mm: number | null; imagem_url: string | null }[] = [];
     if (equipamentoIds.length > 0) {
       const { data: eqData } = await supabase
