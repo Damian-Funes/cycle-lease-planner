@@ -850,6 +850,10 @@ export function Layout3DCanvas({
         buildBoxFallback();
       }
     });
+
+    requestAnimationFrame(() => {
+      if (items.length > 0) c.fitAll?.();
+    });
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
   const prevSelectedIdsRef = useRef<string[]>([]);
