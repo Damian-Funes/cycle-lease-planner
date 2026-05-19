@@ -79,12 +79,17 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
     drawLogoFallback(doc, 14, 8);
   }
 
+  const clienteRaw = (params.clientName || "").trim();
+  const clienteNome = clienteRaw && clienteRaw !== "—" && clienteRaw !== "-"
+    ? toTitleCase(clienteRaw)
+    : "";
+
   const rightLines: string[] = [
-    `NUMERO: ${params.numeroOrcamento || "—"}`,
+    `NÚMERO: ${params.numeroOrcamento || "—"}`,
     `DATA: ${new Date().toLocaleDateString("pt-BR")}`,
-    `CLIENTE: ${toTitleCase(params.clientName)}`,
+    `CLIENTE: ${clienteNome}`,
   ];
-  if (params.clienteEndereco) rightLines.push(`ENDERECO: ${toTitleCase(params.clienteEndereco)}`);
+  if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${toTitleCase(params.clienteEndereco)}`);
   if (params.clienteTelefone) rightLines.push(`TEL: ${normalizePhone(params.clienteTelefone)}`);
   if (params.clienteCnpj) rightLines.push(`CNPJ: ${normalizeCnpj(params.clienteCnpj)}`);
   if (params.clienteEmail) rightLines.push(`E-MAIL: ${normalizeEmail(params.clienteEmail)}`);
@@ -98,15 +103,16 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
       0: { cellWidth: pageW / 2 - 14 },
       1: { cellWidth: pageW / 2 - 14 },
     },
-    head: [["LS DO BRASIL", "ORCAMENTO COMERCIAL"]],
+    head: [["LS DO BRASIL", "ORÇAMENTO COMERCIAL"]],
     body: [
       [
-        "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTE: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
+        "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTEL: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
         rightLines.join("\n"),
       ],
     ],
   });
 }
+
 
 function addFooter(doc: jsPDF) {
   const pageH = doc.internal.pageSize.getHeight();
