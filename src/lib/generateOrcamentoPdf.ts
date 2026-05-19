@@ -242,17 +242,25 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   y = getLastY(doc) + 12;
 
+  const FOOTER_RESERVE = 18;
+  const ensureSpace = (need: number) => {
+    if (y + need > pageH - FOOTER_RESERVE) {
+      doc.addPage();
+      y = 20;
+    }
+  };
+
   // Condições
+  ensureSpace(20);
   doc.setFontSize(11);
   doc.setTextColor(...GREEN);
-  doc.text("CONDICOES COMERCIAIS", 14, y);
+  doc.text("CONDIÇÕES COMERCIAIS", 14, y);
   y += 7;
   doc.setFontSize(9);
   doc.setTextColor(50);
 
   const lines: string[] = [];
 
-  // Forma de Pagamento: prioriza FK; fallback para texto legacy. Omite se ambos vazios.
   let formaPagamentoTexto: string | null = null;
   if (params.formaPagamentoId) {
     const { data: fp } = await supabase
@@ -280,23 +288,30 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   lines.forEach((l) => {
     const split = doc.splitTextToSize(l, pageW - 28);
+    ensureSpace(split.length * 5);
     doc.text(split, 14, y);
     y += split.length * 5;
   });
 
   if (params.observacoes) {
     y += 4;
+    ensureSpace(14);
     doc.setFontSize(11);
     doc.setTextColor(...GREEN);
-    doc.text("OBSERVACOES", 14, y);
+    doc.text("OBSERVAÇÕES", 14, y);
     y += 7;
     doc.setFontSize(9);
     doc.setTextColor(50);
     const split = doc.splitTextToSize(toSentenceCase(params.observacoes), pageW - 28);
+    ensureSpace(split.length * 5);
     doc.text(split, 14, y);
   }
 
-  addFooter(doc);
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    addFooter(doc);
+  }
 
   const cleanClient = toTitleCase(params.clientName).replace(/[^a-zA-Z0-9]+/g, "_");
   const fileName = `${params.numeroOrcamento || "orcamento"}-${cleanClient || "cliente"}.pdf`;
