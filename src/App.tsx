@@ -9,7 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 import GlobalShortcuts from "@/components/GlobalShortcuts";
-import Auth from "./pages/Auth";
+const Auth = lazy(() => import("./pages/Auth"));
 import Pendente from "./pages/Pendente";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
