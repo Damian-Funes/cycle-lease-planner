@@ -773,7 +773,7 @@ export function Layout3DCanvas({
       c.scene!.add(wrapper);
       groups[it.item_id] = wrapper;
 
-      const buildBoxFallback = () => {
+      const buildBoxFallback = (placeholder = false) => {
         const cor = it.cor_categoria || "#888780";
         const geom = new THREE.BoxGeometry(w, h, d);
         const mat = new THREE.MeshStandardMaterial({
@@ -781,7 +781,7 @@ export function Layout3DCanvas({
           roughness: 0.65,
           metalness: 0.15,
           transparent: true,
-          opacity: 0.78,
+          opacity: placeholder ? 0.18 : 0.78,
         });
         const mesh = new THREE.Mesh(geom, mat);
         mesh.position.y = h / 2;
@@ -791,7 +791,7 @@ export function Layout3DCanvas({
 
         const edges = new THREE.LineSegments(
           new THREE.EdgesGeometry(geom),
-          new THREE.LineBasicMaterial({ color: new THREE.Color(cor), transparent: true, opacity: 0.95 }),
+          new THREE.LineBasicMaterial({ color: new THREE.Color(cor), transparent: true, opacity: placeholder ? 0.5 : 0.95 }),
         );
         edges.position.y = h / 2;
         wrapper.add(edges);
@@ -799,6 +799,7 @@ export function Layout3DCanvas({
 
       const glbUrl = (it as unknown as { modelo_3d_url?: string | null }).modelo_3d_url;
       if (glbUrl) {
+        buildBoxFallback(true);
         loader.load(
           glbUrl,
           (gltf) => {
