@@ -79,12 +79,17 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
     drawLogoFallback(doc, 14, 8);
   }
 
+  const clienteRaw = (params.clientName || "").trim();
+  const clienteNome = clienteRaw && clienteRaw !== "—" && clienteRaw !== "-"
+    ? toTitleCase(clienteRaw)
+    : "";
+
   const rightLines: string[] = [
-    `NUMERO: ${params.numeroOrcamento || "—"}`,
+    `NÚMERO: ${params.numeroOrcamento || "—"}`,
     `DATA: ${new Date().toLocaleDateString("pt-BR")}`,
-    `CLIENTE: ${toTitleCase(params.clientName)}`,
+    `CLIENTE: ${clienteNome}`,
   ];
-  if (params.clienteEndereco) rightLines.push(`ENDERECO: ${toTitleCase(params.clienteEndereco)}`);
+  if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${toTitleCase(params.clienteEndereco)}`);
   if (params.clienteTelefone) rightLines.push(`TEL: ${normalizePhone(params.clienteTelefone)}`);
   if (params.clienteCnpj) rightLines.push(`CNPJ: ${normalizeCnpj(params.clienteCnpj)}`);
   if (params.clienteEmail) rightLines.push(`E-MAIL: ${normalizeEmail(params.clienteEmail)}`);
@@ -98,15 +103,16 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
       0: { cellWidth: pageW / 2 - 14 },
       1: { cellWidth: pageW / 2 - 14 },
     },
-    head: [["LS DO BRASIL", "ORCAMENTO COMERCIAL"]],
+    head: [["LS DO BRASIL", "ORÇAMENTO COMERCIAL"]],
     body: [
       [
-        "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTE: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
+        "LS DO BRASIL COMÉRCIO E INSTALAÇÕES INDUSTRIAIS LTDA\nAv. Marcelo Messias Busiquia, 197\nParque Industrial II, Maringá-PR\nCEP: 87065-006\nTEL: 44 3040-6098\nCNPJ: 23.108.428/0001-58",
         rightLines.join("\n"),
       ],
     ],
   });
 }
+
 
 function addFooter(doc: jsPDF) {
   const pageH = doc.internal.pageSize.getHeight();
@@ -130,9 +136,32 @@ const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
 export async function generateOrcamentoPdf(params: OrcamentoParams) {
+  // Resolve nome do cliente via organização se estiver vazio ou "—"
+  const rawName = (params.clientName || "").trim();
+  if ((!rawName || rawName === "—" || rawName === "-") && params.organizacao_id) {
+    try {
+      const { data: org } = await supabase
+        .from("organizacoes")
+        .select("nome, endereco, telefone_principal, email_principal, cnpj")
+        .eq("id", params.organizacao_id)
+        .maybeSingle();
+      if (org?.nome) {
+        params = {
+          ...params,
+          clientName: org.nome,
+          clienteEndereco: params.clienteEndereco || org.endereco || "",
+          clienteTelefone: params.clienteTelefone || org.telefone_principal || "",
+          clienteEmail: params.clienteEmail || org.email_principal || "",
+          clienteCnpj: params.clienteCnpj || org.cnpj || "",
+        };
+      }
+    } catch {/* ignore */}
+  }
+
   const logoDataUrl = await preloadLogo();
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
 
   const subtotal = calcSubtotal(params.itens);
   const desconto = calcDescontoAplicado(subtotal, params.descontoTipo, params.descontoValor);
@@ -145,8 +174,8 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   doc.setTextColor(50);
   const contato = params.contatoNome ? toTitleCase(params.contatoNome) : "";
   const introText = contato
-    ? `At.: Sr(a).: ${contato}\nApresentamos abaixo o orcamento para os itens solicitados:`
-    : `Apresentamos abaixo o orcamento para os itens solicitados:`;
+    ? `At.: Sr(a).: ${contato}\nApresentamos abaixo o orçamento para os itens solicitados:`
+    : `Apresentamos abaixo o orçamento para os itens solicitados:`;
   doc.text(introText, 14, y);
   y += contato ? 14 : 8;
 
@@ -171,15 +200,16 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     styles: baseStyles,
     alternateRowStyles: altRowStyles,
     columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
+      0: { cellWidth: 16, halign: "center" },
       1: { cellWidth: "auto" as any },
       2: { cellWidth: 14, halign: "center" },
       3: { cellWidth: 32, halign: "right" },
       4: { cellWidth: 34, halign: "right" },
     },
-    head: [["ITEM", "DESCRICAO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
+    head: [["ITEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
     body: itemRows,
   });
+
 
   y = getLastY(doc) + 8;
 
@@ -212,17 +242,25 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   y = getLastY(doc) + 12;
 
+  const FOOTER_RESERVE = 18;
+  const ensureSpace = (need: number) => {
+    if (y + need > pageH - FOOTER_RESERVE) {
+      doc.addPage();
+      y = 20;
+    }
+  };
+
   // Condições
+  ensureSpace(20);
   doc.setFontSize(11);
   doc.setTextColor(...GREEN);
-  doc.text("CONDICOES COMERCIAIS", 14, y);
+  doc.text("CONDIÇÕES COMERCIAIS", 14, y);
   y += 7;
   doc.setFontSize(9);
   doc.setTextColor(50);
 
   const lines: string[] = [];
 
-  // Forma de Pagamento: prioriza FK; fallback para texto legacy. Omite se ambos vazios.
   let formaPagamentoTexto: string | null = null;
   if (params.formaPagamentoId) {
     const { data: fp } = await supabase
@@ -250,23 +288,30 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   lines.forEach((l) => {
     const split = doc.splitTextToSize(l, pageW - 28);
+    ensureSpace(split.length * 5);
     doc.text(split, 14, y);
     y += split.length * 5;
   });
 
   if (params.observacoes) {
     y += 4;
+    ensureSpace(14);
     doc.setFontSize(11);
     doc.setTextColor(...GREEN);
-    doc.text("OBSERVACOES", 14, y);
+    doc.text("OBSERVAÇÕES", 14, y);
     y += 7;
     doc.setFontSize(9);
     doc.setTextColor(50);
     const split = doc.splitTextToSize(toSentenceCase(params.observacoes), pageW - 28);
+    ensureSpace(split.length * 5);
     doc.text(split, 14, y);
   }
 
-  addFooter(doc);
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    addFooter(doc);
+  }
 
   const cleanClient = toTitleCase(params.clientName).replace(/[^a-zA-Z0-9]+/g, "_");
   const fileName = `${params.numeroOrcamento || "orcamento"}-${cleanClient || "cliente"}.pdf`;
