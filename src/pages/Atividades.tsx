@@ -240,9 +240,12 @@ export default function Atividades() {
               </a>
             )}
           </div>
-          <div className="text-xs text-muted-foreground truncate">
+          <div className="text-xs text-muted-foreground truncate flex flex-wrap gap-x-1">
             {orgName && <Link to={a.oportunidade_id && opp ? `/organizacoes/${opp.organizacao_id}` : `/organizacoes/${a.organizacao_id}`} className="hover:underline">{orgName}</Link>}
-            {opp && a.oportunidade_id && <> → <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline">{opp.titulo}</Link></>}
+            {opp && a.oportunidade_id && <span>→ <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline">{opp.titulo}</Link></span>}
+            {a.pessoa_id && pessoasMap[a.pessoa_id] && (
+              <span>{(orgName || opp) ? "· " : ""}<Link to={`/pessoas`} className="hover:underline">{pessoasMap[a.pessoa_id].nome}</Link></span>
+            )}
           </div>
         </div>
         <Avatar className="h-7 w-7"><AvatarFallback className="text-[10px]">{initials(prof?.nome || prof?.email)}</AvatarFallback></Avatar>
