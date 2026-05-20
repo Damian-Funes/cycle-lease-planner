@@ -18,12 +18,13 @@ import { Loader2 } from "lucide-react";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const PORTE = ["pequeno", "medio", "grande"] as const;
+const SEGMENTOS = ["COOPERATIVAS", "MULTINACIONAIS", "SEMENTEIRA PRIVADA", "PRODUTOR RURAL", "REVENDA"] as const;
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Obrigatório"),
   nome_fantasia: z.string().optional().or(z.literal("")),
   cnpj: z.string().optional().or(z.literal("")),
-  segmento: z.string().optional().or(z.literal("")),
+  segmento: z.enum(SEGMENTOS, { message: "Selecione o segmento da organização" }),
   porte: z.string().optional().or(z.literal("")),
   regiao: z.string().optional().or(z.literal("")),
   endereco: z.string().optional().or(z.literal("")),
@@ -98,7 +99,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", status: "lead" } as any,
+    defaultValues: { nome: "", status: "lead", segmento: "" as any } as any,
   });
 
   useEffect(() => {
@@ -107,7 +108,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         nome: organizacao?.nome ?? "",
         nome_fantasia: organizacao?.nome_fantasia ?? "",
         cnpj: formatCnpj(organizacao?.cnpj ?? ""),
-        segmento: organizacao?.segmento ?? "",
+        segmento: (organizacao?.segmento ?? "") as any,
         porte: organizacao?.porte ?? "",
         regiao: organizacao?.regiao ?? "",
         endereco: organizacao?.endereco ?? "",
@@ -328,8 +329,14 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             )}
           </div>
           <div className="space-y-1">
-            <Label>Segmento</Label>
-            <Input {...form.register("segmento")} />
+            <Label>Segmento *</Label>
+            <Select value={form.watch("segmento") || ""} onValueChange={(v) => form.setValue("segmento", v as any, { shouldValidate: true })}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {SEGMENTOS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.segmento && <p className="text-xs text-destructive">{form.formState.errors.segmento.message}</p>}
           </div>
           <div className="space-y-1">
             <Label>Porte</Label>
