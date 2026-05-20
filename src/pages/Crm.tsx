@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -70,6 +70,29 @@ interface Oportunidade {
 }
 
 const STORAGE_KEY = "crm.pipelineId";
+
+interface ProximaAtividade { tipo: string; data: string; }
+const ProximasAtividadesCtx = createContext<Map<string, ProximaAtividade>>(new Map());
+
+function formatProximaLabel(iso: string): { label: string; tone: "danger" | "today" | "future" } {
+  const now = new Date();
+  const d = new Date(iso);
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startTarget = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((startTarget - startToday) / 86400000);
+  const hhmm = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (d.getTime() < now.getTime() && diffDays < 0) {
+    return { label: `atrasada ${Math.abs(diffDays)}d`, tone: "danger" };
+  }
+  if (diffDays === 0) {
+    return d.getTime() < now.getTime()
+      ? { label: `atrasada hoje`, tone: "danger" }
+      : { label: `hoje ${hhmm}`, tone: "today" };
+  }
+  if (diffDays === 1) return { label: `amanhã ${hhmm}`, tone: "future" };
+  if (diffDays > 1 && diffDays <= 7) return { label: `em ${diffDays} dias`, tone: "future" };
+  return { label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }), tone: "future" };
+}
 
 /* ---------- Rotting visual map ---------- */
 const ROTTING_MAP: Record<RottingStatus, { border: string; emoji: string; label: string }> = {
@@ -161,13 +184,30 @@ function OpCard({ op, etapa, hideValor }: { op: Oportunidade; etapa?: Etapa; hid
               <CheckCircle2 className="w-3 h-3" />
             </span>
           )}
-          {op.proxima_atividade_em && (
-            <span className="flex items-center gap-0.5" title={`Próxima: ${fmtDate(op.proxima_atividade_em)}`}>
-              <Clock className="w-3 h-3" />
-            </span>
-          )}
         </span>
       </div>
+      <ProximaAtividadeLine opId={op.id} proxima={op.proxima_atividade_em} />
+    </div>
+  );
+}
+
+function ProximaAtividadeLine({ opId, proxima }: { opId: string; proxima: string | null }) {
+  const map = useContext(ProximasAtividadesCtx);
+  if (!proxima) return null;
+  const info = map.get(opId);
+  const isoToUse = info?.data ?? proxima;
+  const { label, tone } = formatProximaLabel(isoToUse);
+  const tipo = info?.tipo ?? "Atividade";
+  const toneClass =
+    tone === "danger"
+      ? "text-rose-600 font-medium"
+      : tone === "today"
+      ? "text-emerald-600 font-medium"
+      : "text-muted-foreground";
+  return (
+    <div className={`mt-1 flex items-center gap-1 text-[11px] ${toneClass}`}>
+      <Clock className="w-3 h-3" />
+      <span className="truncate">{tipo} · {label}</span>
     </div>
   );
 }
@@ -287,6 +327,29 @@ export default function Crm() {
       if (error) throw error;
       return (data as any[]).map((o) => ({ valor_estimado: 0, probabilidade: 0, ...o })) as Oportunidade[];
     },
+  });
+
+  const { data: proximasAtividades = new Map<string, ProximaAtividade>() } = useQuery({
+    queryKey: ["proximas-atividades-kanban"],
+    queryFn: async () => {
+      const { data: ativs, error } = await (supabase as any)
+        .from("atividades")
+        .select("oportunidade_id, tipo_id, tipo, titulo, data_atividade")
+        .eq("concluida", false)
+        .not("oportunidade_id", "is", null)
+        .order("data_atividade", { ascending: true });
+      if (error) throw error;
+      const { data: tipos } = await (supabase as any).from("tipos_atividade").select("id, nome");
+      const tipoMap = new Map<string, string>((tipos ?? []).map((t: any) => [t.id, t.nome]));
+      const map = new Map<string, ProximaAtividade>();
+      for (const a of (ativs ?? []) as any[]) {
+        if (!a.oportunidade_id || map.has(a.oportunidade_id)) continue;
+        const tipoNome = (a.tipo_id && tipoMap.get(a.tipo_id)) || a.tipo || a.titulo || "Atividade";
+        map.set(a.oportunidade_id, { tipo: tipoNome, data: a.data_atividade });
+      }
+      return map;
+    },
+    staleTime: 30_000,
   });
 
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
@@ -665,6 +728,7 @@ export default function Crm() {
             Pipeline sem etapas. {isAdmin && <Link to="/admin/pipelines" className="text-primary underline ml-1">Configurar</Link>}
           </div>
         ) : (
+          <ProximasAtividadesCtx.Provider value={proximasAtividades}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
@@ -692,6 +756,7 @@ export default function Crm() {
               )}
             </DragOverlay>
           </DndContext>
+          </ProximasAtividadesCtx.Provider>
         )}
       </main>
 
