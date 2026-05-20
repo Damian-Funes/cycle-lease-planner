@@ -760,14 +760,7 @@ export default function DealDetalhe() {
 
         {/* DIREITA */}
         <div className="space-y-4">
-          <Card>
-            <CardHeader><CardTitle className="text-base">Próximas Atividades</CardTitle></CardHeader>
-            <CardContent className="text-sm text-muted-foreground py-6 text-center">Em breve.</CardContent>
-          </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Atividades Concluídas</CardTitle></CardHeader>
-            <CardContent className="text-sm text-muted-foreground py-6 text-center">Em breve.</CardContent>
-          </Card>
+          <DealAtividadesWidget oportunidadeId={deal.id} />
         </div>
       </div>
 
