@@ -502,7 +502,9 @@ export default function DealDetalhe() {
               <Button variant="outline" size="icon"><MoreHorizontal className="w-4 h-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={duplicar}>Duplicar deal</DropdownMenuItem>
+              {podeDuplicar && (
+                <DropdownMenuItem onClick={duplicar}>Duplicar deal</DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => { setNovoPipeline(deal.pipeline_id); setNovaEtapa(deal.etapa_id); setMoveDialog(true); }}>
                 Mover de Pipeline
               </DropdownMenuItem>
