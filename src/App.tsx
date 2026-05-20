@@ -9,6 +9,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import RequireRole from "@/components/RequireRole";
 import GlobalShortcuts from "@/components/GlobalShortcuts";
+import ChunkErrorBoundary from "@/components/ChunkErrorBoundary";
 const Auth = lazy(() => import("./pages/Auth"));
 import Pendente from "./pages/Pendente";
 import Home from "./pages/Home";
@@ -53,6 +54,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <GlobalShortcuts />
+          <ChunkErrorBoundary>
           <Suspense fallback={<RouteLoader />}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
@@ -83,6 +85,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </ChunkErrorBoundary>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
