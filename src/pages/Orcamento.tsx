@@ -55,6 +55,34 @@ export default function Orcamento() {
     margem_percentual: number;
   } | null>(null);
 
+  // Pessoas da organização selecionada (para auto-seleção / validações)
+  const [pessoasOrg, setPessoasOrg] = useState<Array<{ id: string; nome: string }>>([]);
+  const pessoasCount = pessoasOrg.length;
+
+  useEffect(() => {
+    if (!params.organizacao_id) {
+      setPessoasOrg([]);
+      return;
+    }
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome")
+        .eq("organizacao_id", params.organizacao_id)
+        .order("nome");
+      if (cancel) return;
+      const list = (data || []) as Array<{ id: string; nome: string }>;
+      setPessoasOrg(list);
+      // Auto-seleção quando só há 1 pessoa e nenhuma está selecionada
+      if (list.length === 1 && !params.pessoa_contato_id && !params.dados_congelados) {
+        setParams((p) => ({ ...p, pessoa_contato_id: list[0].id }));
+      }
+    })();
+    return () => { cancel = true; };
+  }, [params.organizacao_id, params.dados_congelados]);
+
+
   // Dias de montagem sugeridos (view)
   useEffect(() => {
     supabase
@@ -169,7 +197,12 @@ export default function Orcamento() {
       toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
+    if (params.status && params.status !== "rascunho" && !params.pessoa_contato_id) {
+      toast({ title: "Selecione a pessoa de contato antes de marcar como enviado", variant: "destructive" });
+      return;
+    }
     setSaving(true);
+
 
     let numeroOrcamento = params.numeroOrcamento;
     if (!numeroOrcamento) {
@@ -445,6 +478,10 @@ export default function Orcamento() {
       toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
+    if (!params.pessoa_contato_id) {
+      toast({ title: "Selecione a pessoa de contato antes de gerar o PDF", variant: "destructive" });
+      return;
+    }
     if (params.itens.length === 0) {
       toast({ title: "Adicione ao menos um item", variant: "destructive" });
       return;
@@ -492,14 +529,14 @@ export default function Orcamento() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <NovaPropostaButton onNovoOrcamento={handleNovo} />
-            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+            <Button size="sm" onClick={handleSave} disabled={saving || (!!params.organizacao_id && pessoasCount === 0)} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salvar
             </Button>
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Button size="sm" variant="default" onClick={handlePdf} className="gap-1">
+            <Button size="sm" variant="default" onClick={handlePdf} disabled={!!params.organizacao_id && pessoasCount === 0} className="gap-1">
               <FileDown className="w-4 h-4" /> Gerar PDF
             </Button>
             <AppHeader />
@@ -538,19 +575,17 @@ export default function Orcamento() {
                 setParams((p) => ({ ...p, dados_congelados: false }));
               } : undefined}
             />
-            <div className="space-y-1">
-              <Label htmlFor="contato_nome">Nome do contato (pessoa que recebe a proposta)</Label>
-              <Input
-                id="contato_nome"
-                value={params.contatoNome}
-                onChange={(e) => update("contatoNome", e.target.value)}
-                placeholder="Ex: Sergio Rodrigues"
-                disabled={!!params.dados_congelados}
-              />
-              <p className="text-xs text-muted-foreground">
-                Pessoa física dentro da empresa cliente. Ex: "Sergio Rodrigues". Não preencha com o nome da empresa.
-              </p>
-            </div>
+            {params.organizacao_id && pessoasCount === 0 && (
+              <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription>
+                  Nenhum contato cadastrado nesta organização. Cadastre uma pessoa antes de continuar.{" "}
+                  <Link to={`/organizacoes/${params.organizacao_id}`} className="underline font-medium">
+                    Abrir perfil da organização
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            )}
 
           </CardContent>
         </Card>
