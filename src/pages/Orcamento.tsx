@@ -197,7 +197,12 @@ export default function Orcamento() {
       toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
+    if (params.status && params.status !== "rascunho" && !params.pessoa_contato_id) {
+      toast({ title: "Selecione a pessoa de contato antes de marcar como enviado", variant: "destructive" });
+      return;
+    }
     setSaving(true);
+
 
     let numeroOrcamento = params.numeroOrcamento;
     if (!numeroOrcamento) {
