@@ -24,7 +24,7 @@ const schema = z.object({
   nome: z.string().trim().min(1, "Obrigatório"),
   nome_fantasia: z.string().optional().or(z.literal("")),
   cnpj: z.string().optional().or(z.literal("")),
-  segmento: z.string().optional().or(z.literal("")),
+  segmento: z.enum(SEGMENTOS, { message: "Selecione o segmento da organização" }),
   porte: z.string().optional().or(z.literal("")),
   regiao: z.string().optional().or(z.literal("")),
   endereco: z.string().optional().or(z.literal("")),
