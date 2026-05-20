@@ -970,3 +970,76 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+function DealAtividadesWidget({ oportunidadeId }: { oportunidadeId: string }) {
+  const [proximas, setProximas] = useState<any[]>([]);
+  const [concluidas, setConcluidas] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const nowIso = new Date().toISOString();
+      const [{ data: prox }, { data: conc }] = await Promise.all([
+        (supabase as any).from("atividades")
+          .select("id, titulo, data_inicio, concluida")
+          .eq("oportunidade_id", oportunidadeId)
+          .eq("concluida", false)
+          .eq("evento_automatico", false)
+          .gte("data_inicio", nowIso)
+          .order("data_inicio", { ascending: true })
+          .limit(5),
+        (supabase as any).from("atividades")
+          .select("id, titulo, data_inicio, data_conclusao")
+          .eq("oportunidade_id", oportunidadeId)
+          .eq("concluida", true)
+          .eq("evento_automatico", false)
+          .order("data_conclusao", { ascending: false })
+          .limit(5),
+      ]);
+      setProximas(prox || []);
+      setConcluidas(conc || []);
+    })();
+  }, [oportunidadeId]);
+
+  return (
+    <>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Próximas Atividades</CardTitle></CardHeader>
+        <CardContent className="py-2">
+          {proximas.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma agendada.</p>
+          ) : (
+            <ul className="space-y-2">
+              {proximas.map((a) => (
+                <li key={a.id} className="text-sm flex justify-between gap-2">
+                  <span className="truncate">{a.titulo}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {format(new Date(a.data_inicio), "dd/MM HH:mm", { locale: ptBR })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Atividades Concluídas</CardTitle></CardHeader>
+        <CardContent className="py-2">
+          {concluidas.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma ainda.</p>
+          ) : (
+            <ul className="space-y-2">
+              {concluidas.map((a) => (
+                <li key={a.id} className="text-sm flex justify-between gap-2">
+                  <span className="truncate line-through text-muted-foreground">{a.titulo}</span>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {a.data_conclusao && format(new Date(a.data_conclusao), "dd/MM", { locale: ptBR })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
