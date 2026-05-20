@@ -18,6 +18,7 @@ import { Loader2 } from "lucide-react";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const PORTE = ["pequeno", "medio", "grande"] as const;
+const SEGMENTOS = ["COOPERATIVAS", "MULTINACIONAIS", "SEMENTEIRA PRIVADA", "PRODUTOR RURAL", "REVENDA"] as const;
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Obrigatório"),
