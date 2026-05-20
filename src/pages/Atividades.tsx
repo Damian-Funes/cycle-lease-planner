@@ -32,7 +32,7 @@ interface Profile { user_id: string; nome: string | null; email: string; }
 interface Atividade {
   id: string; titulo: string; descricao: string | null; data_inicio: string;
   concluida: boolean; evento_automatico: boolean; tipo_id: string | null;
-  responsavel_id: string | null; oportunidade_id: string | null; organizacao_id: string | null;
+  responsavel_id: string | null; oportunidade_id: string | null; organizacao_id: string | null; pessoa_id: string | null;
   google_meet_link?: string | null; erro_sincronizacao?: string | null;
 }
 
