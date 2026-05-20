@@ -329,8 +329,14 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             )}
           </div>
           <div className="space-y-1">
-            <Label>Segmento</Label>
-            <Input {...form.register("segmento")} />
+            <Label>Segmento *</Label>
+            <Select value={form.watch("segmento") || ""} onValueChange={(v) => form.setValue("segmento", v as any, { shouldValidate: true })}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {SEGMENTOS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {form.formState.errors.segmento && <p className="text-xs text-destructive">{form.formState.errors.segmento.message}</p>}
           </div>
           <div className="space-y-1">
             <Label>Porte</Label>
