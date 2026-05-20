@@ -172,7 +172,17 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
 
   doc.setFontSize(10);
   doc.setTextColor(50);
-  const contato = params.contatoNome ? toTitleCase(params.contatoNome) : "";
+  let contato = "";
+  if (params.pessoa_contato_id) {
+    try {
+      const { data: pes } = await supabase
+        .from("pessoas")
+        .select("nome")
+        .eq("id", params.pessoa_contato_id)
+        .maybeSingle();
+      if (pes?.nome) contato = toTitleCase(pes.nome);
+    } catch {/* ignore */}
+  }
   const introText = contato
     ? `At.: Sr(a).: ${contato}\nApresentamos abaixo o orçamento para os itens solicitados:`
     : `Apresentamos abaixo o orçamento para os itens solicitados:`;
