@@ -105,18 +105,31 @@ export default function Atividades() {
     setAtividades(arr);
 
     const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id as string))] as string[];
+    const orgDireto = [...new Set(arr.filter((a: any) => a.organizacao_id).map((a: any) => a.organizacao_id as string))] as string[];
+    const pesIds = [...new Set(arr.filter((a: any) => a.pessoa_id).map((a: any) => a.pessoa_id as string))] as string[];
+
+    let opsData: any[] = [];
     if (oppIds.length) {
       const { data: ops } = await supabase.from("oportunidades").select("id, titulo, organizacao_id").in("id", oppIds);
+      opsData = ops || [];
       const map: any = {};
-      (ops || []).forEach((o: any) => { map[o.id] = { titulo: o.titulo, organizacao_id: o.organizacao_id }; });
+      opsData.forEach((o: any) => { map[o.id] = { titulo: o.titulo, organizacao_id: o.organizacao_id }; });
       setOpps(map);
-      const orgIds = [...new Set((ops || []).map((o: any) => o.organizacao_id as string))] as string[];
-      if (orgIds.length) {
-        const { data: ogs } = await supabase.from("organizacoes").select("id, nome").in("id", orgIds);
-        const omap: any = {};
-        (ogs || []).forEach((o: any) => { omap[o.id] = o.nome; });
-        setOrgs(omap);
-      }
+    }
+
+    const orgIds = [...new Set([...orgDireto, ...opsData.map((o: any) => o.organizacao_id).filter(Boolean)])] as string[];
+    if (orgIds.length) {
+      const { data: ogs } = await supabase.from("organizacoes").select("id, nome").in("id", orgIds);
+      const omap: any = {};
+      (ogs || []).forEach((o: any) => { omap[o.id] = o.nome; });
+      setOrgs(omap);
+    }
+
+    if (pesIds.length) {
+      const { data: ps } = await supabase.from("pessoas").select("id, nome, organizacao_id").in("id", pesIds);
+      const pmap: any = {};
+      (ps || []).forEach((p: any) => { pmap[p.id] = { nome: p.nome, organizacao_id: p.organizacao_id }; });
+      setPessoasMap(pmap);
     }
     setLoading(false);
   };
