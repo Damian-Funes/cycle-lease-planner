@@ -32,7 +32,7 @@ interface Profile { user_id: string; nome: string | null; email: string; }
 interface Atividade {
   id: string; titulo: string; descricao: string | null; data_inicio: string;
   concluida: boolean; evento_automatico: boolean; tipo_id: string | null;
-  responsavel_id: string | null; oportunidade_id: string | null; organizacao_id: string | null;
+  responsavel_id: string | null; oportunidade_id: string | null; organizacao_id: string | null; pessoa_id: string | null;
   google_meet_link?: string | null; erro_sincronizacao?: string | null;
 }
 
@@ -76,6 +76,7 @@ export default function Atividades() {
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [opps, setOpps] = useState<Record<string, { titulo: string; organizacao_id: string }>>({});
   const [orgs, setOrgs] = useState<Record<string, string>>({});
+  const [pessoasMap, setPessoasMap] = useState<Record<string, { nome: string; organizacao_id: string | null }>>({});
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -104,18 +105,31 @@ export default function Atividades() {
     setAtividades(arr);
 
     const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id as string))] as string[];
+    const orgDireto = [...new Set(arr.filter((a: any) => a.organizacao_id).map((a: any) => a.organizacao_id as string))] as string[];
+    const pesIds = [...new Set(arr.filter((a: any) => a.pessoa_id).map((a: any) => a.pessoa_id as string))] as string[];
+
+    let opsData: any[] = [];
     if (oppIds.length) {
       const { data: ops } = await supabase.from("oportunidades").select("id, titulo, organizacao_id").in("id", oppIds);
+      opsData = ops || [];
       const map: any = {};
-      (ops || []).forEach((o: any) => { map[o.id] = { titulo: o.titulo, organizacao_id: o.organizacao_id }; });
+      opsData.forEach((o: any) => { map[o.id] = { titulo: o.titulo, organizacao_id: o.organizacao_id }; });
       setOpps(map);
-      const orgIds = [...new Set((ops || []).map((o: any) => o.organizacao_id as string))] as string[];
-      if (orgIds.length) {
-        const { data: ogs } = await supabase.from("organizacoes").select("id, nome").in("id", orgIds);
-        const omap: any = {};
-        (ogs || []).forEach((o: any) => { omap[o.id] = o.nome; });
-        setOrgs(omap);
-      }
+    }
+
+    const orgIds = [...new Set([...orgDireto, ...opsData.map((o: any) => o.organizacao_id).filter(Boolean)])] as string[];
+    if (orgIds.length) {
+      const { data: ogs } = await supabase.from("organizacoes").select("id, nome").in("id", orgIds);
+      const omap: any = {};
+      (ogs || []).forEach((o: any) => { omap[o.id] = o.nome; });
+      setOrgs(omap);
+    }
+
+    if (pesIds.length) {
+      const { data: ps } = await supabase.from("pessoas").select("id, nome, organizacao_id").in("id", pesIds);
+      const pmap: any = {};
+      (ps || []).forEach((p: any) => { pmap[p.id] = { nome: p.nome, organizacao_id: p.organizacao_id }; });
+      setPessoasMap(pmap);
     }
     setLoading(false);
   };
@@ -226,9 +240,12 @@ export default function Atividades() {
               </a>
             )}
           </div>
-          <div className="text-xs text-muted-foreground truncate">
+          <div className="text-xs text-muted-foreground truncate flex flex-wrap gap-x-1">
             {orgName && <Link to={a.oportunidade_id && opp ? `/organizacoes/${opp.organizacao_id}` : `/organizacoes/${a.organizacao_id}`} className="hover:underline">{orgName}</Link>}
-            {opp && a.oportunidade_id && <> → <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline">{opp.titulo}</Link></>}
+            {opp && a.oportunidade_id && <span>→ <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline">{opp.titulo}</Link></span>}
+            {a.pessoa_id && pessoasMap[a.pessoa_id] && (
+              <span>{(orgName || opp) ? "· " : ""}<Link to={`/pessoas`} className="hover:underline">{pessoasMap[a.pessoa_id].nome}</Link></span>
+            )}
           </div>
         </div>
         <Avatar className="h-7 w-7"><AvatarFallback className="text-[10px]">{initials(prof?.nome || prof?.email)}</AvatarFallback></Avatar>
