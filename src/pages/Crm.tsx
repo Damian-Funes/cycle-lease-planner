@@ -728,6 +728,7 @@ export default function Crm() {
             Pipeline sem etapas. {isAdmin && <Link to="/admin/pipelines" className="text-primary underline ml-1">Configurar</Link>}
           </div>
         ) : (
+          <ProximasAtividadesCtx.Provider value={proximasAtividades}>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCorners}
@@ -755,6 +756,7 @@ export default function Crm() {
               )}
             </DragOverlay>
           </DndContext>
+          </ProximasAtividadesCtx.Provider>
         )}
       </main>
 
