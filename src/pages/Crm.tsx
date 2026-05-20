@@ -329,6 +329,29 @@ export default function Crm() {
     },
   });
 
+  const { data: proximasAtividades = new Map<string, ProximaAtividade>() } = useQuery({
+    queryKey: ["proximas-atividades-kanban"],
+    queryFn: async () => {
+      const { data: ativs, error } = await (supabase as any)
+        .from("atividades")
+        .select("oportunidade_id, tipo_id, tipo, titulo, data_atividade")
+        .eq("concluida", false)
+        .not("oportunidade_id", "is", null)
+        .order("data_atividade", { ascending: true });
+      if (error) throw error;
+      const { data: tipos } = await (supabase as any).from("tipos_atividade").select("id, nome");
+      const tipoMap = new Map<string, string>((tipos ?? []).map((t: any) => [t.id, t.nome]));
+      const map = new Map<string, ProximaAtividade>();
+      for (const a of (ativs ?? []) as any[]) {
+        if (!a.oportunidade_id || map.has(a.oportunidade_id)) continue;
+        const tipoNome = (a.tipo_id && tipoMap.get(a.tipo_id)) || a.tipo || a.titulo || "Atividade";
+        map.set(a.oportunidade_id, { tipo: tipoNome, data: a.data_atividade });
+      }
+      return map;
+    },
+    staleTime: 30_000,
+  });
+
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
   /* Default pipeline */
