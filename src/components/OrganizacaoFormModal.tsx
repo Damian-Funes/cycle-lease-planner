@@ -99,7 +99,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { nome: "", status: "lead" } as any,
+    defaultValues: { nome: "", status: "lead", segmento: "" as any } as any,
   });
 
   useEffect(() => {
