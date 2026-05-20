@@ -43,8 +43,9 @@ interface Profile { user_id: string; nome: string | null; email: string; }
 export default function DealDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { hasRole } = useAuth();
+  const { hasRole, hasAnyRole, isAdmin, user } = useAuth();
   const isMarketing = hasRole("marketing");
+  const podeDuplicar = isAdmin || hasAnyRole(["gerente_comercial", "comercial"]);
 
   const [loading, setLoading] = useState(true);
   const [deal, setDeal] = useState<any>(null);
