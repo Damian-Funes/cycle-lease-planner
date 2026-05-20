@@ -184,11 +184,6 @@ function OpCard({ op, etapa, hideValor }: { op: Oportunidade; etapa?: Etapa; hid
               <CheckCircle2 className="w-3 h-3" />
             </span>
           )}
-          {op.proxima_atividade_em && !useContext(ProximasAtividadesCtx).get(op.id) && (
-            <span className="flex items-center gap-0.5" title={`Próxima: ${fmtDate(op.proxima_atividade_em)}`}>
-              <Clock className="w-3 h-3" />
-            </span>
-          )}
         </span>
       </div>
       <ProximaAtividadeLine opId={op.id} proxima={op.proxima_atividade_em} />
