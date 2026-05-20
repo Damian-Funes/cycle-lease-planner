@@ -529,14 +529,14 @@ export default function Orcamento() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <NovaPropostaButton onNovoOrcamento={handleNovo} />
-            <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+            <Button size="sm" onClick={handleSave} disabled={saving || (!!params.organizacao_id && pessoasCount === 0)} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salvar
             </Button>
             <Button size="sm" variant="outline" onClick={() => setModalOpen(true)} className="gap-1">
               <FolderOpen className="w-4 h-4" /> Propostas
             </Button>
-            <Button size="sm" variant="default" onClick={handlePdf} className="gap-1">
+            <Button size="sm" variant="default" onClick={handlePdf} disabled={!!params.organizacao_id && pessoasCount === 0} className="gap-1">
               <FileDown className="w-4 h-4" /> Gerar PDF
             </Button>
             <AppHeader />
