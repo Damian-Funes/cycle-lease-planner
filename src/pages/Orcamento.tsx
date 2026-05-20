@@ -55,6 +55,34 @@ export default function Orcamento() {
     margem_percentual: number;
   } | null>(null);
 
+  // Pessoas da organização selecionada (para auto-seleção / validações)
+  const [pessoasOrg, setPessoasOrg] = useState<Array<{ id: string; nome: string }>>([]);
+  const pessoasCount = pessoasOrg.length;
+
+  useEffect(() => {
+    if (!params.organizacao_id) {
+      setPessoasOrg([]);
+      return;
+    }
+    let cancel = false;
+    (async () => {
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome")
+        .eq("organizacao_id", params.organizacao_id)
+        .order("nome");
+      if (cancel) return;
+      const list = (data || []) as Array<{ id: string; nome: string }>;
+      setPessoasOrg(list);
+      // Auto-seleção quando só há 1 pessoa e nenhuma está selecionada
+      if (list.length === 1 && !params.pessoa_contato_id && !params.dados_congelados) {
+        setParams((p) => ({ ...p, pessoa_contato_id: list[0].id }));
+      }
+    })();
+    return () => { cancel = true; };
+  }, [params.organizacao_id, params.dados_congelados]);
+
+
   // Dias de montagem sugeridos (view)
   useEffect(() => {
     supabase
