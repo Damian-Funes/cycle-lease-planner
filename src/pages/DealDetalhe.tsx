@@ -256,14 +256,133 @@ export default function DealDetalhe() {
 
   const duplicar = async () => {
     if (!deal) return;
-    const { id: _, created_at, updated_at, ...rest } = deal;
-    const { data, error } = await supabase
+
+    // 1) Procurar orçamento comercial associado a este deal (o mais recente)
+    const { data: orcOrig, error: orcErr } = await supabase
+      .from("orcamentos")
+      .select("*")
+      .eq("oportunidade_id", deal.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (orcErr) { toast.error(orcErr.message); return; }
+
+    // Caso simples: deal sem orçamento → comportamento antigo
+    if (!orcOrig) {
+      const { id: _i, created_at, updated_at, ...rest } = deal;
+      const { data, error } = await supabase
+        .from("oportunidades")
+        .insert({ ...rest, titulo: `${rest.titulo} (cópia)`, status: "aberta" })
+        .select("id").single();
+      if (error) { toast.error(error.message); return; }
+      toast.success("Duplicada");
+      navigate(`/crm/deal/${data!.id}`);
+      return;
+    }
+
+    // 2) Pipeline "Orçamentos" + primeira etapa
+    const { data: pipe } = await supabase
+      .from("pipelines")
+      .select("id")
+      .eq("nome", "Orçamentos")
+      .eq("ativo", true)
+      .order("ordem", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!pipe?.id) { toast.error("Pipeline 'Orçamentos' não encontrado"); return; }
+
+    const { data: etapa } = await supabase
+      .from("etapas_pipeline")
+      .select("id, probabilidade_default")
+      .eq("pipeline_id", pipe.id)
+      .order("ordem", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!etapa?.id) { toast.error("Primeira etapa do pipeline não encontrada"); return; }
+
+    // 3) Gerar próximo número de orçamento (mesma lógica de Orcamento.tsx)
+    const year = new Date().getFullYear();
+    const prefix = `ORC${year}-`;
+    const { data: last } = await supabase
+      .from("orcamentos")
+      .select("numero_orcamento")
+      .like("numero_orcamento", `${prefix}%`)
+      .order("numero_orcamento", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    let seq = 1;
+    if (last?.numero_orcamento) {
+      const lastSeq = parseInt(last.numero_orcamento.replace(prefix, ""), 10);
+      if (!isNaN(lastSeq)) seq = lastSeq + 1;
+    }
+    const novoNumero = `${prefix}${String(seq).padStart(3, "0")}`;
+
+    // 4) Criar nova oportunidade
+    const { data: novoDeal, error: errDeal } = await supabase
       .from("oportunidades")
-      .insert({ ...rest, titulo: `${rest.titulo} (cópia)`, status: "aberta" })
-      .select("id").single();
-    if (error) { toast.error(error.message); return; }
-    toast.success("Duplicada");
-    navigate(`/crm/deal/${data!.id}`);
+      .insert({
+        titulo: `Orçamento ${novoNumero}`,
+        organizacao_id: deal.organizacao_id,
+        pipeline_id: pipe.id,
+        etapa_id: etapa.id,
+        probabilidade: etapa.probabilidade_default ?? 15,
+        status: "aberta",
+        valor_estimado: 0,
+        responsavel_id: user?.id ?? null,
+      } as any)
+      .select("id")
+      .single();
+    if (errDeal) { toast.error(`Erro ao criar deal: ${errDeal.message}`); return; }
+
+    // 5) Criar novo orçamento copiando itens + montagem
+    const { data: novoOrc, error: errOrc } = await supabase
+      .from("orcamentos")
+      .insert({
+        numero_orcamento: novoNumero,
+        status: "rascunho",
+        oportunidade_id: novoDeal!.id,
+        organizacao_id: orcOrig.organizacao_id,
+        pessoa_contato_id: orcOrig.pessoa_contato_id,
+        nome_cliente: orcOrig.nome_cliente,
+        contato_nome: null,
+        responsavel_id: user?.id ?? null,
+        itens: orcOrig.itens,
+        subtotal: orcOrig.subtotal,
+        desconto_tipo: orcOrig.desconto_tipo,
+        desconto_valor: orcOrig.desconto_valor,
+        frete: 0,
+        total: 0,
+        forma_pagamento_id: null,
+        condicoes_pagamento: null,
+        prazo_entrega: null,
+        local_entrega: null,
+        observacoes: null,
+        validade_dias: 10,
+        dados_congelados: false,
+        montagem_numero_colaboradores: orcOrig.montagem_numero_colaboradores,
+        montagem_dias: orcOrig.montagem_dias,
+        montagem_km_origem_destino: orcOrig.montagem_km_origem_destino,
+        montagem_numero_veiculos: orcOrig.montagem_numero_veiculos,
+        montagem_eh_fazenda: orcOrig.montagem_eh_fazenda,
+        montagem_km_hotel_local: orcOrig.montagem_km_hotel_local,
+        montagem_custo_total: orcOrig.montagem_custo_total,
+        montagem_preco_total: orcOrig.montagem_preco_total,
+        montagem_margem_aplicada: orcOrig.montagem_margem_aplicada,
+        montagem_observacoes: orcOrig.montagem_observacoes,
+      } as any)
+      .select("id")
+      .single();
+
+    if (errOrc) {
+      // rollback do deal criado pra não deixar lixo
+      await supabase.from("oportunidades").delete().eq("id", novoDeal!.id);
+      toast.error(`Erro ao criar orçamento: ${errOrc.message}`);
+      return;
+    }
+
+    toast.success("Deal duplicado com sucesso. Edite as informações necessárias.");
+    navigate(`/orcamento?load=${novoOrc!.id}`);
   };
 
   const moverPipeline = async () => {
