@@ -184,13 +184,35 @@ function OpCard({ op, etapa, hideValor }: { op: Oportunidade; etapa?: Etapa; hid
               <CheckCircle2 className="w-3 h-3" />
             </span>
           )}
-          {op.proxima_atividade_em && (
+          {op.proxima_atividade_em && !useContext(ProximasAtividadesCtx).get(op.id) && (
             <span className="flex items-center gap-0.5" title={`Próxima: ${fmtDate(op.proxima_atividade_em)}`}>
               <Clock className="w-3 h-3" />
             </span>
           )}
         </span>
       </div>
+      <ProximaAtividadeLine opId={op.id} proxima={op.proxima_atividade_em} />
+    </div>
+  );
+}
+
+function ProximaAtividadeLine({ opId, proxima }: { opId: string; proxima: string | null }) {
+  const map = useContext(ProximasAtividadesCtx);
+  if (!proxima) return null;
+  const info = map.get(opId);
+  const isoToUse = info?.data ?? proxima;
+  const { label, tone } = formatProximaLabel(isoToUse);
+  const tipo = info?.tipo ?? "Atividade";
+  const toneClass =
+    tone === "danger"
+      ? "text-rose-600 font-medium"
+      : tone === "today"
+      ? "text-emerald-600 font-medium"
+      : "text-muted-foreground";
+  return (
+    <div className={`mt-1 flex items-center gap-1 text-[11px] ${toneClass}`}>
+      <Clock className="w-3 h-3" />
+      <span className="truncate">{tipo} · {label}</span>
     </div>
   );
 }
