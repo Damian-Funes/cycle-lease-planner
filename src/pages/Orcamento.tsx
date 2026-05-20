@@ -478,6 +478,10 @@ export default function Orcamento() {
       toast({ title: "Selecione uma organização", variant: "destructive" });
       return;
     }
+    if (!params.pessoa_contato_id) {
+      toast({ title: "Selecione a pessoa de contato antes de gerar o PDF", variant: "destructive" });
+      return;
+    }
     if (params.itens.length === 0) {
       toast({ title: "Adicione ao menos um item", variant: "destructive" });
       return;
