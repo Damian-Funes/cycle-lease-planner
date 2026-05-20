@@ -538,19 +538,17 @@ export default function Orcamento() {
                 setParams((p) => ({ ...p, dados_congelados: false }));
               } : undefined}
             />
-            <div className="space-y-1">
-              <Label htmlFor="contato_nome">Nome do contato (pessoa que recebe a proposta)</Label>
-              <Input
-                id="contato_nome"
-                value={params.contatoNome}
-                onChange={(e) => update("contatoNome", e.target.value)}
-                placeholder="Ex: Sergio Rodrigues"
-                disabled={!!params.dados_congelados}
-              />
-              <p className="text-xs text-muted-foreground">
-                Pessoa física dentro da empresa cliente. Ex: "Sergio Rodrigues". Não preencha com o nome da empresa.
-              </p>
-            </div>
+            {params.organizacao_id && pessoasCount === 0 && (
+              <Alert className="bg-amber-50 border-amber-300 text-amber-900">
+                <AlertTriangle className="w-4 h-4" />
+                <AlertDescription>
+                  Nenhum contato cadastrado nesta organização. Cadastre uma pessoa antes de continuar.{" "}
+                  <Link to={`/organizacoes/${params.organizacao_id}`} className="underline font-medium">
+                    Abrir perfil da organização
+                  </Link>
+                </AlertDescription>
+              </Alert>
+            )}
 
           </CardContent>
         </Card>
