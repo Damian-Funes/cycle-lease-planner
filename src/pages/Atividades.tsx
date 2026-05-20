@@ -76,6 +76,7 @@ export default function Atividades() {
   const [atividades, setAtividades] = useState<Atividade[]>([]);
   const [opps, setOpps] = useState<Record<string, { titulo: string; organizacao_id: string }>>({});
   const [orgs, setOrgs] = useState<Record<string, string>>({});
+  const [pessoasMap, setPessoasMap] = useState<Record<string, { nome: string; organizacao_id: string | null }>>({});
   const [loading, setLoading] = useState(true);
 
   // Filtros
