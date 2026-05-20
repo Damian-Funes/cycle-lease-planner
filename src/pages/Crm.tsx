@@ -71,6 +71,29 @@ interface Oportunidade {
 
 const STORAGE_KEY = "crm.pipelineId";
 
+interface ProximaAtividade { tipo: string; data: string; }
+const ProximasAtividadesCtx = createContext<Map<string, ProximaAtividade>>(new Map());
+
+function formatProximaLabel(iso: string): { label: string; tone: "danger" | "today" | "future" } {
+  const now = new Date();
+  const d = new Date(iso);
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startTarget = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((startTarget - startToday) / 86400000);
+  const hhmm = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  if (d.getTime() < now.getTime() && diffDays < 0) {
+    return { label: `atrasada ${Math.abs(diffDays)}d`, tone: "danger" };
+  }
+  if (diffDays === 0) {
+    return d.getTime() < now.getTime()
+      ? { label: `atrasada hoje`, tone: "danger" }
+      : { label: `hoje ${hhmm}`, tone: "today" };
+  }
+  if (diffDays === 1) return { label: `amanhã ${hhmm}`, tone: "future" };
+  if (diffDays > 1 && diffDays <= 7) return { label: `em ${diffDays} dias`, tone: "future" };
+  return { label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }), tone: "future" };
+}
+
 /* ---------- Rotting visual map ---------- */
 const ROTTING_MAP: Record<RottingStatus, { border: string; emoji: string; label: string }> = {
   fresh:       { border: "border-l-emerald-500", emoji: "🌱", label: "Fresca" },
