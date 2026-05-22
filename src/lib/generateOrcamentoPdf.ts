@@ -317,6 +317,64 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     doc.text(split, 14, y);
   }
 
+  // ============ GARANTIA ============
+  y += 6;
+  ensureSpace(60);
+  doc.setFontSize(11);
+  doc.setTextColor(...GREEN);
+  doc.text("GARANTIA", 14, y);
+  y += 7;
+
+  doc.setFontSize(9);
+  doc.setTextColor(50);
+
+  const garantiaIntro = doc.splitTextToSize(
+    "A LS oferece garantia de 12 (doze) meses sobre o equipamento, contados a partir da data de entrega, cobrindo reparos decorrentes de defeitos comprovados de material, montagem de fábrica ou fabricação.",
+    pageW - 28
+  );
+  ensureSpace(garantiaIntro.length * 4.5 + 2);
+  doc.text(garantiaIntro, 14, y);
+  y += garantiaIntro.length * 4.5 + 2;
+
+  const garantiaCondicao = doc.splitTextToSize(
+    "A garantia está condicionada ao cumprimento integral do Plano de Manutenção LS, com revisões obrigatórias a cada 40.000 operações/ciclos do equipamento, devidamente registradas pelo cliente.",
+    pageW - 28
+  );
+  ensureSpace(garantiaCondicao.length * 4.5 + 4);
+  doc.text(garantiaCondicao, 14, y);
+  y += garantiaCondicao.length * 4.5 + 4;
+
+  ensureSpace(10);
+  doc.setTextColor(...GREEN);
+  doc.text("Não cobertos pela garantia:", 14, y);
+  y += 5;
+  doc.setTextColor(50);
+
+  const garantiaExclusoes = [
+    "Itens consumíveis e de desgaste natural (telas, peneiras, correias, filtros, vedações, mangueiras, lubrificantes, fusíveis, lâmpadas e similares).",
+    "Equipamentos eletrônicos (CLPs, IHMs, sensores, drives) e mangueiras de bombas peristálticas, que seguem a garantia do respectivo fabricante, transladada ao cliente.",
+  ];
+  garantiaExclusoes.forEach((item) => {
+    const wrapped = doc.splitTextToSize(`• ${item}`, pageW - 30);
+    ensureSpace(wrapped.length * 4.5 + 1);
+    doc.text(wrapped, 14, y);
+    y += wrapped.length * 4.5 + 1;
+  });
+
+  y += 2;
+  doc.setTextColor(100);
+  const garantiaRodape = doc.splitTextToSize(
+    "O Termo de Garantia LS completo, com todas as condições, exclusões e procedimentos de acionamento, é entregue como documento integrante desta proposta.",
+    pageW - 28
+  );
+  ensureSpace(garantiaRodape.length * 4.5);
+  doc.text(garantiaRodape, 14, y);
+  y += garantiaRodape.length * 4.5;
+  doc.setTextColor(50);
+  // ============ FIM GARANTIA ============
+
+
+
   const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
