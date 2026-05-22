@@ -2459,6 +2459,10 @@ export type Database = {
         Returns: boolean
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      pode_inserir_planta: {
+        Args: { _name: string; _user: string }
+        Returns: boolean
+      }
       pode_ver_oportunidade: {
         Args: { _opp_id: string; _user_id: string }
         Returns: boolean
@@ -2469,6 +2473,10 @@ export type Database = {
           _org_responsavel_id: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      pode_ver_planta: {
+        Args: { _path: string; _user: string }
         Returns: boolean
       }
       user_cobre_estado: {
