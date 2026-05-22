@@ -503,7 +503,6 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
   // ============ GARANTIA ============
   // Page break automático se faltar espaço (estimativa: ~65mm para a seção completa)
   const pageH = doc.internal.pageSize.getHeight();
-  const pageW = doc.internal.pageSize.getWidth();
   if (y + 65 > pageH - 15) {
     doc.addPage();
     y = 25;
