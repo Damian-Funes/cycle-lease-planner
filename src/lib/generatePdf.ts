@@ -500,6 +500,70 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
     y += 5;
   });
 
+  // ============ GARANTIA ============
+  // Page break automático se faltar espaço (estimativa: ~65mm para a seção completa)
+  const pageH = doc.internal.pageSize.getHeight();
+  if (y + 65 > pageH - 15) {
+    doc.addPage();
+    y = 25;
+  } else {
+    y += 6;
+  }
+
+  doc.setFontSize(11);
+  doc.setTextColor(...GREEN);
+  doc.text("GARANTIA", 14, y);
+  y += 7;
+
+  doc.setFontSize(9);
+  doc.setTextColor(50);
+
+  // Parágrafo 1 — período e cobertura
+  const garantiaIntro = doc.splitTextToSize(
+    "A LS oferece garantia de 12 (doze) meses sobre o equipamento, contados a partir da data de entrega, cobrindo reparos decorrentes de defeitos comprovados de material, montagem de fábrica ou fabricação.",
+    pageW - 28
+  );
+  doc.text(garantiaIntro, 14, y);
+  y += garantiaIntro.length * 4.5 + 2;
+
+  // Parágrafo 2 — condição (40.000 ciclos)
+  const garantiaCondicao = doc.splitTextToSize(
+    "A garantia está condicionada ao cumprimento integral do Plano de Manutenção LS, com revisões obrigatórias a cada 40.000 operações/ciclos do equipamento, devidamente registradas pelo cliente.",
+    pageW - 28
+  );
+  doc.text(garantiaCondicao, 14, y);
+  y += garantiaCondicao.length * 4.5 + 4;
+
+  // Subtítulo
+  doc.setFontSize(9);
+  doc.setTextColor(...GREEN);
+  doc.text("Não cobertos pela garantia:", 14, y);
+  y += 5;
+  doc.setTextColor(50);
+
+  // Bullets — usa splitTextToSize com indentação para quebra de linha consistente
+  const garantiaExclusoes = [
+    "Itens consumíveis e de desgaste natural (telas, peneiras, correias, filtros, vedações, mangueiras, lubrificantes, fusíveis, lâmpadas e similares).",
+    "Equipamentos eletrônicos (CLPs, IHMs, sensores, drives) e mangueiras de bombas peristálticas, que seguem a garantia do respectivo fabricante, transladada ao cliente.",
+  ];
+  garantiaExclusoes.forEach(item => {
+    const wrapped = doc.splitTextToSize(`• ${item}`, pageW - 30);
+    doc.text(wrapped, 14, y);
+    y += wrapped.length * 4.5 + 1;
+  });
+
+  // Nota final em itálico (cinza mais claro)
+  y += 2;
+  doc.setTextColor(100);
+  const garantiaRodape = doc.splitTextToSize(
+    "O Termo de Garantia LS completo, com todas as condições, exclusões e procedimentos de acionamento, é entregue como documento integrante desta proposta.",
+    pageW - 28
+  );
+  doc.text(garantiaRodape, 14, y);
+  y += garantiaRodape.length * 4.5;
+  doc.setTextColor(50);
+  // ============ FIM GARANTIA ============
+
   y += 6;
   doc.setFontSize(9);
   doc.text(`MOEDA: Real (R$)`, 14, y); y += 5;
