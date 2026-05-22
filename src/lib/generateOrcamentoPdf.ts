@@ -315,6 +315,7 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     const split = doc.splitTextToSize(toSentenceCase(params.observacoes), pageW - 28);
     ensureSpace(split.length * 5);
     doc.text(split, 14, y);
+    y += split.length * 5;
   }
 
   // ============ GARANTIA ============
