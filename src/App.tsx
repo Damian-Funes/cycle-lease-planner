@@ -29,6 +29,8 @@ import Reforma from "./pages/Reforma";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
 import Tipicos from "./pages/Tipicos";
 import NotFound from "./pages/NotFound";
+const Visualizador = lazy(() => import("./pages/Visualizador"));
+const VisualizadorDetalhe = lazy(() => import("./pages/VisualizadorDetalhe"));
 
 const Layouts = lazy(() => import("./pages/Layouts"));
 const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
