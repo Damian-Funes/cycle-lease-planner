@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import CrmWidgets from "@/components/CrmWidgets";
@@ -41,6 +41,13 @@ const cards = [
     icon: Package,
     to: "/catalogo",
     color: "bg-purple-500/10 text-purple-600",
+  },
+  {
+    title: "Visualizador 3D",
+    desc: "Apresentação de equipamentos em 3D",
+    icon: Box,
+    to: "/visualizador",
+    color: "bg-slate-500/10 text-slate-700",
   },
   {
     title: "Layouts",
