@@ -43,6 +43,13 @@ const cards = [
     color: "bg-purple-500/10 text-purple-600",
   },
   {
+    title: "Visualizador 3D",
+    desc: "Apresentação de equipamentos em 3D",
+    icon: Box,
+    to: "/visualizador",
+    color: "bg-slate-500/10 text-slate-700",
+  },
+  {
     title: "Layouts",
     desc: "Vista em planta dos projetos",
     icon: LayoutGrid,
