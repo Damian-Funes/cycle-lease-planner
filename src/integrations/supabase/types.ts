@@ -182,6 +182,331 @@ export type Database = {
         }
         Relationships: []
       }
+      dossie_contatos: {
+        Row: {
+          atualizado_em: string
+          cargo: string | null
+          criado_em: string
+          decisor_nivel: number | null
+          dossie_id: string
+          email: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          cargo?: string | null
+          criado_em?: string
+          decisor_nivel?: number | null
+          dossie_id: string
+          email?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          cargo?: string | null
+          criado_em?: string
+          decisor_nivel?: number | null
+          dossie_id?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossie_contatos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_contatos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dossie_equipamentos: {
+        Row: {
+          ano_aproximado: number | null
+          capacidade: string | null
+          criado_em: string
+          dossie_id: string
+          estado_conservacao:
+            | Database["public"]["Enums"]["equipamento_estado"]
+            | null
+          id: string
+          marca: string | null
+          modelo: string | null
+          observacoes: string | null
+        }
+        Insert: {
+          ano_aproximado?: number | null
+          capacidade?: string | null
+          criado_em?: string
+          dossie_id: string
+          estado_conservacao?:
+            | Database["public"]["Enums"]["equipamento_estado"]
+            | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          observacoes?: string | null
+        }
+        Update: {
+          ano_aproximado?: number | null
+          capacidade?: string | null
+          criado_em?: string
+          dossie_id?: string
+          estado_conservacao?:
+            | Database["public"]["Enums"]["equipamento_estado"]
+            | null
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          observacoes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossie_equipamentos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_equipamentos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dossie_interacoes: {
+        Row: {
+          autor_id: string | null
+          confianca_extracao: number | null
+          conteudo_bruto: string | null
+          conteudo_estruturado: Json | null
+          criada_em: string
+          dossie_id: string
+          id: string
+          mensagem_whatsapp_id: string | null
+          ocorrida_em: string
+          tipo: Database["public"]["Enums"]["interacao_tipo"]
+        }
+        Insert: {
+          autor_id?: string | null
+          confianca_extracao?: number | null
+          conteudo_bruto?: string | null
+          conteudo_estruturado?: Json | null
+          criada_em?: string
+          dossie_id: string
+          id?: string
+          mensagem_whatsapp_id?: string | null
+          ocorrida_em?: string
+          tipo: Database["public"]["Enums"]["interacao_tipo"]
+        }
+        Update: {
+          autor_id?: string | null
+          confianca_extracao?: number | null
+          conteudo_bruto?: string | null
+          conteudo_estruturado?: Json | null
+          criada_em?: string
+          dossie_id?: string
+          id?: string
+          mensagem_whatsapp_id?: string | null
+          ocorrida_em?: string
+          tipo?: Database["public"]["Enums"]["interacao_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossie_interacoes_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_interacoes_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dossie_midias: {
+        Row: {
+          criada_em: string
+          dossie_id: string
+          id: string
+          interacao_id: string | null
+          legenda: string | null
+          metadados: Json | null
+          tipo_midia: string
+          url_publica: string | null
+          url_storage: string
+        }
+        Insert: {
+          criada_em?: string
+          dossie_id: string
+          id?: string
+          interacao_id?: string | null
+          legenda?: string | null
+          metadados?: Json | null
+          tipo_midia: string
+          url_publica?: string | null
+          url_storage: string
+        }
+        Update: {
+          criada_em?: string
+          dossie_id?: string
+          id?: string
+          interacao_id?: string | null
+          legenda?: string | null
+          metadados?: Json | null
+          tipo_midia?: string
+          url_publica?: string | null
+          url_storage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossie_midias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_midias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_midias_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "dossie_interacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dossies_sementeiras: {
+        Row: {
+          ano_fundacao: number | null
+          atualizado_em: string
+          cidade: string | null
+          cnpj: string | null
+          confianca_dados: number
+          criado_em: string
+          criado_por: string | null
+          culturas: string[] | null
+          endereco: string | null
+          estado: string
+          faturamento_bucket: string | null
+          id: string
+          interesse_smartcycle: boolean | null
+          latitude: number | null
+          longitude: number | null
+          maturidade_lead: Database["public"]["Enums"]["dossie_maturidade"]
+          motivo_revisao: string | null
+          nome_fantasia: string
+          numero_funcionarios_bucket: string | null
+          observacoes: string | null
+          origem: string
+          pipedrive_enviado_em: string | null
+          pipedrive_lead_id: string | null
+          precisa_revisao: boolean
+          prioridade: Database["public"]["Enums"]["dossie_prioridade"] | null
+          razao_social: string | null
+          responsavel_id: string | null
+          status: Database["public"]["Enums"]["dossie_status"]
+          ultima_interacao_em: string | null
+          volume_anual_sacos: number | null
+          volume_eh_estimativa: boolean | null
+        }
+        Insert: {
+          ano_fundacao?: number | null
+          atualizado_em?: string
+          cidade?: string | null
+          cnpj?: string | null
+          confianca_dados?: number
+          criado_em?: string
+          criado_por?: string | null
+          culturas?: string[] | null
+          endereco?: string | null
+          estado?: string
+          faturamento_bucket?: string | null
+          id?: string
+          interesse_smartcycle?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          maturidade_lead?: Database["public"]["Enums"]["dossie_maturidade"]
+          motivo_revisao?: string | null
+          nome_fantasia: string
+          numero_funcionarios_bucket?: string | null
+          observacoes?: string | null
+          origem?: string
+          pipedrive_enviado_em?: string | null
+          pipedrive_lead_id?: string | null
+          precisa_revisao?: boolean
+          prioridade?: Database["public"]["Enums"]["dossie_prioridade"] | null
+          razao_social?: string | null
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["dossie_status"]
+          ultima_interacao_em?: string | null
+          volume_anual_sacos?: number | null
+          volume_eh_estimativa?: boolean | null
+        }
+        Update: {
+          ano_fundacao?: number | null
+          atualizado_em?: string
+          cidade?: string | null
+          cnpj?: string | null
+          confianca_dados?: number
+          criado_em?: string
+          criado_por?: string | null
+          culturas?: string[] | null
+          endereco?: string | null
+          estado?: string
+          faturamento_bucket?: string | null
+          id?: string
+          interesse_smartcycle?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          maturidade_lead?: Database["public"]["Enums"]["dossie_maturidade"]
+          motivo_revisao?: string | null
+          nome_fantasia?: string
+          numero_funcionarios_bucket?: string | null
+          observacoes?: string | null
+          origem?: string
+          pipedrive_enviado_em?: string | null
+          pipedrive_lead_id?: string | null
+          precisa_revisao?: boolean
+          prioridade?: Database["public"]["Enums"]["dossie_prioridade"] | null
+          razao_social?: string | null
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["dossie_status"]
+          ultima_interacao_em?: string | null
+          volume_anual_sacos?: number | null
+          volume_eh_estimativa?: boolean | null
+        }
+        Relationships: []
+      }
       equipamento_contidos: {
         Row: {
           created_at: string
@@ -1733,6 +2058,94 @@ export type Database = {
           },
         ]
       }
+      whatsapp_mensagens_recebidas: {
+        Row: {
+          conteudo_texto: string | null
+          de_nome: string | null
+          de_telefone: string
+          dossie_id: string | null
+          erro_processamento: string | null
+          id: string
+          interacao_id: string | null
+          latitude: number | null
+          longitude: number | null
+          midia_url_origem: string | null
+          midia_url_storage: string | null
+          payload_raw: Json
+          processada: boolean
+          processada_em: string | null
+          recebida_em: string
+          tentativas: number
+          tipo: string
+          transcricao: string | null
+          zapi_message_id: string
+        }
+        Insert: {
+          conteudo_texto?: string | null
+          de_nome?: string | null
+          de_telefone: string
+          dossie_id?: string | null
+          erro_processamento?: string | null
+          id?: string
+          interacao_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          midia_url_origem?: string | null
+          midia_url_storage?: string | null
+          payload_raw: Json
+          processada?: boolean
+          processada_em?: string | null
+          recebida_em?: string
+          tentativas?: number
+          tipo: string
+          transcricao?: string | null
+          zapi_message_id: string
+        }
+        Update: {
+          conteudo_texto?: string | null
+          de_nome?: string | null
+          de_telefone?: string
+          dossie_id?: string | null
+          erro_processamento?: string | null
+          id?: string
+          interacao_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          midia_url_origem?: string | null
+          midia_url_storage?: string | null
+          payload_raw?: Json
+          processada?: boolean
+          processada_em?: string | null
+          recebida_em?: string
+          tentativas?: number
+          tipo?: string
+          transcricao?: string | null
+          zapi_message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "dossie_interacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       oportunidades_sem_valores: {
@@ -2378,6 +2791,78 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dossie_resumo: {
+        Row: {
+          cidade: string | null
+          cnpj: string | null
+          confianca_dados: number | null
+          criado_em: string | null
+          culturas: string[] | null
+          estado: string | null
+          id: string | null
+          maturidade_lead:
+            | Database["public"]["Enums"]["dossie_maturidade"]
+            | null
+          nome_fantasia: string | null
+          precisa_revisao: boolean | null
+          prioridade: Database["public"]["Enums"]["dossie_prioridade"] | null
+          qtd_contatos: number | null
+          qtd_equipamentos: number | null
+          qtd_interacoes: number | null
+          qtd_midias: number | null
+          responsavel_id: string | null
+          status: Database["public"]["Enums"]["dossie_status"] | null
+          ultima_interacao_em: string | null
+          volume_anual_sacos: number | null
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj?: string | null
+          confianca_dados?: number | null
+          criado_em?: string | null
+          culturas?: string[] | null
+          estado?: string | null
+          id?: string | null
+          maturidade_lead?:
+            | Database["public"]["Enums"]["dossie_maturidade"]
+            | null
+          nome_fantasia?: string | null
+          precisa_revisao?: boolean | null
+          prioridade?: Database["public"]["Enums"]["dossie_prioridade"] | null
+          qtd_contatos?: never
+          qtd_equipamentos?: never
+          qtd_interacoes?: never
+          qtd_midias?: never
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["dossie_status"] | null
+          ultima_interacao_em?: string | null
+          volume_anual_sacos?: number | null
+        }
+        Update: {
+          cidade?: string | null
+          cnpj?: string | null
+          confianca_dados?: number | null
+          criado_em?: string | null
+          culturas?: string[] | null
+          estado?: string | null
+          id?: string | null
+          maturidade_lead?:
+            | Database["public"]["Enums"]["dossie_maturidade"]
+            | null
+          nome_fantasia?: string | null
+          precisa_revisao?: boolean | null
+          prioridade?: Database["public"]["Enums"]["dossie_prioridade"] | null
+          qtd_contatos?: never
+          qtd_equipamentos?: never
+          qtd_interacoes?: never
+          qtd_midias?: never
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["dossie_status"] | null
+          ultima_interacao_em?: string | null
+          volume_anual_sacos?: number | null
+        }
+        Relationships: []
+      }
       vw_layout_completo: {
         Row: {
           altura_mm: number | null
@@ -2479,6 +2964,8 @@ export type Database = {
         Args: { _path: string; _user: string }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       user_cobre_estado: {
         Args: { _estado_id: string; _user_id: string }
         Returns: boolean
@@ -2497,6 +2984,28 @@ export type Database = {
         | "operacao"
         | "viewer"
         | "agente_leitor"
+      dossie_maturidade: "frio" | "morno" | "quente" | "qualificado"
+      dossie_prioridade: "A" | "B" | "C"
+      dossie_status:
+        | "rascunho"
+        | "em_qualificacao"
+        | "qualificado"
+        | "enviado_pipedrive"
+        | "arquivado"
+      equipamento_estado: "novo" | "bom" | "usado" | "precario" | "sucata"
+      interacao_tipo:
+        | "whatsapp_texto"
+        | "whatsapp_audio"
+        | "whatsapp_foto"
+        | "whatsapp_video"
+        | "whatsapp_localizacao"
+        | "whatsapp_documento"
+        | "visita_presencial"
+        | "reuniao_video"
+        | "ligacao"
+        | "email"
+        | "evento"
+        | "nota_manual"
       tipico_tipo: "orcamento" | "aluguel"
     }
     CompositeTypes: {
@@ -2637,6 +3146,30 @@ export const Constants = {
         "operacao",
         "viewer",
         "agente_leitor",
+      ],
+      dossie_maturidade: ["frio", "morno", "quente", "qualificado"],
+      dossie_prioridade: ["A", "B", "C"],
+      dossie_status: [
+        "rascunho",
+        "em_qualificacao",
+        "qualificado",
+        "enviado_pipedrive",
+        "arquivado",
+      ],
+      equipamento_estado: ["novo", "bom", "usado", "precario", "sucata"],
+      interacao_tipo: [
+        "whatsapp_texto",
+        "whatsapp_audio",
+        "whatsapp_foto",
+        "whatsapp_video",
+        "whatsapp_localizacao",
+        "whatsapp_documento",
+        "visita_presencial",
+        "reuniao_video",
+        "ligacao",
+        "email",
+        "evento",
+        "nota_manual",
       ],
       tipico_tipo: ["orcamento", "aluguel"],
     },

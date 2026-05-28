@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,46 +142,45 @@ export default function ReformaCatalogo() {
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-6 space-y-4">
-        {editing && (
-          <Card className="border-primary">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{editing === "new" ? "Novo Item" : "Editar Item"}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Código</Label>
-                  <Input value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} placeholder="1.1.0" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Categoria</Label>
-                  <Input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} placeholder="Homogenizador" />
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <Label>Descrição</Label>
-                  <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Valor (R$)</Label>
-                  <Input type="number" min={0} step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} />
-                </div>
-                <div className="space-y-1">
-                  <Label>Ordem</Label>
-                  <Input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: e.target.value })} />
-                </div>
+        <Dialog open={!!editing} onOpenChange={(o) => { if (!o) cancelEdit(); }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editing === "new" ? "Novo Item" : "Editar Item"}</DialogTitle>
+            </DialogHeader>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Código</Label>
+                <Input value={form.codigo} onChange={(e) => setForm({ ...form, codigo: e.target.value })} placeholder="1.1.0" />
               </div>
-              <div className="flex gap-2 mt-4">
-                <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Salvar
-                </Button>
-                <Button size="sm" variant="outline" onClick={cancelEdit} className="gap-1">
-                  <X className="w-4 h-4" /> Cancelar
-                </Button>
+              <div className="space-y-1">
+                <Label>Categoria</Label>
+                <Input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} placeholder="Homogenizador" />
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Descrição</Label>
+                <Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Valor (R$)</Label>
+                <Input type="number" min={0} step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label>Ordem</Label>
+                <Input type="number" value={form.ordem} onChange={(e) => setForm({ ...form, ordem: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button size="sm" variant="outline" onClick={cancelEdit} className="gap-1">
+                <X className="w-4 h-4" /> Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Salvar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
