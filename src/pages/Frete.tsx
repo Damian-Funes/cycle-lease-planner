@@ -24,21 +24,18 @@ type Resultado = {
 };
 
 function extractValorRotasBrasil(api: any): number {
-  // Tenta vários campos comuns do retorno da API
-  const candidatos = [
-    api?.valorRotasBrasil,
-    api?.valor_total,
-    api?.valorTotal,
-    api?.resumo?.valorTotal,
-    api?.resumo?.valor_total,
-    (Number(api?.pedagio?.valor_total ?? api?.pedagio ?? 0) +
-      Number(api?.combustivel?.valor_total ?? api?.combustivel ?? 0)) || undefined,
-  ];
-  for (const c of candidatos) {
-    const n = Number(c);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return 0;
+  const rota = api?.rotas?.[0] ?? api;
+  const tabela = rota?.tabelaFrete ?? {};
+  const frete = Number(
+    tabela.geral ?? tabela.granelSolido ?? tabela.granelLiquido ?? 0,
+  );
+  const pedagio = Number(rota?.valorPedagio ?? 0);
+  const combustivel = Number(rota?.valorCombustivel);
+  const total =
+    (Number.isFinite(frete) ? frete : 0) +
+    (Number.isFinite(pedagio) ? pedagio : 0) +
+    (Number.isFinite(combustivel) ? combustivel : 0);
+  return total > 0 ? total : 0;
 }
 
 type Ponto = { endereco: string; lat?: number; lng?: number };
