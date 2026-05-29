@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useBrasilApiCnpj } from "@/hooks/useBrasilApiCnpj";
-import { formatCnpj, onlyDigits } from "@/lib/cnpj";
+import { formatCnpj, formatCpfCnpj, onlyDigits } from "@/lib/cnpj";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
