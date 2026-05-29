@@ -23,14 +23,26 @@ type Resultado = {
   valorFinal: number;
 };
 
+const PRECO_COMBUSTIVEL = 7.25;
+const CONSUMO = 2.5;
+
+function getRotaPrincipal(api: any) {
+  return api?.rotas?.[0] ?? api;
+}
+
 function extractValorRotasBrasil(api: any): number {
-  const rota = api?.rotas?.[0] ?? api;
+  const rota = getRotaPrincipal(api);
   const tabela = rota?.tabelaFrete ?? {};
   const frete = Number(
     tabela.geral ?? tabela.granelSolido ?? tabela.granelLiquido ?? 0,
   );
   const pedagio = Number(rota?.valorPedagio ?? 0);
-  const combustivel = Number(rota?.valorCombustivel);
+  const distancia = Number(rota?.distancia ?? 0);
+  const combustivelApi = Number(rota?.valorCombustivel);
+  const combustivelCalculado = distancia > 0 ? (distancia / CONSUMO) * PRECO_COMBUSTIVEL : 0;
+  const combustivel = Number.isFinite(combustivelApi) && combustivelApi > 0
+    ? combustivelApi
+    : combustivelCalculado;
   const total =
     (Number.isFinite(frete) ? frete : 0) +
     (Number.isFinite(pedagio) ? pedagio : 0) +
@@ -45,9 +57,6 @@ export default function Frete() {
   const [destino, setDestino] = useState<Ponto>({ endereco: "" });
   const [paradas, setParadas] = useState<Ponto[]>([]);
   const [viagens, setViagens] = useState<number>(1);
-  // Valores fixos (combinados com o usuário). Para alterar, edite aqui.
-  const PRECO_COMBUSTIVEL = 7.25; // R$/L
-  const CONSUMO = 2.5; // km/L
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [apiRaw, setApiRaw] = useState<any>(null);
@@ -82,6 +91,12 @@ export default function Frete() {
       if ((data as any)?.error) throw new Error((data as any).error);
 
       setApiRaw(data);
+      const rota = getRotaPrincipal(data);
+      if (Number(rota?.distancia ?? 0) <= 0) {
+        toast.error("A Rotas Brasil não conseguiu traçar essa rota. Tente usar endereços mais específicos, principalmente nas paradas intermediárias.");
+        return;
+      }
+
       const valorViagem = extractValorRotasBrasil(data);
       if (!valorViagem) {
         toast.error("Não foi possível extrair o valor da viagem do retorno da API.");
