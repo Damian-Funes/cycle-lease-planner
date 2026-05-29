@@ -45,6 +45,8 @@ export default function Frete() {
   const [destino, setDestino] = useState<Ponto>({ endereco: "" });
   const [paradas, setParadas] = useState<Ponto[]>([]);
   const [viagens, setViagens] = useState<number>(1);
+  const [precoCombustivel, setPrecoCombustivel] = useState<number>(6.2);
+  const [consumo, setConsumo] = useState<number>(2.5);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [apiRaw, setApiRaw] = useState<any>(null);
@@ -73,7 +75,7 @@ export default function Frete() {
         lng: p.lng,
       }));
       const { data, error } = await supabase.functions.invoke("rotas-brasil-frete", {
-        body: { pontos, eixo: 2 },
+        body: { pontos, eixo: 2, precoCombustivel, consumo },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -166,7 +168,7 @@ export default function Frete() {
               ))}
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div>
                 <Label>Quantidade de viagens</Label>
                 <Input
@@ -174,6 +176,26 @@ export default function Frete() {
                   min={1}
                   value={viagens}
                   onChange={(e) => setViagens(Math.max(1, Number(e.target.value) || 1))}
+                />
+              </div>
+              <div>
+                <Label>Preço combustível (R$/L)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={precoCombustivel}
+                  onChange={(e) => setPrecoCombustivel(Number(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <Label>Consumo (km/L)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  value={consumo}
+                  onChange={(e) => setConsumo(Number(e.target.value) || 0)}
                 />
               </div>
             </div>
