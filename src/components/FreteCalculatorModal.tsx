@@ -208,7 +208,7 @@ export default function FreteCalculatorModal({ open, onOpenChange, onConfirm, de
               <Linha label="Custo por viagem" value={brl(resultado.custoPorViagem)} />
               <Linha label="Quantidade de viagens" value={String(resultado.quantidadeViagens)} />
               <Linha label="Subtotal" value={brl(resultado.subtotal)} bold />
-              <Linha label="Acréscimo 50% (seguro + margem)" value={brl(resultado.acrescimoSeguro)} />
+              <Linha label="Acréscimo 50% (seguro)" value={brl(resultado.acrescimoSeguro)} />
               <div className="mt-3 p-3 rounded-md bg-primary/10 border border-primary/30 flex items-center justify-between">
                 <span className="font-semibold text-primary">VALOR FINAL</span>
                 <span className="text-xl font-bold text-primary">{brl(resultado.valorFinal)}</span>
