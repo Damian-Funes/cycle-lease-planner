@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import CrmWidgets from "@/components/CrmWidgets";
@@ -62,6 +62,13 @@ const cards = [
     icon: Wrench,
     to: "/reforma",
     color: "bg-rose-500/10 text-rose-600",
+  },
+  {
+    title: "Calculadora de Frete",
+    desc: "Rotas, pedágio e combustível (Rotas Brasil)",
+    icon: Truck,
+    to: "/frete",
+    color: "bg-orange-500/10 text-orange-600",
   },
   {
     title: "Organizações",
