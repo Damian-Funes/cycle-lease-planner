@@ -107,7 +107,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       form.reset({
         nome: organizacao?.nome ?? "",
         nome_fantasia: organizacao?.nome_fantasia ?? "",
-        cnpj: formatCnpj(organizacao?.cnpj ?? ""),
+        cnpj: formatCpfCnpj(organizacao?.cnpj ?? ""),
         segmento: (organizacao?.segmento ?? "") as any,
         porte: organizacao?.porte ?? "",
         regiao: organizacao?.regiao ?? "",
