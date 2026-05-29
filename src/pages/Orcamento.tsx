@@ -205,6 +205,8 @@ export default function Orcamento() {
 
 
     let numeroOrcamento = params.numeroOrcamento;
+    const isRevisao = !!savedId; // se já existe, salvar gera nova revisão (V2, V3...)
+
     if (!numeroOrcamento) {
       const year = new Date().getFullYear();
       const prefix = `ORC${year}-`;
@@ -217,10 +219,25 @@ export default function Orcamento() {
         .maybeSingle();
       let seq = 1;
       if (last?.numero_orcamento) {
-        const lastSeq = parseInt(last.numero_orcamento.replace(prefix, ""), 10);
+        const baseOnly = last.numero_orcamento.replace(/-V\d+$/i, "");
+        const lastSeq = parseInt(baseOnly.replace(prefix, ""), 10);
         if (!isNaN(lastSeq)) seq = lastSeq + 1;
       }
       numeroOrcamento = `${prefix}${String(seq).padStart(3, "0")}`;
+      setParams((prev) => ({ ...prev, numeroOrcamento: numeroOrcamento! }));
+    } else if (isRevisao) {
+      // Calcula próxima versão: busca todas as revisões com mesma base
+      const base = numeroOrcamento.replace(/-V\d+$/i, "");
+      const { data: revs } = await supabase
+        .from("orcamentos")
+        .select("numero_orcamento")
+        .or(`numero_orcamento.eq.${base},numero_orcamento.like.${base}-V%`);
+      let maxV = 1;
+      (revs || []).forEach((r: any) => {
+        const m = /-V(\d+)$/i.exec(r.numero_orcamento || "");
+        if (m) maxV = Math.max(maxV, parseInt(m[1], 10));
+      });
+      numeroOrcamento = `${base}-V${maxV + 1}`;
       setParams((prev) => ({ ...prev, numeroOrcamento: numeroOrcamento! }));
     }
 
@@ -261,11 +278,12 @@ export default function Orcamento() {
     };
 
     let error;
-    let novoId: string | null = savedId;
-    if (savedId) {
+    let novoId: string | null = isRevisao ? null : savedId;
+    if (!isRevisao && savedId) {
       const res = await supabase.from("orcamentos").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
+      // Insert: novo orçamento OU nova revisão
       const res = await supabase.from("orcamentos").insert(row as any).select("id").maybeSingle();
       error = res.error;
       if (res.data) {
@@ -320,7 +338,7 @@ export default function Orcamento() {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Orçamento salvo!",
+        title: isRevisao ? `Revisão ${numeroOrcamento} salva!` : "Orçamento salvo!",
         description: criouOpp ? "Oportunidade criada no funil Orçamentos (etapa Lead)." : undefined,
       });
     }

@@ -10,6 +10,7 @@ import {
   normalizePhone,
   normalizeCnpj,
   normalizePrazo,
+  sanitizeFilename,
 } from "./textFormat";
 
 const GREEN = [5, 150, 105] as const;
@@ -382,8 +383,9 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     addFooter(doc);
   }
 
-  const cleanClient = toTitleCase(params.clientName).replace(/[^a-zA-Z0-9]+/g, "_");
-  const fileName = `${params.numeroOrcamento || "orcamento"}-${cleanClient || "cliente"}.pdf`;
+  const cleanNumero = sanitizeFilename(params.numeroOrcamento, "orcamento");
+  const cleanClient = sanitizeFilename(toTitleCase(params.clientName), "cliente");
+  const fileName = `${cleanNumero}-${cleanClient}.pdf`;
 
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();

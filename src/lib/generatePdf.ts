@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SmartCycleParams, YearProjection, calcDivida, calcVolumeMinimoAnual } from "./smartcycle";
+import { sanitizeFilename, toTitleCase } from "./textFormat";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
@@ -574,7 +575,9 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
 
   addFooter(doc);
 
-  const fileName = `${params.numeroProposta || "proposta"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
+  const cleanNumero = sanitizeFilename(params.numeroProposta, "proposta");
+  const cleanClient = sanitizeFilename(toTitleCase(params.clientName), "cliente");
+  const fileName = `${cleanNumero}-${cleanClient}.pdf`;
   console.log("[PDF] Salvando arquivo:", fileName);
 
   // Detecta Safari (que tem problemas com blob: em iframes — WebKitBlobResource erro 1)
