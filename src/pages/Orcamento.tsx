@@ -1109,6 +1109,12 @@ export default function Orcamento() {
 
       <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} onLoadOrcamento={loadOrcamentoById} />
       <ItemAvulsoModal open={avulsoOpen} onOpenChange={setAvulsoOpen} onAdd={handleAddAvulso} />
+      <FreteCalculatorModal
+        open={freteOpen}
+        onOpenChange={setFreteOpen}
+        destinoInicial={params.localEntrega || params.clienteEndereco || ""}
+        onConfirm={(v) => update("frete", v)}
+      />
     </div>
   );
 }
