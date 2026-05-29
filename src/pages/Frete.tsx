@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -127,18 +128,18 @@ export default function Frete() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <Label>Origem</Label>
-                <Input
-                  placeholder="Ex: Maringá, PR"
+                <AddressAutocomplete
                   value={origem}
-                  onChange={(e) => setOrigem(e.target.value)}
+                  onChange={setOrigem}
+                  placeholder="Ex: Av. Marcelo Messias Busiquia, 197"
                 />
               </div>
               <div>
                 <Label>Destino</Label>
-                <Input
-                  placeholder="Ex: Curitiba, PR"
+                <AddressAutocomplete
                   value={destino}
-                  onChange={(e) => setDestino(e.target.value)}
+                  onChange={setDestino}
+                  placeholder="Ex: Curitiba, PR"
                 />
               </div>
             </div>
@@ -152,11 +153,13 @@ export default function Frete() {
               </div>
               {paradas.map((p, i) => (
                 <div key={i} className="flex gap-2">
-                  <Input
-                    placeholder={`Parada ${i + 1}`}
-                    value={p}
-                    onChange={(e) => updParada(i, e.target.value)}
-                  />
+                  <div className="flex-1">
+                    <AddressAutocomplete
+                      value={p}
+                      onChange={(v) => updParada(i, v)}
+                      placeholder={`Parada ${i + 1}`}
+                    />
+                  </div>
                   <Button type="button" variant="ghost" size="icon" onClick={() => rmParada(i)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
