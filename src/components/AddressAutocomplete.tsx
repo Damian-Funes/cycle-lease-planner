@@ -10,7 +10,7 @@ type Suggestion = {
 
 type Props = {
   value: string;
-  onChange: (v: string) => void;
+  onChange: (v: string, coords?: { lat: number; lng: number }) => void;
   placeholder?: string;
   autoFocus?: boolean;
 };
@@ -107,13 +107,15 @@ export default function AddressAutocomplete({ value, onChange, placeholder, auto
       setLoading(true);
       const { Place } = await (window as any).google.maps.importLibrary("places");
       const place = new Place({ id: s.placeId, requestedLanguage: "pt-BR" });
-      await place.fetchFields({ fields: ["formattedAddress"] });
+      await place.fetchFields({ fields: ["formattedAddress", "location"] });
       const full = place.formattedAddress || `${s.primary}, ${s.secondary}`.trim();
+      const loc = place.location;
+      const coords = loc ? { lat: loc.lat(), lng: loc.lng() } : undefined;
       skipFetchRef.current = true;
       setQuery(full);
-      onChange(full);
+      onChange(full, coords);
       setOpen(false);
-      sessionTokenRef.current = null; // encerra a sessão (cobrança)
+      sessionTokenRef.current = null;
     } catch {
       const fallback = `${s.primary}, ${s.secondary}`.trim();
       skipFetchRef.current = true;

@@ -41,22 +41,24 @@ function extractValorRotasBrasil(api: any): number {
   return 0;
 }
 
+type Ponto = { endereco: string; lat?: number; lng?: number };
+
 export default function Frete() {
-  const [origem, setOrigem] = useState("Av. Marcelo Messias Busiquia, 197");
-  const [destino, setDestino] = useState("");
-  const [paradas, setParadas] = useState<string[]>([]);
+  const [origem, setOrigem] = useState<Ponto>({ endereco: "Av. Marcelo Messias Busiquia, 197" });
+  const [destino, setDestino] = useState<Ponto>({ endereco: "" });
+  const [paradas, setParadas] = useState<Ponto[]>([]);
   const [viagens, setViagens] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [apiRaw, setApiRaw] = useState<any>(null);
 
-  const addParada = () => setParadas((p) => [...p, ""]);
-  const updParada = (i: number, v: string) =>
-    setParadas((p) => p.map((x, idx) => (idx === i ? v : x)));
+  const addParada = () => setParadas((p) => [...p, { endereco: "" }]);
+  const updParada = (i: number, endereco: string, coords?: { lat: number; lng: number }) =>
+    setParadas((p) => p.map((x, idx) => (idx === i ? { endereco, lat: coords?.lat, lng: coords?.lng } : x)));
   const rmParada = (i: number) => setParadas((p) => p.filter((_, idx) => idx !== i));
 
   async function calcular() {
-    if (!origem.trim() || !destino.trim()) {
+    if (!origem.endereco.trim() || !destino.endereco.trim()) {
       toast.error("Informe origem e destino.");
       return;
     }
@@ -68,13 +70,13 @@ export default function Frete() {
     setResultado(null);
     setApiRaw(null);
     try {
+      const pontos = [origem, ...paradas.filter((p) => p.endereco.trim()), destino].map((p) => ({
+        endereco: p.endereco.trim(),
+        lat: p.lat,
+        lng: p.lng,
+      }));
       const { data, error } = await supabase.functions.invoke("rotas-brasil-frete", {
-        body: {
-          origem: origem.trim(),
-          destino: destino.trim(),
-          paradas: paradas.map((p) => p.trim()).filter(Boolean),
-          eixo: 2,
-        },
+        body: { pontos, eixo: 2 },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -129,16 +131,16 @@ export default function Frete() {
               <div>
                 <Label>Origem</Label>
                 <AddressAutocomplete
-                  value={origem}
-                  onChange={setOrigem}
+                  value={origem.endereco}
+                  onChange={(endereco, coords) => setOrigem({ endereco, lat: coords?.lat, lng: coords?.lng })}
                   placeholder="Ex: Av. Marcelo Messias Busiquia, 197"
                 />
               </div>
               <div>
                 <Label>Destino</Label>
                 <AddressAutocomplete
-                  value={destino}
-                  onChange={setDestino}
+                  value={destino.endereco}
+                  onChange={(endereco, coords) => setDestino({ endereco, lat: coords?.lat, lng: coords?.lng })}
                   placeholder="Ex: Curitiba, PR"
                 />
               </div>
@@ -155,8 +157,8 @@ export default function Frete() {
                 <div key={i} className="flex gap-2">
                   <div className="flex-1">
                     <AddressAutocomplete
-                      value={p}
-                      onChange={(v) => updParada(i, v)}
+                      value={p.endereco}
+                      onChange={(v, coords) => updParada(i, v, coords)}
                       placeholder={`Parada ${i + 1}`}
                     />
                   </div>
