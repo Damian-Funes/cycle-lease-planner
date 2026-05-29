@@ -58,7 +58,7 @@ function addHeader(doc: jsPDF, params: SmartCycleParams, logoDataUrl: string | n
   ];
   if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${params.clienteEndereco}`);
   if (params.clienteTelefone) rightLines.push(`TEL: ${params.clienteTelefone}`);
-  if (params.clienteCnpj) rightLines.push(`CNPJ: ${params.clienteCnpj}`);
+  if (params.clienteCnpj) rightLines.push(`${cpfCnpjLabel(params.clienteCnpj)}: ${normalizeCnpj(params.clienteCnpj)}`);
   if (params.clienteEmail) rightLines.push(`E-MAIL: ${params.clienteEmail}`);
 
   autoTable(doc, {
