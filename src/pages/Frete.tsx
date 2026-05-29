@@ -108,8 +108,8 @@ export default function Frete() {
       const subtotal = custoViagens + comissao;
       const somaComSeguro = subtotal * 1.5;
       const acrescimoSeguro = somaComSeguro - subtotal;
-      const valorFinal = somaComSeguro * 1.2;
-      const acrescimoLucro = valorFinal - somaComSeguro;
+      const valorFinal = somaComSeguro;
+      const acrescimoLucro = 0;
 
       setResultado({
         custoPorViagem: valorViagem,
