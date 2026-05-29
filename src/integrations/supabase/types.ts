@@ -1068,6 +1068,87 @@ export type Database = {
           },
         ]
       }
+      leads_rd: {
+        Row: {
+          cargo: string | null
+          cidade: string | null
+          conversion_identifier: string | null
+          convertido_em: string | null
+          convertido_por: string | null
+          created_at: string
+          criado_em_rd: string | null
+          descartado_motivo: string | null
+          email: string | null
+          empresa: string | null
+          estado: string | null
+          id: string
+          nome: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          payload: Json | null
+          rd_uuid: string | null
+          recebido_em: string
+          status: string
+          telefone: string | null
+          updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          cidade?: string | null
+          conversion_identifier?: string | null
+          convertido_em?: string | null
+          convertido_por?: string | null
+          created_at?: string
+          criado_em_rd?: string | null
+          descartado_motivo?: string | null
+          email?: string | null
+          empresa?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          payload?: Json | null
+          rd_uuid?: string | null
+          recebido_em?: string
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          cidade?: string | null
+          conversion_identifier?: string | null
+          convertido_em?: string | null
+          convertido_por?: string | null
+          created_at?: string
+          criado_em_rd?: string | null
+          descartado_motivo?: string | null
+          email?: string | null
+          empresa?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          payload?: Json | null
+          rd_uuid?: string | null
+          recebido_em?: string
+          status?: string
+          telefone?: string | null
+          updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       migracao_clientes_log: {
         Row: {
           cliente_data: Json | null
@@ -1929,6 +2010,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rd_sync_log: {
+        Row: {
+          erro: string | null
+          finalizado_em: string | null
+          id: string
+          iniciado_em: string
+          origem: string
+          total_atualizados: number
+          total_novos: number
+          total_recebidos: number
+        }
+        Insert: {
+          erro?: string | null
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string
+          origem?: string
+          total_atualizados?: number
+          total_novos?: number
+          total_recebidos?: number
+        }
+        Update: {
+          erro?: string | null
+          finalizado_em?: string | null
+          id?: string
+          iniciado_em?: string
+          origem?: string
+          total_atualizados?: number
+          total_novos?: number
+          total_recebidos?: number
+        }
+        Relationships: []
       }
       tipicos: {
         Row: {
