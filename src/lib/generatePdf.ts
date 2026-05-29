@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { SmartCycleParams, YearProjection, calcDivida, calcVolumeMinimoAnual } from "./smartcycle";
+import { sanitizeFilename, toTitleCase } from "./textFormat";
 
 const GREEN = [5, 150, 105] as const;
 const WHITE = [255, 255, 255] as const;
