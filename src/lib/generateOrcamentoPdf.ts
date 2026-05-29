@@ -9,6 +9,7 @@ import {
   normalizeEmail,
   normalizePhone,
   normalizeCnpj,
+  cpfCnpjLabel,
   normalizePrazo,
   sanitizeFilename,
 } from "./textFormat";
