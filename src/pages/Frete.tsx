@@ -169,37 +169,18 @@ export default function Frete() {
               ))}
             </div>
 
-            <div className="grid sm:grid-cols-3 gap-4">
-              <div>
-                <Label>Quantidade de viagens</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={viagens}
-                  onChange={(e) => setViagens(Math.max(1, Number(e.target.value) || 1))}
-                />
-              </div>
-              <div>
-                <Label>Preço combustível (R$/L)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={precoCombustivel}
-                  onChange={(e) => setPrecoCombustivel(Number(e.target.value) || 0)}
-                />
-              </div>
-              <div>
-                <Label>Consumo (km/L)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min={0}
-                  value={consumo}
-                  onChange={(e) => setConsumo(Number(e.target.value) || 0)}
-                />
-              </div>
+            <div>
+              <Label>Quantidade de viagens</Label>
+              <Input
+                type="number"
+                min={1}
+                value={viagens}
+                onChange={(e) => setViagens(Math.max(1, Number(e.target.value) || 1))}
+              />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Combustível fixo em R$ {PRECO_COMBUSTIVEL.toFixed(2).replace('.', ',')}/L e consumo {CONSUMO.toString().replace('.', ',')} km/L. Peça para alterar se precisar.
+            </p>
 
             <Button onClick={calcular} disabled={loading} className="w-full">
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
