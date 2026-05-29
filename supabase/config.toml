@@ -1,1 +1,7 @@
 project_id = "sycqtlxoidsbsvrsvqes"
+
+[functions.rd-sync-leads]
+verify_jwt = false
+
+[functions.rd-convert-lead]
+verify_jwt = false
