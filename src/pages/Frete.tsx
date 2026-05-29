@@ -108,8 +108,8 @@ export default function Frete() {
       const subtotal = custoViagens + comissao;
       const somaComSeguro = subtotal * 1.5;
       const acrescimoSeguro = somaComSeguro - subtotal;
-      const valorFinal = somaComSeguro * 1.2;
-      const acrescimoLucro = valorFinal - somaComSeguro;
+      const valorFinal = somaComSeguro;
+      const acrescimoLucro = 0;
 
       setResultado({
         custoPorViagem: valorViagem,
@@ -219,7 +219,7 @@ export default function Frete() {
               <Linha label="Comissão do motorista (R$ 1.500 × viagens)" value={brl(resultado.comissao)} />
               <Linha label="Subtotal" value={brl(resultado.subtotal)} bold />
               <Linha label="Acréscimo 50% (seguro + margem)" value={brl(resultado.acrescimoSeguro)} />
-              <Linha label="Acréscimo 20% (lucro empresa)" value={brl(resultado.acrescimoLucro)} />
+              
               <div className="mt-4 p-4 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
                 <span className="font-semibold text-primary">VALOR FINAL DO FRETE</span>
                 <span className="text-2xl font-bold text-primary">{brl(resultado.valorFinal)}</span>
