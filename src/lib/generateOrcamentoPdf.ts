@@ -93,7 +93,7 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
   ];
   if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${toTitleCase(params.clienteEndereco)}`);
   if (params.clienteTelefone) rightLines.push(`TEL: ${normalizePhone(params.clienteTelefone)}`);
-  if (params.clienteCnpj) rightLines.push(`CNPJ: ${normalizeCnpj(params.clienteCnpj)}`);
+  if (params.clienteCnpj) rightLines.push(`${cpfCnpjLabel(params.clienteCnpj)}: ${normalizeCnpj(params.clienteCnpj)}`);
   if (params.clienteEmail) rightLines.push(`E-MAIL: ${normalizeEmail(params.clienteEmail)}`);
 
   autoTable(doc, {
