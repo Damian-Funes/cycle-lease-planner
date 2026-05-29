@@ -110,3 +110,16 @@ export function normalizePrazo(input?: string | null): string {
   if (/^\d+$/.test(s)) return `${s} dias`;
   return toSentenceCase(s);
 }
+
+/** Sanitiza string para uso como nome de arquivo (remove acentos, caracteres inválidos, normaliza espaços). */
+export function sanitizeFilename(input?: string | null, fallback = "documento"): string {
+  if (!input) return fallback;
+  const noAccents = String(input)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  const cleaned = noAccents
+    .replace(/[^a-zA-Z0-9\-_\s]/g, "")
+    .trim()
+    .replace(/\s+/g, "_");
+  return cleaned || fallback;
+}
