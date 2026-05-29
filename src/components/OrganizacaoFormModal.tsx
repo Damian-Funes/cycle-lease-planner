@@ -219,8 +219,8 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
 
   const onSubmit = (v: FormValues) => {
     const cnpjDigits = onlyDigits(v.cnpj);
-    if (cnpjDigits && cnpjDigits.length !== 14) {
-      form.setError("cnpj", { message: "CNPJ deve ter 14 dígitos" });
+    if (cnpjDigits && cnpjDigits.length !== 11 && cnpjDigits.length !== 14) {
+      form.setError("cnpj", { message: "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)" });
       return;
     }
     if (!isEdit) {
