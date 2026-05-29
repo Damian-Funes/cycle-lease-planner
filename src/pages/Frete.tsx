@@ -131,16 +131,16 @@ export default function Frete() {
               <div>
                 <Label>Origem</Label>
                 <AddressAutocomplete
-                  value={origem}
-                  onChange={setOrigem}
+                  value={origem.endereco}
+                  onChange={(endereco, coords) => setOrigem({ endereco, lat: coords?.lat, lng: coords?.lng })}
                   placeholder="Ex: Av. Marcelo Messias Busiquia, 197"
                 />
               </div>
               <div>
                 <Label>Destino</Label>
                 <AddressAutocomplete
-                  value={destino}
-                  onChange={setDestino}
+                  value={destino.endereco}
+                  onChange={(endereco, coords) => setDestino({ endereco, lat: coords?.lat, lng: coords?.lng })}
                   placeholder="Ex: Curitiba, PR"
                 />
               </div>
@@ -157,8 +157,8 @@ export default function Frete() {
                 <div key={i} className="flex gap-2">
                   <div className="flex-1">
                     <AddressAutocomplete
-                      value={p}
-                      onChange={(v) => updParada(i, v)}
+                      value={p.endereco}
+                      onChange={(v, coords) => updParada(i, v, coords)}
                       placeholder={`Parada ${i + 1}`}
                     />
                   </div>
