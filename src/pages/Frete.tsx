@@ -75,7 +75,7 @@ export default function Frete() {
         lng: p.lng,
       }));
       const { data, error } = await supabase.functions.invoke("rotas-brasil-frete", {
-        body: { pontos, eixo: 2 },
+        body: { pontos, eixo: 2, precoCombustivel, consumo },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
