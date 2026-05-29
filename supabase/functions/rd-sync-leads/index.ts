@@ -71,28 +71,53 @@ Deno.serve(async (req) => {
   log.origem = body.origem || 'cron';
 
   try {
-    if (!RD_TOKEN && !RD_API_KEY) throw new Error('Nenhum token RD configurado (RD_PUBLIC_TOKEN ou RD_API_KEY)');
+    if (!RD_TOKEN && !RD_API_KEY && !(RD_CLIENT_ID && RD_CLIENT_SECRET && RD_REFRESH_TOKEN)) {
+      throw new Error('Nenhum token RD configurado (OAuth client/secret/refresh ou RD_PUBLIC_TOKEN/RD_API_KEY)');
+    }
 
     const { data: inserted } = await supabase.from('rd_sync_log').insert(log).select('id').single();
     logId = inserted?.id ?? null;
 
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    // Tenta múltiplos endpoints + tokens
-    type Attempt = { url: string; auth: 'bearer' | 'token' | 'none'; token: string };
+    // Tenta OAuth primeiro (refresh_token -> access_token), depois fallbacks
+    const oauthToken = await getOAuthAccessToken();
+
+    type Attempt = { url: string; auth: 'bearer' | 'none'; token: string };
     const attempts: Attempt[] = [];
+    if (oauthToken) {
+      attempts.push(
+        { url: `https://api.rd.services/platform/contacts?page_size=200`, auth: 'bearer', token: oauthToken },
+        { url: `https://api.rd.services/platform/events?event_type=CONVERSION&start_date=${encodeURIComponent(since)}`, auth: 'bearer', token: oauthToken },
+      );
+    }
     if (RD_API_KEY) {
       attempts.push(
         { url: `https://api.rd.services/platform/contacts?page_size=200`, auth: 'bearer', token: RD_API_KEY },
-        { url: `https://api.rd.services/platform/conversions?updated_at_since=${encodeURIComponent(since)}`, auth: 'bearer', token: RD_API_KEY },
-        { url: `https://api.rd.services/platform/events?event_type=CONVERSION&start_date=${encodeURIComponent(since)}`, auth: 'bearer', token: RD_API_KEY },
       );
     }
     if (RD_TOKEN) {
       attempts.push(
-        { url: `https://api.rd.services/platform/conversions?updated_at_since=${encodeURIComponent(since)}`, auth: 'bearer', token: RD_TOKEN },
         { url: `https://www.rdstation.com.br/api/1.3/conversions?auth_token=${encodeURIComponent(RD_TOKEN)}&start_date=${encodeURIComponent(since.slice(0, 10))}`, auth: 'none', token: '' },
       );
+    }
+
+    let json: any = null;
+    let lastStatus = 0;
+    let lastBody = '';
+    let usedUrl = '';
+    for (const a of attempts) {
+      const headers: Record<string, string> = { Accept: 'application/json' };
+      if (a.auth === 'bearer') headers.Authorization = `Bearer ${a.token}`;
+      const r = await fetch(a.url, { headers });
+      if (r.ok) {
+        json = await r.json().catch(() => ({}));
+        usedUrl = a.url;
+        break;
+      }
+      lastStatus = r.status;
+      lastBody = (await r.text()).slice(0, 300);
+      console.log(`[rd-sync-leads] ${a.url} -> ${r.status} ${lastBody.slice(0, 120)}`);
     }
 
     let json: any = null;
