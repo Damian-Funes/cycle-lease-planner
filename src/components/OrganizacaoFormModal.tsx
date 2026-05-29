@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useBrasilApiCnpj } from "@/hooks/useBrasilApiCnpj";
-import { formatCnpj, onlyDigits } from "@/lib/cnpj";
+import { formatCnpj, formatCpfCnpj, onlyDigits } from "@/lib/cnpj";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -107,7 +107,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
       form.reset({
         nome: organizacao?.nome ?? "",
         nome_fantasia: organizacao?.nome_fantasia ?? "",
-        cnpj: formatCnpj(organizacao?.cnpj ?? ""),
+        cnpj: formatCpfCnpj(organizacao?.cnpj ?? ""),
         segmento: (organizacao?.segmento ?? "") as any,
         porte: organizacao?.porte ?? "",
         regiao: organizacao?.regiao ?? "",
@@ -140,6 +140,15 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
   const lastToastedStatus = useRef<string>("");
 
   useEffect(() => {
+    // Se for CPF (11 dígitos), não buscamos em API — o comercial preenche manualmente
+    const digitsNow = onlyDigits(cnpjValue);
+    if (digitsNow.length === 11) {
+      if (lastToastedStatus.current !== "cpf") {
+        toast("CPF detectado — preencha os dados manualmente");
+        lastToastedStatus.current = "cpf";
+      }
+      return;
+    }
     if (cnpjStatus === "not_found") {
       if (lastToastedStatus.current !== "not_found") {
         toast("CNPJ não encontrado, preencha manualmente");
@@ -210,8 +219,8 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
 
   const onSubmit = (v: FormValues) => {
     const cnpjDigits = onlyDigits(v.cnpj);
-    if (cnpjDigits && cnpjDigits.length !== 14) {
-      form.setError("cnpj", { message: "CNPJ deve ter 14 dígitos" });
+    if (cnpjDigits && cnpjDigits.length !== 11 && cnpjDigits.length !== 14) {
+      form.setError("cnpj", { message: "Informe um CPF (11 dígitos) ou CNPJ (14 dígitos)" });
       return;
     }
     if (!isEdit) {
@@ -307,15 +316,15 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             <Input {...form.register("nome_fantasia")} />
           </div>
           <div className="space-y-1">
-            <Label>CNPJ</Label>
+            <Label>CPF / CNPJ</Label>
             <div className="relative">
               <Input
                 value={form.watch("cnpj") || ""}
                 onChange={(e) => {
-                  form.setValue("cnpj", formatCnpj(e.target.value));
+                  form.setValue("cnpj", formatCpfCnpj(e.target.value));
                   if (form.formState.errors.cnpj) form.clearErrors("cnpj");
                 }}
-                placeholder="00.000.000/0000-00"
+                placeholder="CPF ou CNPJ"
                 maxLength={18}
                 inputMode="numeric"
                 className={cnpjLoading ? "pr-9" : ""}
@@ -324,6 +333,9 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
                 <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
               )}
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              CNPJ busca dados automaticamente. CPF (produtor rural) preencha manualmente.
+            </p>
             {form.formState.errors.cnpj && (
               <p className="text-xs text-destructive">{form.formState.errors.cnpj.message as string}</p>
             )}

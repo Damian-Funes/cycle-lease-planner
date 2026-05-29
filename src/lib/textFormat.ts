@@ -94,12 +94,19 @@ export function normalizePhone(input?: string | null): string {
   return String(input).trim();
 }
 
-/** Formata CNPJ. */
+/** Formata CNPJ (14 dígitos) ou CPF (11 dígitos). */
 export function normalizeCnpj(input?: string | null): string {
   if (!input) return "";
   const d = String(input).replace(/\D/g, "");
-  if (d.length !== 14) return String(input).trim();
-  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  return String(input).trim();
+}
+
+/** Retorna o rótulo apropriado ("CPF" ou "CNPJ") com base no número de dígitos. */
+export function cpfCnpjLabel(input?: string | null): "CPF" | "CNPJ" {
+  const d = String(input ?? "").replace(/\D/g, "");
+  return d.length === 11 ? "CPF" : "CNPJ";
 }
 
 /** Garante "X dias" se vier só número. */
