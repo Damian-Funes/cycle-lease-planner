@@ -986,14 +986,19 @@ export default function Orcamento() {
               </div>
               <div className="space-y-1.5">
                 <Label>Frete</Label>
-                <Input
-                  inputMode="decimal"
-                  value={fmtBRL(params.frete)}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    update("frete", digits ? Number(digits) / 100 : 0);
-                  }}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    inputMode="decimal"
+                    value={fmtBRL(params.frete)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      update("frete", digits ? Number(digits) / 100 : 0);
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={() => setFreteOpen(true)} className="shrink-0">
+                    Calcular
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="bg-muted/30 rounded-lg p-4 space-y-2 text-sm self-start">
