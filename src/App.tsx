@@ -81,6 +81,7 @@ const App = () => (
               <Route path="/tipicos" element={<ProtectedRoute><Tipicos /></ProtectedRoute>} />
               <Route path="/visualizador" element={<ProtectedRoute><Visualizador /></ProtectedRoute>} />
               <Route path="/visualizador/:equipamentoId" element={<ProtectedRoute><VisualizadorDetalhe /></ProtectedRoute>} />
+              <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
               <Route path="/reforma/catalogo" element={<ProtectedRoute><RequireRole roles={["admin"]}><ReformaCatalogo /></RequireRole></ProtectedRoute>} />
               <Route path="/admin/usuarios" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminUsuarios /></RequireRole></ProtectedRoute>} />
               <Route path="/admin/pipelines" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><AdminPipelines /></RequireRole></ProtectedRoute>} />
