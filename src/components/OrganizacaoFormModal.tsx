@@ -140,6 +140,15 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
   const lastToastedStatus = useRef<string>("");
 
   useEffect(() => {
+    // Se for CPF (11 dígitos), não buscamos em API — o comercial preenche manualmente
+    const digitsNow = onlyDigits(cnpjValue);
+    if (digitsNow.length === 11) {
+      if (lastToastedStatus.current !== "cpf") {
+        toast("CPF detectado — preencha os dados manualmente");
+        lastToastedStatus.current = "cpf";
+      }
+      return;
+    }
     if (cnpjStatus === "not_found") {
       if (lastToastedStatus.current !== "not_found") {
         toast("CNPJ não encontrado, preencha manualmente");
