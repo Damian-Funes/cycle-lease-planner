@@ -168,7 +168,7 @@ export default function Frete() {
               ))}
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div>
                 <Label>Quantidade de viagens</Label>
                 <Input
@@ -176,6 +176,26 @@ export default function Frete() {
                   min={1}
                   value={viagens}
                   onChange={(e) => setViagens(Math.max(1, Number(e.target.value) || 1))}
+                />
+              </div>
+              <div>
+                <Label>Preço combustível (R$/L)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={precoCombustivel}
+                  onChange={(e) => setPrecoCombustivel(Number(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <Label>Consumo (km/L)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  value={consumo}
+                  onChange={(e) => setConsumo(Number(e.target.value) || 0)}
                 />
               </div>
             </div>
