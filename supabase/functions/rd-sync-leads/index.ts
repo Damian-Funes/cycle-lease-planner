@@ -55,24 +55,46 @@ Deno.serve(async (req) => {
     // Janela: últimas 24h (cron de hora em hora — pega com folga)
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    // Endpoint público legado: lista contatos atualizados
-    // GET https://api.rd.services/platform/contacts ?? legado usa /api/1.3/conversions com auth_token
-    const url = `https://api.rd.services/platform/conversions?updated_at_since=${encodeURIComponent(since)}`;
-    const resp = await fetch(url, {
-      headers: { Authorization: `Bearer ${RD_TOKEN}`, Accept: 'application/json' },
-    });
+    // Tenta múltiplos endpoints (token público legado e v2 Bearer)
+    const endpoints = [
+      `https://api.rd.services/platform/conversions?updated_at_since=${encodeURIComponent(since)}`,
+      `https://api.rd.services/platform/contacts?auth_token=${encodeURIComponent(RD_TOKEN)}`,
+      `https://www.rdstation.com.br/api/1.3/conversions?auth_token=${encodeURIComponent(RD_TOKEN)}&start_date=${encodeURIComponent(since.slice(0, 10))}`,
+    ];
 
-    if (!resp.ok) {
-      // Fallback para API legada v1.3 (auth_token na query)
-      const legacyUrl = `https://api.rd.services/platform/contacts?auth_token=${encodeURIComponent(RD_TOKEN)}`;
-      const r2 = await fetch(legacyUrl);
-      if (!r2.ok) {
-        const txt = await resp.text();
-        throw new Error(`RD API ${resp.status}: ${txt.slice(0, 500)}`);
+    let json: any = null;
+    let lastStatus = 0;
+    let lastBody = '';
+    for (const url of endpoints) {
+      const isBearer = !url.includes('auth_token=');
+      const r = await fetch(url, {
+        headers: isBearer
+          ? { Authorization: `Bearer ${RD_TOKEN}`, Accept: 'application/json' }
+          : { Accept: 'application/json' },
+      });
+      if (r.ok) {
+        json = await r.json().catch(() => ({}));
+        break;
       }
+      lastStatus = r.status;
+      lastBody = (await r.text()).slice(0, 300);
     }
 
-    const json = await resp.json().catch(() => ({}));
+    if (!json) {
+      const msg = `RD API indisponível (último status ${lastStatus}): ${lastBody}`;
+      console.error('[rd-sync-leads]', msg);
+      if (logId) {
+        await supabase.from('rd_sync_log').update({
+          finalizado_em: new Date().toISOString(),
+          erro: msg,
+        }).eq('id', logId);
+      }
+      return new Response(
+        JSON.stringify({ ok: false, error: msg, fallback: true, recebidos: 0, novos: 0, atualizados: 0 }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const contacts: RDContact[] = json.conversions || json.contacts || json.events || (Array.isArray(json) ? json : []);
 
     let novos = 0;
