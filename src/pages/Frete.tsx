@@ -45,8 +45,9 @@ export default function Frete() {
   const [destino, setDestino] = useState<Ponto>({ endereco: "" });
   const [paradas, setParadas] = useState<Ponto[]>([]);
   const [viagens, setViagens] = useState<number>(1);
-  const [precoCombustivel, setPrecoCombustivel] = useState<number>(6.2);
-  const [consumo, setConsumo] = useState<number>(2.5);
+  // Valores fixos (combinados com o usuário). Para alterar, edite aqui.
+  const PRECO_COMBUSTIVEL = 7.25; // R$/L
+  const CONSUMO = 2.5; // km/L
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [apiRaw, setApiRaw] = useState<any>(null);
