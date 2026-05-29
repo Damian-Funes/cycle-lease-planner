@@ -14,6 +14,7 @@ import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import ItemAvulsoModal from "@/components/ItemAvulsoModal";
+import FreteCalculatorModal from "@/components/FreteCalculatorModal";
 import AppHeader from "@/components/AppHeader";
 import SeletorOrganizacao from "@/components/SeletorOrganizacao";
 import FormaPagamentoSelector from "@/components/FormaPagamentoSelector";
@@ -40,6 +41,7 @@ export default function Orcamento() {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [avulsoOpen, setAvulsoOpen] = useState(false);
+  const [freteOpen, setFreteOpen] = useState(false);
   const [clientNameError, setClientNameError] = useState(false);
   const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -985,14 +987,19 @@ export default function Orcamento() {
               </div>
               <div className="space-y-1.5">
                 <Label>Frete</Label>
-                <Input
-                  inputMode="decimal"
-                  value={fmtBRL(params.frete)}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "");
-                    update("frete", digits ? Number(digits) / 100 : 0);
-                  }}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    inputMode="decimal"
+                    value={fmtBRL(params.frete)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      update("frete", digits ? Number(digits) / 100 : 0);
+                    }}
+                  />
+                  <Button type="button" variant="outline" onClick={() => setFreteOpen(true)} className="shrink-0">
+                    Calcular
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="bg-muted/30 rounded-lg p-4 space-y-2 text-sm self-start">
@@ -1102,6 +1109,12 @@ export default function Orcamento() {
 
       <PropostasUnificadasModal open={modalOpen} onOpenChange={setModalOpen} onLoadOrcamento={loadOrcamentoById} />
       <ItemAvulsoModal open={avulsoOpen} onOpenChange={setAvulsoOpen} onAdd={handleAddAvulso} />
+      <FreteCalculatorModal
+        open={freteOpen}
+        onOpenChange={setFreteOpen}
+        destinoInicial={params.localEntrega || params.clienteEndereco || ""}
+        onConfirm={(v) => update("frete", v)}
+      />
     </div>
   );
 }
