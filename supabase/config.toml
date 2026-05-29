@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.rd-convert-lead]
 verify_jwt = false
+
+[functions.rotas-brasil-frete]
+verify_jwt = false
