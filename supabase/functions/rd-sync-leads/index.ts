@@ -120,24 +120,6 @@ Deno.serve(async (req) => {
       console.log(`[rd-sync-leads] ${a.url} -> ${r.status} ${lastBody.slice(0, 120)}`);
     }
 
-    let json: any = null;
-    let lastStatus = 0;
-    let lastBody = '';
-    let usedUrl = '';
-    for (const a of attempts) {
-      const headers: Record<string, string> = { Accept: 'application/json' };
-      if (a.auth === 'bearer') headers.Authorization = `Bearer ${a.token}`;
-      const r = await fetch(a.url, { headers });
-      if (r.ok) {
-        json = await r.json().catch(() => ({}));
-        usedUrl = a.url;
-        break;
-      }
-      lastStatus = r.status;
-      lastBody = (await r.text()).slice(0, 300);
-      console.log(`[rd-sync-leads] ${a.url} -> ${r.status} ${lastBody.slice(0, 120)}`);
-    }
-
     if (!json) {
       const msg = `RD API indisponível (último status ${lastStatus}): ${lastBody}`;
       console.error('[rd-sync-leads]', msg);
