@@ -85,6 +85,13 @@ const cards = [
     color: "bg-emerald-500/10 text-emerald-600",
   },
   {
+    title: "Leads",
+    desc: "Leads do site (RD Station)",
+    icon: Inbox,
+    to: "/leads",
+    color: "bg-pink-500/10 text-pink-600",
+  },
+  {
     title: "Atividades",
     desc: "Sua inbox de tarefas e follow-ups",
     icon: CheckSquare,
