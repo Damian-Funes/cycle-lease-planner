@@ -338,7 +338,7 @@ export default function Orcamento() {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Orçamento salvo!",
+        title: isRevisao ? `Revisão ${numeroOrcamento} salva!` : "Orçamento salvo!",
         description: criouOpp ? "Oportunidade criada no funil Orçamentos (etapa Lead)." : undefined,
       });
     }
