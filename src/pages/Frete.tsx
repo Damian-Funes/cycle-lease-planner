@@ -41,7 +41,7 @@ function extractValorRotasBrasil(api: any): number {
 }
 
 export default function Frete() {
-  const [origem, setOrigem] = useState("");
+  const [origem, setOrigem] = useState("Av. Marcelo Messias Busiquia, 197");
   const [destino, setDestino] = useState("");
   const [paradas, setParadas] = useState<string[]>([]);
   const [viagens, setViagens] = useState<number>(1);
