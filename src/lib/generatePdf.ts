@@ -575,7 +575,9 @@ export async function generateProposalPdf(params: SmartCycleParams, projection: 
 
   addFooter(doc);
 
-  const fileName = `${params.numeroProposta || "proposta"}-${params.clientName || "cliente"}.pdf`.replace(/\s+/g, "_");
+  const cleanNumero = sanitizeFilename(params.numeroProposta, "proposta");
+  const cleanClient = sanitizeFilename(toTitleCase(params.clientName), "cliente");
+  const fileName = `${cleanNumero}-${cleanClient}.pdf`;
   console.log("[PDF] Salvando arquivo:", fileName);
 
   // Detecta Safari (que tem problemas com blob: em iframes — WebKitBlobResource erro 1)
