@@ -2,6 +2,11 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
 const GMAPS_GATEWAY = 'https://connector-gateway.lovable.dev/google_maps';
 
+function toRotasBrasilNumber(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '';
+  return value.toFixed(2);
+}
+
 async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
   const lovKey = Deno.env.get('LOVABLE_API_KEY');
   const gmapsKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
@@ -65,9 +70,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Rotas Brasil /coordenadas/: pontos = "lat,lng;lat,lng;..."
+    // Rotas Brasil /coordenadas/: pontos = "lng,lat;lng,lat;..."
     const pontosStr = pontos
-      .map((p) => `${(p.lat as number).toFixed(6)},${(p.lng as number).toFixed(6)}`)
+      .map((p) => `${(p.lng as number).toFixed(6)},${(p.lat as number).toFixed(6)}`)
       .join(';');
 
     const url = new URL('http://rotasbrasil.com.br/apiRotas/coordenadas/');
@@ -76,8 +81,10 @@ Deno.serve(async (req) => {
     url.searchParams.set('eixo', String(eixo));
     url.searchParams.set('paradas', 'true');
     url.searchParams.set('tabela', 'a');
-    if (precoCombustivel > 0) url.searchParams.set('precoCombustivel', String(precoCombustivel));
-    if (consumo > 0) url.searchParams.set('consumo', String(consumo));
+    const precoCombustivelFormatado = toRotasBrasilNumber(precoCombustivel);
+    const consumoFormatado = toRotasBrasilNumber(consumo);
+    if (precoCombustivelFormatado) url.searchParams.set('combustivel', precoCombustivelFormatado);
+    if (consumoFormatado) url.searchParams.set('consumo', consumoFormatado);
     url.searchParams.set('token', token);
 
     const resp = await fetch(url.toString(), { method: 'GET' });
