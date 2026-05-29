@@ -104,14 +104,15 @@ export default function FreteCalculatorModal({ open, onOpenChange, onConfirm, de
         return;
       }
 
-      const custoViagens = valorViagem * viagens;
-      const comissao = 1500 * viagens;
-      const subtotal = custoViagens + comissao;
+      const custoPorViagem = valorViagem + 1500; // comissão embutida (não exibida)
+      const custoViagens = custoPorViagem * viagens;
+      const comissao = 0;
+      const subtotal = custoViagens;
       const valorFinal = subtotal * 1.5;
       const acrescimoSeguro = valorFinal - subtotal;
 
       setResultado({
-        custoPorViagem: valorViagem,
+        custoPorViagem,
         quantidadeViagens: viagens,
         custoViagens,
         comissao,
