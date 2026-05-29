@@ -40,6 +40,7 @@ export default function Orcamento() {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [avulsoOpen, setAvulsoOpen] = useState(false);
+  const [freteOpen, setFreteOpen] = useState(false);
   const [clientNameError, setClientNameError] = useState(false);
   const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
