@@ -76,6 +76,8 @@ Deno.serve(async (req) => {
     url.searchParams.set('eixo', String(eixo));
     url.searchParams.set('paradas', 'true');
     url.searchParams.set('tabela', 'a');
+    if (precoCombustivel > 0) url.searchParams.set('precoCombustivel', String(precoCombustivel));
+    if (consumo > 0) url.searchParams.set('consumo', String(consumo));
     url.searchParams.set('token', token);
 
     const resp = await fetch(url.toString(), { method: 'GET' });
