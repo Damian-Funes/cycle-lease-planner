@@ -316,15 +316,15 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
             <Input {...form.register("nome_fantasia")} />
           </div>
           <div className="space-y-1">
-            <Label>CNPJ</Label>
+            <Label>CPF / CNPJ</Label>
             <div className="relative">
               <Input
                 value={form.watch("cnpj") || ""}
                 onChange={(e) => {
-                  form.setValue("cnpj", formatCnpj(e.target.value));
+                  form.setValue("cnpj", formatCpfCnpj(e.target.value));
                   if (form.formState.errors.cnpj) form.clearErrors("cnpj");
                 }}
-                placeholder="00.000.000/0000-00"
+                placeholder="CPF ou CNPJ"
                 maxLength={18}
                 inputMode="numeric"
                 className={cnpjLoading ? "pr-9" : ""}
@@ -333,6 +333,9 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
                 <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
               )}
             </div>
+            <p className="text-[11px] text-muted-foreground">
+              CNPJ busca dados automaticamente. CPF (produtor rural) preencha manualmente.
+            </p>
             {form.formState.errors.cnpj && (
               <p className="text-xs text-destructive">{form.formState.errors.cnpj.message as string}</p>
             )}
