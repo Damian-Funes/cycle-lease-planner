@@ -3,8 +3,31 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const RD_TOKEN = Deno.env.get('RD_PUBLIC_TOKEN');
 const RD_API_KEY = Deno.env.get('RD_API_KEY');
+const RD_CLIENT_ID = Deno.env.get('RD_CLIENT_ID');
+const RD_CLIENT_SECRET = Deno.env.get('RD_CLIENT_SECRET');
+const RD_REFRESH_TOKEN = Deno.env.get('RD_REFRESH_TOKEN');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+async function getOAuthAccessToken(): Promise<string | null> {
+  if (!RD_CLIENT_ID || !RD_CLIENT_SECRET || !RD_REFRESH_TOKEN) return null;
+  const r = await fetch('https://api.rd.services/auth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id: RD_CLIENT_ID,
+      client_secret: RD_CLIENT_SECRET,
+      refresh_token: RD_REFRESH_TOKEN,
+    }),
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    console.error('[rd-sync-leads] OAuth refresh falhou:', r.status, t.slice(0, 300));
+    return null;
+  }
+  const j = await r.json();
+  return j.access_token || null;
+}
 
 // Endpoint legado público do RD Marketing: retorna conversões (leads de formulários)
 // Doc: https://developers.rdstation.com/reference/post_platform-conversions
