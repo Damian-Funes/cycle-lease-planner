@@ -26,6 +26,8 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const eixo = body.eixo ?? 2;
+    const precoCombustivel = Number(body.precoCombustivel) || 0;
+    const consumo = Number(body.consumo) || 0;
 
     // Aceita o novo formato { pontos: [{endereco, lat?, lng?}] } ou o antigo {origem, destino, paradas}
     let pontos: Array<{ endereco: string; lat?: number; lng?: number }> = [];
