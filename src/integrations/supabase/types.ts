@@ -2922,8 +2922,43 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_ultima_sessao_telefone: {
+        Row: {
+          cidade: string | null
+          de_telefone: string | null
+          dossie_id: string | null
+          nome_fantasia: string | null
+          recebida_em: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      buscar_dossies_similares: {
+        Args: { limite?: number; texto_busca: string }
+        Returns: {
+          cidade: string
+          estado: string
+          id: string
+          nome_fantasia: string
+          similaridade: number
+        }[]
+      }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
       fn_proximo_comercial_para_estado: {
         Args: { _estado_id: string }
