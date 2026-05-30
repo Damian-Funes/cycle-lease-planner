@@ -229,12 +229,6 @@ export default function Frete() {
           </Card>
         )}
 
-        {apiRaw && (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-muted-foreground">Ver retorno bruto da API</summary>
-            <pre className="mt-2 p-3 bg-muted rounded overflow-auto max-h-72">{JSON.stringify(apiRaw, null, 2)}</pre>
-          </details>
-        )}
       </div>
     </div>
   );
