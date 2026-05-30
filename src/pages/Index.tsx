@@ -10,7 +10,7 @@ import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import AppHeader from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -289,6 +289,9 @@ const Index = () => {
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Voltar">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">LS</span>
             </div>
