@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, Truck } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const brl = (n: number) =>
