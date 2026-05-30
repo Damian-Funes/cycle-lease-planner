@@ -135,6 +135,9 @@ export default function Frete() {
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Voltar">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <Truck className="text-primary" />
           <h1 className="text-2xl font-bold">Calculadora de Frete</h1>
         </div>
