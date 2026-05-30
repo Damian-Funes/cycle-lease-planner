@@ -7,7 +7,7 @@ function toRotasBrasilNumber(value: number): string {
   return value.toFixed(2);
 }
 
-async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
+async function geocodeGoogle(address: string): Promise<{ lat: number; lng: number } | null> {
   const lovKey = Deno.env.get('LOVABLE_API_KEY');
   const gmapsKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
   if (!lovKey || !gmapsKey) return null;
@@ -23,6 +23,23 @@ async function geocode(address: string): Promise<{ lat: number; lng: number } | 
     }
   } catch (_) { /* ignore */ }
   return null;
+}
+
+async function geocodeNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(address)}`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'crmls-frete/1.0 (contato@crmls.com.br)', 'Accept-Language': 'pt-BR' } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const first = Array.isArray(j) ? j[0] : null;
+    const lat = Number(first?.lat), lng = Number(first?.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
+async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
+  return (await geocodeGoogle(address)) ?? (await geocodeNominatim(address));
 }
 
 Deno.serve(async (req) => {
