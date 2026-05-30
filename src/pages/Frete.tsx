@@ -54,6 +54,7 @@ function extractValorRotasBrasil(api: any): number {
 type Ponto = { endereco: string; lat?: number; lng?: number };
 
 export default function Frete() {
+  const navigate = useNavigate();
   const [origem, setOrigem] = useState<Ponto>({ endereco: "Av. Marcelo Messias Busiquia, 197" });
   const [destino, setDestino] = useState<Ponto>({ endereco: "" });
   const [paradas, setParadas] = useState<Ponto[]>([]);
