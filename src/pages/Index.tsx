@@ -10,7 +10,7 @@ import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import AppHeader from "@/components/AppHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock } from "lucide-react";
+import { Settings, BarChart3, FileText, Save, FolderOpen, Loader2, Package, Lock, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
