@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, Trash2, Truck } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const brl = (n: number) =>
@@ -53,6 +54,7 @@ function extractValorRotasBrasil(api: any): number {
 type Ponto = { endereco: string; lat?: number; lng?: number };
 
 export default function Frete() {
+  const navigate = useNavigate();
   const [origem, setOrigem] = useState<Ponto>({ endereco: "Av. Marcelo Messias Busiquia, 197" });
   const [destino, setDestino] = useState<Ponto>({ endereco: "" });
   const [paradas, setParadas] = useState<Ponto[]>([]);
@@ -133,6 +135,9 @@ export default function Frete() {
     <div className="min-h-screen bg-muted/30 py-8 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Voltar">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
           <Truck className="text-primary" />
           <h1 className="text-2xl font-bold">Calculadora de Frete</h1>
         </div>
@@ -213,12 +218,8 @@ export default function Frete() {
               <CardTitle>Resultado</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Linha label="Custo por viagem (Rotas Brasil)" value={brl(resultado.custoPorViagem)} />
               <Linha label="Quantidade de viagens" value={String(resultado.quantidadeViagens)} />
-              <Linha label="Custo total das viagens" value={brl(resultado.custoViagens)} />
-              <Linha label="Comissão do motorista (R$ 1.500 × viagens)" value={brl(resultado.comissao)} />
-              <Linha label="Subtotal" value={brl(resultado.subtotal)} bold />
-              <Linha label="Acréscimo 50% (seguro + margem)" value={brl(resultado.acrescimoSeguro)} />
+
               
               <div className="mt-4 p-4 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
                 <span className="font-semibold text-primary">VALOR FINAL DO FRETE</span>
@@ -228,12 +229,6 @@ export default function Frete() {
           </Card>
         )}
 
-        {apiRaw && (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-muted-foreground">Ver retorno bruto da API</summary>
-            <pre className="mt-2 p-3 bg-muted rounded overflow-auto max-h-72">{JSON.stringify(apiRaw, null, 2)}</pre>
-          </details>
-        )}
       </div>
     </div>
   );
