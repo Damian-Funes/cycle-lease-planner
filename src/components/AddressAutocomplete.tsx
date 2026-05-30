@@ -93,7 +93,7 @@ export default function AddressAutocomplete({ value, onChange, placeholder, auto
         setSuggestions(mapped);
         setOpen(mapped.length > 0);
       } catch (e) {
-        // silencioso
+        console.error("[AddressAutocomplete]", e);
       } finally {
         if (!cancelled) setLoading(false);
       }
