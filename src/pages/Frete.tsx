@@ -218,12 +218,8 @@ export default function Frete() {
               <CardTitle>Resultado</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Linha label="Custo por viagem (Rotas Brasil)" value={brl(resultado.custoPorViagem)} />
               <Linha label="Quantidade de viagens" value={String(resultado.quantidadeViagens)} />
-              <Linha label="Custo total das viagens" value={brl(resultado.custoViagens)} />
-              <Linha label="Comissão do motorista (R$ 1.500 × viagens)" value={brl(resultado.comissao)} />
-              <Linha label="Subtotal" value={brl(resultado.subtotal)} bold />
-              <Linha label="Acréscimo 50% (seguro + margem)" value={brl(resultado.acrescimoSeguro)} />
+
               
               <div className="mt-4 p-4 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
                 <span className="font-semibold text-primary">VALOR FINAL DO FRETE</span>
