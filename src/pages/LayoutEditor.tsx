@@ -303,17 +303,87 @@ export default function LayoutEditor() {
 
   async function salvarComoTemplate(nome: string, mod: string, tipo: string) {
     if (!layout) return;
-    const { error } = await (supabase as any)
-      .from("layouts")
-      .update({ is_template: true, template_nome: nome, modelo_maquina: mod || null, tipo_instalacao: tipo || null })
-      .eq("id", layout.id);
-    if (error) {
-      toast({ title: "Erro ao salvar template", description: error.message, variant: "destructive" });
-      return;
+    try {
+      // 1) cria um NOVO layout independente, sem cliente/organização
+      const { data: novo, error: errCreate } = await (supabase as any)
+        .from("layouts")
+        .insert({
+          piso_largura_mm: layout.piso_largura_mm,
+          piso_comprimento_mm: layout.piso_comprimento_mm,
+          modelo_maquina: mod || null,
+          tipo_instalacao: tipo || null,
+          is_template: true,
+          template_nome: nome,
+          organizacao_id: null,
+          pessoa_id: null,
+          cliente: null,
+          cidade: null,
+          unidade: null,
+          observacoes: null,
+        })
+        .select("id")
+        .maybeSingle();
+      if (errCreate || !novo) throw errCreate ?? new Error("Falha ao criar template");
+      const tplId = novo.id as string;
+
+      // 2) copia equipamentos do layout atual para o template
+      const { data: srcItens } = await supabase
+        .from("layout_equipamentos")
+        .select("id, equipamento_id, pos_x_mm, pos_y_mm, pos_z_mm, rotacao, ordem, rotulo_customizado")
+        .eq("layout_id", layout.id)
+        .order("ordem");
+
+      let idMap = new Map<string, string>();
+      if (srcItens && srcItens.length > 0) {
+        const inserts = srcItens.map((it: any) => ({
+          layout_id: tplId,
+          equipamento_id: it.equipamento_id,
+          pos_x_mm: it.pos_x_mm,
+          pos_y_mm: it.pos_y_mm,
+          pos_z_mm: it.pos_z_mm ?? 0,
+          rotacao: it.rotacao,
+          ordem: it.ordem,
+          rotulo_customizado: it.rotulo_customizado,
+        }));
+        const { data: ins, error: insErr } = await supabase
+          .from("layout_equipamentos")
+          .insert(inserts)
+          .select("id, ordem");
+        if (insErr) throw insErr;
+        const byOrdem = new Map((ins ?? []).map((n: any) => [n.ordem, n.id]));
+        for (const it of srcItens) {
+          const nid = byOrdem.get((it as any).ordem);
+          if (nid) idMap.set((it as any).id, nid);
+        }
+      }
+
+      // 3) copia conexões
+      const { data: srcConex } = await supabase
+        .from("layout_conexoes")
+        .select("*")
+        .eq("layout_id", layout.id);
+
+      if (srcConex && srcConex.length > 0) {
+        const conexInserts = srcConex
+          .map((c: any) => {
+            const o = idMap.get(c.item_origem_id);
+            const d = idMap.get(c.item_destino_id);
+            if (!o || !d) return null;
+            const { id: _id, layout_id: _l, item_origem_id: _o, item_destino_id: _d, ...rest } = c;
+            return { ...rest, layout_id: tplId, item_origem_id: o, item_destino_id: d };
+          })
+          .filter(Boolean);
+        if (conexInserts.length > 0) {
+          await supabase.from("layout_conexoes").insert(conexInserts as any);
+        }
+      }
+
+      setSaveTemplateOpen(false);
+      toast({ title: "Template salvo!", description: "Um padrão independente foi criado a partir deste layout." });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao salvar template";
+      toast({ title: msg, variant: "destructive" });
     }
-    setLayout({ ...layout, is_template: true, template_nome: nome, modelo_maquina: mod, tipo_instalacao: tipo });
-    setSaveTemplateOpen(false);
-    toast({ title: "Template salvo com sucesso" });
   }
 
 
