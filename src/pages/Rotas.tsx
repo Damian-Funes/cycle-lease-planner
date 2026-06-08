@@ -124,6 +124,12 @@ export default function Rotas() {
             <h1 className="font-semibold">Rotas Comerciais</h1>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button variant="outline" onClick={() => geocodificar.mutate()} disabled={geocodificar.isPending}>
+                {geocodificar.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Compass className="w-4 h-4 mr-1" />}
+                Atualizar coordenadas
+              </Button>
+            )}
             <Button onClick={() => setNovoOpen(true)}><Plus className="w-4 h-4 mr-1" /> Nova Rota</Button>
             <AppHeader />
           </div>
