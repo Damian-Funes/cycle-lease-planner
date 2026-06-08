@@ -9,8 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon,
+  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon, Layers,
 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import AppHeader from "@/components/AppHeader";
 import { Layout3DCanvas, type Layout3DCanvasApi, type ViewName } from "@/components/Layout3DCanvas";
 import PlantaImage from "@/components/PlantaImage";
