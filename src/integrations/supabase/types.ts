@@ -1011,8 +1011,8 @@ export type Database = {
           modelo_maquina: string | null
           observacoes: string | null
           organizacao_id: string | null
-          origem_id: string
-          origem_tipo: string
+          origem_id: string | null
+          origem_tipo: string | null
           pessoa_id: string | null
           piso_comprimento_mm: number
           piso_imagem_opacidade: number
@@ -1035,8 +1035,8 @@ export type Database = {
           modelo_maquina?: string | null
           observacoes?: string | null
           organizacao_id?: string | null
-          origem_id: string
-          origem_tipo: string
+          origem_id?: string | null
+          origem_tipo?: string | null
           pessoa_id?: string | null
           piso_comprimento_mm?: number
           piso_imagem_opacidade?: number
@@ -1059,8 +1059,8 @@ export type Database = {
           modelo_maquina?: string | null
           observacoes?: string | null
           organizacao_id?: string | null
-          origem_id?: string
-          origem_tipo?: string
+          origem_id?: string | null
+          origem_tipo?: string | null
           pessoa_id?: string | null
           piso_comprimento_mm?: number
           piso_imagem_opacidade?: number

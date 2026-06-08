@@ -9,8 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon,
+  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon, Layers,
 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import AppHeader from "@/components/AppHeader";
 import { Layout3DCanvas, type Layout3DCanvasApi, type ViewName } from "@/components/Layout3DCanvas";
 import PlantaImage from "@/components/PlantaImage";
@@ -228,6 +232,10 @@ export default function LayoutEditor() {
   const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
+  const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
+  const [templates, setTemplates] = useState<LayoutRow[]>([]);
+  const [templateConfirm, setTemplateConfirm] = useState<LayoutRow | null>(null);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
     if (id === null) {
@@ -285,10 +293,77 @@ export default function LayoutEditor() {
       setContidosPares(paresRes as ContidoRow[]);
       await refreshItems();
       await refreshConexoes();
+      const orgId = (lay as any).organizacao_id as string | null;
+      if (orgId) {
+        const { data: org } = await supabase.from("organizacoes").select("nome, cidade").eq("id", orgId).maybeSingle();
+        if (org) setOrgInfo({ nome: (org as any).nome, cidade: (org as any).cidade });
+      }
+      await refreshTemplates();
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const refreshTemplates = useCallback(async () => {
+    const { data } = await (supabase as any)
+      .from("layouts")
+      .select("*")
+      .eq("is_template", true)
+      .order("modelo_maquina", { ascending: true })
+      .order("template_nome", { ascending: true });
+    setTemplates((data ?? []) as LayoutRow[]);
+  }, []);
+
+  async function aplicarTemplate(tpl: LayoutRow) {
+    if (!layout) return;
+    try {
+      await supabase.from("layout_conexoes").delete().eq("layout_id", layout.id);
+      await supabase.from("layout_equipamentos").delete().eq("layout_id", layout.id);
+      const { data: tplItens } = await supabase
+        .from("layout_equipamentos")
+        .select("equipamento_id, pos_x_mm, pos_y_mm, pos_z_mm, rotacao, ordem, rotulo_customizado")
+        .eq("layout_id", tpl.id)
+        .order("ordem");
+      const inserts = (tplItens ?? []).map((it: any) => ({
+        layout_id: layout.id,
+        equipamento_id: it.equipamento_id,
+        pos_x_mm: it.pos_x_mm,
+        pos_y_mm: it.pos_y_mm,
+        pos_z_mm: it.pos_z_mm ?? 0,
+        rotacao: it.rotacao,
+        ordem: it.ordem,
+        rotulo_customizado: it.rotulo_customizado,
+      }));
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("layout_equipamentos").insert(inserts);
+        if (error) throw error;
+      }
+      await refreshItems();
+      await refreshConexoes();
+      setTemplateConfirm(null);
+      toast({ title: "Template aplicado", description: `${inserts.length} equipamento(s) carregado(s).` });
+    } catch (e) {
+      toast({ title: "Erro ao aplicar template", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  }
+
+  async function salvarComoTemplate(nome: string, mod: string, tipo: string) {
+    if (!layout) return;
+    const { error } = await (supabase as any)
+      .from("layouts")
+      .update({ is_template: true, template_nome: nome, modelo_maquina: mod || null, tipo_instalacao: tipo || null })
+      .eq("id", layout.id);
+    if (error) {
+      toast({ title: "Erro ao salvar template", description: error.message, variant: "destructive" });
+      return;
+    }
+    setLayout({ ...layout, is_template: true, template_nome: nome, modelo_maquina: mod, tipo_instalacao: tipo });
+    await refreshTemplates();
+    setSaveTemplateOpen(false);
+    toast({ title: "Template salvo com sucesso" });
+  }
+
+
 
 
 
@@ -503,6 +578,10 @@ export default function LayoutEditor() {
     if (patch.piso_imagem_url !== undefined) dbPatch.piso_imagem_url = patch.piso_imagem_url;
     if (patch.piso_imagem_opacidade !== undefined) dbPatch.piso_imagem_opacidade = patch.piso_imagem_opacidade;
     if (patch.observacoes !== undefined) dbPatch.observacoes = patch.observacoes;
+    if ((patch as any).modelo_maquina !== undefined) dbPatch.modelo_maquina = (patch as any).modelo_maquina;
+    if ((patch as any).tipo_instalacao !== undefined) dbPatch.tipo_instalacao = (patch as any).tipo_instalacao;
+    if ((patch as any).is_template !== undefined) dbPatch.is_template = (patch as any).is_template;
+    if ((patch as any).template_nome !== undefined) dbPatch.template_nome = (patch as any).template_nome;
     await supabase.from("layouts").update(dbPatch).eq("id", layout.id);
   }
 
@@ -784,27 +863,43 @@ export default function LayoutEditor() {
               <ArrowLeft className="w-4 h-4" /> Voltar
             </Button>
             <div className="min-w-0">
-              <input
-                value={layout.cliente ?? ""}
-                onChange={(e) => updateLayoutMeta({ cliente: e.target.value })}
-                placeholder="Cliente"
-                className="font-semibold bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-48"
-              />
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <input
-                  value={layout.unidade ?? ""}
-                  onChange={(e) => updateLayoutMeta({ unidade: e.target.value })}
-                  placeholder="Unidade"
-                  className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
-                />
-                <span>·</span>
-                <input
-                  value={layout.cidade ?? ""}
-                  onChange={(e) => updateLayoutMeta({ cidade: e.target.value })}
-                  placeholder="Cidade"
-                  className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
-                />
-              </div>
+              {(layout as any).organizacao_id && orgInfo ? (
+                <>
+                  <div className="font-semibold truncate max-w-[420px]">{orgInfo.nome}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+                    {orgInfo.cidade && <><span>{orgInfo.cidade}</span><span>·</span></>}
+                    {(layout as any).modelo_maquina && <><span>{(layout as any).modelo_maquina}</span><span>·</span></>}
+                    {(layout as any).tipo_instalacao && <span>{(layout as any).tipo_instalacao}</span>}
+                    {(layout as any).is_template && <Badge variant="secondary" className="ml-1 h-5 text-[10px]">Template</Badge>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <input
+                    value={layout.cliente ?? ""}
+                    onChange={(e) => updateLayoutMeta({ cliente: e.target.value })}
+                    placeholder="Cliente"
+                    className="font-semibold bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-48"
+                  />
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <input
+                      value={layout.unidade ?? ""}
+                      onChange={(e) => updateLayoutMeta({ unidade: e.target.value })}
+                      placeholder="Unidade"
+                      className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
+                    />
+                    <span>·</span>
+                    <input
+                      value={layout.cidade ?? ""}
+                      onChange={(e) => updateLayoutMeta({ cidade: e.target.value })}
+                      placeholder="Cidade"
+                      className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
+                    />
+                    {(layout as any).modelo_maquina && <><span>·</span><span>{(layout as any).modelo_maquina}</span></>}
+                    {(layout as any).tipo_instalacao && <><span>·</span><span>{(layout as any).tipo_instalacao}</span></>}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -940,6 +1035,7 @@ export default function LayoutEditor() {
               <TabsTrigger value="catalog" className="text-xs">Catálogo</TabsTrigger>
               <TabsTrigger value="floor" className="text-xs">Piso</TabsTrigger>
               <TabsTrigger value="conexoes" className="text-xs">Conexões ({conexoes.length})</TabsTrigger>
+              <TabsTrigger value="padroes" className="text-xs">Padrões</TabsTrigger>
             </TabsList>
 
             {/* Aba 1 */}
@@ -1131,9 +1227,154 @@ export default function LayoutEditor() {
                 })
               )}
             </TabsContent>
+
+            {/* Aba 5 - Padrões */}
+            <TabsContent value="padroes" className="p-0 m-0 flex flex-col" style={{ minHeight: 300 }}>
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                {templates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Nenhum template salvo. Use o botão abaixo para salvar este layout como padrão.
+                  </p>
+                ) : (
+                  Object.entries(
+                    templates.reduce<Record<string, LayoutRow[]>>((acc, t) => {
+                      const m = (t as any).modelo_maquina || "Sem modelo";
+                      (acc[m] ||= []).push(t);
+                      return acc;
+                    }, {})
+                  ).map(([mod, lista]) => (
+                    <div key={mod}>
+                      <div className="text-xs font-semibold uppercase tracking-wide mb-1 text-muted-foreground">{mod}</div>
+                      <div className="space-y-1">
+                        {lista.map((t) => (
+                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-md border hover:bg-muted/50">
+                            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium truncate">{(t as any).template_nome || "Sem nome"}</div>
+                              {(t as any).tipo_instalacao && (
+                                <Badge variant="outline" className="h-4 text-[10px] mt-0.5">{(t as any).tipo_instalacao}</Badge>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7"
+                              disabled={t.id === layout.id}
+                              onClick={() => setTemplateConfirm(t)}
+                            >
+                              Usar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="border-t p-3">
+                <Button size="sm" className="w-full gap-1" onClick={() => setSaveTemplateOpen(true)}>
+                  <Save className="w-3.5 h-3.5" /> Salvar layout atual como Template
+                </Button>
+              </div>
+            </TabsContent>
           </Tabs>
         </aside>
       </div>
+
+      {/* Confirmação aplicar template */}
+      <AlertDialog open={!!templateConfirm} onOpenChange={(o) => !o && setTemplateConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso irá substituir todos os equipamentos do layout atual. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => templateConfirm && aplicarTemplate(templateConfirm)}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Salvar como template */}
+      <SalvarTemplateDialog
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+        initialNome={(layout as any).template_nome || ""}
+        initialModelo={(layout as any).modelo_maquina || ""}
+        initialTipo={(layout as any).tipo_instalacao || ""}
+        onSave={salvarComoTemplate}
+      />
     </div>
   );
 }
+
+function SalvarTemplateDialog({
+  open, onOpenChange, initialNome, initialModelo, initialTipo, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialNome: string;
+  initialModelo: string;
+  initialTipo: string;
+  onSave: (nome: string, mod: string, tipo: string) => void | Promise<void>;
+}) {
+  const [nome, setNome] = useState(initialNome);
+  const [mod, setMod] = useState(initialModelo);
+  const [tipo, setTipo] = useState(initialTipo);
+
+  useEffect(() => {
+    if (open) {
+      setNome(initialNome);
+      setMod(initialModelo);
+      setTipo(initialTipo);
+    }
+  }, [open, initialNome, initialModelo, initialTipo]);
+
+  useEffect(() => { if (mod === "LSB130") setTipo("Chão"); }, [mod]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Salvar como template</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Nome do template *</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Linha padrão LSB150 - Torre" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Modelo</Label>
+              <Select value={mod} onValueChange={setMod}>
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                <SelectContent>
+                  {["LSB130","LSB150","LSB300S","LSB300D"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo {mod === "LSB130" && <span className="text-xs text-muted-foreground">(travado)</span>}</Label>
+              <Select value={tipo} onValueChange={setTipo} disabled={mod === "LSB130"}>
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Chão">Chão</SelectItem>
+                  <SelectItem value="Torre">Torre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!nome.trim()} onClick={() => onSave(nome.trim(), mod, tipo)}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
