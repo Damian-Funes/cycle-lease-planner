@@ -233,8 +233,6 @@ export default function LayoutEditor() {
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
-  const [templates, setTemplates] = useState<LayoutRow[]>([]);
-  const [templateConfirm, setTemplateConfirm] = useState<LayoutRow | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
@@ -298,54 +296,10 @@ export default function LayoutEditor() {
         const { data: org } = await supabase.from("organizacoes").select("nome, cidade").eq("id", orgId).maybeSingle();
         if (org) setOrgInfo({ nome: (org as any).nome, cidade: (org as any).cidade });
       }
-      await refreshTemplates();
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  const refreshTemplates = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from("layouts")
-      .select("*")
-      .eq("is_template", true)
-      .order("modelo_maquina", { ascending: true })
-      .order("template_nome", { ascending: true });
-    setTemplates((data ?? []) as LayoutRow[]);
-  }, []);
-
-  async function aplicarTemplate(tpl: LayoutRow) {
-    if (!layout) return;
-    try {
-      await supabase.from("layout_conexoes").delete().eq("layout_id", layout.id);
-      await supabase.from("layout_equipamentos").delete().eq("layout_id", layout.id);
-      const { data: tplItens } = await supabase
-        .from("layout_equipamentos")
-        .select("equipamento_id, pos_x_mm, pos_y_mm, pos_z_mm, rotacao, ordem, rotulo_customizado")
-        .eq("layout_id", tpl.id)
-        .order("ordem");
-      const inserts = (tplItens ?? []).map((it: any) => ({
-        layout_id: layout.id,
-        equipamento_id: it.equipamento_id,
-        pos_x_mm: it.pos_x_mm,
-        pos_y_mm: it.pos_y_mm,
-        pos_z_mm: it.pos_z_mm ?? 0,
-        rotacao: it.rotacao,
-        ordem: it.ordem,
-        rotulo_customizado: it.rotulo_customizado,
-      }));
-      if (inserts.length > 0) {
-        const { error } = await supabase.from("layout_equipamentos").insert(inserts);
-        if (error) throw error;
-      }
-      await refreshItems();
-      await refreshConexoes();
-      setTemplateConfirm(null);
-      toast({ title: "Template aplicado", description: `${inserts.length} equipamento(s) carregado(s).` });
-    } catch (e) {
-      toast({ title: "Erro ao aplicar template", description: e instanceof Error ? e.message : "", variant: "destructive" });
-    }
-  }
 
   async function salvarComoTemplate(nome: string, mod: string, tipo: string) {
     if (!layout) return;
@@ -358,7 +312,6 @@ export default function LayoutEditor() {
       return;
     }
     setLayout({ ...layout, is_template: true, template_nome: nome, modelo_maquina: mod, tipo_instalacao: tipo });
-    await refreshTemplates();
     setSaveTemplateOpen(false);
     toast({ title: "Template salvo com sucesso" });
   }
@@ -923,6 +876,9 @@ export default function LayoutEditor() {
             <Button size="sm" onClick={handleSalvarTudo} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setSaveTemplateOpen(true)} className="gap-1" title="Salvar este layout como template/padrão">
+              <Layers className="w-4 h-4" /> Salvar como Template
+            </Button>
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
             </Button>
@@ -1035,7 +991,7 @@ export default function LayoutEditor() {
               <TabsTrigger value="catalog" className="text-xs">Catálogo</TabsTrigger>
               <TabsTrigger value="floor" className="text-xs">Piso</TabsTrigger>
               <TabsTrigger value="conexoes" className="text-xs">Conexões ({conexoes.length})</TabsTrigger>
-              <TabsTrigger value="padroes" className="text-xs">Padrões</TabsTrigger>
+              
             </TabsList>
 
             {/* Aba 1 */}
@@ -1228,76 +1184,10 @@ export default function LayoutEditor() {
               )}
             </TabsContent>
 
-            {/* Aba 5 - Padrões */}
-            <TabsContent value="padroes" className="p-0 m-0 flex flex-col" style={{ minHeight: 300 }}>
-              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
-                {templates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    Nenhum template salvo. Use o botão abaixo para salvar este layout como padrão.
-                  </p>
-                ) : (
-                  Object.entries(
-                    templates.reduce<Record<string, LayoutRow[]>>((acc, t) => {
-                      const m = (t as any).modelo_maquina || "Sem modelo";
-                      (acc[m] ||= []).push(t);
-                      return acc;
-                    }, {})
-                  ).map(([mod, lista]) => (
-                    <div key={mod}>
-                      <div className="text-xs font-semibold uppercase tracking-wide mb-1 text-muted-foreground">{mod}</div>
-                      <div className="space-y-1">
-                        {lista.map((t) => (
-                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-md border hover:bg-muted/50">
-                            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium truncate">{(t as any).template_nome || "Sem nome"}</div>
-                              {(t as any).tipo_instalacao && (
-                                <Badge variant="outline" className="h-4 text-[10px] mt-0.5">{(t as any).tipo_instalacao}</Badge>
-                              )}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7"
-                              disabled={t.id === layout.id}
-                              onClick={() => setTemplateConfirm(t)}
-                            >
-                              Usar
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="border-t p-3">
-                <Button size="sm" className="w-full gap-1" onClick={() => setSaveTemplateOpen(true)}>
-                  <Save className="w-3.5 h-3.5" /> Salvar layout atual como Template
-                </Button>
-              </div>
-            </TabsContent>
           </Tabs>
         </aside>
       </div>
 
-      {/* Confirmação aplicar template */}
-      <AlertDialog open={!!templateConfirm} onOpenChange={(o) => !o && setTemplateConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aplicar template?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Isso irá substituir todos os equipamentos do layout atual. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => templateConfirm && aplicarTemplate(templateConfirm)}>
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Salvar como template */}
       <SalvarTemplateDialog
