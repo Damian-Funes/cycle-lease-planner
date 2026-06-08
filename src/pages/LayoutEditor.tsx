@@ -1227,9 +1227,154 @@ export default function LayoutEditor() {
                 })
               )}
             </TabsContent>
+
+            {/* Aba 5 - Padrões */}
+            <TabsContent value="padroes" className="p-0 m-0 flex flex-col" style={{ minHeight: 300 }}>
+              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                {templates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Nenhum template salvo. Use o botão abaixo para salvar este layout como padrão.
+                  </p>
+                ) : (
+                  Object.entries(
+                    templates.reduce<Record<string, LayoutRow[]>>((acc, t) => {
+                      const m = (t as any).modelo_maquina || "Sem modelo";
+                      (acc[m] ||= []).push(t);
+                      return acc;
+                    }, {})
+                  ).map(([mod, lista]) => (
+                    <div key={mod}>
+                      <div className="text-xs font-semibold uppercase tracking-wide mb-1 text-muted-foreground">{mod}</div>
+                      <div className="space-y-1">
+                        {lista.map((t) => (
+                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-md border hover:bg-muted/50">
+                            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium truncate">{(t as any).template_nome || "Sem nome"}</div>
+                              {(t as any).tipo_instalacao && (
+                                <Badge variant="outline" className="h-4 text-[10px] mt-0.5">{(t as any).tipo_instalacao}</Badge>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7"
+                              disabled={t.id === layout.id}
+                              onClick={() => setTemplateConfirm(t)}
+                            >
+                              Usar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="border-t p-3">
+                <Button size="sm" className="w-full gap-1" onClick={() => setSaveTemplateOpen(true)}>
+                  <Save className="w-3.5 h-3.5" /> Salvar layout atual como Template
+                </Button>
+              </div>
+            </TabsContent>
           </Tabs>
         </aside>
       </div>
+
+      {/* Confirmação aplicar template */}
+      <AlertDialog open={!!templateConfirm} onOpenChange={(o) => !o && setTemplateConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso irá substituir todos os equipamentos do layout atual. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => templateConfirm && aplicarTemplate(templateConfirm)}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Salvar como template */}
+      <SalvarTemplateDialog
+        open={saveTemplateOpen}
+        onOpenChange={setSaveTemplateOpen}
+        initialNome={(layout as any).template_nome || ""}
+        initialModelo={(layout as any).modelo_maquina || ""}
+        initialTipo={(layout as any).tipo_instalacao || ""}
+        onSave={salvarComoTemplate}
+      />
     </div>
   );
 }
+
+function SalvarTemplateDialog({
+  open, onOpenChange, initialNome, initialModelo, initialTipo, onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialNome: string;
+  initialModelo: string;
+  initialTipo: string;
+  onSave: (nome: string, mod: string, tipo: string) => void | Promise<void>;
+}) {
+  const [nome, setNome] = useState(initialNome);
+  const [mod, setMod] = useState(initialModelo);
+  const [tipo, setTipo] = useState(initialTipo);
+
+  useEffect(() => {
+    if (open) {
+      setNome(initialNome);
+      setMod(initialModelo);
+      setTipo(initialTipo);
+    }
+  }, [open, initialNome, initialModelo, initialTipo]);
+
+  useEffect(() => { if (mod === "LSB130") setTipo("Chão"); }, [mod]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Salvar como template</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Nome do template *</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Linha padrão LSB150 - Torre" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Modelo</Label>
+              <Select value={mod} onValueChange={setMod}>
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                <SelectContent>
+                  {["LSB130","LSB150","LSB300S","LSB300D"].map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo {mod === "LSB130" && <span className="text-xs text-muted-foreground">(travado)</span>}</Label>
+              <Select value={tipo} onValueChange={setTipo} disabled={mod === "LSB130"}>
+                <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Chão">Chão</SelectItem>
+                  <SelectItem value="Torre">Torre</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!nome.trim()} onClick={() => onSave(nome.trim(), mod, tipo)}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
