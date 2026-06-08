@@ -246,7 +246,7 @@ export default function RotaEditor() {
             <h1 className="font-semibold">Editar Rota</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={otimizar} disabled={paradas.length < 2}>
+            <Button variant="outline" onClick={otimizar} disabled={paradas.length < 1}>
               <Wand2 className="w-4 h-4 mr-1" /> Otimizar ordem
             </Button>
             <Button onClick={salvarMeta}><Save className="w-4 h-4 mr-1" /> Salvar</Button>
