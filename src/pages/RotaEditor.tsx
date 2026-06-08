@@ -80,10 +80,30 @@ export default function RotaEditor() {
     if (polylineRef.current) polylineRef.current.setMap(null);
 
     const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
-    if (valid.length === 0) return;
 
     const bounds = new g.maps.LatLngBounds();
     const path: any[] = [];
+
+    // Marker de origem (Maringá)
+    const origemPos = { lat: MARINGA.lat, lng: MARINGA.lng };
+    const origemMarker = new g.maps.Marker({
+      position: origemPos,
+      map: mapInstanceRef.current,
+      label: { text: "M", color: "white", fontWeight: "bold" },
+      title: "Origem: Maringá - PR",
+      icon: {
+        path: g.maps.SymbolPath.CIRCLE,
+        scale: 14,
+        fillColor: "#0f172a",
+        fillOpacity: 1,
+        strokeColor: "white",
+        strokeWeight: 2,
+      },
+    });
+    markersRef.current.push(origemMarker);
+    bounds.extend(origemPos);
+    path.push(origemPos);
+
     valid.forEach((p, idx) => {
       const pos = { lat: Number(p.latitude), lng: Number(p.longitude) };
       const marker = new g.maps.Marker({
@@ -96,6 +116,9 @@ export default function RotaEditor() {
       path.push(pos);
     });
 
+    // Fecha o ciclo voltando para Maringá
+    if (valid.length > 0) path.push(origemPos);
+
     polylineRef.current = new g.maps.Polyline({
       path,
       strokeColor: "#059669",
@@ -103,9 +126,9 @@ export default function RotaEditor() {
       map: mapInstanceRef.current,
     });
 
-    if (valid.length === 1) {
-      mapInstanceRef.current.setCenter(path[0]);
-      mapInstanceRef.current.setZoom(10);
+    if (valid.length === 0) {
+      mapInstanceRef.current.setCenter(origemPos);
+      mapInstanceRef.current.setZoom(7);
     } else {
       mapInstanceRef.current.fitBounds(bounds, 60);
     }
