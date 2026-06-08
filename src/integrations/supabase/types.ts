@@ -1007,16 +1007,21 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_template: boolean | null
+          modelo_maquina: string | null
           observacoes: string | null
           organizacao_id: string | null
           origem_id: string
           origem_tipo: string
+          pessoa_id: string | null
           piso_comprimento_mm: number
           piso_imagem_opacidade: number
           piso_imagem_url: string | null
           piso_largura_mm: number
           revisao: string
           status: string
+          template_nome: string | null
+          tipo_instalacao: string | null
           unidade: string | null
           updated_at: string
         }
@@ -1026,16 +1031,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_template?: boolean | null
+          modelo_maquina?: string | null
           observacoes?: string | null
           organizacao_id?: string | null
           origem_id: string
           origem_tipo: string
+          pessoa_id?: string | null
           piso_comprimento_mm?: number
           piso_imagem_opacidade?: number
           piso_imagem_url?: string | null
           piso_largura_mm?: number
           revisao?: string
           status?: string
+          template_nome?: string | null
+          tipo_instalacao?: string | null
           unidade?: string | null
           updated_at?: string
         }
@@ -1045,16 +1055,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_template?: boolean | null
+          modelo_maquina?: string | null
           observacoes?: string | null
           organizacao_id?: string | null
           origem_id?: string
           origem_tipo?: string
+          pessoa_id?: string | null
           piso_comprimento_mm?: number
           piso_imagem_opacidade?: number
           piso_imagem_url?: string | null
           piso_largura_mm?: number
           revisao?: string
           status?: string
+          template_nome?: string | null
+          tipo_instalacao?: string | null
           unidade?: string | null
           updated_at?: string
         }
@@ -1064,6 +1079,13 @@ export type Database = {
             columns: ["organizacao_id"]
             isOneToOne: false
             referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layouts_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
             referencedColumns: ["id"]
           },
         ]
