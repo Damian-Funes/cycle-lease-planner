@@ -158,8 +158,9 @@ export async function buscarOrganizacoesProximas(
     .select("id, nome, nome_fantasia, cidade, estado, latitude, longitude")
     .not("latitude", "is", null)
     .not("longitude", "is", null);
-  if (centro.estado) q = q.eq("estado", centro.estado);
-  const { data, error } = await q.limit(500);
+  // NÃO filtrar por estado — proximidade é puramente geográfica (cidades fronteiriças
+  // podem estar em UFs diferentes e ainda assim a poucos km de distância).
+  const { data, error } = await q.limit(2000);
   if (error) throw error;
 
   const { distanceKm } = await import("./maps");
