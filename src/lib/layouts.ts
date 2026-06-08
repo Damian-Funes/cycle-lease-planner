@@ -16,6 +16,12 @@ export interface LayoutRow {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
+  organizacao_id?: string | null;
+  pessoa_id?: string | null;
+  modelo_maquina?: string | null;
+  tipo_instalacao?: string | null;
+  is_template?: boolean | null;
+  template_nome?: string | null;
 }
 
 export interface LayoutItemRow {
