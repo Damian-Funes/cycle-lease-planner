@@ -6,7 +6,7 @@ import {
   getRota, getParadas, atualizarRota, adicionarParada, removerParada,
   reordenarParadas, criarAtividadeVisita, type RotaParada,
 } from "@/lib/rotas";
-import { loadGoogleMaps, optimizeRoute, MARINGA } from "@/lib/maps";
+import { loadGoogleMaps, optimizeRoute, getOrigemVendedor } from "@/lib/maps";
 import AppHeader from "@/components/AppHeader";
 import AdicionarParadaModal from "@/components/AdicionarParadaModal";
 import { Button } from "@/components/ui/button";
@@ -84,13 +84,14 @@ export default function RotaEditor() {
     const bounds = new g.maps.LatLngBounds();
     const path: any[] = [];
 
-    // Marker de origem (Maringá)
-    const origemPos = { lat: MARINGA.lat, lng: MARINGA.lng };
+    // Marker de origem (base do vendedor)
+    const origem = getOrigemVendedor(rota?.vendedor_id);
+    const origemPos = { lat: origem.lat, lng: origem.lng };
     const origemMarker = new g.maps.Marker({
       position: origemPos,
       map: mapInstanceRef.current,
-      label: { text: "M", color: "white", fontWeight: "bold" },
-      title: "Origem: Maringá - PR",
+      label: { text: origem.nome[0], color: "white", fontWeight: "bold" },
+      title: `Origem: ${origem.nome}`,
       icon: {
         path: g.maps.SymbolPath.CIRCLE,
         scale: 14,
@@ -209,7 +210,8 @@ export default function RotaEditor() {
     const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
     if (valid.length < 1) { toast.error("Adicione ao menos 1 parada"); return; }
     try {
-      const res = await optimizeRoute(valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })));
+      const origem = getOrigemVendedor(rota?.vendedor_id);
+      const res = await optimizeRoute(valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), origem);
       if (!res) return;
       const updates = res.order.map((origIdx, newIdx) => ({ id: valid[origIdx].id, ordem: newIdx }));
       await reordenarParadas(updates);

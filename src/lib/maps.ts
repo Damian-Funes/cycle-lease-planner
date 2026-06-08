@@ -48,20 +48,32 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
-// Origem fixa: Maringá-PR (todas as rotas partem e retornam aqui)
+// Bases de origem por vendedor (default: Maringá-PR)
 export const MARINGA = { lat: -23.4253, lng: -51.9386, nome: "Maringá - PR" };
+export const FORMOSA = { lat: -15.5372, lng: -47.3344, nome: "Formosa - GO" };
+
+// Mapeia vendedor_id → base de origem
+const BASES_VENDEDOR: Record<string, { lat: number; lng: number; nome: string }> = {
+  "9b83ada3-3ee4-4710-9577-6782d4699fd1": FORMOSA, // Murilo Sinatura Sipioni
+};
+
+export function getOrigemVendedor(vendedorId?: string | null) {
+  if (vendedorId && BASES_VENDEDOR[vendedorId]) return BASES_VENDEDOR[vendedorId];
+  return MARINGA;
+}
 
 export async function optimizeRoute(
-  paradas: { lat: number; lng: number }[]
+  paradas: { lat: number; lng: number }[],
+  origem: { lat: number; lng: number } = MARINGA
 ): Promise<{ order: number[]; totalKm: number } | null> {
   if (paradas.length < 1) return null;
   const g = await loadGoogleMaps();
   const ds = new g.maps.DirectionsService();
-  // Origem e destino sempre Maringá; todas as paradas viram waypoints
+  // Origem e destino = base do vendedor; paradas viram waypoints
   const waypoints = paradas.map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true }));
   const res: any = await ds.route({
-    origin: { lat: MARINGA.lat, lng: MARINGA.lng },
-    destination: { lat: MARINGA.lat, lng: MARINGA.lng },
+    origin: { lat: origem.lat, lng: origem.lng },
+    destination: { lat: origem.lat, lng: origem.lng },
     waypoints,
     optimizeWaypoints: true,
     travelMode: g.maps.TravelMode.DRIVING,
