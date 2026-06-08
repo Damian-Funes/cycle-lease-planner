@@ -81,6 +81,33 @@ export default function Rotas() {
     },
   });
 
+  const geocodificar = useMutation({
+    mutationFn: async () => {
+      const { data: orgs, error } = await (supabase as any)
+        .from("organizacoes")
+        .select("id, nome, endereco, cidade, estado")
+        .is("latitude", null);
+      if (error) throw error;
+      if (!orgs || orgs.length === 0) return { ok: 0, fail: 0 };
+      const { geocodeAddress } = await import("@/lib/maps");
+      let ok = 0, fail = 0;
+      for (const o of orgs) {
+        const addr = [o.endereco, o.cidade, o.estado, "Brasil"].filter(Boolean).join(", ");
+        if (addr.length < 5) { fail++; continue; }
+        const coords = await geocodeAddress(addr);
+        if (coords) {
+          await (supabase as any).from("organizacoes")
+            .update({ latitude: coords.lat, longitude: coords.lng }).eq("id", o.id);
+          ok++;
+        } else { fail++; }
+        await new Promise((r) => setTimeout(r, 150)); // respeita rate limit
+      }
+      return { ok, fail };
+    },
+    onSuccess: (r) => toast.success(`Geocodificadas: ${r.ok}`, { description: r.fail ? `${r.fail} falharam` : undefined }),
+    onError: (e: any) => toast.error("Erro", { description: e?.message }),
+  });
+
   function RotaCard({ r, mostrarVendedor }: { r: any; mostrarVendedor?: boolean }) {
     return (
       <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/rotas/${r.id}`)}>
