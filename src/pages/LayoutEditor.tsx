@@ -863,27 +863,43 @@ export default function LayoutEditor() {
               <ArrowLeft className="w-4 h-4" /> Voltar
             </Button>
             <div className="min-w-0">
-              <input
-                value={layout.cliente ?? ""}
-                onChange={(e) => updateLayoutMeta({ cliente: e.target.value })}
-                placeholder="Cliente"
-                className="font-semibold bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-48"
-              />
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <input
-                  value={layout.unidade ?? ""}
-                  onChange={(e) => updateLayoutMeta({ unidade: e.target.value })}
-                  placeholder="Unidade"
-                  className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
-                />
-                <span>·</span>
-                <input
-                  value={layout.cidade ?? ""}
-                  onChange={(e) => updateLayoutMeta({ cidade: e.target.value })}
-                  placeholder="Cidade"
-                  className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
-                />
-              </div>
+              {(layout as any).organizacao_id && orgInfo ? (
+                <>
+                  <div className="font-semibold truncate max-w-[420px]">{orgInfo.nome}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+                    {orgInfo.cidade && <><span>{orgInfo.cidade}</span><span>·</span></>}
+                    {(layout as any).modelo_maquina && <><span>{(layout as any).modelo_maquina}</span><span>·</span></>}
+                    {(layout as any).tipo_instalacao && <span>{(layout as any).tipo_instalacao}</span>}
+                    {(layout as any).is_template && <Badge variant="secondary" className="ml-1 h-5 text-[10px]">Template</Badge>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <input
+                    value={layout.cliente ?? ""}
+                    onChange={(e) => updateLayoutMeta({ cliente: e.target.value })}
+                    placeholder="Cliente"
+                    className="font-semibold bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-48"
+                  />
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <input
+                      value={layout.unidade ?? ""}
+                      onChange={(e) => updateLayoutMeta({ unidade: e.target.value })}
+                      placeholder="Unidade"
+                      className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
+                    />
+                    <span>·</span>
+                    <input
+                      value={layout.cidade ?? ""}
+                      onChange={(e) => updateLayoutMeta({ cidade: e.target.value })}
+                      placeholder="Cidade"
+                      className="bg-transparent outline-none border-b border-transparent hover:border-border focus:border-primary transition-colors w-24"
+                    />
+                    {(layout as any).modelo_maquina && <><span>·</span><span>{(layout as any).modelo_maquina}</span></>}
+                    {(layout as any).tipo_instalacao && <><span>·</span><span>{(layout as any).tipo_instalacao}</span></>}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
