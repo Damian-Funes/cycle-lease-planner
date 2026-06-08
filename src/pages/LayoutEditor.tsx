@@ -232,6 +232,10 @@ export default function LayoutEditor() {
   const [conexaoPontoTemp, setConexaoPontoTemp] = useState<{ itemId: string; x: number; y: number; z: number } | null>(null);
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
+  const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
+  const [templates, setTemplates] = useState<LayoutRow[]>([]);
+  const [templateConfirm, setTemplateConfirm] = useState<LayoutRow | null>(null);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
     if (id === null) {
