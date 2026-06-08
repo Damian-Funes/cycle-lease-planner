@@ -51,26 +51,37 @@ export default function RotaEditor() {
     }
   }, [rota?.id]);
 
-  // Init map
+  // Init map (re-roda quando o container monta ou a rota carrega)
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || mapInstanceRef.current) return;
     let cancelled = false;
     (async () => {
-      const g = await loadGoogleMaps();
-      if (cancelled || !mapRef.current) return;
-      mapInstanceRef.current = new g.maps.Map(mapRef.current, {
-        center: { lat: -15.78, lng: -47.93 },
-        zoom: 4,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-      });
-      renderMap();
+      try {
+        const g = await loadGoogleMaps();
+        if (cancelled || !mapRef.current) return;
+        if (mapInstanceRef.current) return;
+        mapInstanceRef.current = new g.maps.Map(mapRef.current, {
+          center: { lat: -15.78, lng: -47.93 },
+          zoom: 4,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+        });
+        // Garante que o mapa renderize tiles depois do layout estabilizar
+        setTimeout(() => {
+          if (mapInstanceRef.current) {
+            g.maps.event.trigger(mapInstanceRef.current, "resize");
+            renderMap();
+          }
+        }, 100);
+      } catch (e) {
+        console.error("[maps init]", e);
+      }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [rota?.id]);
 
-  useEffect(() => { renderMap(); }, [paradas]);
+  useEffect(() => { renderMap(); }, [paradas, rota?.vendedor_id]);
 
   async function renderMap() {
     const g = (window as any).google;
