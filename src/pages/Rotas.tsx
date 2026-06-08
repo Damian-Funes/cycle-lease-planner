@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Plus, MapPin, Trash2, Route } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, Trash2, Route, Compass, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -81,6 +81,33 @@ export default function Rotas() {
     },
   });
 
+  const geocodificar = useMutation({
+    mutationFn: async () => {
+      const { data: orgs, error } = await (supabase as any)
+        .from("organizacoes")
+        .select("id, nome, endereco, cidade, estado")
+        .is("latitude", null);
+      if (error) throw error;
+      if (!orgs || orgs.length === 0) return { ok: 0, fail: 0 };
+      const { geocodeAddress } = await import("@/lib/maps");
+      let ok = 0, fail = 0;
+      for (const o of orgs) {
+        const addr = [o.endereco, o.cidade, o.estado, "Brasil"].filter(Boolean).join(", ");
+        if (addr.length < 5) { fail++; continue; }
+        const coords = await geocodeAddress(addr);
+        if (coords) {
+          await (supabase as any).from("organizacoes")
+            .update({ latitude: coords.lat, longitude: coords.lng }).eq("id", o.id);
+          ok++;
+        } else { fail++; }
+        await new Promise((r) => setTimeout(r, 150)); // respeita rate limit
+      }
+      return { ok, fail };
+    },
+    onSuccess: (r) => toast.success(`Geocodificadas: ${r.ok}`, { description: r.fail ? `${r.fail} falharam` : undefined }),
+    onError: (e: any) => toast.error("Erro", { description: e?.message }),
+  });
+
   function RotaCard({ r, mostrarVendedor }: { r: any; mostrarVendedor?: boolean }) {
     return (
       <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/rotas/${r.id}`)}>
@@ -124,6 +151,12 @@ export default function Rotas() {
             <h1 className="font-semibold">Rotas Comerciais</h1>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button variant="outline" onClick={() => geocodificar.mutate()} disabled={geocodificar.isPending}>
+                {geocodificar.isPending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Compass className="w-4 h-4 mr-1" />}
+                Atualizar coordenadas
+              </Button>
+            )}
             <Button onClick={() => setNovoOpen(true)}><Plus className="w-4 h-4 mr-1" /> Nova Rota</Button>
             <AppHeader />
           </div>
