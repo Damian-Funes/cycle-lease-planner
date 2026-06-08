@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ArrowLeft, LayoutGrid, Plus, Loader2, FileText, Receipt, Search, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { ArrowLeft, LayoutGrid, Plus, Loader2, FileText, Receipt, Search, Trash2, Check, ChevronsUpDown, Layers } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,7 @@ export default function Layouts() {
   const [layouts, setLayouts] = useState<LayoutRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [novoOpen, setNovoOpen] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
   const [excluindo, setExcluindo] = useState<LayoutRow | null>(null);
   const [deletando, setDeletando] = useState(false);
 
@@ -102,6 +103,9 @@ export default function Layouts() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={() => setTemplateOpen(true)} className="gap-1">
+              <Layers className="w-4 h-4" /> Layout Padrão
+            </Button>
             <Button size="sm" onClick={() => setNovoOpen(true)} className="gap-1">
               <Plus className="w-4 h-4" /> Novo Layout
             </Button>
@@ -171,6 +175,12 @@ export default function Layouts() {
       <NovoLayoutModal
         open={novoOpen}
         onOpenChange={setNovoOpen}
+        onCreated={(id) => navigate(`/layouts/${id}`)}
+      />
+
+      <UsarTemplateModal
+        open={templateOpen}
+        onOpenChange={setTemplateOpen}
         onCreated={(id) => navigate(`/layouts/${id}`)}
       />
 
