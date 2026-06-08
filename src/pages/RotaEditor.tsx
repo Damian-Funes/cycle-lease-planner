@@ -207,7 +207,7 @@ export default function RotaEditor() {
   async function otimizar() {
     if (!id) return;
     const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
-    if (valid.length < 2) { toast.error("Precisa de 2+ paradas"); return; }
+    if (valid.length < 1) { toast.error("Adicione ao menos 1 parada"); return; }
     try {
       const res = await optimizeRoute(valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })));
       if (!res) return;
