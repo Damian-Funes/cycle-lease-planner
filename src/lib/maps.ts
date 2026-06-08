@@ -48,8 +48,19 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
-// Origem fixa: Maringá-PR (todas as rotas partem e retornam aqui)
+// Bases de origem por vendedor (default: Maringá-PR)
 export const MARINGA = { lat: -23.4253, lng: -51.9386, nome: "Maringá - PR" };
+export const FORMOSA = { lat: -15.5372, lng: -47.3344, nome: "Formosa - GO" };
+
+// Mapeia vendedor_id → base de origem
+const BASES_VENDEDOR: Record<string, { lat: number; lng: number; nome: string }> = {
+  "9b83ada3-3ee4-4710-9577-6782d4699fd1": FORMOSA, // Murilo Sinatura Sipioni
+};
+
+export function getOrigemVendedor(vendedorId?: string | null) {
+  if (vendedorId && BASES_VENDEDOR[vendedorId]) return BASES_VENDEDOR[vendedorId];
+  return MARINGA;
+}
 
 export async function optimizeRoute(
   paradas: { lat: number; lng: number }[]
