@@ -1,7 +1,7 @@
 // Google Maps loader + helpers (geocoding, distância, otimização)
-let loaderPromise: Promise<typeof google> | null = null;
+let loaderPromise: Promise<any> | null = null;
 
-export function loadGoogleMaps(): Promise<typeof google> {
+export function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") return Promise.reject();
   const g = (window as any).google;
   if (g?.maps?.Geocoder && g?.maps?.geometry && g?.maps?.places) return Promise.resolve(g);
