@@ -717,3 +717,354 @@ function CamposComuns({
     </>
   );
 }
+
+/* ---------------- Modal: Usar Template ---------------- */
+
+interface TemplateOption {
+  id: string;
+  template_nome: string | null;
+  modelo_maquina: string | null;
+  tipo_instalacao: string | null;
+  piso_largura_mm: number;
+  piso_comprimento_mm: number;
+}
+
+function UsarTemplateModal({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onCreated: (id: string) => void;
+}) {
+  const { toast } = useToast();
+  const [step, setStep] = useState<"select" | "org">("select");
+  const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<TemplateOption[]>([]);
+  const [busca, setBusca] = useState("");
+  const [tplSel, setTplSel] = useState<TemplateOption | null>(null);
+
+  const [orgs, setOrgs] = useState<OrgOption[]>([]);
+  const [orgOpen, setOrgOpen] = useState(false);
+  const [orgSel, setOrgSel] = useState<OrgOption | null>(null);
+  const [pessoas, setPessoas] = useState<PessoaOption[]>([]);
+  const [pessoaSel, setPessoaSel] = useState<PessoaOption | null>(null);
+  const [observacoes, setObservacoes] = useState("");
+  const [criando, setCriando] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setStep("select");
+      setTplSel(null);
+      setOrgSel(null);
+      setPessoaSel(null);
+      setPessoas([]);
+      setBusca("");
+      setObservacoes("");
+      return;
+    }
+    void loadTemplates();
+    void loadOrgs();
+  }, [open]);
+
+  useEffect(() => {
+    if (!orgSel) { setPessoas([]); setPessoaSel(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome, cargo")
+        .eq("organizacao_id", orgSel.id)
+        .order("nome");
+      setPessoas((data ?? []) as PessoaOption[]);
+    })();
+  }, [orgSel]);
+
+  async function loadTemplates() {
+    setLoading(true);
+    const { data } = await (supabase as any)
+      .from("layouts")
+      .select("id, template_nome, modelo_maquina, tipo_instalacao, piso_largura_mm, piso_comprimento_mm")
+      .eq("is_template", true)
+      .order("modelo_maquina", { ascending: true })
+      .order("template_nome", { ascending: true });
+    setTemplates((data ?? []) as TemplateOption[]);
+    setLoading(false);
+  }
+
+  async function loadOrgs() {
+    const { data } = await supabase
+      .from("organizacoes")
+      .select("id, nome, nome_fantasia, cnpj, cidade")
+      .order("nome")
+      .limit(1000);
+    setOrgs((data ?? []) as OrgOption[]);
+  }
+
+  const templatesFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    if (!q) return templates;
+    return templates.filter((t) =>
+      (t.template_nome || "").toLowerCase().includes(q) ||
+      (t.modelo_maquina || "").toLowerCase().includes(q)
+    );
+  }, [templates, busca]);
+
+  const agrupados = useMemo(() => {
+    return templatesFiltrados.reduce<Record<string, TemplateOption[]>>((acc, t) => {
+      const m = t.modelo_maquina || "Sem modelo";
+      (acc[m] ||= []).push(t);
+      return acc;
+    }, {});
+  }, [templatesFiltrados]);
+
+  async function handleCriar() {
+    if (!tplSel || !orgSel) return;
+    setCriando(true);
+    try {
+      // 1) cria layout copiando metadados do template
+      const { data: novo, error: errCreate } = await supabase
+        .from("layouts")
+        .insert({
+          piso_largura_mm: tplSel.piso_largura_mm,
+          piso_comprimento_mm: tplSel.piso_comprimento_mm,
+          modelo_maquina: tplSel.modelo_maquina,
+          tipo_instalacao: tplSel.tipo_instalacao,
+          observacoes: observacoes || null,
+          organizacao_id: orgSel.id,
+          pessoa_id: pessoaSel?.id ?? null,
+          cliente: orgSel.nome,
+          cidade: orgSel.cidade,
+        } as any)
+        .select("id")
+        .maybeSingle();
+      if (errCreate || !novo) throw errCreate ?? new Error("Falha ao criar layout");
+      const novoId = novo.id;
+
+      // 2) copia equipamentos do template
+      const { data: tplItens } = await supabase
+        .from("layout_equipamentos")
+        .select("id, equipamento_id, pos_x_mm, pos_y_mm, pos_z_mm, rotacao, ordem, rotulo_customizado")
+        .eq("layout_id", tplSel.id)
+        .order("ordem");
+
+      const idMap = new Map<string, string>(); // old item_id -> placeholder (será preenchido após insert)
+      const inserts = (tplItens ?? []).map((it: any) => ({
+        layout_id: novoId,
+        equipamento_id: it.equipamento_id,
+        pos_x_mm: it.pos_x_mm,
+        pos_y_mm: it.pos_y_mm,
+        pos_z_mm: it.pos_z_mm ?? 0,
+        rotacao: it.rotacao,
+        ordem: it.ordem,
+        rotulo_customizado: it.rotulo_customizado,
+      }));
+
+      let novosItens: { id: string; ordem: number }[] = [];
+      if (inserts.length > 0) {
+        const { data: ins, error: insErr } = await supabase
+          .from("layout_equipamentos")
+          .insert(inserts)
+          .select("id, ordem");
+        if (insErr) throw insErr;
+        novosItens = (ins ?? []) as typeof novosItens;
+
+        // mapeia old id -> new id via ordem
+        const newByOrdem = new Map(novosItens.map((n) => [n.ordem, n.id]));
+        for (const it of tplItens ?? []) {
+          const newId = newByOrdem.get((it as any).ordem);
+          if (newId) idMap.set((it as any).id, newId);
+        }
+      }
+
+      // 3) copia conexões do template
+      const { data: tplConex } = await supabase
+        .from("layout_conexoes")
+        .select("item_origem_id, item_destino_id, ponto_origem_x, ponto_origem_y, ponto_origem_z, ponto_destino_x, ponto_destino_y, ponto_destino_z, tipo, cor")
+        .eq("layout_id", tplSel.id);
+
+      const conexInserts = (tplConex ?? [])
+        .map((c: any) => {
+          const origem = idMap.get(c.item_origem_id);
+          const destino = idMap.get(c.item_destino_id);
+          if (!origem || !destino) return null;
+          return {
+            layout_id: novoId,
+            item_origem_id: origem,
+            item_destino_id: destino,
+            ponto_origem_x: c.ponto_origem_x,
+            ponto_origem_y: c.ponto_origem_y,
+            ponto_origem_z: c.ponto_origem_z,
+            ponto_destino_x: c.ponto_destino_x,
+            ponto_destino_y: c.ponto_destino_y,
+            ponto_destino_z: c.ponto_destino_z,
+            tipo: c.tipo,
+            cor: c.cor,
+          };
+        })
+        .filter(Boolean);
+
+      if (conexInserts.length > 0) {
+        await supabase.from("layout_conexoes").insert(conexInserts as any);
+      }
+
+      toast({ title: "Layout criado a partir do template!" });
+      onOpenChange(false);
+      onCreated(novoId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao criar layout";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setCriando(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>
+            {step === "select" ? "Escolher Layout Padrão" : "Vincular Organização"}
+          </DialogTitle>
+          <DialogDescription>
+            {step === "select"
+              ? "Selecione um template para iniciar um novo layout."
+              : tplSel ? (
+                <span>Template: <b>{tplSel.template_nome || "Sem nome"}</b>{tplSel.modelo_maquina && ` · ${tplSel.modelo_maquina}`}{tplSel.tipo_instalacao && ` · ${tplSel.tipo_instalacao}`}</span>
+              ) : null}
+          </DialogDescription>
+        </DialogHeader>
+
+        {step === "select" ? (
+          <div className="flex-1 overflow-hidden flex flex-col gap-3">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por nome ou modelo..."
+                className="w-full h-9 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="border rounded-md flex-1 overflow-y-auto">
+              {loading ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+              ) : templatesFiltrados.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">
+                  {templates.length === 0
+                    ? "Nenhum template salvo ainda. Crie um layout e use 'Salvar como Template' no editor."
+                    : "Nenhum template corresponde à busca."}
+                </p>
+              ) : (
+                <div className="divide-y">
+                  {Object.entries(agrupados).map(([mod, lista]) => (
+                    <div key={mod}>
+                      <div className="text-xs font-semibold uppercase tracking-wide px-3 py-2 bg-muted/30 text-muted-foreground">{mod}</div>
+                      <ul className="divide-y">
+                        {lista.map((t) => (
+                          <li key={t.id}>
+                            <button
+                              type="button"
+                              onClick={() => { setTplSel(t); setStep("org"); }}
+                              className="w-full text-left px-3 py-2.5 hover:bg-muted/50 flex items-start gap-3 transition-colors"
+                            >
+                              <Layers className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{t.template_nome || "Sem nome"}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {t.tipo_instalacao || "—"} · {(t.piso_largura_mm / 1000).toFixed(1)}m × {(t.piso_comprimento_mm / 1000).toFixed(1)}m
+                                </div>
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end pt-2 border-t">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto space-y-3">
+            <div className="space-y-1.5">
+              <Label>Organização *</Label>
+              <Popover open={orgOpen} onOpenChange={setOrgOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className="truncate text-left">
+                      {orgSel ? orgSel.nome : <span className="text-muted-foreground">Selecione uma organização…</span>}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command filter={(val, search) => {
+                    const o = orgs.find((x) => x.id === val);
+                    if (!o) return 0;
+                    const hay = `${o.nome} ${o.nome_fantasia ?? ""} ${o.cnpj ?? ""}`.toLowerCase();
+                    return hay.includes(search.toLowerCase()) ? 1 : 0;
+                  }}>
+                    <CommandInput placeholder="Buscar por nome ou CNPJ…" />
+                    <CommandList>
+                      <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
+                      <CommandGroup>
+                        {orgs.map((o) => (
+                          <CommandItem key={o.id} value={o.id} onSelect={() => { setOrgSel(o); setOrgOpen(false); }}>
+                            <Check className={cn("mr-2 h-4 w-4", orgSel?.id === o.id ? "opacity-100" : "opacity-0")} />
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate">{o.nome}{o.nome_fantasia && <span className="text-muted-foreground"> · {o.nome_fantasia}</span>}</span>
+                              {o.cidade && <span className="text-xs text-muted-foreground">{o.cidade}</span>}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Contato</Label>
+              <Select
+                disabled={!orgSel || pessoas.length === 0}
+                value={pessoaSel?.id ?? ""}
+                onValueChange={(v) => setPessoaSel(pessoas.find((p) => p.id === v) ?? null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!orgSel ? "Selecione a organização primeiro" : pessoas.length === 0 ? "Sem contatos cadastrados" : "Selecione um contato…"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pessoas.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}{p.cargo ? ` · ${p.cargo}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Observações</Label>
+              <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas internas…" rows={2} />
+            </div>
+
+            <div className="flex justify-between gap-2 pt-2 border-t">
+              <Button variant="ghost" onClick={() => setStep("select")} disabled={criando} className="gap-1">
+                <ArrowLeft className="w-4 h-4" /> Voltar
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={criando}>Cancelar</Button>
+                <Button onClick={handleCriar} disabled={!orgSel || criando} className="gap-1">
+                  {criando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Criar layout
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
