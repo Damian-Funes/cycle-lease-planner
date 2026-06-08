@@ -233,8 +233,6 @@ export default function LayoutEditor() {
   const [selectedConexaoId, setSelectedConexaoId] = useState<string | null>(null);
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
-  const [templates, setTemplates] = useState<LayoutRow[]>([]);
-  const [templateConfirm, setTemplateConfirm] = useState<LayoutRow | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
@@ -298,21 +296,10 @@ export default function LayoutEditor() {
         const { data: org } = await supabase.from("organizacoes").select("nome, cidade").eq("id", orgId).maybeSingle();
         if (org) setOrgInfo({ nome: (org as any).nome, cidade: (org as any).cidade });
       }
-      await refreshTemplates();
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  const refreshTemplates = useCallback(async () => {
-    const { data } = await (supabase as any)
-      .from("layouts")
-      .select("*")
-      .eq("is_template", true)
-      .order("modelo_maquina", { ascending: true })
-      .order("template_nome", { ascending: true });
-    setTemplates((data ?? []) as LayoutRow[]);
-  }, []);
 
   async function aplicarTemplate(tpl: LayoutRow) {
     if (!layout) return;
@@ -1235,23 +1222,6 @@ export default function LayoutEditor() {
         </aside>
       </div>
 
-      {/* Confirmação aplicar template */}
-      <AlertDialog open={!!templateConfirm} onOpenChange={(o) => !o && setTemplateConfirm(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aplicar template?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Isso irá substituir todos os equipamentos do layout atual. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => templateConfirm && aplicarTemplate(templateConfirm)}>
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Salvar como template */}
       <SalvarTemplateDialog
