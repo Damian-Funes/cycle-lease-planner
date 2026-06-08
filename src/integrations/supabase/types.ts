@@ -1676,6 +1676,8 @@ export type Database = {
           estado: string | null
           estado_id: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           nome_fantasia: string | null
           observacoes: string | null
@@ -1698,6 +1700,8 @@ export type Database = {
           estado?: string | null
           estado_id?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           nome_fantasia?: string | null
           observacoes?: string | null
@@ -1720,6 +1724,8 @@ export type Database = {
           estado?: string | null
           estado_id?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           nome_fantasia?: string | null
           observacoes?: string | null
@@ -2065,6 +2071,148 @@ export type Database = {
           total_recebidos?: number
         }
         Relationships: []
+      }
+      rota_paradas: {
+        Row: {
+          atividade_id: string | null
+          cidade: string | null
+          concluida: boolean
+          created_at: string
+          estado: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          observacoes: string | null
+          oportunidade_id: string | null
+          ordem: number
+          organizacao_id: string | null
+          rota_id: string
+          tipo: string
+        }
+        Insert: {
+          atividade_id?: string | null
+          cidade?: string | null
+          concluida?: boolean
+          created_at?: string
+          estado?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          ordem?: number
+          organizacao_id?: string | null
+          rota_id: string
+          tipo?: string
+        }
+        Update: {
+          atividade_id?: string | null
+          cidade?: string | null
+          concluida?: boolean
+          created_at?: string
+          estado?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          ordem?: number
+          organizacao_id?: string | null
+          rota_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_paradas_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotas: {
+        Row: {
+          created_at: string
+          data_rota: string
+          id: string
+          km_total_estimado: number | null
+          observacoes: string | null
+          status: string
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_rota: string
+          id?: string
+          km_total_estimado?: number | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          data_rota?: string
+          id?: string
+          km_total_estimado?: number | null
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       tipicos: {
         Row: {
