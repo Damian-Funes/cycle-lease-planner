@@ -97,6 +97,7 @@ const cards = [
     icon: Route,
     to: "/rotas",
     color: "bg-lime-500/10 text-lime-700",
+  },
   {
     title: "Leads",
     desc: "Leads do site (RD Station)",
