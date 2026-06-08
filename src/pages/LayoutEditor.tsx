@@ -1035,6 +1035,7 @@ export default function LayoutEditor() {
               <TabsTrigger value="catalog" className="text-xs">Catálogo</TabsTrigger>
               <TabsTrigger value="floor" className="text-xs">Piso</TabsTrigger>
               <TabsTrigger value="conexoes" className="text-xs">Conexões ({conexoes.length})</TabsTrigger>
+              <TabsTrigger value="padroes" className="text-xs">Padrões</TabsTrigger>
             </TabsList>
 
             {/* Aba 1 */}
