@@ -301,7 +301,6 @@ export default function LayoutEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function aplicarTemplate(tpl: LayoutRow) {
   async function salvarComoTemplate(nome: string, mod: string, tipo: string) {
     if (!layout) return;
     const { error } = await (supabase as any)
