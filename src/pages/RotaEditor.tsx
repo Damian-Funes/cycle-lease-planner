@@ -210,7 +210,8 @@ export default function RotaEditor() {
     const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
     if (valid.length < 1) { toast.error("Adicione ao menos 1 parada"); return; }
     try {
-      const res = await optimizeRoute(valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })));
+      const origem = getOrigemVendedor(rota?.vendedor_id);
+      const res = await optimizeRoute(valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), origem);
       if (!res) return;
       const updates = res.order.map((origIdx, newIdx) => ({ id: valid[origIdx].id, ordem: newIdx }));
       await reordenarParadas(updates);
