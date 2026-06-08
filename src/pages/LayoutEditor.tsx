@@ -503,6 +503,10 @@ export default function LayoutEditor() {
     if (patch.piso_imagem_url !== undefined) dbPatch.piso_imagem_url = patch.piso_imagem_url;
     if (patch.piso_imagem_opacidade !== undefined) dbPatch.piso_imagem_opacidade = patch.piso_imagem_opacidade;
     if (patch.observacoes !== undefined) dbPatch.observacoes = patch.observacoes;
+    if ((patch as any).modelo_maquina !== undefined) dbPatch.modelo_maquina = (patch as any).modelo_maquina;
+    if ((patch as any).tipo_instalacao !== undefined) dbPatch.tipo_instalacao = (patch as any).tipo_instalacao;
+    if ((patch as any).is_template !== undefined) dbPatch.is_template = (patch as any).is_template;
+    if ((patch as any).template_nome !== undefined) dbPatch.template_nome = (patch as any).template_nome;
     await supabase.from("layouts").update(dbPatch).eq("id", layout.id);
   }
 
