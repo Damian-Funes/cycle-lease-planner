@@ -773,33 +773,8 @@ export function Layout3DCanvas({
       c.scene!.add(wrapper);
       groups[it.item_id] = wrapper;
 
-      const buildBoxFallback = (placeholder = false) => {
-        const cor = it.cor_categoria || "#888780";
-        const geom = new THREE.BoxGeometry(w, h, d);
-        const mat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(cor),
-          roughness: 0.65,
-          metalness: 0.15,
-          transparent: true,
-          opacity: placeholder ? 0.18 : 0.78,
-        });
-        const mesh = new THREE.Mesh(geom, mat);
-        mesh.position.y = h / 2;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        wrapper.add(mesh);
-
-        const edges = new THREE.LineSegments(
-          new THREE.EdgesGeometry(geom),
-          new THREE.LineBasicMaterial({ color: new THREE.Color(cor), transparent: true, opacity: placeholder ? 0.5 : 0.95 }),
-        );
-        edges.position.y = h / 2;
-        wrapper.add(edges);
-      };
-
       const glbUrl = (it as unknown as { modelo_3d_url?: string | null }).modelo_3d_url;
       if (glbUrl) {
-        buildBoxFallback(true);
         loader.load(
           glbUrl,
           (gltf) => {
@@ -838,17 +813,17 @@ export function Layout3DCanvas({
             }
           },
           () => {
+            // Falha ao carregar GLB: não renderiza geometria de fallback.
             setLoadingGlb((p) => {
               const np = { ...p };
               delete np[it.item_id];
               return np;
             });
-            buildBoxFallback();
           },
         );
-      } else {
-        buildBoxFallback();
       }
+      // Sem modelo_3d_url: wrapper permanece vazio (sem cubo placeholder).
+
     });
 
     requestAnimationFrame(() => {
