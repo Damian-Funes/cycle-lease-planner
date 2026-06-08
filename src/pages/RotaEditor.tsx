@@ -84,13 +84,14 @@ export default function RotaEditor() {
     const bounds = new g.maps.LatLngBounds();
     const path: any[] = [];
 
-    // Marker de origem (Maringá)
-    const origemPos = { lat: MARINGA.lat, lng: MARINGA.lng };
+    // Marker de origem (base do vendedor)
+    const origem = getOrigemVendedor(rota?.vendedor_id);
+    const origemPos = { lat: origem.lat, lng: origem.lng };
     const origemMarker = new g.maps.Marker({
       position: origemPos,
       map: mapInstanceRef.current,
-      label: { text: "M", color: "white", fontWeight: "bold" },
-      title: "Origem: Maringá - PR",
+      label: { text: origem.nome[0], color: "white", fontWeight: "bold" },
+      title: `Origem: ${origem.nome}`,
       icon: {
         path: g.maps.SymbolPath.CIRCLE,
         scale: 14,
