@@ -94,7 +94,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
       if (!coords) { toast.error("Não foi possível localizar a cidade"); return; }
       const cidade = { nome: s.cidade, estado: s.estado, ...coords };
       setCidadeSel(cidade);
-      const lista = await buscarOrganizacoesProximas({ ...coords, estado: s.estado || undefined }, 50);
+      const lista = await buscarOrganizacoesProximas({ ...coords, estado: s.estado || undefined }, 100);
       setOrgs(lista);
     } catch (e: any) {
       toast.error("Erro", { description: e?.message });
