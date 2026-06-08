@@ -1,0 +1,1 @@
+ALTER TABLE public.layouts ALTER COLUMN origem_tipo DROP NOT NULL; ALTER TABLE public.layouts ALTER COLUMN origem_id DROP NOT NULL;
