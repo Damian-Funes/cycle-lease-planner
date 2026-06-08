@@ -261,9 +261,30 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         tags: v.tags ? v.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
         observacoes: v.observacoes?.trim() || null,
       };
+
+      // Geocoding em background — não bloqueia salvar se falhar
+      const tentarGeocode = async (orgId: string) => {
+        try {
+          const enderecoCompleto = [payload.endereco, payload.cidade, payload.estado, "Brasil"]
+            .filter(Boolean).join(", ");
+          if (!enderecoCompleto || enderecoCompleto.length < 5) return;
+          const { geocodeAddress } = await import("@/lib/maps");
+          const coords = await geocodeAddress(enderecoCompleto);
+          if (coords) {
+            await (supabase as any).from("organizacoes")
+              .update({ latitude: coords.lat, longitude: coords.lng }).eq("id", orgId);
+          }
+        } catch (e) { console.warn("[geocode org]", e); }
+      };
+
       if (isEdit && organizacao) {
         const { error } = await (supabase as any).from("organizacoes").update(payload).eq("id", organizacao.id);
         if (error) throw error;
+        // Re-geocode se endereço mudou e ainda não tem coordenadas
+        if (!(organizacao as any).latitude || !(organizacao as any).longitude ||
+            payload.endereco !== organizacao.endereco || payload.cidade !== organizacao.cidade) {
+          tentarGeocode(organizacao.id);
+        }
         return;
       }
       const { data: orgIns, error } = await (supabase as any)
@@ -289,6 +310,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }
         await (supabase as any).from("organizacoes").delete().eq("id", orgId);
         throw new Error(`Falha ao salvar contato: ${pErr.message}`);
       }
+      tentarGeocode(orgId);
     },
     onSuccess: () => {
       toast.success(isEdit ? "Organização atualizada" : "Organização e contato criados");

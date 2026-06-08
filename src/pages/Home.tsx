@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck, Route } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import CrmWidgets from "@/components/CrmWidgets";
@@ -90,6 +90,13 @@ const cards = [
     icon: KanbanSquare,
     to: "/crm",
     color: "bg-emerald-500/10 text-emerald-600",
+  },
+  {
+    title: "Rotas Comerciais",
+    desc: "Planejamento de visitas com mapa e otimização",
+    icon: Route,
+    to: "/rotas",
+    color: "bg-lime-500/10 text-lime-700",
   },
   {
     title: "Leads",
