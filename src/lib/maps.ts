@@ -63,16 +63,17 @@ export function getOrigemVendedor(vendedorId?: string | null) {
 }
 
 export async function optimizeRoute(
-  paradas: { lat: number; lng: number }[]
+  paradas: { lat: number; lng: number }[],
+  origem: { lat: number; lng: number } = MARINGA
 ): Promise<{ order: number[]; totalKm: number } | null> {
   if (paradas.length < 1) return null;
   const g = await loadGoogleMaps();
   const ds = new g.maps.DirectionsService();
-  // Origem e destino sempre Maringá; todas as paradas viram waypoints
+  // Origem e destino = base do vendedor; paradas viram waypoints
   const waypoints = paradas.map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true }));
   const res: any = await ds.route({
-    origin: { lat: MARINGA.lat, lng: MARINGA.lng },
-    destination: { lat: MARINGA.lat, lng: MARINGA.lng },
+    origin: { lat: origem.lat, lng: origem.lng },
+    destination: { lat: origem.lat, lng: origem.lng },
     waypoints,
     optimizeWaypoints: true,
     travelMode: g.maps.TravelMode.DRIVING,
