@@ -284,7 +284,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
 
               {/* Tabela de itens */}
               {itens.length > 0 ? (
-                <div className="max-h-[38vh] overflow-y-auto rounded-lg border overscroll-contain">
+                <div className="rounded-lg border">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/50 text-muted-foreground">
