@@ -293,10 +293,77 @@ export default function LayoutEditor() {
       setContidosPares(paresRes as ContidoRow[]);
       await refreshItems();
       await refreshConexoes();
+      const orgId = (lay as any).organizacao_id as string | null;
+      if (orgId) {
+        const { data: org } = await supabase.from("organizacoes").select("nome, cidade").eq("id", orgId).maybeSingle();
+        if (org) setOrgInfo({ nome: (org as any).nome, cidade: (org as any).cidade });
+      }
+      await refreshTemplates();
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const refreshTemplates = useCallback(async () => {
+    const { data } = await (supabase as any)
+      .from("layouts")
+      .select("*")
+      .eq("is_template", true)
+      .order("modelo_maquina", { ascending: true })
+      .order("template_nome", { ascending: true });
+    setTemplates((data ?? []) as LayoutRow[]);
+  }, []);
+
+  async function aplicarTemplate(tpl: LayoutRow) {
+    if (!layout) return;
+    try {
+      await supabase.from("layout_conexoes").delete().eq("layout_id", layout.id);
+      await supabase.from("layout_equipamentos").delete().eq("layout_id", layout.id);
+      const { data: tplItens } = await supabase
+        .from("layout_equipamentos")
+        .select("equipamento_id, pos_x_mm, pos_y_mm, pos_z_mm, rotacao, ordem, rotulo_customizado")
+        .eq("layout_id", tpl.id)
+        .order("ordem");
+      const inserts = (tplItens ?? []).map((it: any) => ({
+        layout_id: layout.id,
+        equipamento_id: it.equipamento_id,
+        pos_x_mm: it.pos_x_mm,
+        pos_y_mm: it.pos_y_mm,
+        pos_z_mm: it.pos_z_mm ?? 0,
+        rotacao: it.rotacao,
+        ordem: it.ordem,
+        rotulo_customizado: it.rotulo_customizado,
+      }));
+      if (inserts.length > 0) {
+        const { error } = await supabase.from("layout_equipamentos").insert(inserts);
+        if (error) throw error;
+      }
+      await refreshItems();
+      await refreshConexoes();
+      setTemplateConfirm(null);
+      toast({ title: "Template aplicado", description: `${inserts.length} equipamento(s) carregado(s).` });
+    } catch (e) {
+      toast({ title: "Erro ao aplicar template", description: e instanceof Error ? e.message : "", variant: "destructive" });
+    }
+  }
+
+  async function salvarComoTemplate(nome: string, mod: string, tipo: string) {
+    if (!layout) return;
+    const { error } = await (supabase as any)
+      .from("layouts")
+      .update({ is_template: true, template_nome: nome, modelo_maquina: mod || null, tipo_instalacao: tipo || null })
+      .eq("id", layout.id);
+    if (error) {
+      toast({ title: "Erro ao salvar template", description: error.message, variant: "destructive" });
+      return;
+    }
+    setLayout({ ...layout, is_template: true, template_nome: nome, modelo_maquina: mod, tipo_instalacao: tipo });
+    await refreshTemplates();
+    setSaveTemplateOpen(false);
+    toast({ title: "Template salvo com sucesso" });
+  }
+
+
 
 
 
