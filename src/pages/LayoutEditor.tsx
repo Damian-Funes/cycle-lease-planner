@@ -923,6 +923,9 @@ export default function LayoutEditor() {
             <Button size="sm" onClick={handleSalvarTudo} disabled={saving} className="gap-1">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
             </Button>
+            <Button size="sm" variant="outline" onClick={() => setSaveTemplateOpen(true)} className="gap-1" title="Salvar este layout como template/padrão">
+              <Layers className="w-4 h-4" /> Salvar como Template
+            </Button>
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
             </Button>
@@ -1035,7 +1038,7 @@ export default function LayoutEditor() {
               <TabsTrigger value="catalog" className="text-xs">Catálogo</TabsTrigger>
               <TabsTrigger value="floor" className="text-xs">Piso</TabsTrigger>
               <TabsTrigger value="conexoes" className="text-xs">Conexões ({conexoes.length})</TabsTrigger>
-              <TabsTrigger value="padroes" className="text-xs">Padrões</TabsTrigger>
+              
             </TabsList>
 
             {/* Aba 1 */}
@@ -1228,55 +1231,6 @@ export default function LayoutEditor() {
               )}
             </TabsContent>
 
-            {/* Aba 5 - Padrões */}
-            <TabsContent value="padroes" className="p-0 m-0 flex flex-col" style={{ minHeight: 300 }}>
-              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
-                {templates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">
-                    Nenhum template salvo. Use o botão abaixo para salvar este layout como padrão.
-                  </p>
-                ) : (
-                  Object.entries(
-                    templates.reduce<Record<string, LayoutRow[]>>((acc, t) => {
-                      const m = (t as any).modelo_maquina || "Sem modelo";
-                      (acc[m] ||= []).push(t);
-                      return acc;
-                    }, {})
-                  ).map(([mod, lista]) => (
-                    <div key={mod}>
-                      <div className="text-xs font-semibold uppercase tracking-wide mb-1 text-muted-foreground">{mod}</div>
-                      <div className="space-y-1">
-                        {lista.map((t) => (
-                          <div key={t.id} className="flex items-center gap-2 p-2 rounded-md border hover:bg-muted/50">
-                            <Layers className="w-4 h-4 text-muted-foreground shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium truncate">{(t as any).template_nome || "Sem nome"}</div>
-                              {(t as any).tipo_instalacao && (
-                                <Badge variant="outline" className="h-4 text-[10px] mt-0.5">{(t as any).tipo_instalacao}</Badge>
-                              )}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7"
-                              disabled={t.id === layout.id}
-                              onClick={() => setTemplateConfirm(t)}
-                            >
-                              Usar
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="border-t p-3">
-                <Button size="sm" className="w-full gap-1" onClick={() => setSaveTemplateOpen(true)}>
-                  <Save className="w-3.5 h-3.5" /> Salvar layout atual como Template
-                </Button>
-              </div>
-            </TabsContent>
           </Tabs>
         </aside>
       </div>
