@@ -195,7 +195,25 @@ export default function Layouts() {
   );
 }
 
+
 /* ---------------- modal ---------------- */
+
+const MODELOS_MAQUINA = ["LSB130", "LSB150", "LSB300S", "LSB300D"] as const;
+const TIPOS_INSTALACAO = ["Chão", "Torre"] as const;
+
+interface OrgOption {
+  id: string;
+  nome: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  cidade: string | null;
+}
+
+interface PessoaOption {
+  id: string;
+  nome: string;
+  cargo: string | null;
+}
 
 function NovoLayoutModal({
   open,
@@ -207,22 +225,71 @@ function NovoLayoutModal({
   onCreated: (id: string) => void;
 }) {
   const { toast } = useToast();
+  const [tab, setTab] = useState<"origem" | "branco">("origem");
+
+  const [pisoLarguraM, setPisoLarguraM] = useState("20");
+  const [pisoComprimentoM, setPisoComprimentoM] = useState("15");
+  const [modelo, setModelo] = useState<string>("");
+  const [tipoInst, setTipoInst] = useState<string>("");
+  const [observacoes, setObservacoes] = useState("");
+  const [criando, setCriando] = useState(false);
+
+  useEffect(() => {
+    if (modelo === "LSB130") setTipoInst("Chão");
+  }, [modelo]);
+
   const [origens, setOrigens] = useState<OrigemOption[]>([]);
   const [loadingOrigens, setLoadingOrigens] = useState(false);
   const [busca, setBusca] = useState("");
   const [selecionado, setSelecionado] = useState<OrigemOption | null>(null);
-  const [pisoLarguraM, setPisoLarguraM] = useState("20");
-  const [pisoComprimentoM, setPisoComprimentoM] = useState("15");
-  const [criando, setCriando] = useState(false);
+
+  const [orgs, setOrgs] = useState<OrgOption[]>([]);
+  const [orgOpen, setOrgOpen] = useState(false);
+  const [orgSel, setOrgSel] = useState<OrgOption | null>(null);
+  const [pessoas, setPessoas] = useState<PessoaOption[]>([]);
+  const [pessoaSel, setPessoaSel] = useState<PessoaOption | null>(null);
 
   useEffect(() => {
     if (!open) {
       setSelecionado(null);
       setBusca("");
+      setOrgSel(null);
+      setPessoaSel(null);
+      setPessoas([]);
+      setModelo("");
+      setTipoInst("");
+      setObservacoes("");
+      setTab("origem");
       return;
     }
     void loadOrigens();
+    void loadOrgs();
   }, [open]);
+
+  useEffect(() => {
+    if (!orgSel) {
+      setPessoas([]);
+      setPessoaSel(null);
+      return;
+    }
+    (async () => {
+      const { data } = await supabase
+        .from("pessoas")
+        .select("id, nome, cargo")
+        .eq("organizacao_id", orgSel.id)
+        .order("nome");
+      setPessoas((data ?? []) as PessoaOption[]);
+    })();
+  }, [orgSel]);
+
+  async function loadOrgs() {
+    const { data } = await supabase
+      .from("organizacoes")
+      .select("id, nome, nome_fantasia, cnpj, cidade")
+      .order("nome")
+      .limit(1000);
+    setOrgs((data ?? []) as OrgOption[]);
+  }
 
   async function loadOrigens() {
     setLoadingOrigens(true);
@@ -237,17 +304,16 @@ function NovoLayoutModal({
         .order("created_at", { ascending: false }),
     ]);
 
-    // Buscar nomes das organizações como fallback quando nome_cliente está vazio
     const orgIds = new Set<string>();
     for (const p of props.data ?? []) if (p.organizacao_id) orgIds.add(p.organizacao_id);
     for (const o of orcs.data ?? []) if (o.organizacao_id) orgIds.add(o.organizacao_id);
     const orgMap = new Map<string, string>();
     if (orgIds.size > 0) {
-      const { data: orgs } = await (supabase as any)
+      const { data: orgsData } = await (supabase as any)
         .from("organizacoes")
         .select("id, nome")
         .in("id", Array.from(orgIds));
-      for (const o of orgs ?? []) orgMap.set(o.id, o.nome);
+      for (const o of orgsData ?? []) orgMap.set(o.id, o.nome);
     }
     const resolveNome = (nome: string | null | undefined, orgId: string | null | undefined) => {
       const n = (nome ?? "").trim();
@@ -283,42 +349,52 @@ function NovoLayoutModal({
     setLoadingOrigens(false);
   }
 
-
-  const filtradas = origens.filter((o) => {
+  const filtradas = useMemo(() => origens.filter((o) => {
     const q = busca.trim().toLowerCase();
     if (!q) return true;
-    return (
-      (o.cliente || "").toLowerCase().includes(q) ||
-      (o.numero || "").toLowerCase().includes(q)
-    );
-  });
+    return (o.cliente || "").toLowerCase().includes(q) || (o.numero || "").toLowerCase().includes(q);
+  }), [origens, busca]);
 
-  async function handleCriar() {
-    if (!selecionado) {
-      toast({ title: "Escolha uma proposta ou orçamento", variant: "destructive" });
-      return;
-    }
+  function validarPiso(): { pLarg: number; pComp: number } | null {
     const pLarg = Math.round(parseFloat(pisoLarguraM.replace(",", ".")) * 1000);
     const pComp = Math.round(parseFloat(pisoComprimentoM.replace(",", ".")) * 1000);
     if (!pLarg || !pComp || pLarg < 5000 || pComp < 5000 || pLarg > 50000 || pComp > 50000) {
       toast({ title: "Dimensões do piso inválidas", description: "Mínimo 5m × 5m, máximo 50m × 50m.", variant: "destructive" });
+      return null;
+    }
+    return { pLarg, pComp };
+  }
+
+  function baseInsert(pLarg: number, pComp: number) {
+    return {
+      piso_largura_mm: pLarg,
+      piso_comprimento_mm: pComp,
+      modelo_maquina: modelo || null,
+      tipo_instalacao: tipoInst || null,
+      observacoes: observacoes || null,
+    } as Record<string, unknown>;
+  }
+
+  async function handleCriarOrigem() {
+    if (!selecionado) {
+      toast({ title: "Escolha uma proposta ou orçamento", variant: "destructive" });
       return;
     }
+    const piso = validarPiso();
+    if (!piso) return;
 
     setCriando(true);
 
-    // 1. cria layout
     const { data: layoutData, error: layoutErr } = await supabase
       .from("layouts")
       .insert({
+        ...baseInsert(piso.pLarg, piso.pComp),
         origem_tipo: selecionado.tipo,
         origem_id: selecionado.id,
         cliente: selecionado.cliente,
         cidade: null,
         unidade: null,
-        piso_largura_mm: pLarg,
-        piso_comprimento_mm: pComp,
-      })
+      } as any)
       .select("id")
       .maybeSingle();
 
@@ -330,7 +406,6 @@ function NovoLayoutModal({
 
     const layoutId = layoutData.id;
 
-    // 2. para cada item da proposta/orçamento, busca o equipamento e insere com posição em fila
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const equipamentoIds = Array.from(new Set(selecionado.itens.map((i) => i.equipamento_id).filter((id): id is string => !!id && UUID_RE.test(id))));
     let equipamentos: { id: string; codigo: string; largura_mm: number | null; imagem_url: string | null }[] = [];
@@ -343,7 +418,6 @@ function NovoLayoutModal({
     }
     const equipMap = new Map(equipamentos.map((e) => [e.id, e]));
 
-    // 2b. Regra "itens contidos": filhos cujos pais estão presentes não vão para o desenho.
     const { listContidos, buildPaiParaFilhos, calcularOcultos } = await import("@/lib/equipamentoContidos");
     let ocultos = new Set<string>();
     let codigosOcultos: string[] = [];
@@ -351,59 +425,34 @@ function NovoLayoutModal({
       const pares = await listContidos();
       const paiParaFilhos = buildPaiParaFilhos(pares);
       ocultos = calcularOcultos(equipamentoIds, paiParaFilhos);
-      codigosOcultos = Array.from(ocultos)
-        .map((id) => equipMap.get(id)?.codigo)
-        .filter(Boolean) as string[];
-    } catch {
-      // se falhar, segue sem filtrar
-    }
+      codigosOcultos = Array.from(ocultos).map((id) => equipMap.get(id)?.codigo).filter(Boolean) as string[];
+    } catch { /* ignore */ }
 
-    const inserts: Array<{
-      layout_id: string;
-      equipamento_id: string;
-      pos_x_mm: number;
-      pos_y_mm: number;
-      ordem: number;
-    }> = [];
+    const inserts: Array<{ layout_id: string; equipamento_id: string; pos_x_mm: number; pos_y_mm: number; ordem: number; }> = [];
     const naoEncontrados: string[] = [];
     const semImagem: string[] = [];
 
-    let xCursor = 1000; // começa a 1m da parede
+    let xCursor = 1000;
     const yPos = 1000;
     let ordem = 0;
     const espacamento = 500;
 
     for (const item of selecionado.itens) {
       const eq = equipMap.get(item.equipamento_id);
-      if (!eq) {
-        naoEncontrados.push(item.codigo);
-        continue;
-      }
-      // Se este equipamento já é representado por outro presente, não desenhar.
+      if (!eq) { naoEncontrados.push(item.codigo); continue; }
       if (ocultos.has(eq.id)) continue;
-      if (!eq.imagem_url) {
-        semImagem.push(eq.codigo);
-      }
-      // multiplica pela quantidade
+      if (!eq.imagem_url) semImagem.push(eq.codigo);
       const qtd = Math.max(1, Number(item.quantidade) || 1);
       const w = eq.largura_mm ?? 1000;
       for (let i = 0; i < qtd; i++) {
-        inserts.push({
-          layout_id: layoutId,
-          equipamento_id: eq.id,
-          pos_x_mm: xCursor + w / 2,
-          pos_y_mm: yPos,
-          ordem: ordem++,
-        });
+        inserts.push({ layout_id: layoutId, equipamento_id: eq.id, pos_x_mm: xCursor + w / 2, pos_y_mm: yPos, ordem: ordem++ });
         xCursor += w + espacamento;
       }
     }
 
     if (inserts.length > 0) {
       const { error: insErr } = await supabase.from("layout_equipamentos").insert(inserts);
-      if (insErr) {
-        toast({ title: "Erro ao adicionar equipamentos", description: insErr.message, variant: "destructive" });
-      }
+      if (insErr) toast({ title: "Erro ao adicionar equipamentos", description: insErr.message, variant: "destructive" });
     }
 
     setCriando(false);
@@ -413,107 +462,248 @@ function NovoLayoutModal({
       const partes: string[] = [];
       if (naoEncontrados.length > 0) partes.push(`${naoEncontrados.length} item(s) sem cadastro: ${naoEncontrados.join(", ")}`);
       if (semImagem.length > 0) partes.push(`${semImagem.length} sem imagem: ${semImagem.join(", ")}`);
-      if (codigosOcultos.length > 0) partes.push(`${codigosOcultos.length} já representado(s) por outro item: ${codigosOcultos.join(", ")}`);
+      if (codigosOcultos.length > 0) partes.push(`${codigosOcultos.length} já representado(s): ${codigosOcultos.join(", ")}`);
       toast({ title: "Layout criado com avisos", description: partes.join(" · ") });
     } else {
       toast({ title: "Layout criado!" });
     }
-
     onCreated(layoutId);
   }
 
+  async function handleCriarBranco() {
+    if (!orgSel) {
+      toast({ title: "Selecione uma organização", variant: "destructive" });
+      return;
+    }
+    if (!modelo) {
+      toast({ title: "Selecione o modelo da máquina", variant: "destructive" });
+      return;
+    }
+    const piso = validarPiso();
+    if (!piso) return;
+
+    setCriando(true);
+    const { data, error } = await supabase
+      .from("layouts")
+      .insert({
+        ...baseInsert(piso.pLarg, piso.pComp),
+        organizacao_id: orgSel.id,
+        pessoa_id: pessoaSel?.id ?? null,
+        cliente: orgSel.nome,
+        cidade: orgSel.cidade,
+      } as any)
+      .select("id")
+      .maybeSingle();
+    setCriando(false);
+
+    if (error || !data) {
+      toast({ title: "Erro ao criar layout", description: error?.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Layout criado!" });
+    onOpenChange(false);
+    onCreated(data.id);
+  }
+
+  const podeCriarBranco = !!orgSel && !!modelo && !!tipoInst;
+  const lsb130 = modelo === "LSB130";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Novo Layout</DialogTitle>
-          <DialogDescription>
-            Escolha a proposta ou orçamento de origem. Os equipamentos serão posicionados automaticamente.
-          </DialogDescription>
+          <DialogDescription>Escolha como deseja iniciar.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por cliente ou número..."
-              className="w-full h-9 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as "origem" | "branco")} className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid grid-cols-2">
+            <TabsTrigger value="origem">A partir de proposta/orçamento</TabsTrigger>
+            <TabsTrigger value="branco">Em branco</TabsTrigger>
+          </TabsList>
 
-          <div className="border rounded-md flex-1 overflow-y-auto min-h-0">
-            {loadingOrigens ? (
-              <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
-            ) : filtradas.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-8">Nenhum item encontrado.</p>
-            ) : (
-              <ul className="divide-y">
-                {filtradas.map((o) => {
-                  const isSel = selecionado?.id === o.id && selecionado.tipo === o.tipo;
-                  return (
-                    <li key={`${o.tipo}-${o.id}`}>
-                      <button
-                        type="button"
-                        onClick={() => setSelecionado(o)}
-                        className={`w-full text-left px-3 py-2.5 hover:bg-muted/50 flex items-start gap-3 transition-colors ${isSel ? "bg-primary/10" : ""}`}
-                      >
-                        {o.tipo === "proposta" ? (
-                          <FileText className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                        ) : (
-                          <Receipt className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{o.cliente}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {o.numero || "—"} · {o.itens.length} item(s)
+          <TabsContent value="origem" className="space-y-3 flex-1 overflow-y-auto m-0 pt-3">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por cliente ou número..."
+                className="w-full h-9 pl-9 pr-3 rounded-md border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="border rounded-md max-h-[260px] overflow-y-auto">
+              {loadingOrigens ? (
+                <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+              ) : filtradas.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">Nenhum item encontrado.</p>
+              ) : (
+                <ul className="divide-y">
+                  {filtradas.map((o) => {
+                    const isSel = selecionado?.id === o.id && selecionado.tipo === o.tipo;
+                    return (
+                      <li key={`${o.tipo}-${o.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => setSelecionado(o)}
+                          className={`w-full text-left px-3 py-2.5 hover:bg-muted/50 flex items-start gap-3 transition-colors ${isSel ? "bg-primary/10" : ""}`}
+                        >
+                          {o.tipo === "proposta" ? <FileText className="w-4 h-4 mt-0.5 text-primary shrink-0" /> : <Receipt className="w-4 h-4 mt-0.5 text-amber-600 shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{o.cliente}</div>
+                            <div className="text-xs text-muted-foreground">{o.numero || "—"} · {o.itens.length} item(s)</div>
                           </div>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+            <CamposComuns
+              modelo={modelo} setModelo={setModelo}
+              tipoInst={tipoInst} setTipoInst={setTipoInst}
+              observacoes={observacoes} setObservacoes={setObservacoes}
+              pisoLarguraM={pisoLarguraM} setPisoLarguraM={setPisoLarguraM}
+              pisoComprimentoM={pisoComprimentoM} setPisoComprimentoM={setPisoComprimentoM}
+              lsb130={lsb130}
+            />
+          </TabsContent>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="piso-w">Largura do piso (m)</Label>
-              <Input
-                id="piso-w"
-                type="number"
-                min={5}
-                max={50}
-                step={0.5}
-                value={pisoLarguraM}
-                onChange={(e) => setPisoLarguraM(e.target.value)}
-              />
+          <TabsContent value="branco" className="space-y-3 flex-1 overflow-y-auto m-0 pt-3">
+            <div className="space-y-1.5">
+              <Label>Organização *</Label>
+              <Popover open={orgOpen} onOpenChange={setOrgOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className="truncate text-left">
+                      {orgSel ? orgSel.nome : <span className="text-muted-foreground">Selecione uma organização…</span>}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command filter={(val, search) => {
+                    const o = orgs.find((x) => x.id === val);
+                    if (!o) return 0;
+                    const hay = `${o.nome} ${o.nome_fantasia ?? ""} ${o.cnpj ?? ""}`.toLowerCase();
+                    return hay.includes(search.toLowerCase()) ? 1 : 0;
+                  }}>
+                    <CommandInput placeholder="Buscar por nome ou CNPJ…" />
+                    <CommandList>
+                      <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
+                      <CommandGroup>
+                        {orgs.map((o) => (
+                          <CommandItem key={o.id} value={o.id} onSelect={() => { setOrgSel(o); setOrgOpen(false); }}>
+                            <Check className={cn("mr-2 h-4 w-4", orgSel?.id === o.id ? "opacity-100" : "opacity-0")} />
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate">{o.nome}{o.nome_fantasia && <span className="text-muted-foreground"> · {o.nome_fantasia}</span>}</span>
+                              {o.cidade && <span className="text-xs text-muted-foreground">{o.cidade}</span>}
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="piso-h">Comprimento do piso (m)</Label>
-              <Input
-                id="piso-h"
-                type="number"
-                min={5}
-                max={50}
-                step={0.5}
-                value={pisoComprimentoM}
-                onChange={(e) => setPisoComprimentoM(e.target.value)}
-              />
+
+            <div className="space-y-1.5">
+              <Label>Contato</Label>
+              <Select
+                disabled={!orgSel || pessoas.length === 0}
+                value={pessoaSel?.id ?? ""}
+                onValueChange={(v) => setPessoaSel(pessoas.find((p) => p.id === v) ?? null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!orgSel ? "Selecione a organização primeiro" : pessoas.length === 0 ? "Sem contatos cadastrados" : "Selecione um contato…"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pessoas.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}{p.cargo ? ` · ${p.cargo}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        </div>
+
+            <CamposComuns
+              modelo={modelo} setModelo={setModelo}
+              tipoInst={tipoInst} setTipoInst={setTipoInst}
+              observacoes={observacoes} setObservacoes={setObservacoes}
+              pisoLarguraM={pisoLarguraM} setPisoLarguraM={setPisoLarguraM}
+              pisoComprimentoM={pisoComprimentoM} setPisoComprimentoM={setPisoComprimentoM}
+              lsb130={lsb130}
+            />
+          </TabsContent>
+        </Tabs>
 
         <div className="flex justify-end gap-2 pt-2 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleCriar} disabled={!selecionado || criando} className="gap-1">
-            {criando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Criar layout
-          </Button>
+          {tab === "origem" ? (
+            <Button onClick={handleCriarOrigem} disabled={!selecionado || criando} className="gap-1">
+              {criando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Criar layout
+            </Button>
+          ) : (
+            <Button onClick={handleCriarBranco} disabled={!podeCriarBranco || criando} className="gap-1">
+              {criando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Criar layout
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CamposComuns({
+  modelo, setModelo, tipoInst, setTipoInst, observacoes, setObservacoes,
+  pisoLarguraM, setPisoLarguraM, pisoComprimentoM, setPisoComprimentoM, lsb130,
+}: {
+  modelo: string; setModelo: (v: string) => void;
+  tipoInst: string; setTipoInst: (v: string) => void;
+  observacoes: string; setObservacoes: (v: string) => void;
+  pisoLarguraM: string; setPisoLarguraM: (v: string) => void;
+  pisoComprimentoM: string; setPisoComprimentoM: (v: string) => void;
+  lsb130: boolean;
+}) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Modelo da máquina *</Label>
+          <Select value={modelo} onValueChange={setModelo}>
+            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+            <SelectContent>
+              {MODELOS_MAQUINA.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Tipo de instalação {lsb130 && <span className="text-xs text-muted-foreground">(travado p/ LSB130)</span>}</Label>
+          <Select value={tipoInst} onValueChange={setTipoInst} disabled={lsb130}>
+            <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
+            <SelectContent>
+              {TIPOS_INSTALACAO.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="piso-w">Largura do piso (m)</Label>
+          <Input id="piso-w" type="number" min={5} max={50} step={0.5} value={pisoLarguraM} onChange={(e) => setPisoLarguraM(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="piso-h">Comprimento do piso (m)</Label>
+          <Input id="piso-h" type="number" min={5} max={50} step={0.5} value={pisoComprimentoM} onChange={(e) => setPisoComprimentoM(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Observações</Label>
+        <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas internas…" rows={2} />
+      </div>
+    </>
   );
 }
