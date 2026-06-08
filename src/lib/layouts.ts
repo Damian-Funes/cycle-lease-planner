@@ -81,6 +81,7 @@ export async function listLayouts(): Promise<LayoutRow[]> {
   const { data, error } = await supabase
     .from("layouts")
     .select("*")
+    .or("is_template.is.null,is_template.eq.false")
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as LayoutRow[];
