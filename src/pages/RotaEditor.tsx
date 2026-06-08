@@ -6,7 +6,7 @@ import {
   getRota, getParadas, atualizarRota, adicionarParada, removerParada,
   reordenarParadas, criarAtividadeVisita, type RotaParada,
 } from "@/lib/rotas";
-import { loadGoogleMaps, optimizeRoute } from "@/lib/maps";
+import { loadGoogleMaps, optimizeRoute, MARINGA } from "@/lib/maps";
 import AppHeader from "@/components/AppHeader";
 import AdicionarParadaModal from "@/components/AdicionarParadaModal";
 import { Button } from "@/components/ui/button";
@@ -80,10 +80,30 @@ export default function RotaEditor() {
     if (polylineRef.current) polylineRef.current.setMap(null);
 
     const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
-    if (valid.length === 0) return;
 
     const bounds = new g.maps.LatLngBounds();
     const path: any[] = [];
+
+    // Marker de origem (Maringá)
+    const origemPos = { lat: MARINGA.lat, lng: MARINGA.lng };
+    const origemMarker = new g.maps.Marker({
+      position: origemPos,
+      map: mapInstanceRef.current,
+      label: { text: "M", color: "white", fontWeight: "bold" },
+      title: "Origem: Maringá - PR",
+      icon: {
+        path: g.maps.SymbolPath.CIRCLE,
+        scale: 14,
+        fillColor: "#0f172a",
+        fillOpacity: 1,
+        strokeColor: "white",
+        strokeWeight: 2,
+      },
+    });
+    markersRef.current.push(origemMarker);
+    bounds.extend(origemPos);
+    path.push(origemPos);
+
     valid.forEach((p, idx) => {
       const pos = { lat: Number(p.latitude), lng: Number(p.longitude) };
       const marker = new g.maps.Marker({
@@ -96,6 +116,9 @@ export default function RotaEditor() {
       path.push(pos);
     });
 
+    // Fecha o ciclo voltando para Maringá
+    if (valid.length > 0) path.push(origemPos);
+
     polylineRef.current = new g.maps.Polyline({
       path,
       strokeColor: "#059669",
@@ -103,9 +126,9 @@ export default function RotaEditor() {
       map: mapInstanceRef.current,
     });
 
-    if (valid.length === 1) {
-      mapInstanceRef.current.setCenter(path[0]);
-      mapInstanceRef.current.setZoom(10);
+    if (valid.length === 0) {
+      mapInstanceRef.current.setCenter(origemPos);
+      mapInstanceRef.current.setZoom(7);
     } else {
       mapInstanceRef.current.fitBounds(bounds, 60);
     }
@@ -184,7 +207,7 @@ export default function RotaEditor() {
   async function otimizar() {
     if (!id) return;
     const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
-    if (valid.length < 2) { toast.error("Precisa de 2+ paradas"); return; }
+    if (valid.length < 1) { toast.error("Adicione ao menos 1 parada"); return; }
     try {
       const res = await optimizeRoute(valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })));
       if (!res) return;
@@ -223,7 +246,7 @@ export default function RotaEditor() {
             <h1 className="font-semibold">Editar Rota</h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={otimizar} disabled={paradas.length < 2}>
+            <Button variant="outline" onClick={otimizar} disabled={paradas.length < 1}>
               <Wand2 className="w-4 h-4 mr-1" /> Otimizar ordem
             </Button>
             <Button onClick={salvarMeta}><Save className="w-4 h-4 mr-1" /> Salvar</Button>

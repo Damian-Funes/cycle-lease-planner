@@ -48,29 +48,29 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
   return 2 * R * Math.asin(Math.sqrt(x));
 }
 
+// Origem fixa: Maringá-PR (todas as rotas partem e retornam aqui)
+export const MARINGA = { lat: -23.4253, lng: -51.9386, nome: "Maringá - PR" };
+
 export async function optimizeRoute(
   paradas: { lat: number; lng: number }[]
 ): Promise<{ order: number[]; totalKm: number } | null> {
-  if (paradas.length < 2) return null;
+  if (paradas.length < 1) return null;
   const g = await loadGoogleMaps();
   const ds = new g.maps.DirectionsService();
-  const origin = paradas[0];
-  const destination = paradas[paradas.length - 1];
-  const waypoints = paradas.slice(1, -1).map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true }));
+  // Origem e destino sempre Maringá; todas as paradas viram waypoints
+  const waypoints = paradas.map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true }));
   const res: any = await ds.route({
-    origin,
-    destination,
+    origin: { lat: MARINGA.lat, lng: MARINGA.lng },
+    destination: { lat: MARINGA.lat, lng: MARINGA.lng },
     waypoints,
     optimizeWaypoints: true,
     travelMode: g.maps.TravelMode.DRIVING,
   });
   const route = res.routes?.[0];
   if (!route) return null;
-  const wpOrder: number[] = route.waypoint_order ?? [];
-  // ordem final: [0, ...wpOrder+1, last]
-  const order = [0, ...wpOrder.map((i) => i + 1), paradas.length - 1];
-  // dedup caso só haja 2 paradas
-  const unique = Array.from(new Set(order));
+  const wpOrder: number[] = route.waypoint_order ?? paradas.map((_, i) => i);
+  // order = índices das paradas na nova ordem (sem Maringá)
+  const order = wpOrder.length ? wpOrder : paradas.map((_, i) => i);
   const totalKm = route.legs.reduce((acc: number, leg: any) => acc + (leg.distance?.value ?? 0), 0) / 1000;
-  return { order: unique, totalKm };
+  return { order, totalKm };
 }
