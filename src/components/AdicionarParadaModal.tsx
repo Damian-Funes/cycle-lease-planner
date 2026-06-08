@@ -94,7 +94,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
       if (!coords) { toast.error("Não foi possível localizar a cidade"); return; }
       const cidade = { nome: s.cidade, estado: s.estado, ...coords };
       setCidadeSel(cidade);
-      const lista = await buscarOrganizacoesProximas({ ...coords, estado: s.estado || undefined }, 50);
+      const lista = await buscarOrganizacoesProximas({ ...coords, estado: s.estado || undefined }, 100);
       setOrgs(lista);
     } catch (e: any) {
       toast.error("Erro", { description: e?.message });
@@ -144,8 +144,8 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
                   {orgs.length === 0 && !loadingOrgs
-                    ? "Nenhuma organização cadastrada num raio de 50 km."
-                    : `${orgs.length} organização(ões) num raio de 50 km`}
+                    ? "Nenhuma organização cadastrada num raio de 100 km."
+                    : `${orgs.length} organização(ões) num raio de 100 km`}
                 </div>
                 <Button size="sm" variant="outline" onClick={() => onAddProspeccao(cidadeSel)}>
                   <Plus className="w-3.5 h-3.5 mr-1" /> Prospecção (sem org)
