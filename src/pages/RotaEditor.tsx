@@ -6,7 +6,7 @@ import {
   getRota, getParadas, atualizarRota, adicionarParada, removerParada,
   reordenarParadas, criarAtividadeVisita, type RotaParada,
 } from "@/lib/rotas";
-import { loadGoogleMaps, optimizeRoute } from "@/lib/maps";
+import { loadGoogleMaps, optimizeRoute, MARINGA } from "@/lib/maps";
 import AppHeader from "@/components/AppHeader";
 import AdicionarParadaModal from "@/components/AdicionarParadaModal";
 import { Button } from "@/components/ui/button";
