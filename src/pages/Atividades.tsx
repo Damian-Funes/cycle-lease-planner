@@ -67,7 +67,7 @@ function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
 }
 
 export default function Atividades() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
@@ -91,6 +91,7 @@ export default function Atividades() {
   const [editAtiv, setEditAtiv] = useState<Atividade | null>(null);
   const [concluirAtiv, setConcluirAtiv] = useState<Atividade | null>(null);
   const [resultado, setResultado] = useState("");
+  const [testando, setTestando] = useState(false);
 
   const carregar = async () => {
     setLoading(true);
