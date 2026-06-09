@@ -504,8 +504,10 @@ export default function Orcamento() {
       toast({ title: "Selecione a pessoa de contato antes de gerar o PDF", variant: "destructive" });
       return;
     }
-    if (params.itens.length === 0) {
-      toast({ title: "Adicione ao menos um item", variant: "destructive" });
+    const temMontagem = (Number(params.montagemPrecoTotal) || 0) > 0 || (Number(params.montagemDias) || 0) > 0;
+    const temFrete = (Number(params.frete) || 0) > 0;
+    if (params.itens.length === 0 && !temMontagem && !temFrete) {
+      toast({ title: "Adicione ao menos um item, montagem/desmontagem ou frete", variant: "destructive" });
       return;
     }
     // Salva primeiro para garantir que o trigger recalcule montagem_preco_total
