@@ -277,6 +277,7 @@ export default function Orcamento() {
       montagem_eh_fazenda: params.montagemEhFazenda ?? false,
       montagem_km_hotel_local: params.montagemKmHotelLocal ?? 0,
       montagem_observacoes: params.montagemObservacoes || null,
+      montagem_tipo: params.montagemTipo || "montagem",
     };
 
     let error;
@@ -403,6 +404,7 @@ export default function Orcamento() {
       montagemCustoTotal: Number((data as any).montagem_custo_total) || 0,
       montagemPrecoTotal: Number((data as any).montagem_preco_total) || 0,
       montagemMargemAplicada: Number((data as any).montagem_margem_aplicada) || 0,
+      montagemTipo: ((data as any).montagem_tipo as any) || "montagem",
     };
 
     handleLoad(loaded, data.id);
@@ -782,12 +784,32 @@ export default function Orcamento() {
             })
             .join(" + ");
 
+          const tipoMontagem = params.montagemTipo === "desmontagem" ? "Desmontagem" : "Montagem";
+          const tipoMontagemLower = tipoMontagem.toLowerCase();
           return (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <HardHat className="w-4 h-4 text-primary" /> Montagem
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HardHat className="w-4 h-4 text-primary" /> {tipoMontagem}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => update("montagemTipo", "montagem")}
+                      className={`px-3 py-1 text-xs rounded ${params.montagemTipo !== "desmontagem" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                      Montagem
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update("montagemTipo", "desmontagem")}
+                      className={`px-3 py-1 text-xs rounded ${params.montagemTipo === "desmontagem" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                      Desmontagem
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {margemZerada && (
@@ -817,7 +839,7 @@ export default function Orcamento() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1">
-                        Dias de montagem
+                        Dias de {tipoMontagemLower}
                         {autoDias && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -890,7 +912,7 @@ export default function Orcamento() {
                   )}
 
                   <div className="space-y-1.5">
-                    <Label>Observações da montagem</Label>
+                    <Label>Observações da {tipoMontagemLower}</Label>
                     <Textarea
                       rows={3}
                       value={params.montagemObservacoes ?? ""}
@@ -934,7 +956,7 @@ export default function Orcamento() {
                       <span className="font-medium tabular-nums">{fmtBRL(margemRsExib)}</span>
                     </div>
                     <div className="flex justify-between pt-2 mt-2 border-t border-emerald-300">
-                      <span className="font-bold text-emerald-700">PREÇO MONTAGEM <span className="text-xs font-normal">(cliente vê)</span></span>
+                      <span className="font-bold text-emerald-700">PREÇO {tipoMontagem.toUpperCase()} <span className="text-xs font-normal">(cliente vê)</span></span>
                       <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
                     </div>
                     {divergencia && (
@@ -945,7 +967,7 @@ export default function Orcamento() {
                   </div>
                 ) : (
                   <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 flex items-center justify-between">
-                    <span className="font-bold text-emerald-700">PREÇO MONTAGEM</span>
+                    <span className="font-bold text-emerald-700">PREÇO {tipoMontagem.toUpperCase()}</span>
                     <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
                   </div>
                 )}

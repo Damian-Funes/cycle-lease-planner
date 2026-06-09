@@ -44,6 +44,7 @@ export interface OrcamentoParams {
   montagemCustoTotal?: number;
   montagemPrecoTotal?: number;
   montagemMargemAplicada?: number;
+  montagemTipo?: "montagem" | "desmontagem";
 }
 
 export const DEFAULT_ORCAMENTO: OrcamentoParams = {
@@ -79,6 +80,7 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   montagemCustoTotal: 0,
   montagemPrecoTotal: 0,
   montagemMargemAplicada: 0,
+  montagemTipo: "montagem",
 };
 
 export function calcSubtotal(itens: ItemOrcamento[]): number {

@@ -1397,6 +1397,7 @@ export type Database = {
           montagem_numero_veiculos: number
           montagem_observacoes: string | null
           montagem_preco_total: number
+          montagem_tipo: string
           nome_cliente: string
           numero_orcamento: string | null
           observacoes: string | null
@@ -1437,6 +1438,7 @@ export type Database = {
           montagem_numero_veiculos?: number
           montagem_observacoes?: string | null
           montagem_preco_total?: number
+          montagem_tipo?: string
           nome_cliente: string
           numero_orcamento?: string | null
           observacoes?: string | null
@@ -1477,6 +1479,7 @@ export type Database = {
           montagem_numero_veiculos?: number
           montagem_observacoes?: string | null
           montagem_preco_total?: number
+          montagem_tipo?: string
           nome_cliente?: string
           numero_orcamento?: string | null
           observacoes?: string | null

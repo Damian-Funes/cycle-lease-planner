@@ -1,0 +1,1 @@
+ALTER TABLE public.orcamentos ADD COLUMN IF NOT EXISTS montagem_tipo text NOT NULL DEFAULT 'montagem' CHECK (montagem_tipo IN ('montagem','desmontagem'));
