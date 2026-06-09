@@ -784,12 +784,32 @@ export default function Orcamento() {
             })
             .join(" + ");
 
+          const tipoMontagem = params.montagemTipo === "desmontagem" ? "Desmontagem" : "Montagem";
+          const tipoMontagemLower = tipoMontagem.toLowerCase();
           return (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <HardHat className="w-4 h-4 text-primary" /> Montagem
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <HardHat className="w-4 h-4 text-primary" /> {tipoMontagem}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => update("montagemTipo", "montagem")}
+                      className={`px-3 py-1 text-xs rounded ${params.montagemTipo !== "desmontagem" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                      Montagem
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update("montagemTipo", "desmontagem")}
+                      className={`px-3 py-1 text-xs rounded ${params.montagemTipo === "desmontagem" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                      Desmontagem
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {margemZerada && (
