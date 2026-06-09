@@ -47,6 +47,7 @@ export default function Organizacoes() {
   const [segFiltro, setSegFiltro] = useState("todos");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<OrganizacaoRow | null>(null);
 
   const { data: orgs = [], isLoading } = useQuery({
