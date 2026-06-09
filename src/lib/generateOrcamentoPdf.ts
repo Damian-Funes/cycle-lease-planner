@@ -205,25 +205,25 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
     ];
   });
 
-  autoTable(doc, {
-    startY: y,
-    theme: "grid",
-    headStyles,
-    styles: baseStyles,
-    alternateRowStyles: altRowStyles,
-    columnStyles: {
-      0: { cellWidth: 16, halign: "center" },
-      1: { cellWidth: "auto" as any },
-      2: { cellWidth: 14, halign: "center" },
-      3: { cellWidth: 32, halign: "right" },
-      4: { cellWidth: 34, halign: "right" },
-    },
-    head: [["ITEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
-    body: itemRows,
-  });
-
-
-  y = getLastY(doc) + 8;
+  if (itemRows.length > 0) {
+    autoTable(doc, {
+      startY: y,
+      theme: "grid",
+      headStyles,
+      styles: baseStyles,
+      alternateRowStyles: altRowStyles,
+      columnStyles: {
+        0: { cellWidth: 16, halign: "center" },
+        1: { cellWidth: "auto" as any },
+        2: { cellWidth: 14, halign: "center" },
+        3: { cellWidth: 32, halign: "right" },
+        4: { cellWidth: 34, halign: "right" },
+      },
+      head: [["ITEM", "DESCRIÇÃO", "QTD", "VALOR UNIT.", "SUBTOTAL"]],
+      body: itemRows,
+    });
+    y = getLastY(doc) + 8;
+  }
 
   // Tabela de totais
   const descLabel = params.descontoTipo === "percentual"
