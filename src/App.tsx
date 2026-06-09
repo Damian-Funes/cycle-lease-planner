@@ -43,6 +43,7 @@ const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
 const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegracoes"));
 const ConfiguracoesMontagem = lazy(() => import("./pages/ConfiguracoesMontagem"));
 const ConfiguracoesFormasPagamento = lazy(() => import("./pages/ConfiguracoesFormasPagamento"));
+const ConfiguracoesNotificacoes = lazy(() => import("./pages/ConfiguracoesNotificacoes"));
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/configuracoes/integracoes" element={<ProtectedRoute><ConfiguracoesIntegracoes /></ProtectedRoute>} />
               <Route path="/configuracoes/montagem" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesMontagem /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/formas-pagamento" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesFormasPagamento /></RequireRole></ProtectedRoute>} />
+              <Route path="/configuracoes/notificacoes" element={<ProtectedRoute><ConfiguracoesNotificacoes /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
