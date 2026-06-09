@@ -177,6 +177,7 @@ export default function DealDetalhe() {
     });
     if (!ok) return;
     setWinDialog(false);
+    supabase.functions.invoke("notify-oportunidade-ganha", { body: { oportunidade_id: deal.id } }).catch(() => {});
 
     // Warnings não bloqueantes
     const temDecisor = oppPessoas.some(op => op.papel === "decisor");
