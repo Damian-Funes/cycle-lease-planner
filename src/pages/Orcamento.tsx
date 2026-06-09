@@ -404,6 +404,7 @@ export default function Orcamento() {
       montagemCustoTotal: Number((data as any).montagem_custo_total) || 0,
       montagemPrecoTotal: Number((data as any).montagem_preco_total) || 0,
       montagemMargemAplicada: Number((data as any).montagem_margem_aplicada) || 0,
+      montagemTipo: ((data as any).montagem_tipo as any) || "montagem",
     };
 
     handleLoad(loaded, data.id);
