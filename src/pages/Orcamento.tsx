@@ -510,8 +510,11 @@ export default function Orcamento() {
       toast({ title: "Adicione ao menos um item, montagem/desmontagem ou frete", variant: "destructive" });
       return;
     }
-    // Salva primeiro para garantir que o trigger recalcule montagem_preco_total
-    await handleSave();
+    // Só salva automaticamente na primeira vez (quando ainda não há registro).
+    // Em edições subsequentes, gerar PDF NÃO cria nova versão — usuário precisa apertar "Salvar".
+    if (!savedId) {
+      await handleSave();
+    }
     let pdfParams = params;
     if (savedId) {
       const { data: fresh } = await supabase
