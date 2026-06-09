@@ -93,13 +93,15 @@ export default function Organizacoes() {
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return orgs.filter((o) => {
-      if (statusFiltro !== "todos" && o.status !== statusFiltro) return false;
+      if (statusFiltro === "incompletas") {
+        if (!incompletasMap?.has(o.id)) return false;
+      } else if (statusFiltro !== "todos" && o.status !== statusFiltro) return false;
       if (respFiltro !== "todos" && o.responsavel_id !== respFiltro) return false;
       if (segFiltro !== "todos" && o.segmento !== segFiltro) return false;
       if (!q) return true;
       return o.nome.toLowerCase().includes(q) || (o.cnpj ?? "").toLowerCase().includes(q);
     });
-  }, [orgs, busca, statusFiltro, respFiltro, segFiltro]);
+  }, [orgs, busca, statusFiltro, respFiltro, segFiltro, incompletasMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
