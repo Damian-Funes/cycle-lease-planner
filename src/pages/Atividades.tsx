@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle, Play } from "lucide-react";
 import { useSyncingAtividade } from "@/hooks/useGoogleIntegration";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
@@ -67,7 +67,7 @@ function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
 }
 
 export default function Atividades() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
@@ -91,6 +91,7 @@ export default function Atividades() {
   const [editAtiv, setEditAtiv] = useState<Atividade | null>(null);
   const [concluirAtiv, setConcluirAtiv] = useState<Atividade | null>(null);
   const [resultado, setResultado] = useState("");
+  const [testando, setTestando] = useState(false);
 
   const carregar = async () => {
     setLoading(true);
@@ -214,6 +215,26 @@ export default function Atividades() {
     carregar();
   };
 
+  const testarAssumirOrgs = async () => {
+    setTestando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("notify-assumir-organizacoes", { body: {} });
+      if (error) throw error;
+      console.log("[teste notify-assumir-organizacoes] resultado:", data);
+      if (data?.criadas && Array.isArray(data.criadas)) {
+        data.criadas.forEach((c: any) => {
+          console.log(`  → Atividade criada para ${c.responsavel_email || c.responsavel_id} (${c.titulo})`);
+        });
+      }
+      toast.success(`Teste concluído: ${data?.criadas?.length || 0} atividade(s) criada(s)`);
+    } catch (err: any) {
+      console.error("[teste notify-assumir-organizacoes] erro:", err);
+      toast.error(err.message || "Falha ao chamar Edge Function");
+    } finally {
+      setTestando(false);
+    }
+  };
+
   const renderLinha = (a: Atividade) => {
     const tipo = a.tipo_id ? tipos.find(t => t.id === a.tipo_id) : null;
     const Icon: any = tipo?.icone && (Icons as any)[tipo.icone] ? (Icons as any)[tipo.icone] : Icons.Circle;
@@ -304,6 +325,12 @@ export default function Atividades() {
               </TabsList>
             </Tabs>
             <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
+            {isAdmin && (
+              <Button size="sm" variant="outline" onClick={testarAssumirOrgs} disabled={testando}>
+                {testando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
+                Testar assumir orgs
+              </Button>
+            )}
             <Button size="sm" onClick={() => setNovoModal(true)}><Plus className="h-4 w-4 mr-1" />Nova</Button>
             <AppHeader />
           </div>
