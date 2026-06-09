@@ -236,6 +236,7 @@ export default function Organizacoes() {
       </main>
 
       <OrganizacaoFormModal open={modalOpen} onOpenChange={setModalOpen} organizacao={editing} />
+      <ImportarOrganizacoesCsvModal open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
