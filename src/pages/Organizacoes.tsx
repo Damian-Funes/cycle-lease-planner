@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight, Upload, AlertTriangle } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import OrganizacaoFormModal, { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ImportarOrganizacoesCsvModal from "@/components/ImportarOrganizacoesCsvModal";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
+import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "bg-gray-200 text-gray-800 hover:bg-gray-200",
