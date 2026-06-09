@@ -44,6 +44,7 @@ export interface OrcamentoParams {
   montagemCustoTotal?: number;
   montagemPrecoTotal?: number;
   montagemMargemAplicada?: number;
+  montagemTipo?: "montagem" | "desmontagem";
 }
 
 export const DEFAULT_ORCAMENTO: OrcamentoParams = {
