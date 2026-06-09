@@ -145,10 +145,11 @@ export default function Organizacoes() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome ou CNPJ..." className="pl-9" />
           </div>
-          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); }}>
-            <SelectTrigger className="w-full lg:w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); if (v !== "incompletas") setSearchParams({}, { replace: true }); }}>
+            <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos status</SelectItem>
+              <SelectItem value="incompletas">⚠️ Incompletas{incompletas?.total ? ` (${incompletas.total})` : ""}</SelectItem>
               {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
