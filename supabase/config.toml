@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.notify-resumo-diario]
 verify_jwt = false
+
+[functions.notify-assumir-organizacoes]
+verify_jwt = false
