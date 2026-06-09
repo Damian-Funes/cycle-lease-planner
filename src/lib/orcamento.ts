@@ -80,6 +80,7 @@ export const DEFAULT_ORCAMENTO: OrcamentoParams = {
   montagemCustoTotal: 0,
   montagemPrecoTotal: 0,
   montagemMargemAplicada: 0,
+  montagemTipo: "montagem",
 };
 
 export function calcSubtotal(itens: ItemOrcamento[]): number {
