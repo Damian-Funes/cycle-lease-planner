@@ -912,7 +912,7 @@ export default function Orcamento() {
                   )}
 
                   <div className="space-y-1.5">
-                    <Label>Observações da montagem</Label>
+                    <Label>Observações da {tipoMontagemLower}</Label>
                     <Textarea
                       rows={3}
                       value={params.montagemObservacoes ?? ""}
