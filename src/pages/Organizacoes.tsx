@@ -46,7 +46,11 @@ export default function Organizacoes() {
   const { data: incompletas } = useOrganizacoesIncompletas();
   const incompletasMap = incompletas?.map;
   const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState(searchParams.get("filtro") === "incompletas" ? "incompletas" : "todos");
+  const filtroInicial = searchParams.get("filtro");
+  const [statusFiltro, setStatusFiltro] = useState(
+    filtroInicial === "incompletas" ? "incompletas" :
+    filtroInicial === "sem_responsavel" ? "sem_responsavel" : "todos"
+  );
   const [respFiltro, setRespFiltro] = useState("todos");
   const [segFiltro, setSegFiltro] = useState("todos");
   const [page, setPage] = useState(0);
@@ -55,8 +59,11 @@ export default function Organizacoes() {
   const [editing, setEditing] = useState<OrganizacaoRow | null>(null);
 
   useEffect(() => {
-    if (searchParams.get("filtro") === "incompletas") setStatusFiltro("incompletas");
+    const f = searchParams.get("filtro");
+    if (f === "incompletas") setStatusFiltro("incompletas");
+    else if (f === "sem_responsavel") setStatusFiltro("sem_responsavel");
   }, [searchParams]);
+
 
   const { data: orgs = [], isLoading } = useQuery({
     queryKey: ["organizacoes"],
@@ -95,6 +102,8 @@ export default function Organizacoes() {
     return orgs.filter((o) => {
       if (statusFiltro === "incompletas") {
         if (!incompletasMap?.has(o.id)) return false;
+      } else if (statusFiltro === "sem_responsavel") {
+        if (o.responsavel_id) return false;
       } else if (statusFiltro !== "todos" && o.status !== statusFiltro) return false;
       if (respFiltro !== "todos" && o.responsavel_id !== respFiltro) return false;
       if (segFiltro !== "todos" && o.segmento !== segFiltro) return false;
@@ -145,11 +154,12 @@ export default function Organizacoes() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome ou CNPJ..." className="pl-9" />
           </div>
-          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); if (v !== "incompletas") setSearchParams({}, { replace: true }); }}>
-            <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); if (v !== "incompletas" && v !== "sem_responsavel") setSearchParams({}, { replace: true }); }}>
+            <SelectTrigger className="w-full lg:w-[200px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos status</SelectItem>
               <SelectItem value="incompletas">⚠️ Incompletas{incompletas?.total ? ` (${incompletas.total})` : ""}</SelectItem>
+              <SelectItem value="sem_responsavel">👤 Sem responsável</SelectItem>
               {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
