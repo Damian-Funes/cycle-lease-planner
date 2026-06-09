@@ -13,9 +13,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import OrganizacaoFormModal, { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
+import ImportarOrganizacoesCsvModal from "@/components/ImportarOrganizacoesCsvModal";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -46,6 +47,7 @@ export default function Organizacoes() {
   const [segFiltro, setSegFiltro] = useState("todos");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<OrganizacaoRow | null>(null);
 
   const { data: orgs = [], isLoading } = useQuery({
@@ -154,6 +156,7 @@ export default function Organizacoes() {
               {segmentos.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-1"><Upload className="w-4 h-4" /> Importar CSV</Button>
           <Button onClick={openNew} className="gap-1"><Plus className="w-4 h-4" /> Nova</Button>
         </div>
 
@@ -233,6 +236,7 @@ export default function Organizacoes() {
       </main>
 
       <OrganizacaoFormModal open={modalOpen} onOpenChange={setModalOpen} organizacao={editing} />
+      <ImportarOrganizacoesCsvModal open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 }
