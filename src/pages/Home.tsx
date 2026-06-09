@@ -127,6 +127,8 @@ const cards = [
 export default function Home() {
   const navigate = useNavigate();
   const ativBadge = useAtividadesBadge();
+  const { data: incompletas } = useOrganizacoesIncompletas();
+  const incompletasTotal = incompletas?.total ?? 0;
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b">
@@ -143,6 +145,20 @@ export default function Home() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
+        {incompletasTotal > 0 && (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+            <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />
+            <div className="flex-1 text-sm">
+              <span className="font-semibold">{incompletasTotal}</span>{" "}
+              {incompletasTotal === 1 ? "organização precisa" : "organizações precisam"} de dados completos
+            </div>
+            <Button size="sm" variant="outline" className="border-amber-400 bg-white hover:bg-amber-100"
+              onClick={() => navigate("/organizacoes?filtro=incompletas")}>
+              Ver lista
+            </Button>
+          </div>
+        )}
+
         <section className="space-y-4">
           <ProximaReuniaoWidget />
           <h2 className="text-lg font-semibold">Visão geral</h2>
@@ -156,6 +172,7 @@ export default function Home() {
           {cards.map((c: any) => {
             const Icon = c.icon;
             const showBadge = c.badgeKey === "atividades" && ativBadge > 0;
+            const showOrgBadge = c.to === "/organizacoes" && incompletasTotal > 0;
             return (
               <Card
                 key={c.title}
@@ -165,6 +182,11 @@ export default function Home() {
                 {showBadge && (
                   <span className="absolute top-3 right-3 min-w-5 h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">
                     {ativBadge}
+                  </span>
+                )}
+                {showOrgBadge && (
+                  <span className="absolute top-3 right-3 min-w-5 h-5 px-1.5 rounded-full bg-amber-500 text-white text-xs font-semibold flex items-center justify-center" title="Organizações incompletas">
+                    {incompletasTotal}
                   </span>
                 )}
                 <div className={`w-12 h-12 rounded-lg ${c.color} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
