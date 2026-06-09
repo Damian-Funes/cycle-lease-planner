@@ -839,7 +839,7 @@ export default function Orcamento() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1">
-                        Dias de montagem
+                        Dias de {tipoMontagemLower}
                         {autoDias && (
                           <Tooltip>
                             <TooltipTrigger asChild>
