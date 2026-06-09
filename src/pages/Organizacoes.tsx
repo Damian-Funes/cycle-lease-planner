@@ -41,15 +41,22 @@ function initials(name: string) {
 export default function Organizacoes() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
+  const { data: incompletas } = useOrganizacoesIncompletas();
+  const incompletasMap = incompletas?.map;
   const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState("todos");
+  const [statusFiltro, setStatusFiltro] = useState(searchParams.get("filtro") === "incompletas" ? "incompletas" : "todos");
   const [respFiltro, setRespFiltro] = useState("todos");
   const [segFiltro, setSegFiltro] = useState("todos");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<OrganizacaoRow | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("filtro") === "incompletas") setStatusFiltro("incompletas");
+  }, [searchParams]);
 
   const { data: orgs = [], isLoading } = useQuery({
     queryKey: ["organizacoes"],
