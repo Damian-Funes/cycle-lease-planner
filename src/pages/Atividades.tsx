@@ -215,6 +215,26 @@ export default function Atividades() {
     carregar();
   };
 
+  const testarAssumirOrgs = async () => {
+    setTestando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("notify-assumir-organizacoes", { body: {} });
+      if (error) throw error;
+      console.log("[teste notify-assumir-organizacoes] resultado:", data);
+      if (data?.criadas && Array.isArray(data.criadas)) {
+        data.criadas.forEach((c: any) => {
+          console.log(`  → Atividade criada para ${c.responsavel_email || c.responsavel_id} (${c.titulo})`);
+        });
+      }
+      toast.success(`Teste concluído: ${data?.criadas?.length || 0} atividade(s) criada(s)`);
+    } catch (err: any) {
+      console.error("[teste notify-assumir-organizacoes] erro:", err);
+      toast.error(err.message || "Falha ao chamar Edge Function");
+    } finally {
+      setTestando(false);
+    }
+  };
+
   const renderLinha = (a: Atividade) => {
     const tipo = a.tipo_id ? tipos.find(t => t.id === a.tipo_id) : null;
     const Icon: any = tipo?.icone && (Icons as any)[tipo.icone] ? (Icons as any)[tipo.icone] : Icons.Circle;
