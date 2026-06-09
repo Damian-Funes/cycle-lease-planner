@@ -277,6 +277,7 @@ export default function Orcamento() {
       montagem_eh_fazenda: params.montagemEhFazenda ?? false,
       montagem_km_hotel_local: params.montagemKmHotelLocal ?? 0,
       montagem_observacoes: params.montagemObservacoes || null,
+      montagem_tipo: params.montagemTipo || "montagem",
     };
 
     let error;
