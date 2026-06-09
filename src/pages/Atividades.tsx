@@ -230,7 +230,11 @@ export default function Atividades() {
         </div>
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium truncate ${a.concluida ? "line-through text-muted-foreground" : ""}`}>
-            {a.titulo}
+            {a.tipo_id === "18a81316-9ca6-4e3f-980c-c771b821a730" && /assumir organiza/i.test(a.titulo) ? (
+              <Link to="/organizacoes?filtro=sem_responsavel" className="hover:underline text-primary" onClick={(e) => e.stopPropagation()}>
+                {a.titulo}
+              </Link>
+            ) : a.titulo}
             <SyncIndicator id={a.id} erro={a.erro_sincronizacao} />
             {a.google_meet_link && (
               <a href={a.google_meet_link} target="_blank" rel="noreferrer"
