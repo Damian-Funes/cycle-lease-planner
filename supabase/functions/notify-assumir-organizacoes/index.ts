@@ -8,8 +8,29 @@ const LIMITE = 5;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
-  const fim = new Date(); fim.setHours(23, 59, 59, 999);
+  let force = false;
+  try {
+    if (req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      force = !!body?.force;
+    }
+  } catch { /* ignore */ }
+
+  const inicioDia = new Date(); inicioDia.setHours(0, 0, 0, 0);
+  const fimDia = new Date(); fimDia.setHours(23, 59, 59, 999);
+
+  if (force) {
+    await adminClient
+      .from("atividades")
+      .delete()
+      .eq("tipo_id", TIPO_ID)
+      .eq("evento_automatico", true)
+      .gte("data_atividade", inicioDia.toISOString())
+      .lte("data_atividade", fimDia.toISOString());
+  }
+  const inicio = inicioDia;
+  const fim = fimDia;
+
 
   // Órfãs ordenadas das mais antigas
   const { data: orfas } = await adminClient

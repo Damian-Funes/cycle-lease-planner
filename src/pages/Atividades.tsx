@@ -218,7 +218,7 @@ export default function Atividades() {
   const testarAssumirOrgs = async () => {
     setTestando(true);
     try {
-      const { data, error } = await supabase.functions.invoke("notify-assumir-organizacoes", { body: {} });
+      const { data, error } = await supabase.functions.invoke("notify-assumir-organizacoes", { body: { force: true } });
       if (error) throw error;
       console.log("[teste notify-assumir-organizacoes] resultado:", data);
       if (data?.criadas && Array.isArray(data.criadas)) {
