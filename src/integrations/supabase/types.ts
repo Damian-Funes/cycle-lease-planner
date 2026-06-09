@@ -507,6 +507,90 @@ export type Database = {
         }
         Relationships: []
       }
+      email_notification_preferences: {
+        Row: {
+          atividades_vencidas: boolean
+          cliente_sem_visita: boolean
+          created_at: string
+          deals_parados: boolean
+          id: string
+          oportunidade_ganha: boolean
+          orgs_incompletas: boolean
+          resumo_diario: boolean
+          resumo_semanal: boolean
+          rota_amanha: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          atividades_vencidas?: boolean
+          cliente_sem_visita?: boolean
+          created_at?: string
+          deals_parados?: boolean
+          id?: string
+          oportunidade_ganha?: boolean
+          orgs_incompletas?: boolean
+          resumo_diario?: boolean
+          resumo_semanal?: boolean
+          rota_amanha?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          atividades_vencidas?: boolean
+          cliente_sem_visita?: boolean
+          created_at?: string
+          deals_parados?: boolean
+          id?: string
+          oportunidade_ganha?: boolean
+          orgs_incompletas?: boolean
+          resumo_diario?: boolean
+          resumo_semanal?: boolean
+          rota_amanha?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_notifications_log: {
+        Row: {
+          assunto: string
+          destinatario_email: string
+          destinatario_user_id: string | null
+          enviado_em: string
+          erro: string | null
+          id: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          assunto: string
+          destinatario_email: string
+          destinatario_user_id?: string | null
+          enviado_em?: string
+          erro?: string | null
+          id?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          status?: string
+          tipo: string
+        }
+        Update: {
+          assunto?: string
+          destinatario_email?: string
+          destinatario_user_id?: string | null
+          enviado_em?: string
+          erro?: string | null
+          id?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       equipamento_contidos: {
         Row: {
           created_at: string

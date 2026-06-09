@@ -8,3 +8,30 @@ verify_jwt = false
 
 [functions.rotas-brasil-frete]
 verify_jwt = false
+
+[functions.send-email-base]
+verify_jwt = false
+
+[functions.notify-resumo-semanal]
+verify_jwt = false
+
+[functions.notify-orgs-incompletas]
+verify_jwt = false
+
+[functions.notify-deals-parados]
+verify_jwt = false
+
+[functions.notify-atividades-vencidas]
+verify_jwt = false
+
+[functions.notify-oportunidade-ganha]
+verify_jwt = false
+
+[functions.notify-cliente-sem-visita]
+verify_jwt = false
+
+[functions.notify-rota-amanha]
+verify_jwt = false
+
+[functions.notify-resumo-diario]
+verify_jwt = false
