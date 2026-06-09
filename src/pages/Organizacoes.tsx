@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, ChevronRight, Upload, AlertTriangle } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import OrganizacaoFormModal, { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ImportarOrganizacoesCsvModal from "@/components/ImportarOrganizacoesCsvModal";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
+import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "bg-gray-200 text-gray-800 hover:bg-gray-200",
@@ -40,15 +41,22 @@ function initials(name: string) {
 export default function Organizacoes() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
+  const { data: incompletas } = useOrganizacoesIncompletas();
+  const incompletasMap = incompletas?.map;
   const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState("todos");
+  const [statusFiltro, setStatusFiltro] = useState(searchParams.get("filtro") === "incompletas" ? "incompletas" : "todos");
   const [respFiltro, setRespFiltro] = useState("todos");
   const [segFiltro, setSegFiltro] = useState("todos");
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<OrganizacaoRow | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get("filtro") === "incompletas") setStatusFiltro("incompletas");
+  }, [searchParams]);
 
   const { data: orgs = [], isLoading } = useQuery({
     queryKey: ["organizacoes"],
@@ -85,13 +93,15 @@ export default function Organizacoes() {
   const filtered = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return orgs.filter((o) => {
-      if (statusFiltro !== "todos" && o.status !== statusFiltro) return false;
+      if (statusFiltro === "incompletas") {
+        if (!incompletasMap?.has(o.id)) return false;
+      } else if (statusFiltro !== "todos" && o.status !== statusFiltro) return false;
       if (respFiltro !== "todos" && o.responsavel_id !== respFiltro) return false;
       if (segFiltro !== "todos" && o.segmento !== segFiltro) return false;
       if (!q) return true;
       return o.nome.toLowerCase().includes(q) || (o.cnpj ?? "").toLowerCase().includes(q);
     });
-  }, [orgs, busca, statusFiltro, respFiltro, segFiltro]);
+  }, [orgs, busca, statusFiltro, respFiltro, segFiltro, incompletasMap]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -135,10 +145,11 @@ export default function Organizacoes() {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome ou CNPJ..." className="pl-9" />
           </div>
-          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); }}>
-            <SelectTrigger className="w-full lg:w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); if (v !== "incompletas") setSearchParams({}, { replace: true }); }}>
+            <SelectTrigger className="w-full lg:w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos status</SelectItem>
+              <SelectItem value="incompletas">⚠️ Incompletas{incompletas?.total ? ` (${incompletas.total})` : ""}</SelectItem>
               {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -182,11 +193,24 @@ export default function Organizacoes() {
                 pageData.map((o) => {
                   const resp = o.responsavel_id ? profileMap.get(o.responsavel_id) : null;
                   const respName = resp?.nome || resp?.email || "";
+                  const flags = incompletasMap?.get(o.id);
                   return (
                     <TableRow key={o.id} className="cursor-pointer" onClick={() => navigate(`/organizacoes/${o.id}`)}>
                       <TableCell>
-                        <div className="font-medium">{o.nome}</div>
+                        <div className="flex items-center gap-2">
+                          {flags && <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" aria-label="Dados incompletos" />}
+                          <div className="font-medium">{o.nome}</div>
+                        </div>
                         {o.nome_fantasia && <div className="text-xs text-muted-foreground">{o.nome_fantasia}</div>}
+                        {flags && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {flags.semContato && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem contato</Badge>}
+                            {flags.semTelefone && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem telefone</Badge>}
+                            {flags.semEmail && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem email</Badge>}
+                            {flags.semCidadeEstado && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem cidade/estado</Badge>}
+                            {flags.semResponsavel && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem responsável</Badge>}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">{o.cnpj || "—"}</TableCell>
                       <TableCell className="text-sm">{o.segmento || "—"}</TableCell>
