@@ -571,6 +571,9 @@ export default function Crm() {
         onError: () => prev && qc.setQueryData(["oportunidades"], prev),
         onSuccess: () => {
           toast.success(etapa.e_ganho ? "Oportunidade ganha 🎉" : "Oportunidade marcada como perdida");
+          if (etapa.e_ganho) {
+            supabase.functions.invoke("notify-oportunidade-ganha", { body: { oportunidade_id: op.id } }).catch(() => {});
+          }
         },
       }
     );
