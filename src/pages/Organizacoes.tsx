@@ -156,6 +156,7 @@ export default function Organizacoes() {
               {segmentos.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-1"><Upload className="w-4 h-4" /> Importar CSV</Button>
           <Button onClick={openNew} className="gap-1"><Plus className="w-4 h-4" /> Nova</Button>
         </div>
 
