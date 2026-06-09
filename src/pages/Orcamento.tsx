@@ -967,7 +967,7 @@ export default function Orcamento() {
                   </div>
                 ) : (
                   <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 flex items-center justify-between">
-                    <span className="font-bold text-emerald-700">PREÇO MONTAGEM</span>
+                    <span className="font-bold text-emerald-700">PREÇO {tipoMontagem.toUpperCase()}</span>
                     <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
                   </div>
                 )}
