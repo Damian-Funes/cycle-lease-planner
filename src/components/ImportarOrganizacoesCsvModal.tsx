@@ -25,28 +25,7 @@ interface Props {
 
 const UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
 
-const RESP_RENAN = "2555cff8-3ac8-4525-bf38-6198dc85c887";
-const RESP_MURILO = "14138b1c-5b33-4a66-b0f0-fc06e58da561";
-const RESP_FLAVIO = "0488a4f9-5a4a-4cac-a564-beec5fb21757";
 const TIPO_TAREFA = "18a81316-9ca6-4e3f-980c-c771b821a730";
-
-const RESPONSAVEIS = [
-  { id: RESP_RENAN, nome: "Renan Sena de Lima" },
-  { id: RESP_MURILO, nome: "Murilo Sinatura Sipioni" },
-  { id: RESP_FLAVIO, nome: "Flávio Lisboa" },
-];
-
-function respPorEstado(uf: string | null): string | null {
-  if (!uf) return null;
-  if (["PR", "RS", "SC", "SP"].includes(uf)) return RESP_RENAN;
-  if (["BA", "GO", "MG"].includes(uf)) return RESP_MURILO;
-  if (["AC","AL","AM","AP","DF","MA","MS","MT","PA","PB","PE","PI","RN","RO","RR","TO"].includes(uf)) return RESP_FLAVIO;
-  return null;
-}
-
-function nomeResp(id: string | null): string {
-  return RESPONSAVEIS.find((r) => r.id === id)?.nome ?? "—";
-}
 
 function extrairEstado(endereco: string): string | null {
   if (!endereco) return null;
@@ -124,7 +103,7 @@ export default function ImportarOrganizacoesCsvModal({ open, onOpenChange }: Pro
             const cidade = extrairCidade(endereco, estado);
             return {
               nome, endereco, etiquetas, cidade, estado,
-              responsavel_id: respPorEstado(estado),
+               responsavel_id: null,
               selecionada: true,
             };
           })
@@ -183,7 +162,7 @@ export default function ImportarOrganizacoesCsvModal({ open, onOpenChange }: Pro
         if (existing) {
           ignoradas++;
         } else {
-          const responsavel_id = l.responsavel_id ?? l.responsavel_manual ?? null;
+           const responsavel_id = null;
           const tags = l.etiquetas
             ? l.etiquetas.split(",").map((t) => t.trim()).filter(Boolean)
             : [];
@@ -204,7 +183,7 @@ export default function ImportarOrganizacoesCsvModal({ open, onOpenChange }: Pro
 
           if (errOrg) throw errOrg;
 
-          if (novaOrg && responsavel_id) {
+           if (novaOrg && responsavel_id) {
             const { error: errAt } = await supabase.from("atividades").insert({
               organizacao_id: novaOrg.id,
               tipo_id: TIPO_TAREFA,
@@ -280,8 +259,8 @@ export default function ImportarOrganizacoesCsvModal({ open, onOpenChange }: Pro
           <div className="flex flex-col gap-3 overflow-hidden">
             <div className="grid grid-cols-4 gap-2 text-sm">
               <div className="border rounded p-2"><div className="text-xs text-muted-foreground">Total</div><div className="font-bold">{resumo.total}</div></div>
-              <div className="border rounded p-2"><div className="text-xs text-muted-foreground">Com responsável</div><div className="font-bold text-emerald-600">{resumo.comEstado}</div></div>
-              <div className="border rounded p-2"><div className="text-xs text-muted-foreground">Sem estado</div><div className="font-bold text-amber-600">{resumo.semEstado}</div></div>
+               <div className="border rounded p-2"><div className="text-xs text-muted-foreground">Com estado</div><div className="font-bold text-emerald-600">{resumo.comEstado}</div></div>
+               <div className="border rounded p-2"><div className="text-xs text-muted-foreground">Sem estado</div><div className="font-bold text-amber-600">{resumo.semEstado}</div></div>
               <div className="border rounded p-2"><div className="text-xs text-muted-foreground">Selecionadas</div><div className="font-bold">{resumo.selecionadas}</div></div>
             </div>
 
@@ -315,18 +294,7 @@ export default function ImportarOrganizacoesCsvModal({ open, onOpenChange }: Pro
                         )}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {l.responsavel_id ? (
-                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-800">{nomeResp(l.responsavel_id)}</Badge>
-                        ) : (
-                          <Select value={l.responsavel_manual ?? ""} onValueChange={(v) => setRespManual(i, v)}>
-                            <SelectTrigger className="h-8 w-[200px]"><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-                            <SelectContent>
-                              {RESPONSAVEIS.map((r) => (
-                                <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
+                         <Badge variant="outline">Pendente</Badge>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -352,7 +320,7 @@ export default function ImportarOrganizacoesCsvModal({ open, onOpenChange }: Pro
             </div>
             <ul className="text-sm space-y-1">
               <li><b>{resultado.ok}</b> organizações criadas</li>
-              <li><b>{resultado.tarefas}</b> tarefas criadas automaticamente</li>
+               <li><b>{resultado.tarefas}</b> tarefas criadas automaticamente</li>
               <li><b>{resultado.ignoradas}</b> ignoradas (já existiam)</li>
               <li><b>{resultado.erros.length}</b> erros</li>
             </ul>
