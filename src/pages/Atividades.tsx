@@ -325,6 +325,12 @@ export default function Atividades() {
               </TabsList>
             </Tabs>
             <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
+            {isAdmin && (
+              <Button size="sm" variant="outline" onClick={testarAssumirOrgs} disabled={testando}>
+                {testando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
+                Testar assumir orgs
+              </Button>
+            )}
             <Button size="sm" onClick={() => setNovoModal(true)}><Plus className="h-4 w-4 mr-1" />Nova</Button>
             <AppHeader />
           </div>
