@@ -28,10 +28,9 @@ Deno.serve(async (req) => {
       .gte("data_atividade", inicioDia.toISOString())
       .lte("data_atividade", fimDia.toISOString());
   }
+  const inicio = inicioDia;
+  const fim = fimDia;
 
-
-  const inicio = new Date(); inicio.setHours(0, 0, 0, 0);
-  const fim = new Date(); fim.setHours(23, 59, 59, 999);
 
   // Órfãs ordenadas das mais antigas
   const { data: orfas } = await adminClient
