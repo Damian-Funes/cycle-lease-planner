@@ -193,11 +193,24 @@ export default function Organizacoes() {
                 pageData.map((o) => {
                   const resp = o.responsavel_id ? profileMap.get(o.responsavel_id) : null;
                   const respName = resp?.nome || resp?.email || "";
+                  const flags = incompletasMap?.get(o.id);
                   return (
                     <TableRow key={o.id} className="cursor-pointer" onClick={() => navigate(`/organizacoes/${o.id}`)}>
                       <TableCell>
-                        <div className="font-medium">{o.nome}</div>
+                        <div className="flex items-center gap-2">
+                          {flags && <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" aria-label="Dados incompletos" />}
+                          <div className="font-medium">{o.nome}</div>
+                        </div>
                         {o.nome_fantasia && <div className="text-xs text-muted-foreground">{o.nome_fantasia}</div>}
+                        {flags && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {flags.semContato && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem contato</Badge>}
+                            {flags.semTelefone && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem telefone</Badge>}
+                            {flags.semEmail && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem email</Badge>}
+                            {flags.semCidadeEstado && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem cidade/estado</Badge>}
+                            {flags.semResponsavel && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem responsável</Badge>}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">{o.cnpj || "—"}</TableCell>
                       <TableCell className="text-sm">{o.segmento || "—"}</TableCell>
