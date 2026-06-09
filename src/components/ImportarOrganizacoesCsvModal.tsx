@@ -25,9 +25,9 @@ interface Props {
 
 const UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"];
 
-const RESP_RENAN = "3675bcae-f18d-4f9d-b95e-492070580dae";
-const RESP_MURILO = "9b83ada3-3ee4-4710-9577-6782d4699fd1";
-const RESP_FLAVIO = "36794215-f0a1-417e-9cfe-e0bb48ff4217";
+const RESP_RENAN = "2555cff8-3ac8-4525-bf38-6198dc85c887";
+const RESP_MURILO = "14138b1c-5b33-4a66-b0f0-fc06e58da561";
+const RESP_FLAVIO = "0488a4f9-5a4a-4cac-a564-beec5fb21757";
 const TIPO_TAREFA = "18a81316-9ca6-4e3f-980c-c771b821a730";
 
 const RESPONSAVEIS = [
