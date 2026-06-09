@@ -956,7 +956,7 @@ export default function Orcamento() {
                       <span className="font-medium tabular-nums">{fmtBRL(margemRsExib)}</span>
                     </div>
                     <div className="flex justify-between pt-2 mt-2 border-t border-emerald-300">
-                      <span className="font-bold text-emerald-700">PREÇO MONTAGEM <span className="text-xs font-normal">(cliente vê)</span></span>
+                      <span className="font-bold text-emerald-700">PREÇO {tipoMontagem.toUpperCase()} <span className="text-xs font-normal">(cliente vê)</span></span>
                       <span className="font-bold text-emerald-700 text-2xl tabular-nums">{fmtBRL(precoExib)}</span>
                     </div>
                     {divergencia && (
