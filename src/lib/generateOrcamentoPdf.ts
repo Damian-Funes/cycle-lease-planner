@@ -234,7 +234,8 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   if (desconto > 0) totalsBody.push([descLabel, `- ${fmtBRL(desconto)}`]);
   if (params.frete > 0) totalsBody.push(["Frete", fmtBRL(params.frete)]);
   const montagemTotal = Number(params.montagemPrecoTotal) || 0;
-  if (montagemTotal > 0) totalsBody.push(["Montagem", fmtBRL(montagemTotal)]);
+  const montagemLabel = params.montagemTipo === "desmontagem" ? "Desmontagem" : "Montagem";
+  if (montagemTotal > 0) totalsBody.push([montagemLabel, fmtBRL(montagemTotal)]);
 
   const descW = (pageW - 28) * 0.6;
   const valW = (pageW - 28) * 0.4;
