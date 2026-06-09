@@ -101,7 +101,7 @@ export default function PropostasUnificadasModal({
       return (orgId && orgMap.get(orgId)) || "Sem nome";
     };
 
-    const list: UnifiedRow[] = [
+    const rawList: UnifiedRow[] = [
       ...(prop || []).map((p: any) => ({
         id: p.id, tipo: "aluguel" as const, numero: p.numero_proposta,
         nome_cliente: resolveNome(p.nome_cliente, p.organizacao_id),
@@ -114,7 +114,27 @@ export default function PropostasUnificadasModal({
         total: Number(o.total) || 0,
         status: o.status, created_at: o.created_at,
       })),
-    ].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    ];
+
+    // Mantém apenas a última versão por número base (ex.: ORC2026-025, -V2, -V3 → fica a mais recente).
+    // O histórico completo continua disponível na aba de Propostas do negócio.
+    const baseOf = (n: string | null) => (n || "").replace(/-V\d+$/i, "").trim();
+    const versionOf = (n: string | null) => {
+      const m = /-V(\d+)$/i.exec(n || "");
+      return m ? parseInt(m[1], 10) : 1;
+    };
+    const latestByBase = new Map<string, UnifiedRow>();
+    for (const r of rawList) {
+      const base = baseOf(r.numero);
+      const key = `${r.tipo}::${base || r.id}`;
+      const cur = latestByBase.get(key);
+      if (!cur) { latestByBase.set(key, r); continue; }
+      const rv = versionOf(r.numero);
+      const cv = versionOf(cur.numero);
+      if (rv > cv || (rv === cv && r.created_at > cur.created_at)) latestByBase.set(key, r);
+    }
+    const list = Array.from(latestByBase.values())
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
     setRows(list);
     setLoading(false);
   }
