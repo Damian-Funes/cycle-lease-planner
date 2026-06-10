@@ -80,6 +80,13 @@ const cards = [
     color: "bg-cyan-500/10 text-cyan-600",
   },
   {
+    title: "Dossiês",
+    desc: "Sementeiras mapeadas em campo (pré-CRM)",
+    icon: FileSearch,
+    to: "/dossies",
+    color: "bg-blue-500/10 text-blue-700",
+  },
+  {
     title: "Pessoas",
     desc: "Contatos individuais",
     icon: User,
