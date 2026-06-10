@@ -19,6 +19,8 @@ import Clientes from "./pages/Clientes";
 import Organizacoes from "./pages/Organizacoes";
 import OrganizacaoDetalhe from "./pages/OrganizacaoDetalhe";
 import Pessoas from "./pages/Pessoas";
+const Dossies = lazy(() => import("./pages/Dossies"));
+const DossieDetalhe = lazy(() => import("./pages/DossieDetalhe"));
 import Dossie from "./pages/Dossie";
 import Crm from "./pages/Crm";
 const DealDetalhe = lazy(() => import("./pages/DealDetalhe"));
