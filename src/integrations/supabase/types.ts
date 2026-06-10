@@ -3354,6 +3354,14 @@ export type Database = {
         Args: { _name: string; _user: string }
         Returns: boolean
       }
+      pode_ver_dossie: {
+        Args: {
+          _dossie_estado_sigla: string
+          _dossie_responsavel_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       pode_ver_oportunidade: {
         Args: { _opp_id: string; _user_id: string }
         Returns: boolean

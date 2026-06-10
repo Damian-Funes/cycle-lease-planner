@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck, Route, AlertTriangle } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck, Route, AlertTriangle, FileSearch } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
@@ -78,6 +78,13 @@ const cards = [
     icon: Building2,
     to: "/organizacoes",
     color: "bg-cyan-500/10 text-cyan-600",
+  },
+  {
+    title: "Dossiês",
+    desc: "Sementeiras mapeadas em campo (pré-CRM)",
+    icon: FileSearch,
+    to: "/dossies",
+    color: "bg-blue-500/10 text-blue-700",
   },
   {
     title: "Pessoas",
