@@ -258,12 +258,61 @@ export default function DossieDetalhe() {
             </Card>
 
             <Card className="p-4 space-y-3">
-              <div className="font-semibold" style={{ color: "#1F4E8C" }}>
-                Dados cadastrais
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="font-semibold" style={{ color: "#1F4E8C" }}>
+                  Dados cadastrais
+                </div>
+                {brasilApi.status === "loading" && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Consultando BrasilAPI…
+                  </div>
+                )}
+                {brasilApi.status === "success" && (
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 text-[10px]">
+                    <Sparkles className="w-3 h-3" /> Enriquecido via BrasilAPI
+                  </Badge>
+                )}
+                {brasilApi.status === "not_found" && (
+                  <span className="text-xs text-amber-700">CNPJ não localizado na BrasilAPI</span>
+                )}
+                {brasilApi.status === "network_error" && (
+                  <span className="text-xs text-red-700">Falha ao consultar BrasilAPI</span>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Razão social" value={dossie.razao_social ?? "—"} />
+                <Field label="Razão social" value={dossie.razao_social ?? bapi?.razao_social ?? "—"} />
                 <Field label="CNPJ" value={fmtCNPJ(dossie.cnpj)} />
+                <Field label="Nome fantasia" value={dossie.nome_fantasia ?? bapi?.nome_fantasia ?? "—"} />
+                <Field label="Situação cadastral" value={bapi?.descricao_situacao_cadastral ?? "—"} />
+                <Field
+                  label="Endereço"
+                  value={
+                    bapi
+                      ? [
+                          bapi.logradouro,
+                          bapi.numero,
+                          bapi.complemento,
+                          bapi.bairro,
+                        ]
+                          .filter(Boolean)
+                          .join(", ") || "—"
+                      : "—"
+                  }
+                />
+                <Field
+                  label="Município / UF"
+                  value={
+                    [bapi?.municipio ?? dossie.cidade, bapi?.uf ?? dossie.estado]
+                      .filter(Boolean)
+                      .join(" / ") || "—"
+                  }
+                />
+                <Field label="CEP" value={bapi?.cep ?? "—"} />
+                <Field
+                  label="Telefone"
+                  value={bapi?.ddd_telefone_1 ?? "—"}
+                />
+                <Field label="E-mail" value={bapi?.email ?? "—"} />
                 <Field
                   label="Culturas"
                   value={
@@ -301,6 +350,7 @@ export default function DossieDetalhe() {
                 </div>
               )}
             </Card>
+
 
             <Card className="p-4 space-y-3">
               <div className="font-semibold" style={{ color: "#1F4E8C" }}>
