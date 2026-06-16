@@ -26,7 +26,10 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
+import { useBrasilApiCnpj } from "@/hooks/useBrasilApiCnpj";
 
 const TIPO_ICON: Record<string, any> = {
   whatsapp_texto: MessageSquare,
