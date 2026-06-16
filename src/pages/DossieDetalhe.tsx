@@ -171,6 +171,11 @@ export default function DossieDetalhe() {
     },
   });
 
+  const brasilApi = useBrasilApiCnpj(dossie?.cnpj ?? "");
+  const bapi = brasilApi.data;
+
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
