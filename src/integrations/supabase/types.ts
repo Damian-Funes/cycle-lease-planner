@@ -182,6 +182,53 @@ export type Database = {
         }
         Relationships: []
       }
+      conversas_whatsapp: {
+        Row: {
+          comercial_user_id: string | null
+          criada_em: string
+          id: string
+          instancia_zapi: string
+          match_status: Database["public"]["Enums"]["conversa_match_status"]
+          pessoa_id: string | null
+          primeira_mensagem_em: string | null
+          telefone_cliente: string
+          total_mensagens: number
+          ultima_mensagem_em: string | null
+        }
+        Insert: {
+          comercial_user_id?: string | null
+          criada_em?: string
+          id?: string
+          instancia_zapi: string
+          match_status?: Database["public"]["Enums"]["conversa_match_status"]
+          pessoa_id?: string | null
+          primeira_mensagem_em?: string | null
+          telefone_cliente: string
+          total_mensagens?: number
+          ultima_mensagem_em?: string | null
+        }
+        Update: {
+          comercial_user_id?: string | null
+          criada_em?: string
+          id?: string
+          instancia_zapi?: string
+          match_status?: Database["public"]["Enums"]["conversa_match_status"]
+          pessoa_id?: string | null
+          primeira_mensagem_em?: string | null
+          telefone_cliente?: string
+          total_mensagens?: number
+          ultima_mensagem_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversas_whatsapp_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossie_contatos: {
         Row: {
           atualizado_em: string
@@ -1255,6 +1302,92 @@ export type Database = {
         }
         Relationships: []
       }
+      lgpd_audit_log: {
+        Row: {
+          acao: string
+          detalhes: Json | null
+          executado_em: string
+          executado_por: string | null
+          id: string
+          pessoa_id: string | null
+        }
+        Insert: {
+          acao: string
+          detalhes?: Json | null
+          executado_em?: string
+          executado_por?: string | null
+          id?: string
+          pessoa_id?: string | null
+        }
+        Update: {
+          acao?: string
+          detalhes?: Json | null
+          executado_em?: string
+          executado_por?: string | null
+          id?: string
+          pessoa_id?: string | null
+        }
+        Relationships: []
+      }
+      mensagens_comercial: {
+        Row: {
+          conteudo_texto: string | null
+          conversa_id: string
+          criada_em: string
+          from_me: boolean
+          id: string
+          midia_url_origem: string | null
+          payload_raw: Json | null
+          recebida_em: string | null
+          tipo: Database["public"]["Enums"]["msg_comercial_tipo"]
+          transcricao: string | null
+          transcricao_erro: string | null
+          transcricao_original: string | null
+          transcricao_pendente: boolean
+          zapi_message_id: string
+        }
+        Insert: {
+          conteudo_texto?: string | null
+          conversa_id: string
+          criada_em?: string
+          from_me: boolean
+          id?: string
+          midia_url_origem?: string | null
+          payload_raw?: Json | null
+          recebida_em?: string | null
+          tipo?: Database["public"]["Enums"]["msg_comercial_tipo"]
+          transcricao?: string | null
+          transcricao_erro?: string | null
+          transcricao_original?: string | null
+          transcricao_pendente?: boolean
+          zapi_message_id: string
+        }
+        Update: {
+          conteudo_texto?: string | null
+          conversa_id?: string
+          criada_em?: string
+          from_me?: boolean
+          id?: string
+          midia_url_origem?: string | null
+          payload_raw?: Json | null
+          recebida_em?: string | null
+          tipo?: Database["public"]["Enums"]["msg_comercial_tipo"]
+          transcricao?: string | null
+          transcricao_erro?: string | null
+          transcricao_original?: string | null
+          transcricao_pendente?: boolean
+          zapi_message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_comercial_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas_whatsapp"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       migracao_clientes_log: {
         Row: {
           cliente_data: Json | null
@@ -1840,6 +1973,85 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      pessoa_notas: {
+        Row: {
+          autor_id: string
+          criada_em: string
+          id: string
+          nota: string
+          pessoa_id: string
+        }
+        Insert: {
+          autor_id: string
+          criada_em?: string
+          id?: string
+          nota: string
+          pessoa_id: string
+        }
+        Update: {
+          autor_id?: string
+          criada_em?: string
+          id?: string
+          nota?: string
+          pessoa_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_notas_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pessoa_perfis: {
+        Row: {
+          atual: boolean
+          gerado_em: string
+          id: string
+          mensagens_analisadas: number | null
+          modelo: string
+          perfil: Json
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          pessoa_id: string
+          versao: number
+        }
+        Insert: {
+          atual?: boolean
+          gerado_em?: string
+          id?: string
+          mensagens_analisadas?: number | null
+          modelo: string
+          perfil: Json
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          pessoa_id: string
+          versao: number
+        }
+        Update: {
+          atual?: boolean
+          gerado_em?: string
+          id?: string
+          mensagens_analisadas?: number | null
+          modelo?: string
+          perfil?: Json
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          pessoa_id?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_perfis_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3330,11 +3542,45 @@ export type Database = {
           similaridade: number
         }[]
       }
+      fn_conversas_para_perfil: {
+        Args: { p_min_mensagens?: number }
+        Returns: {
+          historico: string
+          periodo_fim: string
+          periodo_inicio: string
+          pessoa_id: string
+          pessoa_nome: string
+          total_mensagens: number
+        }[]
+      }
+      fn_gravar_perfil: {
+        Args: {
+          p_executado_por?: string
+          p_fim: string
+          p_inicio: string
+          p_mensagens: number
+          p_modelo: string
+          p_perfil: Json
+          p_pessoa_id: string
+        }
+        Returns: string
+      }
+      fn_lgpd_excluir_dados_pessoa: {
+        Args: { _pessoa_id: string }
+        Returns: Json
+      }
+      fn_lgpd_exportar_dados_pessoa: {
+        Args: { _pessoa_id: string }
+        Returns: Json
+      }
+      fn_match_pessoa_por_telefone: { Args: { _tel: string }; Returns: string }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
       fn_proximo_comercial_para_estado: {
         Args: { _estado_id: string }
         Returns: string
       }
+      fn_tel_chave_match: { Args: { _t: string }; Returns: string }
+      fn_tel_digitos: { Args: { _t: string }; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -3398,6 +3644,7 @@ export type Database = {
         | "operacao"
         | "viewer"
         | "agente_leitor"
+      conversa_match_status: "pendente" | "vinculada" | "ignorada"
       dossie_maturidade: "frio" | "morno" | "quente" | "qualificado"
       dossie_prioridade: "A" | "B" | "C"
       dossie_status:
@@ -3420,6 +3667,14 @@ export type Database = {
         | "email"
         | "evento"
         | "nota_manual"
+      msg_comercial_tipo:
+        | "texto"
+        | "audio"
+        | "imagem"
+        | "video"
+        | "documento"
+        | "localizacao"
+        | "outro"
       tipico_tipo: "orcamento" | "aluguel"
     }
     CompositeTypes: {
@@ -3561,6 +3816,7 @@ export const Constants = {
         "viewer",
         "agente_leitor",
       ],
+      conversa_match_status: ["pendente", "vinculada", "ignorada"],
       dossie_maturidade: ["frio", "morno", "quente", "qualificado"],
       dossie_prioridade: ["A", "B", "C"],
       dossie_status: [
@@ -3584,6 +3840,15 @@ export const Constants = {
         "email",
         "evento",
         "nota_manual",
+      ],
+      msg_comercial_tipo: [
+        "texto",
+        "audio",
+        "imagem",
+        "video",
+        "documento",
+        "localizacao",
+        "outro",
       ],
       tipico_tipo: ["orcamento", "aluguel"],
     },
