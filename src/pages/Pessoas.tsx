@@ -140,10 +140,14 @@ export default function Pessoas() {
                   const respName = resp?.nome || resp?.email || "";
                   const tel = p.celular || p.telefone;
                   return (
-                    <TableRow key={p.id}>
+                    <TableRow
+                      key={p.id}
+                      onClick={() => setViewId(p.id)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                       <TableCell className="font-medium">{p.nome}</TableCell>
                       <TableCell className="text-sm">{p.cargo || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {org ? (
                           <Link to={`/organizacoes/${org.id}`} className="text-primary hover:underline text-sm">
                             {org.nome}
@@ -163,7 +167,7 @@ export default function Pessoas() {
                           </div>
                         ) : <span className="text-sm text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           {p.email && (
                             <a href={`mailto:${p.email}`} title="Enviar e-mail">
