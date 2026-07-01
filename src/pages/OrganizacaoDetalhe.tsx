@@ -284,6 +284,7 @@ export default function OrganizacaoDetalhe() {
             </TabsList>
 
             <TabsContent value="visao" className="mt-4 space-y-4">
+              <InformacoesImportantes texto={(org as any).informacoes_importantes} />
               <Card className="p-4 space-y-2">
                 <h3 className="font-semibold text-sm">Observações</h3>
                 <InlineEdit
