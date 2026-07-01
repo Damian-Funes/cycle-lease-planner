@@ -48,6 +48,7 @@ export interface PessoaRow {
   e_decisor: boolean;
   responsavel_id: string | null;
   observacoes: string | null;
+  informacoes_importantes?: string | null;
 }
 
 interface Props {
