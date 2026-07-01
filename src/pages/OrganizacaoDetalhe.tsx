@@ -60,6 +60,7 @@ export default function OrganizacaoDetalhe() {
   const [pessoaModalOpen, setPessoaModalOpen] = useState(false);
   const [editingPessoa, setEditingPessoa] = useState<PessoaRow | null>(null);
   const [vincularOpen, setVincularOpen] = useState(false);
+  const [viewPessoaId, setViewPessoaId] = useState<string | null>(null);
 
   const { data: org, isLoading, isError } = useQuery({
     queryKey: ["organizacao", id],
