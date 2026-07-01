@@ -17,6 +17,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Loader2, Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OrganizacaoFormModal from "./OrganizacaoFormModal";
+import { InformacoesImportantes, PerfilComportamental } from "./IaInsights";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Obrigatório"),
@@ -47,6 +48,7 @@ export interface PessoaRow {
   e_decisor: boolean;
   responsavel_id: string | null;
   observacoes: string | null;
+  informacoes_importantes?: string | null;
 }
 
 interface Props {
@@ -236,6 +238,12 @@ export default function PessoaFormModal({ open, onOpenChange, pessoa, defaultOrg
               />
               <Label htmlFor="e_decisor" className="cursor-pointer">É decisor</Label>
             </div>
+            {isEdit && pessoa && (
+              <div className="sm:col-span-2 space-y-3">
+                <PerfilComportamental pessoaId={pessoa.id} />
+                <InformacoesImportantes texto={pessoa.informacoes_importantes} />
+              </div>
+            )}
             <div className="sm:col-span-2 space-y-1">
               <Label>Observações</Label>
               <Textarea rows={3} {...form.register("observacoes")} />

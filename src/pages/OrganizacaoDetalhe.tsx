@@ -34,6 +34,7 @@ import OrgOrcamentos from "@/components/OrgOrcamentos";
 import OrgLayouts from "@/components/OrgLayouts";
 import OrgKpis from "@/components/OrgKpis";
 import SemPermissao from "@/components/SemPermissao";
+import { InformacoesImportantes } from "@/components/IaInsights";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
@@ -283,6 +284,7 @@ export default function OrganizacaoDetalhe() {
             </TabsList>
 
             <TabsContent value="visao" className="mt-4 space-y-4">
+              <InformacoesImportantes texto={(org as any).informacoes_importantes} />
               <Card className="p-4 space-y-2">
                 <h3 className="font-semibold text-sm">Observações</h3>
                 <InlineEdit
