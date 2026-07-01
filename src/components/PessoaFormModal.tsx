@@ -238,6 +238,12 @@ export default function PessoaFormModal({ open, onOpenChange, pessoa, defaultOrg
               />
               <Label htmlFor="e_decisor" className="cursor-pointer">É decisor</Label>
             </div>
+            {isEdit && pessoa && (
+              <div className="sm:col-span-2 space-y-3">
+                <PerfilComportamental pessoaId={pessoa.id} />
+                <InformacoesImportantes texto={pessoa.informacoes_importantes} />
+              </div>
+            )}
             <div className="sm:col-span-2 space-y-1">
               <Label>Observações</Label>
               <Textarea rows={3} {...form.register("observacoes")} />
