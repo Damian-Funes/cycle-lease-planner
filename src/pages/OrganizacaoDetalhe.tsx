@@ -35,6 +35,7 @@ import OrgLayouts from "@/components/OrgLayouts";
 import OrgKpis from "@/components/OrgKpis";
 import SemPermissao from "@/components/SemPermissao";
 import { InformacoesImportantes } from "@/components/IaInsights";
+import PessoaDetalheSheet from "@/components/PessoaDetalheSheet";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
