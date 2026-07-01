@@ -338,7 +338,7 @@ export default function OrganizacaoDetalhe() {
                       return (
                         <TableRow
                           key={p.id}
-                          onClick={openEdit}
+                          onClick={() => setViewPessoaId(p.id)}
                           className="cursor-pointer hover:bg-muted/50"
                         >
                           <TableCell className="font-medium">{p.nome}</TableCell>
