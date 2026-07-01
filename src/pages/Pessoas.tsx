@@ -32,6 +32,7 @@ export default function Pessoas() {
   const [respFiltro, setRespFiltro] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PessoaRow | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
 
   const { data: pessoas = [], isLoading } = useQuery({
     queryKey: ["pessoas"],
