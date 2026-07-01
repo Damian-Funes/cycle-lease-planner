@@ -14,6 +14,7 @@ import {
 import { ArrowLeft, Plus, Search, Pencil, Loader2, User, Star, Mail, Phone } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PessoaFormModal, { PessoaRow } from "@/components/PessoaFormModal";
+import PessoaDetalheSheet from "@/components/PessoaDetalheSheet";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 
 interface ProfileLite { user_id: string; nome: string | null; email: string }
