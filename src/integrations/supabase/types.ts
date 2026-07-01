@@ -1896,6 +1896,8 @@ export type Database = {
           estado: string | null
           estado_id: string | null
           id: string
+          informacoes_atualizadas_em: string | null
+          informacoes_importantes: string | null
           latitude: number | null
           longitude: number | null
           nome: string
@@ -1920,6 +1922,8 @@ export type Database = {
           estado?: string | null
           estado_id?: string | null
           id?: string
+          informacoes_atualizadas_em?: string | null
+          informacoes_importantes?: string | null
           latitude?: number | null
           longitude?: number | null
           nome: string
@@ -1944,6 +1948,8 @@ export type Database = {
           estado?: string | null
           estado_id?: string | null
           id?: string
+          informacoes_atualizadas_em?: string | null
+          informacoes_importantes?: string | null
           latitude?: number | null
           longitude?: number | null
           nome?: string
@@ -2063,6 +2069,8 @@ export type Database = {
           e_decisor: boolean
           email: string | null
           id: string
+          informacoes_atualizadas_em: string | null
+          informacoes_importantes: string | null
           linkedin: string | null
           nome: string
           observacoes: string | null
@@ -2078,6 +2086,8 @@ export type Database = {
           e_decisor?: boolean
           email?: string | null
           id?: string
+          informacoes_atualizadas_em?: string | null
+          informacoes_importantes?: string | null
           linkedin?: string | null
           nome: string
           observacoes?: string | null
@@ -2093,6 +2103,8 @@ export type Database = {
           e_decisor?: boolean
           email?: string | null
           id?: string
+          informacoes_atualizadas_em?: string | null
+          informacoes_importantes?: string | null
           linkedin?: string | null
           nome?: string
           observacoes?: string | null
@@ -3505,6 +3517,59 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_pessoa_perfil_atual: {
+        Row: {
+          canal_preferido: string | null
+          confianca: string | null
+          estilo_comunicacao: string | null
+          gerado_em: string | null
+          idiomas_observados: Json | null
+          interesses_comerciais: Json | null
+          pessoa_id: string | null
+          resumo: string | null
+          sensibilidade_preco: string | null
+          tom: string | null
+          velocidade_decisao: string | null
+          versao: number | null
+        }
+        Insert: {
+          canal_preferido?: never
+          confianca?: never
+          estilo_comunicacao?: never
+          gerado_em?: string | null
+          idiomas_observados?: never
+          interesses_comerciais?: never
+          pessoa_id?: string | null
+          resumo?: never
+          sensibilidade_preco?: never
+          tom?: never
+          velocidade_decisao?: never
+          versao?: number | null
+        }
+        Update: {
+          canal_preferido?: never
+          confianca?: never
+          estilo_comunicacao?: never
+          gerado_em?: string | null
+          idiomas_observados?: never
+          interesses_comerciais?: never
+          pessoa_id?: string | null
+          resumo?: never
+          sensibilidade_preco?: never
+          tom?: never
+          velocidade_decisao?: never
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_perfis_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_ultima_sessao_telefone: {
         Row: {
           cidade: string | null
@@ -3546,6 +3611,11 @@ export type Database = {
         Args: { p_min_mensagens?: number }
         Returns: {
           historico: string
+          info_org_atual: string
+          info_pessoa_atual: string
+          org_nome: string
+          organizacao_id: string
+          perfil_atual: string
           periodo_fim: string
           periodo_inicio: string
           pessoa_id: string
@@ -3557,6 +3627,8 @@ export type Database = {
         Args: {
           p_executado_por?: string
           p_fim: string
+          p_info_organizacao?: string
+          p_info_pessoa?: string
           p_inicio: string
           p_mensagens: number
           p_modelo: string
