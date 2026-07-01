@@ -194,6 +194,12 @@ export default function Pessoas() {
       </main>
 
       <PessoaFormModal open={modalOpen} onOpenChange={setModalOpen} pessoa={editing} />
+      <PessoaDetalheSheet
+        open={!!viewId}
+        onOpenChange={(v) => !v && setViewId(null)}
+        pessoaId={viewId}
+        onEdit={(p) => { setEditing(p); setModalOpen(true); }}
+      />
     </div>
   );
 }
