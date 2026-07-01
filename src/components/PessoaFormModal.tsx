@@ -17,6 +17,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Loader2, Check, ChevronsUpDown, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import OrganizacaoFormModal from "./OrganizacaoFormModal";
+import { InformacoesImportantes, PerfilComportamental } from "./IaInsights";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Obrigatório"),
