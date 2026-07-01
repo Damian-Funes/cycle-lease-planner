@@ -331,8 +331,14 @@ export default function OrganizacaoDetalhe() {
                       <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-sm">Nenhuma pessoa vinculada</TableCell></TableRow>
                     ) : pessoas.map((p) => {
                       const tel = p.celular || p.telefone;
+                      const openEdit = () => { setEditingPessoa(p); setPessoaModalOpen(true); };
+                      const stop = (e: React.MouseEvent) => e.stopPropagation();
                       return (
-                        <TableRow key={p.id}>
+                        <TableRow
+                          key={p.id}
+                          onClick={openEdit}
+                          className="cursor-pointer hover:bg-muted/50"
+                        >
                           <TableCell className="font-medium">{p.nome}</TableCell>
                           <TableCell className="text-sm">{p.cargo || "—"}</TableCell>
                           <TableCell className="text-sm">{p.email || "—"}</TableCell>
@@ -340,11 +346,11 @@ export default function OrganizacaoDetalhe() {
                           <TableCell className="text-center">
                             {p.e_decisor && <Star className="w-4 h-4 inline text-amber-500 fill-amber-500" />}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right" onClick={stop}>
                             <div className="flex justify-end gap-1">
-                              {p.email && <a href={`mailto:${p.email}`}><Button size="icon" variant="ghost"><Mail className="w-4 h-4" /></Button></a>}
-                              {tel && <a href={`tel:${tel}`}><Button size="icon" variant="ghost"><Phone className="w-4 h-4" /></Button></a>}
-                              <Button size="icon" variant="ghost" onClick={() => { setEditingPessoa(p); setPessoaModalOpen(true); }}>
+                              {p.email && <a href={`mailto:${p.email}`} onClick={stop}><Button size="icon" variant="ghost"><Mail className="w-4 h-4" /></Button></a>}
+                              {tel && <a href={`tel:${tel}`} onClick={stop}><Button size="icon" variant="ghost"><Phone className="w-4 h-4" /></Button></a>}
+                              <Button size="icon" variant="ghost" onClick={(e) => { stop(e); openEdit(); }}>
                                 <Pencil className="w-4 h-4" />
                               </Button>
                             </div>
