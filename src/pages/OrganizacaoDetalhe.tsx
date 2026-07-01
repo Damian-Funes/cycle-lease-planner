@@ -35,6 +35,7 @@ import OrgLayouts from "@/components/OrgLayouts";
 import OrgKpis from "@/components/OrgKpis";
 import SemPermissao from "@/components/SemPermissao";
 import { InformacoesImportantes } from "@/components/IaInsights";
+import PessoaDetalheSheet from "@/components/PessoaDetalheSheet";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
@@ -59,6 +60,7 @@ export default function OrganizacaoDetalhe() {
   const [pessoaModalOpen, setPessoaModalOpen] = useState(false);
   const [editingPessoa, setEditingPessoa] = useState<PessoaRow | null>(null);
   const [vincularOpen, setVincularOpen] = useState(false);
+  const [viewPessoaId, setViewPessoaId] = useState<string | null>(null);
 
   const { data: org, isLoading, isError } = useQuery({
     queryKey: ["organizacao", id],
@@ -336,7 +338,7 @@ export default function OrganizacaoDetalhe() {
                       return (
                         <TableRow
                           key={p.id}
-                          onClick={openEdit}
+                          onClick={() => setViewPessoaId(p.id)}
                           className="cursor-pointer hover:bg-muted/50"
                         >
                           <TableCell className="font-medium">{p.nome}</TableCell>
@@ -400,6 +402,12 @@ export default function OrganizacaoDetalhe() {
         onOpenChange={setPessoaModalOpen}
         pessoa={editingPessoa}
         defaultOrganizacaoId={id}
+      />
+      <PessoaDetalheSheet
+        open={!!viewPessoaId}
+        onOpenChange={(v) => !v && setViewPessoaId(null)}
+        pessoaId={viewPessoaId}
+        onEdit={(p) => { setEditingPessoa(p); setPessoaModalOpen(true); }}
       />
     </div>
   );

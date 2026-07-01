@@ -14,6 +14,7 @@ import {
 import { ArrowLeft, Plus, Search, Pencil, Loader2, User, Star, Mail, Phone } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PessoaFormModal, { PessoaRow } from "@/components/PessoaFormModal";
+import PessoaDetalheSheet from "@/components/PessoaDetalheSheet";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 
 interface ProfileLite { user_id: string; nome: string | null; email: string }
@@ -31,6 +32,7 @@ export default function Pessoas() {
   const [respFiltro, setRespFiltro] = useState("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<PessoaRow | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
 
   const { data: pessoas = [], isLoading } = useQuery({
     queryKey: ["pessoas"],
@@ -138,10 +140,14 @@ export default function Pessoas() {
                   const respName = resp?.nome || resp?.email || "";
                   const tel = p.celular || p.telefone;
                   return (
-                    <TableRow key={p.id}>
+                    <TableRow
+                      key={p.id}
+                      onClick={() => setViewId(p.id)}
+                      className="cursor-pointer hover:bg-muted/50"
+                    >
                       <TableCell className="font-medium">{p.nome}</TableCell>
                       <TableCell className="text-sm">{p.cargo || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {org ? (
                           <Link to={`/organizacoes/${org.id}`} className="text-primary hover:underline text-sm">
                             {org.nome}
@@ -161,7 +167,7 @@ export default function Pessoas() {
                           </div>
                         ) : <span className="text-sm text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           {p.email && (
                             <a href={`mailto:${p.email}`} title="Enviar e-mail">
@@ -188,6 +194,12 @@ export default function Pessoas() {
       </main>
 
       <PessoaFormModal open={modalOpen} onOpenChange={setModalOpen} pessoa={editing} />
+      <PessoaDetalheSheet
+        open={!!viewId}
+        onOpenChange={(v) => !v && setViewId(null)}
+        pessoaId={viewId}
+        onEdit={(p) => { setEditing(p); setModalOpen(true); }}
+      />
     </div>
   );
 }
