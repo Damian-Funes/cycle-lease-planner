@@ -403,6 +403,12 @@ export default function OrganizacaoDetalhe() {
         pessoa={editingPessoa}
         defaultOrganizacaoId={id}
       />
+      <PessoaDetalheSheet
+        open={!!viewPessoaId}
+        onOpenChange={(v) => !v && setViewPessoaId(null)}
+        pessoaId={viewPessoaId}
+        onEdit={(p) => { setEditingPessoa(p); setPessoaModalOpen(true); }}
+      />
     </div>
   );
 }
