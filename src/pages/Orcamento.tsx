@@ -138,7 +138,29 @@ export default function Orcamento() {
     () => calcDescontoAplicado(subtotal, params.descontoTipo, params.descontoValor),
     [subtotal, params.descontoTipo, params.descontoValor]
   );
-  const total = useMemo(() => calcTotal(params), [params]);
+  // Preço de montagem ao vivo, refletindo inputs atuais + taxas (sem depender do save)
+  const montagemPrecoLive = useMemo(() => {
+    const autoDias = !!diasSugerido?.tem_maquina_tratamento;
+    const dias = autoDias ? Number(diasSugerido?.dias_sugeridos) || 0 : Number(params.montagemDias) || 0;
+    const cols = 4;
+    const veic = 1;
+    const kmOD = Number(params.montagemKmOrigemDestino) || 0;
+    const kmHL = Number(params.montagemKmHotelLocal) || 0;
+    const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0, margem_percentual: 0 };
+    const custo =
+      dias * cols * Number(t.valor_dia_colaborador) +
+      2 * kmOD * Number(t.valor_km) * veic +
+      (params.montagemEhFazenda ? dias * 2 * kmHL * Number(t.valor_km) * veic : 0) +
+      dias * cols * Number(t.diaria_hospedagem) +
+      dias * cols * Number(t.diaria_alimentacao);
+    return Math.round(custo * (1 + (Number(t.margem_percentual) || 0) / 100) * 100) / 100;
+  }, [diasSugerido, params.montagemDias, params.montagemKmOrigemDestino, params.montagemKmHotelLocal, params.montagemEhFazenda, taxasMontagem]);
+
+  const total = useMemo(
+    () => calcTotal({ ...params, montagemPrecoTotal: montagemPrecoLive }),
+    [params, montagemPrecoLive]
+  );
+
 
   const update = <K extends keyof OrcamentoParams>(key: K, value: OrcamentoParams[K]) => {
     setParams((prev) => ({ ...prev, [key]: value }));
