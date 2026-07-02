@@ -75,11 +75,14 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   organizacao?: OrganizacaoRow | null;
+  initialValues?: Partial<OrganizacaoRow> | null;
+  onCreated?: (id: string) => void;
 }
 
-export default function OrganizacaoFormModal({ open, onOpenChange, organizacao }: Props) {
+export default function OrganizacaoFormModal({ open, onOpenChange, organizacao, initialValues, onCreated }: Props) {
   const qc = useQueryClient();
   const isEdit = !!organizacao?.id;
+
 
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles-lite"],
