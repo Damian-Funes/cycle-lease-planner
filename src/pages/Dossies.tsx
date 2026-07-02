@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import AppHeader from "@/components/AppHeader";
+import OrganizacaoFormModal from "@/components/OrganizacaoFormModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,19 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, FileSearch, AlertTriangle, Search } from "lucide-react";
+import { ArrowLeft, FileSearch, Search, Plus, MessageSquare } from "lucide-react";
 
-interface DossieRow {
+interface DossiePendenteRow {
   id: string;
   nome_fantasia: string | null;
   cidade: string | null;
   estado: string | null;
   maturidade_lead: string | null;
-  prioridade: string | null;
-  precisa_revisao: boolean | null;
-  ultima_interacao_em: string | null;
+  total_interacoes: number | null;
+  ultima_interacao: string | null;
 }
 
 const maturidadeColor: Record<string, string> = {
@@ -38,33 +38,27 @@ const maturidadeColor: Record<string, string> = {
   frio: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
-const prioridadeColor: Record<string, string> = {
-  alta: "bg-red-100 text-red-700 border-red-200",
-  media: "bg-amber-100 text-amber-700 border-amber-200",
-  baixa: "bg-slate-100 text-slate-700 border-slate-200",
-};
-
 export default function Dossies() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [uf, setUf] = useState<string>("__all");
-  const [soRevisao, setSoRevisao] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [dossieAtual, setDossieAtual] = useState<DossiePendenteRow | null>(null);
+  const [initialValues, setInitialValues] = useState<any>(null);
 
   const { data = [], isLoading } = useQuery({
-    queryKey: ["dossies-list", busca, soRevisao],
+    queryKey: ["dossies-pendentes", busca],
     queryFn: async () => {
       let q = (supabase as any)
-        .from("dossies_sementeiras")
-        .select(
-          "id, nome_fantasia, cidade, estado, maturidade_lead, prioridade, precisa_revisao, ultima_interacao_em"
-        )
-        .order("ultima_interacao_em", { ascending: false, nullsFirst: false })
+        .from("vw_dossies_pendentes")
+        .select("*")
+        .order("ultima_interacao", { ascending: false, nullsFirst: false })
         .limit(500);
       if (busca.trim()) q = q.ilike("nome_fantasia", `%${busca.trim()}%`);
-      if (soRevisao) q = q.eq("precisa_revisao", true);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as DossieRow[];
+      return (data ?? []) as DossiePendenteRow[];
     },
   });
 
@@ -79,6 +73,36 @@ export default function Dossies() {
     [data, uf]
   );
 
+  const abrirCadastro = (d: DossiePendenteRow) => {
+    setDossieAtual(d);
+    setInitialValues({
+      nome: d.nome_fantasia ?? "",
+      nome_fantasia: d.nome_fantasia ?? "",
+      cidade: d.cidade ?? "",
+      estado: d.estado ?? "",
+      status: "lead",
+    });
+    setModalOpen(true);
+  };
+
+  const onCreated = async (novaOrgId: string) => {
+    if (!dossieAtual) return;
+    const { error } = await (supabase as any)
+      .from("dossies_sementeiras")
+      .update({ organizacao_id: novaOrgId })
+      .eq("id", dossieAtual.id);
+    if (error) {
+      toast.error("Organização criada, mas falha ao vincular o dossiê", {
+        description: error.message,
+      });
+    } else {
+      toast.success("Dossiê vinculado à nova organização");
+    }
+    qc.invalidateQueries({ queryKey: ["dossies-pendentes"] });
+    setDossieAtual(null);
+    setInitialValues(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white border-b">
@@ -90,7 +114,7 @@ export default function Dossies() {
             <div className="flex items-center gap-2">
               <FileSearch className="w-5 h-5" style={{ color: "#1F4E8C" }} />
               <h1 className="text-lg font-semibold" style={{ color: "#1F4E8C" }}>
-                Dossiês
+                Dossiês — leads a cadastrar
               </h1>
             </div>
           </div>
@@ -129,13 +153,11 @@ export default function Dossies() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 pb-2">
-              <Switch id="rev" checked={soRevisao} onCheckedChange={setSoRevisao} />
-              <Label htmlFor="rev" className="text-sm cursor-pointer">
-                Somente pendentes de revisão
-              </Label>
-            </div>
           </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Leads relatados em campo ainda não cadastrados como organização. Cadastre para
+            que passem a aparecer no CRM com aba "Interações de campo".
+          </p>
         </Card>
 
         {isLoading ? (
@@ -146,7 +168,7 @@ export default function Dossies() {
           </div>
         ) : rows.length === 0 ? (
           <Card className="p-12 text-center text-muted-foreground">
-            Nenhum dossiê no seu território ainda.
+            Nenhum lead pendente. Todos os dossiês já foram vinculados a organizações.
           </Card>
         ) : (
           <Card className="overflow-hidden">
@@ -156,18 +178,14 @@ export default function Dossies() {
                   <th className="text-left px-4 py-2">Nome</th>
                   <th className="text-left px-4 py-2">Cidade/UF</th>
                   <th className="text-left px-4 py-2">Maturidade</th>
-                  <th className="text-left px-4 py-2">Prioridade</th>
+                  <th className="text-left px-4 py-2">Interações</th>
                   <th className="text-left px-4 py-2">Última interação</th>
-                  <th className="text-left px-4 py-2"></th>
+                  <th className="text-right px-4 py-2"></th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((d) => (
-                  <tr
-                    key={d.id}
-                    onClick={() => navigate(`/dossie/${d.id}`)}
-                    className="border-b hover:bg-slate-50 cursor-pointer"
-                  >
+                  <tr key={d.id} className="border-b hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium">{d.nome_fantasia ?? "—"}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {[d.cidade, d.estado].filter(Boolean).join(" / ") || "—"}
@@ -184,32 +202,25 @@ export default function Dossies() {
                         "—"
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      {d.prioridade ? (
-                        <Badge
-                          variant="outline"
-                          className={prioridadeColor[d.prioridade] ?? ""}
-                        >
-                          {d.prioridade}
-                        </Badge>
-                      ) : (
-                        "—"
-                      )}
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {d.total_interacoes ?? 0}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {d.ultima_interacao_em
-                        ? formatDistanceToNow(new Date(d.ultima_interacao_em), {
+                      {d.ultima_interacao
+                        ? formatDistanceToNow(new Date(d.ultima_interacao), {
                             addSuffix: true,
                             locale: ptBR,
                           })
                         : "—"}
                     </td>
-                    <td className="px-4 py-3">
-                      {d.precisa_revisao && (
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-200 gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Revisar
-                        </Badge>
-                      )}
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" variant="outline" onClick={() => abrirCadastro(d)}>
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        Cadastrar como organização
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -218,6 +229,19 @@ export default function Dossies() {
           </Card>
         )}
       </main>
+
+      <OrganizacaoFormModal
+        open={modalOpen}
+        onOpenChange={(v) => {
+          setModalOpen(v);
+          if (!v) {
+            setDossieAtual(null);
+            setInitialValues(null);
+          }
+        }}
+        initialValues={initialValues}
+        onCreated={onCreated}
+      />
     </div>
   );
 }

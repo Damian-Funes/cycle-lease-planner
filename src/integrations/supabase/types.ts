@@ -285,6 +285,13 @@ export type Database = {
             foreignKeyName: "dossie_contatos_dossie_id_fkey"
             columns: ["dossie_id"]
             isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_contatos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
             referencedRelation: "vw_organizacao_dossie"
             referencedColumns: ["dossie_id"]
           },
@@ -343,6 +350,13 @@ export type Database = {
             columns: ["dossie_id"]
             isOneToOne: false
             referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_equipamentos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
             referencedColumns: ["id"]
           },
           {
@@ -410,6 +424,13 @@ export type Database = {
             foreignKeyName: "dossie_interacoes_dossie_id_fkey"
             columns: ["dossie_id"]
             isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_interacoes_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
             referencedRelation: "vw_organizacao_dossie"
             referencedColumns: ["dossie_id"]
           },
@@ -462,6 +483,13 @@ export type Database = {
             columns: ["dossie_id"]
             isOneToOne: false
             referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_midias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
             referencedColumns: ["id"]
           },
           {
@@ -531,6 +559,13 @@ export type Database = {
             columns: ["dossie_id"]
             isOneToOne: false
             referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_pendencias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
             referencedColumns: ["id"]
           },
           {
@@ -2837,6 +2872,13 @@ export type Database = {
             foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
             columns: ["dossie_id"]
             isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
             referencedRelation: "vw_organizacao_dossie"
             referencedColumns: ["dossie_id"]
           },
@@ -3573,6 +3615,20 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_dossies_pendentes: {
+        Row: {
+          cidade: string | null
+          estado: string | null
+          id: string | null
+          maturidade_lead:
+            | Database["public"]["Enums"]["dossie_maturidade"]
+            | null
+          nome_fantasia: string | null
+          total_interacoes: number | null
+          ultima_interacao: string | null
+        }
+        Relationships: []
+      }
       vw_layout_completo: {
         Row: {
           altura_mm: number | null
@@ -3731,6 +3787,13 @@ export type Database = {
             columns: ["dossie_id"]
             isOneToOne: false
             referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossies_pendentes"
             referencedColumns: ["id"]
           },
           {
