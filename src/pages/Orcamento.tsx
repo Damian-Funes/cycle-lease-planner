@@ -772,12 +772,13 @@ export default function Orcamento() {
 
           const custoBanco = Number(params.montagemCustoTotal) || 0;
           const precoBanco = Number(params.montagemPrecoTotal) || 0;
-          const margemRsBanco = (Number(params.montagemPrecoTotal) || 0) - (Number(params.montagemCustoTotal) || 0);
-          const usarBanco = !!savedId && precoBanco > 0;
-          const custoExib = usarBanco ? custoBanco : custoPreview;
-          const margemRsExib = usarBanco ? margemRsBanco : margemRsPreview;
-          const precoExib = usarBanco ? precoBanco : precoPreview;
-          const divergencia = usarBanco && Math.abs(precoBanco - precoPreview) > 0.5;
+          // Sempre exibir o preview (reativo aos inputs). O valor do banco só serve
+          // para sinalizar que há mudanças não salvas.
+          const custoExib = custoPreview;
+          const margemRsExib = margemRsPreview;
+          const precoExib = precoPreview;
+          const divergencia = !!savedId && precoBanco > 0 && Math.abs(precoBanco - precoPreview) > 0.5;
+
 
           const detalheTxt = (diasSugerido?.detalhe_maquinas ?? [])
             .map((m) => {
