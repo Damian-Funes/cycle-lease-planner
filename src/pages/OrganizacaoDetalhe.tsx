@@ -29,6 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ActivityFeed from "@/components/ActivityFeed";
+import InteracoesCampo from "@/components/InteracoesCampo";
 import OrgPropostas from "@/components/OrgPropostas";
 import OrgOrcamentos from "@/components/OrgOrcamentos";
 import OrgLayouts from "@/components/OrgLayouts";
@@ -280,6 +281,7 @@ export default function OrganizacaoDetalhe() {
               <TabsTrigger value="propostas">Propostas SmartCycle</TabsTrigger>
               <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
               <TabsTrigger value="layouts">Layouts</TabsTrigger>
+              <TabsTrigger value="interacoes">Interações de campo</TabsTrigger>
               <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
               <TabsTrigger value="atividades">Atividades</TabsTrigger>
               <TabsTrigger value="notas">Notas</TabsTrigger>
@@ -373,6 +375,9 @@ export default function OrganizacaoDetalhe() {
             </TabsContent>
             <TabsContent value="layouts" className="mt-4">
               <OrgLayouts organizacaoId={id} organizacaoNome={org.nome} />
+            </TabsContent>
+            <TabsContent value="interacoes" className="mt-4">
+              {org && <InteracoesCampo organizacaoId={org.id} />}
             </TabsContent>
 
             <TabsContent value="oportunidades" className="mt-4">
