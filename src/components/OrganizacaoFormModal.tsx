@@ -107,24 +107,25 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao, 
 
   useEffect(() => {
     if (open) {
+      const src: any = organizacao ?? initialValues ?? {};
       form.reset({
-        nome: organizacao?.nome ?? "",
-        nome_fantasia: organizacao?.nome_fantasia ?? "",
-        cnpj: formatCpfCnpj(organizacao?.cnpj ?? ""),
-        segmento: (organizacao?.segmento ?? "") as any,
-        porte: organizacao?.porte ?? "",
-        regiao: organizacao?.regiao ?? "",
-        endereco: organizacao?.endereco ?? "",
-        cidade: organizacao?.cidade ?? "",
-        estado: organizacao?.estado ?? "",
-        estado_id: organizacao?.estado_id ?? "",
-        site: organizacao?.site ?? "",
-        telefone_principal: organizacao?.telefone_principal ?? "",
-        email_principal: organizacao?.email_principal ?? "",
-        status: organizacao?.status ?? "lead",
-        responsavel_id: organizacao?.responsavel_id ?? "",
-        tags: (organizacao?.tags ?? []).join(", "),
-        observacoes: organizacao?.observacoes ?? "",
+        nome: src.nome ?? "",
+        nome_fantasia: src.nome_fantasia ?? "",
+        cnpj: formatCpfCnpj(src.cnpj ?? ""),
+        segmento: (src.segmento ?? "") as any,
+        porte: src.porte ?? "",
+        regiao: src.regiao ?? "",
+        endereco: src.endereco ?? "",
+        cidade: src.cidade ?? "",
+        estado: src.estado ?? "",
+        estado_id: src.estado_id ?? "",
+        site: src.site ?? "",
+        telefone_principal: src.telefone_principal ?? "",
+        email_principal: src.email_principal ?? "",
+        status: src.status ?? "lead",
+        responsavel_id: src.responsavel_id ?? "",
+        tags: (src.tags ?? []).join?.(", ") ?? "",
+        observacoes: src.observacoes ?? "",
         contato_nome: "",
         contato_cargo: "",
         contato_email: "",
@@ -133,7 +134,8 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao, 
         contato_decisor: false,
       });
     }
-  }, [open, organizacao]);
+  }, [open, organizacao, initialValues]);
+
 
   // Autocomplete CNPJ via BrasilAPI
   const cnpjValue = form.watch("cnpj") || "";
