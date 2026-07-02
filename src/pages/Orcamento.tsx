@@ -965,9 +965,10 @@ export default function Orcamento() {
                     </div>
                     {divergencia && (
                       <div className="text-xs text-amber-700 pt-1">
-                        Preview: {fmtBRL(precoPreview)} — o valor exibido vem do banco (autoritativo).
+                        Valor no banco: {fmtBRL(precoBanco)} — clique em Salvar para persistir a atualização.
                       </div>
                     )}
+
                   </div>
                 ) : (
                   <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 flex items-center justify-between">
