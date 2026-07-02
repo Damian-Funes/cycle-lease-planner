@@ -281,6 +281,13 @@ export type Database = {
             referencedRelation: "vw_dossie_resumo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dossie_contatos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
+          },
         ]
       }
       dossie_equipamentos: {
@@ -338,6 +345,13 @@ export type Database = {
             referencedRelation: "vw_dossie_resumo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dossie_equipamentos_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
+          },
         ]
       }
       dossie_interacoes: {
@@ -392,6 +406,13 @@ export type Database = {
             referencedRelation: "vw_dossie_resumo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dossie_interacoes_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
+          },
         ]
       }
       dossie_midias: {
@@ -444,11 +465,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dossie_midias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
+          },
+          {
             foreignKeyName: "dossie_midias_interacao_id_fkey"
             columns: ["interacao_id"]
             isOneToOne: false
             referencedRelation: "dossie_interacoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_midias_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["interacao_id"]
           },
         ]
       }
@@ -498,6 +533,13 @@ export type Database = {
             referencedRelation: "vw_dossie_resumo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "dossie_pendencias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
+          },
         ]
       }
       dossies_sementeiras: {
@@ -522,6 +564,7 @@ export type Database = {
           nome_fantasia: string
           numero_funcionarios_bucket: string | null
           observacoes: string | null
+          organizacao_id: string | null
           origem: string
           pipedrive_enviado_em: string | null
           pipedrive_lead_id: string | null
@@ -555,6 +598,7 @@ export type Database = {
           nome_fantasia: string
           numero_funcionarios_bucket?: string | null
           observacoes?: string | null
+          organizacao_id?: string | null
           origem?: string
           pipedrive_enviado_em?: string | null
           pipedrive_lead_id?: string | null
@@ -588,6 +632,7 @@ export type Database = {
           nome_fantasia?: string
           numero_funcionarios_bucket?: string | null
           observacoes?: string | null
+          organizacao_id?: string | null
           origem?: string
           pipedrive_enviado_em?: string | null
           pipedrive_lead_id?: string | null
@@ -600,7 +645,15 @@ export type Database = {
           volume_anual_sacos?: number | null
           volume_eh_estimativa?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dossies_sementeiras_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_notification_preferences: {
         Row: {
@@ -2781,11 +2834,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
+          },
+          {
             foreignKeyName: "whatsapp_mensagens_recebidas_interacao_id_fkey"
             columns: ["interacao_id"]
             isOneToOne: false
             referencedRelation: "dossie_interacoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_interacao_id_fkey"
+            columns: ["interacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["interacao_id"]
           },
         ]
       }
@@ -3565,6 +3632,31 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_organizacao_dossie: {
+        Row: {
+          conteudo_bruto: string | null
+          conteudo_estruturado: Json | null
+          criada_em: string | null
+          dossie_id: string | null
+          interacao_id: string | null
+          maturidade_lead:
+            | Database["public"]["Enums"]["dossie_maturidade"]
+            | null
+          nome_fantasia: string | null
+          ocorrida_em: string | null
+          organizacao_id: string | null
+          tipo: Database["public"]["Enums"]["interacao_tipo"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossies_sementeiras_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_pessoa_perfil_atual: {
         Row: {
           canal_preferido: string | null
@@ -3640,6 +3732,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_dossie_resumo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_mensagens_recebidas_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_organizacao_dossie"
+            referencedColumns: ["dossie_id"]
           },
         ]
       }
@@ -3725,6 +3824,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      identificar_sementeira: {
+        Args: { p_texto: string }
+        Returns: {
+          cidade: string
+          estado: string
+          nome: string
+          nome_fantasia: string
+          org_id: string
+          segmento: string
+          trecho_encontrado: string
+        }[]
+      }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
       pode_inserir_planta: {
         Args: { _name: string; _user: string }
@@ -3756,6 +3867,16 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      upsert_dossie_por_org: {
+        Args: {
+          p_cidade: string
+          p_cnpj?: string
+          p_estado: string
+          p_nome: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       user_cobre_estado: {
         Args: { _estado_id: string; _user_id: string }
         Returns: boolean
