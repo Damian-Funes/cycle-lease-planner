@@ -138,7 +138,29 @@ export default function Orcamento() {
     () => calcDescontoAplicado(subtotal, params.descontoTipo, params.descontoValor),
     [subtotal, params.descontoTipo, params.descontoValor]
   );
-  const total = useMemo(() => calcTotal(params), [params]);
+  // Preço de montagem ao vivo, refletindo inputs atuais + taxas (sem depender do save)
+  const montagemPrecoLive = useMemo(() => {
+    const autoDias = !!diasSugerido?.tem_maquina_tratamento;
+    const dias = autoDias ? Number(diasSugerido?.dias_sugeridos) || 0 : Number(params.montagemDias) || 0;
+    const cols = 4;
+    const veic = 1;
+    const kmOD = Number(params.montagemKmOrigemDestino) || 0;
+    const kmHL = Number(params.montagemKmHotelLocal) || 0;
+    const t = taxasMontagem ?? { valor_dia_colaborador: 0, valor_km: 0, diaria_hospedagem: 0, diaria_alimentacao: 0, margem_percentual: 0 };
+    const custo =
+      dias * cols * Number(t.valor_dia_colaborador) +
+      2 * kmOD * Number(t.valor_km) * veic +
+      (params.montagemEhFazenda ? dias * 2 * kmHL * Number(t.valor_km) * veic : 0) +
+      dias * cols * Number(t.diaria_hospedagem) +
+      dias * cols * Number(t.diaria_alimentacao);
+    return Math.round(custo * (1 + (Number(t.margem_percentual) || 0) / 100) * 100) / 100;
+  }, [diasSugerido, params.montagemDias, params.montagemKmOrigemDestino, params.montagemKmHotelLocal, params.montagemEhFazenda, taxasMontagem]);
+
+  const total = useMemo(
+    () => calcTotal({ ...params, montagemPrecoTotal: montagemPrecoLive }),
+    [params, montagemPrecoLive]
+  );
+
 
   const update = <K extends keyof OrcamentoParams>(key: K, value: OrcamentoParams[K]) => {
     setParams((prev) => ({ ...prev, [key]: value }));
@@ -772,12 +794,13 @@ export default function Orcamento() {
 
           const custoBanco = Number(params.montagemCustoTotal) || 0;
           const precoBanco = Number(params.montagemPrecoTotal) || 0;
-          const margemRsBanco = (Number(params.montagemPrecoTotal) || 0) - (Number(params.montagemCustoTotal) || 0);
-          const usarBanco = !!savedId && precoBanco > 0;
-          const custoExib = usarBanco ? custoBanco : custoPreview;
-          const margemRsExib = usarBanco ? margemRsBanco : margemRsPreview;
-          const precoExib = usarBanco ? precoBanco : precoPreview;
-          const divergencia = usarBanco && Math.abs(precoBanco - precoPreview) > 0.5;
+          // Sempre exibir o preview (reativo aos inputs). O valor do banco só serve
+          // para sinalizar que há mudanças não salvas.
+          const custoExib = custoPreview;
+          const margemRsExib = margemRsPreview;
+          const precoExib = precoPreview;
+          const divergencia = !!savedId && precoBanco > 0 && Math.abs(precoBanco - precoPreview) > 0.5;
+
 
           const detalheTxt = (diasSugerido?.detalhe_maquinas ?? [])
             .map((m) => {
@@ -964,9 +987,10 @@ export default function Orcamento() {
                     </div>
                     {divergencia && (
                       <div className="text-xs text-amber-700 pt-1">
-                        Preview: {fmtBRL(precoPreview)} — o valor exibido vem do banco (autoritativo).
+                        Valor no banco: {fmtBRL(precoBanco)} — clique em Salvar para persistir a atualização.
                       </div>
                     )}
+
                   </div>
                 ) : (
                   <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 flex items-center justify-between">
