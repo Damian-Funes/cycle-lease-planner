@@ -452,6 +452,54 @@ export type Database = {
           },
         ]
       }
+      dossie_pendencias: {
+        Row: {
+          campo_perguntado: string | null
+          criada_em: string
+          dossie_id: string | null
+          id: string
+          pergunta_enviada: string | null
+          respondida_em: string | null
+          status: string
+          telefone_origem: string
+        }
+        Insert: {
+          campo_perguntado?: string | null
+          criada_em?: string
+          dossie_id?: string | null
+          id?: string
+          pergunta_enviada?: string | null
+          respondida_em?: string | null
+          status?: string
+          telefone_origem: string
+        }
+        Update: {
+          campo_perguntado?: string | null
+          criada_em?: string
+          dossie_id?: string | null
+          id?: string
+          pergunta_enviada?: string | null
+          respondida_em?: string | null
+          status?: string
+          telefone_origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossie_pendencias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "dossies_sementeiras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossie_pendencias_dossie_id_fkey"
+            columns: ["dossie_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dossie_resumo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dossies_sementeiras: {
         Row: {
           ano_fundacao: number | null
@@ -3605,6 +3653,16 @@ export type Database = {
           id: string
           nome_fantasia: string
           similaridade: number
+        }[]
+      }
+      buscar_pendencia_ativa: {
+        Args: { p_telefone: string }
+        Returns: {
+          campo_perguntado: string
+          dossie_id: string
+          dossie_nome: string
+          pendencia_id: string
+          pergunta_enviada: string
         }[]
       }
       fn_conversas_para_perfil: {
