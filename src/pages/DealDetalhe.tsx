@@ -305,18 +305,17 @@ export default function DealDetalhe() {
     // 3) Gerar próximo número de orçamento (mesma lógica de Orcamento.tsx)
     const year = new Date().getFullYear();
     const prefix = `ORC${year}-`;
-    const { data: last } = await supabase
+    const { data: existentes } = await supabase
       .from("orcamentos")
       .select("numero_orcamento")
-      .like("numero_orcamento", `${prefix}%`)
-      .order("numero_orcamento", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .like("numero_orcamento", `${prefix}%`);
     let seq = 1;
-    if (last?.numero_orcamento) {
-      const lastSeq = parseInt(last.numero_orcamento.replace(prefix, ""), 10);
-      if (!isNaN(lastSeq)) seq = lastSeq + 1;
-    }
+    (existentes || []).forEach((r: any) => {
+      const base = (r.numero_orcamento || "").replace(/-V\d+$/i, "");
+      const n = parseInt(base.replace(prefix, ""), 10);
+      if (!isNaN(n) && n >= seq) seq = n + 1;
+    });
+
     const novoNumero = `${prefix}${String(seq).padStart(3, "0")}`;
 
     // 4) Criar nova oportunidade

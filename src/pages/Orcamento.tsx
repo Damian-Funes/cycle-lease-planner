@@ -212,19 +212,17 @@ export default function Orcamento() {
     if (!numeroOrcamento) {
       const year = new Date().getFullYear();
       const prefix = `ORC${year}-`;
-      const { data: last } = await supabase
+      const { data: existentes } = await supabase
         .from("orcamentos")
         .select("numero_orcamento")
-        .like("numero_orcamento", `${prefix}%`)
-        .order("numero_orcamento", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .like("numero_orcamento", `${prefix}%`);
       let seq = 1;
-      if (last?.numero_orcamento) {
-        const baseOnly = last.numero_orcamento.replace(/-V\d+$/i, "");
-        const lastSeq = parseInt(baseOnly.replace(prefix, ""), 10);
-        if (!isNaN(lastSeq)) seq = lastSeq + 1;
-      }
+      (existentes || []).forEach((r: any) => {
+        const base = (r.numero_orcamento || "").replace(/-V\d+$/i, "");
+        const n = parseInt(base.replace(prefix, ""), 10);
+        if (!isNaN(n) && n >= seq) seq = n + 1;
+      });
+
       numeroOrcamento = `${prefix}${String(seq).padStart(3, "0")}`;
       setParams((prev) => ({ ...prev, numeroOrcamento: numeroOrcamento! }));
     } else if (isRevisao) {
