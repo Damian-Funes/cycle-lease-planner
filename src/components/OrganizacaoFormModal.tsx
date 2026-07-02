@@ -290,7 +290,7 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao, 
             payload.endereco !== organizacao.endereco || payload.cidade !== organizacao.cidade) {
           tentarGeocode(organizacao.id);
         }
-        return;
+        return null as string | null;
       }
       const { data: orgIns, error } = await (supabase as any)
         .from("organizacoes")
@@ -316,13 +316,16 @@ export default function OrganizacaoFormModal({ open, onOpenChange, organizacao, 
         throw new Error(`Falha ao salvar contato: ${pErr.message}`);
       }
       tentarGeocode(orgId);
+      return orgId;
     },
-    onSuccess: () => {
+    onSuccess: (newId) => {
       toast.success(isEdit ? "Organização atualizada" : "Organização e contato criados");
       qc.invalidateQueries({ queryKey: ["organizacoes"] });
       qc.invalidateQueries({ queryKey: ["pessoas"] });
+      if (!isEdit && newId && onCreated) onCreated(newId);
       onOpenChange(false);
     },
+
     onError: (err: any) => toast.error("Erro ao salvar", { description: err?.message }),
   });
 
