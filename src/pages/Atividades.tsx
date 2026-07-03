@@ -146,7 +146,7 @@ export default function Atividades() {
     setLoading(false);
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); }, [user?.id]);
 
   const filtradas = useMemo(() => {
     const now = new Date();
