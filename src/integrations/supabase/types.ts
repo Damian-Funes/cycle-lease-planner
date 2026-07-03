@@ -2577,6 +2577,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rota_paradas_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "vw_atividades_usuario"
+            referencedColumns: ["atividade_id"]
+          },
+          {
             foreignKeyName: "rota_paradas_oportunidade_id_fkey"
             columns: ["oportunidade_id"]
             isOneToOne: false
@@ -3534,6 +3541,40 @@ export type Database = {
           },
         ]
       }
+      vw_atividades_usuario: {
+        Row: {
+          atividade_id: string | null
+          concluida: boolean | null
+          created_at: string | null
+          data_atividade: string | null
+          descricao: string | null
+          evento_automatico: boolean | null
+          organizacao_estado: string | null
+          organizacao_id: string | null
+          organizacao_nome: string | null
+          responsavel_id: string | null
+          tipo: string | null
+          tipo_id: string | null
+          titulo: string | null
+          usuario_com_acesso: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "atividades_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_atividade"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_dias_montagem_sugerido: {
         Row: {
           detalhe_maquinas: Json | null
@@ -3826,6 +3867,17 @@ export type Database = {
           pendencia_id: string
           pergunta_enviada: string
         }[]
+      }
+      criar_atividade_dossie: {
+        Args: {
+          p_data: string
+          p_descricao: string
+          p_organizacao_id: string
+          p_responsavel_id?: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: string
       }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }

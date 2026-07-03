@@ -81,7 +81,7 @@ export default function Atividades() {
 
   // Filtros
   const [tiposSel, setTiposSel] = useState<string[]>([]);
-  const [respSel, setRespSel] = useState<string>("me");
+  const [respSel, setRespSel] = useState<string>("all");
   const [periodo, setPeriodo] = useState<Periodo>("tudo");
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [view, setView] = useState<"lista" | "calendario">("lista");
@@ -94,15 +94,26 @@ export default function Atividades() {
   const [testando, setTestando] = useState(false);
 
   const carregar = async () => {
+    if (!user?.id) return;
     setLoading(true);
-    const [tps, prs, ats] = await Promise.all([
+    const [tps, prs, acc] = await Promise.all([
       (supabase as any).from("tipos_atividade").select("*").eq("ativo", true).order("ordem"),
       supabase.from("profiles").select("user_id, nome, email").eq("status", "approved"),
-      (supabase as any).from("atividades").select("*").order("data_inicio", { ascending: true }).limit(1000),
+      (supabase as any).from("vw_atividades_usuario").select("atividade_id").eq("usuario_com_acesso", user.id),
     ]);
     setTipos((tps.data as any) || []);
     setProfiles((prs.data as any) || []);
-    const arr = (ats.data as any) || [];
+    const ids = [...new Set(((acc.data as any) || []).map((r: any) => r.atividade_id))] as string[];
+    let arr: any[] = [];
+    if (ids.length) {
+      const { data: ats } = await (supabase as any)
+        .from("atividades")
+        .select("*")
+        .in("id", ids)
+        .order("data_inicio", { ascending: true })
+        .limit(2000);
+      arr = ats || [];
+    }
     setAtividades(arr);
 
     const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id as string))] as string[];
@@ -135,12 +146,11 @@ export default function Atividades() {
     setLoading(false);
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => { carregar(); }, [user?.id]);
 
   const filtradas = useMemo(() => {
     const now = new Date();
     return atividades.filter(a => {
-      if (a.evento_automatico) return false;
       if (!showConcluidas && a.concluida) return false;
       if (tiposSel.length && (!a.tipo_id || !tiposSel.includes(a.tipo_id))) return false;
       if (respSel === "me" && a.responsavel_id !== user?.id) return false;
@@ -257,6 +267,11 @@ export default function Atividades() {
               </Link>
             ) : a.titulo}
             <SyncIndicator id={a.id} erro={a.erro_sincronizacao} />
+            {a.evento_automatico && (
+              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary align-middle">
+                IA
+              </span>
+            )}
             {a.google_meet_link && (
               <a href={a.google_meet_link} target="_blank" rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
