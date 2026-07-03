@@ -46,7 +46,7 @@ export default function Orcamento() {
   const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { loading: authLoading, profile, isAdmin } = useAuth();
+  const { loading: authLoading, profile, isAdmin, user } = useAuth();
 
   // Taxas de montagem (config global)
   const [taxasMontagem, setTaxasMontagem] = useState<{
@@ -290,6 +290,7 @@ export default function Orcamento() {
       local_entrega: params.localEntrega || null,
       observacoes: params.observacoes || null,
       status: params.status,
+      responsavel_id: user?.id ?? null,
       montagem_numero_colaboradores: 4,
       montagem_dias: params.montagemDias ?? 0,
       montagem_km_origem_destino: params.montagemKmOrigemDestino ?? 0,
@@ -365,7 +366,7 @@ export default function Orcamento() {
         description: criouOpp ? "Oportunidade criada no funil Orçamentos (etapa Lead)." : undefined,
       });
     }
-  }, [params, savedId, subtotal, total, toast]);
+  }, [params, savedId, subtotal, total, toast, user?.id]);
 
   function handleNovo() {
     if (params.clientName || savedId) {
