@@ -151,7 +151,7 @@ export default function Atividades() {
   const filtradas = useMemo(() => {
     const now = new Date();
     return atividades.filter(a => {
-      if (a.evento_automatico) return false;
+      if (!showConcluidas && a.concluida) return false;
       if (!showConcluidas && a.concluida) return false;
       if (tiposSel.length && (!a.tipo_id || !tiposSel.includes(a.tipo_id))) return false;
       if (respSel === "me" && a.responsavel_id !== user?.id) return false;
