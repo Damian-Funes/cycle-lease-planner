@@ -81,7 +81,7 @@ export default function Atividades() {
 
   // Filtros
   const [tiposSel, setTiposSel] = useState<string[]>([]);
-  const [respSel, setRespSel] = useState<string>("me");
+  const [respSel, setRespSel] = useState<string>("all");
   const [periodo, setPeriodo] = useState<Periodo>("tudo");
   const [showConcluidas, setShowConcluidas] = useState(false);
   const [view, setView] = useState<"lista" | "calendario">("lista");
