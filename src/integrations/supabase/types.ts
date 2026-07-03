@@ -3861,6 +3861,16 @@ export type Database = {
         }
         Returns: string
       }
+      criar_evento_agenda: {
+        Args: {
+          p_comercial_user_id: string
+          p_data_fim?: string
+          p_data_inicio: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }
         Returns: {
