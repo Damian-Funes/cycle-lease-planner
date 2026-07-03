@@ -94,15 +94,26 @@ export default function Atividades() {
   const [testando, setTestando] = useState(false);
 
   const carregar = async () => {
+    if (!user?.id) return;
     setLoading(true);
-    const [tps, prs, ats] = await Promise.all([
+    const [tps, prs, acc] = await Promise.all([
       (supabase as any).from("tipos_atividade").select("*").eq("ativo", true).order("ordem"),
       supabase.from("profiles").select("user_id, nome, email").eq("status", "approved"),
-      (supabase as any).from("atividades").select("*").order("data_inicio", { ascending: true }).limit(1000),
+      (supabase as any).from("vw_atividades_usuario").select("atividade_id").eq("usuario_com_acesso", user.id),
     ]);
     setTipos((tps.data as any) || []);
     setProfiles((prs.data as any) || []);
-    const arr = (ats.data as any) || [];
+    const ids = [...new Set(((acc.data as any) || []).map((r: any) => r.atividade_id))] as string[];
+    let arr: any[] = [];
+    if (ids.length) {
+      const { data: ats } = await (supabase as any)
+        .from("atividades")
+        .select("*")
+        .in("id", ids)
+        .order("data_inicio", { ascending: true })
+        .limit(2000);
+      arr = ats || [];
+    }
     setAtividades(arr);
 
     const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id as string))] as string[];
