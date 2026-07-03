@@ -301,18 +301,42 @@ export default function Orcamento() {
       montagem_tipo: params.montagemTipo || "montagem",
     };
 
-    let error;
+    let error: any;
     let novoId: string | null = isRevisao ? null : savedId;
     if (!isRevisao && savedId) {
       const res = await supabase.from("orcamentos").update(row as any).eq("id", savedId);
       error = res.error;
     } else {
-      // Insert: novo orçamento OU nova revisão
-      const res = await supabase.from("orcamentos").insert(row as any).select("id").maybeSingle();
-      error = res.error;
-      if (res.data) {
-        novoId = res.data.id;
-        setSavedId(res.data.id);
+      // Insert com retry em caso de colisão do numero_orcamento (RLS pode esconder números já usados)
+      const year = new Date().getFullYear();
+      const prefix = `ORC${year}-`;
+      let currentNumero = numeroOrcamento!;
+      for (let attempts = 0; attempts < 10; attempts++) {
+        const attemptRow = { ...row, numero_orcamento: currentNumero };
+        const res = await supabase.from("orcamentos").insert(attemptRow as any).select("id").maybeSingle();
+        if (!res.error) {
+          error = undefined;
+          if (res.data) {
+            novoId = res.data.id;
+            setSavedId(res.data.id);
+          }
+          numeroOrcamento = currentNumero;
+          setParams((prev) => ({ ...prev, numeroOrcamento: currentNumero }));
+          break;
+        }
+        const msg = (res.error as any)?.message || "";
+        const isDup = (res.error as any)?.code === "23505" || /orcamentos_numero_unique|duplicate key/i.test(msg);
+        error = res.error;
+        if (!isDup) break;
+        if (isRevisao) {
+          const base = currentNumero.replace(/-V\d+$/i, "");
+          const m = /-V(\d+)$/i.exec(currentNumero);
+          const v = m ? parseInt(m[1], 10) : 1;
+          currentNumero = `${base}-V${v + 1}`;
+        } else {
+          const n = parseInt(currentNumero.replace(prefix, ""), 10) || 1;
+          currentNumero = `${prefix}${String(n + 1).padStart(3, "0")}`;
+        }
       }
     }
 
