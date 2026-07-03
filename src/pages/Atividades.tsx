@@ -267,6 +267,11 @@ export default function Atividades() {
               </Link>
             ) : a.titulo}
             <SyncIndicator id={a.id} erro={a.erro_sincronizacao} />
+            {a.evento_automatico && (
+              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary align-middle">
+                IA
+              </span>
+            )}
             {a.google_meet_link && (
               <a href={a.google_meet_link} target="_blank" rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
