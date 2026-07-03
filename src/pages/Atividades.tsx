@@ -96,24 +96,40 @@ export default function Atividades() {
   const carregar = async () => {
     if (!user?.id) return;
     setLoading(true);
-    const [tps, prs, acc] = await Promise.all([
+    const [tps, prs, acc, direct] = await Promise.all([
       (supabase as any).from("tipos_atividade").select("*").eq("ativo", true).order("ordem"),
       supabase.from("profiles").select("user_id, nome, email").eq("status", "approved"),
       (supabase as any).from("vw_atividades_usuario").select("atividade_id").eq("usuario_com_acesso", user.id),
+      (supabase as any)
+        .from("atividades")
+        .select("*")
+        .order("data_inicio", { ascending: true })
+        .limit(2000),
     ]);
     setTipos((tps.data as any) || []);
     setProfiles((prs.data as any) || []);
-    const ids = [...new Set(((acc.data as any) || []).map((r: any) => r.atividade_id))] as string[];
-    let arr: any[] = [];
-    if (ids.length) {
+
+    // Base: tudo que a RLS já libera (admin/gerente = tudo; demais = próprias).
+    const byId = new Map<string, any>();
+    ((direct.data as any) || []).forEach((a: any) => byId.set(a.id, a));
+
+    // Complemento: ids extras vindos da expansão por território (view).
+    const viewIds = [...new Set(((acc.data as any) || []).map((r: any) => r.atividade_id))] as string[];
+    const missing = viewIds.filter((id) => !byId.has(id));
+    if (missing.length) {
       const { data: ats } = await (supabase as any)
         .from("atividades")
         .select("*")
-        .in("id", ids)
-        .order("data_inicio", { ascending: true })
+        .in("id", missing)
         .limit(2000);
-      arr = ats || [];
+      (ats || []).forEach((a: any) => byId.set(a.id, a));
     }
+
+    const arr = Array.from(byId.values()).sort((a: any, b: any) => {
+      const da = a.data_inicio ? new Date(a.data_inicio).getTime() : 0;
+      const db = b.data_inicio ? new Date(b.data_inicio).getTime() : 0;
+      return da - db;
+    });
     setAtividades(arr);
 
     const oppIds = [...new Set(arr.filter((a: any) => a.oportunidade_id).map((a: any) => a.oportunidade_id as string))] as string[];
