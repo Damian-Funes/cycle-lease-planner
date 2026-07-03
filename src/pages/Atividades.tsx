@@ -152,7 +152,6 @@ export default function Atividades() {
     const now = new Date();
     return atividades.filter(a => {
       if (!showConcluidas && a.concluida) return false;
-      if (!showConcluidas && a.concluida) return false;
       if (tiposSel.length && (!a.tipo_id || !tiposSel.includes(a.tipo_id))) return false;
       if (respSel === "me" && a.responsavel_id !== user?.id) return false;
       if (respSel !== "me" && respSel !== "all" && a.responsavel_id !== respSel) return false;
