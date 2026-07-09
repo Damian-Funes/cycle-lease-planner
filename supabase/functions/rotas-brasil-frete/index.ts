@@ -64,20 +64,22 @@ Deno.serve(async (req) => {
       },
     };
 
-    const resp = await fetch(QUALP_URL, {
-      method: "POST",
+    const url = `${QUALP_URL}?json=${encodeURIComponent(JSON.stringify(body))}`;
+    const resp = await fetch(url, {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Accept: "application/json",
+        "Content-Type": "application/json",
         "Access-Token": QUALP_TOKEN,
       },
-      body: JSON.stringify(body),
     });
 
-    const q = await resp.json();
+    const rawText = await resp.text();
+    if (!resp.ok) return json({ error: `Qualp ${resp.status}: ${rawText}` });
 
-    if (!resp.ok)
-      return json({ error: `Qualp ${resp.status}: ${typeof q === "string" ? q : JSON.stringify(q)}` });
+    let q: any;
+    try { q = JSON.parse(rawText); } catch { q = rawText; }
+
 
     // ---- Tradução Qualp -> formato antigo (RotaBrasil) que o front já lê ----
     const distancia = Number(q?.distancia?.valor ?? 0);
