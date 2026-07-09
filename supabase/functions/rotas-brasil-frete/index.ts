@@ -1,135 +1,121 @@
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+// supabase/functions/rotas-brasil-frete/index.ts
 
-const GMAPS_GATEWAY = 'https://connector-gateway.lovable.dev/google_maps';
+const QUALP_URL = "https://api.qualp.com.br/rotas/v4";
+const QUALP_TOKEN = Deno.env.get("QUALP_TOKEN")!;
 
-function toRotasBrasilNumber(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return '';
-  return value.toFixed(2);
-}
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-async function geocodeGoogle(address: string): Promise<{ lat: number; lng: number } | null> {
-  const lovKey = Deno.env.get('LOVABLE_API_KEY');
-  const gmapsKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
-  if (!lovKey || !gmapsKey) return null;
-  try {
-    const r = await fetch(
-      `${GMAPS_GATEWAY}/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=br&language=pt-BR`,
-      { headers: { Authorization: `Bearer ${lovKey}`, 'X-Connection-Api-Key': gmapsKey } },
-    );
-    const j = await r.json();
-    const loc = j?.results?.[0]?.geometry?.location;
-    if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
-      return { lat: loc.lat, lng: loc.lng };
-    }
-  } catch (_) { /* ignore */ }
-  return null;
-}
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
-async function geocodeNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(address)}`;
-    const r = await fetch(url, { headers: { 'User-Agent': 'crmls-frete/1.0 (contato@crmls.com.br)', 'Accept-Language': 'pt-BR' } });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const first = Array.isArray(j) ? j[0] : null;
-    const lat = Number(first?.lat), lng = Number(first?.lon);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  } catch (_) { /* ignore */ }
-  return null;
-}
-
-async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
-  return (await geocodeGoogle(address)) ?? (await geocodeNominatim(address));
-}
+const json = (obj: unknown) =>
+  new Response(JSON.stringify(obj), { headers: { ...cors, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const body = await req.json();
-    const eixo = body.eixo ?? 2;
-    const precoCombustivel = Number(body.precoCombustivel) || 0;
-    const consumo = Number(body.consumo) || 0;
+    const {
+      pontos,
+      eixo = 6,
+      precoCombustivel = 7.25,
+      consumo = 2.5,
+      tabela = "A",       // tabela ANTT (A = lotação, igual ao RotaBrasil)
+      usarTag = false,    // false = tarifa dinheiro; true = tarifa com desconto de tag
+    } = await req.json();
 
-    // Aceita o novo formato { pontos: [{endereco, lat?, lng?}] } ou o antigo {origem, destino, paradas}
-    let pontos: Array<{ endereco: string; lat?: number; lng?: number }> = [];
-    if (Array.isArray(body.pontos)) {
-      pontos = body.pontos;
-    } else {
-      const arr = [body.origem, ...(body.paradas ?? []), body.destino].filter(Boolean);
-      pontos = arr.map((e: string) => ({ endereco: String(e) }));
-    }
+    if (!Array.isArray(pontos) || pontos.length < 2)
+      return json({ error: "Informe pelo menos origem e destino." });
 
-    pontos = pontos.filter((p) => p && (p.endereco || (p.lat && p.lng)));
-    if (pontos.length < 2) {
-      return new Response(JSON.stringify({ error: 'Informe ao menos origem e destino' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const eixoKey = String(eixo);
+    const tabelaKey = String(tabela).toUpperCase();
 
-    // Geocodifica quem não tem coords
-    for (const p of pontos) {
-      if (typeof p.lat !== 'number' || typeof p.lng !== 'number') {
-        const g = await geocode(p.endereco);
-        if (!g) {
-          return new Response(JSON.stringify({
-            error: `Não foi possível geocodificar: "${p.endereco}". Selecione um endereço da lista de sugestões.`,
-          }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        }
-        p.lat = g.lat; p.lng = g.lng;
-      }
-    }
+    // origem -> paradas -> destino, em "lat,lng" quando houver coordenada, senão endereço
+    const locations = pontos
+      .map((p: any) =>
+        p?.lat != null && p?.lng != null ? `${p.lat},${p.lng}` : String(p?.endereco ?? "").trim()
+      )
+      .filter(Boolean);
 
-    const token = Deno.env.get('ROTAS_BRASIL_TOKEN');
-    if (!token) {
-      return new Response(JSON.stringify({ error: 'ROTAS_BRASIL_TOKEN não configurado' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const body = {
+      locations,
+      config: {
+        route: {
+          type_route: "efficient",
+          calculate_return: false,
+          alternative_routes: "0",
+          optimized_route: false,
+          optimized_route_destination: "last",
+          avoid_locations: false,
+          avoid_locations_key: "",
+        },
+        vehicle: { type: "truck", axis: Number(eixo), top_speed: "" },
+        freight_table: { category: "all", freight_load: "all", axis: "all" },
+        tolls: { retroactive_date: "" },
+        // >>> Se o pedágio voltar vazio, cole aqui o bloco de exibição do seu botão "Copiar"
+        exhibition: {
+          polyline: false,
+          ufs: false,
+          fretes: true,     // retorna a tabela de frete
+          pedagios: true,   // retorna a lista de pedágios
+        },
+      },
+    };
 
-    // Rotas Brasil /coordenadas/: pontos = "lng,lat;lng,lat;..."
-    const pontosStr = pontos
-      .map((p) => `${(p.lng as number).toFixed(6)},${(p.lat as number).toFixed(6)}`)
-      .join(';');
+    const resp = await fetch(QUALP_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Access-Token": QUALP_TOKEN,
+      },
+      body: JSON.stringify(body),
+    });
 
-    const url = new URL('http://rotasbrasil.com.br/apiRotas/coordenadas/');
-    url.searchParams.set('pontos', pontosStr);
-    url.searchParams.set('veiculo', 'caminhao');
-    url.searchParams.set('eixo', String(eixo));
-    url.searchParams.set('paradas', 'true');
-    url.searchParams.set('tabela', 'a');
-    const precoCombustivelFormatado = toRotasBrasilNumber(precoCombustivel);
-    const consumoFormatado = toRotasBrasilNumber(consumo);
-    if (precoCombustivelFormatado) url.searchParams.set('combustivel', precoCombustivelFormatado);
-    if (consumoFormatado) url.searchParams.set('consumo', consumoFormatado);
-    url.searchParams.set('token', token);
+    const q = await resp.json();
 
-    const resp = await fetch(url.toString(), { method: 'GET' });
-    const text = await resp.text();
-    let data: unknown;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    if (!resp.ok)
+      return json({ error: `Qualp ${resp.status}: ${typeof q === "string" ? q : JSON.stringify(q)}` });
 
-    if (!resp.ok) {
-      return new Response(JSON.stringify({ error: 'Erro na API Rotas Brasil', status: resp.status, data }), {
-        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // ---- Tradução Qualp -> formato antigo (RotaBrasil) que o front já lê ----
+    const distancia = Number(q?.distancia?.valor ?? 0);
 
-    // Se a API devolveu um envelope de erro com 200, propaga
-    if ((data as any)?.erro) {
-      return new Response(JSON.stringify({
-        error: (data as any).erro?.mensagem || 'Erro Rotas Brasil',
-        data,
-        pontosEnviados: pontosStr,
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    const pedagios = Array.isArray(q?.pedagios) ? q.pedagios : [];
+    const campo = usarTag ? "tarifa_tag" : "tarifa";
+    const valorPedagio = pedagios.reduce((acc: number, p: any) => {
+      const t = p?.[campo]?.[eixoKey] ?? p?.tarifa?.[eixoKey] ?? 0;
+      return acc + Number(t || 0);
+    }, 0);
 
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200,
+    const linha = q?.tabela_frete?.dados?.[tabelaKey]?.[eixoKey] ?? {};
+    const tabelaFrete = {
+      geral: Number(linha?.geral ?? 0),
+      granelSolido: Number(linha?.granel_solido ?? 0),
+      granelLiquido: Number(linha?.granel_liquido ?? 0),
+    };
+
+    const valorCombustivel = consumo > 0 ? (distancia / consumo) * precoCombustivel : 0;
+
+    return json({
+      rotas: [
+        {
+          via: q?.tabela_frete?.antt_resolucao?.nome ?? "",
+          distancia,
+          duracao: q?.duracao?.texto ?? "",
+          veiculo: "caminhao",
+          eixos: eixoKey,
+          valorPedagio: round2(valorPedagio),
+          valorCombustivel: round2(valorCombustivel),
+          tabelaFrete,
+          pedagios, // detalhe praça a praça, se quiser exibir depois
+        },
+      ],
+      _fonte: "qualp",
+      _id_transacao: q?.id_transacao ?? null,
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json({ error: (e as Error)?.message ?? "Falha ao calcular frete." });
   }
 });
