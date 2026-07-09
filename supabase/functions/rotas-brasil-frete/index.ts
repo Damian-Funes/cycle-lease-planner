@@ -54,13 +54,10 @@ Deno.serve(async (req) => {
         vehicle: { type: "truck", axis: Number(eixo), top_speed: "" },
         freight_table: { category: "all", freight_load: "all", axis: "all" },
         tolls: { retroactive_date: "" },
-        // >>> Se o pedágio voltar vazio, cole aqui o bloco de exibição do seu botão "Copiar"
-        exhibition: {
-          polyline: false,
-          ufs: false,
-          fretes: true,     // retorna a tabela de frete
-          pedagios: true,   // retorna a lista de pedágios
-        },
+      },
+      show: {
+        tolls: true,
+        polyline: false,
       },
     };
 
