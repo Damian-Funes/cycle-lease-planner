@@ -220,7 +220,6 @@ export default function Frete() {
             <CardContent className="space-y-2">
               <Linha label="Quantidade de viagens" value={String(resultado.quantidadeViagens)} />
 
-              
               <div className="mt-4 p-4 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-between">
                 <span className="font-semibold text-primary">VALOR FINAL DO FRETE</span>
                 <span className="text-2xl font-bold text-primary">{brl(resultado.valorFinal)}</span>
@@ -228,6 +227,20 @@ export default function Frete() {
             </CardContent>
           </Card>
         )}
+
+        {apiRaw !== null && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Retorno cru da API Rotas Brasil</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs font-mono">
+                {JSON.stringify(apiRaw, null, 2)}
+              </pre>
+            </CardContent>
+          </Card>
+        )}
+
 
       </div>
     </div>
