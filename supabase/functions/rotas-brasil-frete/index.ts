@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
         Accept: "application/json",
         "Content-Type": "application/json",
         "Access-Token": QUALP_TOKEN,
+        "User-Agent": "SmartCycleCalculator/1.0 (+https://crmls.com.br)",
       },
     });
 
