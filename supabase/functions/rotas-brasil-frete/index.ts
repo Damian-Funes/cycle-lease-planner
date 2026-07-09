@@ -57,6 +57,7 @@ Deno.serve(async (req) => {
       },
       show: {
         tolls: true,
+        freight_table: true,
         polyline: false,
       },
     };
