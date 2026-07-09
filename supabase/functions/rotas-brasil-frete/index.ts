@@ -61,30 +61,17 @@ Deno.serve(async (req) => {
       },
     };
 
-    const headers = {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      "Access-Token": QUALP_TOKEN,
-      "User-Agent": "SmartCycleCalculator/1.0 (+https://crmls.com.br)",
-    };
-
     const url = `${QUALP_URL}?json=${encodeURIComponent(JSON.stringify(body))}`;
-    let resp = await fetch(url, {
+    const resp = await fetch(url, {
       method: "GET",
-      headers,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "Access-Token": QUALP_TOKEN,
+      },
     });
 
-    let rawText = await resp.text();
-
-    if (resp.status === 403 && rawText.includes("Cloudflare")) {
-      resp = await fetch(QUALP_URL, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
-      rawText = await resp.text();
-    }
-
+    const rawText = await resp.text();
     if (!resp.ok) return json({ error: `Qualp ${resp.status}: ${rawText}` });
 
     let q: any;
