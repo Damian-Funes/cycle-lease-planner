@@ -76,10 +76,9 @@ export default function Frete() {
       toast.error("Quantidade de viagens deve ser ≥ 1.");
       return;
     }
-    setLoading(true);
-    setResultado(null);
-    setApiRaw(null);
-    try {
+      setLoading(true);
+      setResultado(null);
+      try {
       const pontos = [origem, ...paradas.filter((p) => p.endereco.trim()), destino].map((p) => ({
         endereco: p.endereco.trim(),
         lat: p.lat,
@@ -91,7 +90,6 @@ export default function Frete() {
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
 
-      setApiRaw(data);
       const rota = getRotaPrincipal(data);
       if (Number(rota?.distancia ?? 0) <= 0) {
         toast.error("A Rotas Brasil não conseguiu traçar essa rota. Tente usar endereços mais específicos, principalmente nas paradas intermediárias.");
@@ -223,19 +221,6 @@ export default function Frete() {
                 <span className="font-semibold text-primary">VALOR FINAL DO FRETE</span>
                 <span className="text-2xl font-bold text-primary">{brl(resultado.valorFinal)}</span>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {apiRaw !== null && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Retorno cru da API Rotas Brasil</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <pre className="max-h-96 overflow-auto rounded-md bg-muted p-4 text-xs font-mono">
-                {JSON.stringify(apiRaw, null, 2)}
-              </pre>
             </CardContent>
           </Card>
         )}
