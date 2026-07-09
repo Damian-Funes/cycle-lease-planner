@@ -204,7 +204,7 @@ export default function Frete() {
               Calcular frete
             </Button>
             <p className="text-xs text-muted-foreground">
-              Cada consulta consome 1 crédito da sua conta no Rotas Brasil.
+              Cada consulta consome 1 crédito da sua conta na Qualp.
             </p>
           </CardContent>
         </Card>
