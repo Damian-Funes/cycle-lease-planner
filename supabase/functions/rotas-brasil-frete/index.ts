@@ -114,7 +114,6 @@ Deno.serve(async (req) => {
       ],
       _fonte: "qualp",
       _id_transacao: q?.id_transacao ?? null,
-      _tabela_frete_raw: q?.tabela_frete ?? null,
     });
   } catch (e) {
     return json({ error: (e as Error)?.message ?? "Falha ao calcular frete." });
