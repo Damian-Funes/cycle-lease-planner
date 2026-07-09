@@ -61,7 +61,6 @@ export default function Frete() {
   const [viagens, setViagens] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
-  const [apiRaw, setApiRaw] = useState<any>(null);
 
   const addParada = () => setParadas((p) => [...p, { endereco: "" }]);
   const updParada = (i: number, endereco: string, coords?: { lat: number; lng: number }) =>
