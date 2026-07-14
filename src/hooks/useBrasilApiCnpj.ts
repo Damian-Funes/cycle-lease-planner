@@ -55,6 +55,7 @@ export function useBrasilApiCnpj(cnpj: string): Result {
     setStatus("loading");
 
     const timer = setTimeout(async () => {
+      // 1) Tenta BrasilAPI
       try {
         const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`, {
           signal: controller.signal,
@@ -67,16 +68,58 @@ export function useBrasilApiCnpj(cnpj: string): Result {
           setLoading(false);
           return;
         }
-        if (!res.ok) {
+        if (res.ok) {
+          const json = (await res.json()) as BrasilApiCnpjData;
+          if (controller.signal.aborted) return;
+          setData(json);
+          setStatus("success");
+          setLoading(false);
+          return;
+        }
+        // segue para fallback em qualquer outro status
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
+        // segue para fallback
+      }
+
+      // 2) Fallback: publica.cnpj.ws
+      try {
+        const res2 = await fetch(`https://publica.cnpj.ws/cnpj/${digits}`, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        if (res2.status === 404) {
           setData(null);
-          setError(`HTTP ${res.status}`);
+          setStatus("not_found");
+          setLoading(false);
+          return;
+        }
+        if (!res2.ok) {
+          setData(null);
+          setError(`HTTP ${res2.status}`);
           setStatus("network_error");
           setLoading(false);
           return;
         }
-        const json = (await res.json()) as BrasilApiCnpjData;
-        if (controller.signal.aborted) return;
-        setData(json);
+        const raw = await res2.json();
+        const est = raw?.estabelecimento ?? {};
+        const mapped: BrasilApiCnpjData = {
+          cnpj: est.cnpj ?? digits,
+          razao_social: raw?.razao_social ?? null,
+          nome_fantasia: est?.nome_fantasia ?? null,
+          logradouro: [est?.tipo_logradouro, est?.logradouro].filter(Boolean).join(" ") || null,
+          numero: est?.numero ?? null,
+          complemento: est?.complemento ?? null,
+          bairro: est?.bairro ?? null,
+          municipio: est?.cidade?.nome ?? null,
+          uf: est?.estado?.sigla ?? null,
+          cep: est?.cep ?? null,
+          ddd_telefone_1:
+            est?.ddd1 && est?.telefone1 ? `${est.ddd1}${est.telefone1}` : null,
+          email: est?.email ?? null,
+          descricao_situacao_cadastral: est?.situacao_cadastral ?? null,
+        };
+        setData(mapped);
         setStatus("success");
         setLoading(false);
       } catch (err: any) {
