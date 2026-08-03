@@ -1,58 +1,38 @@
-## Objetivo
+# Corrigir orientação 3D do produto 0202
 
-Trazer os leads que chegam pelo formulário do site (RD Station Marketing) para o CRM, em uma nova tela **Leads** acessível pelo menu inicial. Sincronização automática 1x/hora via API pública do RD. Cada lead pode ser convertido manualmente em Organização + Oportunidade, com o time escolhendo o funil de destino.
+## Diagnóstico (confirmado)
 
-## O que será criado
+O modelo do 0202 (`CAIXA DE RECEBIMENTO 8 TON.`) tem no banco `glb_rotacao_x = 0` e `glb_rotacao_z = 0`, ou seja, nenhuma correção aplicada. A inclinação vem de dentro do próprio arquivo GLB: o nó raiz `0202` foi exportado com uma rotação embutida de aproximadamente:
 
-### 1. Novo card "Leads" no menu inicial
-- Card na Home (`src/pages/Home.tsx`) ao lado dos existentes, abrindo `/leads`.
-- Badge com contagem de leads pendentes (não convertidos / não descartados).
+- X = 77,84 graus
+- Y = 1,01 graus
+- Z = 0 graus
 
-### 2. Nova tela `/leads` (`src/pages/Leads.tsx`)
-- Lista paginada dos leads importados do RD, com filtros: status (novo / convertido / descartado), data, busca por nome/email.
-- Colunas: nome, email, telefone, empresa, origem (UTM/conversion identifier), data recebida no RD, status.
-- Ações por linha:
-  - **Converter** → modal pedindo (a) funil de destino e (b) opcionalmente vincular a Organização existente; se nova, cria Organização + Pessoa + Oportunidade na 1ª etapa do funil escolhido, aplicando a regra atual de responsável por estado.
-  - **Descartar** → marca como descartado (não some do histórico).
-  - **Sincronizar agora** (botão no header) → dispara a edge function on-demand.
+O editor de orientação atual só permite girar em passos de 90 graus e só nos eixos X e Z. Como a inclinação do arquivo não é múltipla de 90 e tem componente em Y, é matematicamente impossível acertar esse modelo com os controles de hoje — daí a sensação de que "sempre fica meio inclinado".
 
-### 3. Banco de dados (Supabase)
-Nova tabela `leads_rd` para guardar os leads importados sem misturar com `pessoas`/`organizacoes` até a conversão:
+## O que fazer
 
-- Campos principais: `rd_uuid` (único, idempotência), `email`, `nome`, `telefone`, `empresa`, `cargo`, `cidade`, `estado`, `payload` (jsonb cru do RD), `conversion_identifier`, `utm_source/medium/campaign`, `criado_em_rd`, `recebido_em`, `status` (novo/convertido/descartado), `organizacao_id`, `oportunidade_id`, `convertido_por`, `convertido_em`.
-- RLS: leitura/escrita para usuários aprovados; admin vê tudo. Conversão grava `convertido_por = auth.uid()`.
-- Tabela `rd_sync_log` para auditar cada execução do cron (timestamp, total, criados, erros).
+1. **Alinhar automaticamente (resolve o 0202 e qualquer outro modelo torto)**
+   Novo botão "Alinhar automaticamente" no editor de orientação: lê a rotação embutida do nó raiz do GLB e calcula a correção inversa em graus, gravando nos campos de rotação do equipamento. Para o 0202 isso resulta em X = 282, Y = 359 (arredondado ao grau).
 
-### 4. Edge function `rd-sync-leads`
-- Roda via cron `pg_cron` + `pg_net` a cada 1h.
-- Também invocável manualmente pelo botão "Sincronizar agora".
-- Usa o **RD_PUBLIC_TOKEN** (Public API Token legado) — secret a ser cadastrado.
-- Endpoint: `GET https://api.rd.services/platform/contacts` paginado (ou `/conversions` se preferir só conversões — confirmar). Filtra por `updated_at > último sync`.
-- Faz upsert em `leads_rd` por `rd_uuid` (idempotente).
-- Grava resultado em `rd_sync_log`.
+2. **Controles finos**
+   Além dos passos de 90 graus, adicionar ajuste de 1 e 5 graus e campos numéricos editáveis para cada eixo, para o usuário refinar visualmente.
 
-### 5. Edge function `rd-convert-lead`
-- Recebe `lead_id` + `pipeline_id` + opcional `organizacao_id`.
-- Se sem organização: cria `organizacoes` (usando estado/cidade do lead → dispara regra existente de responsável por estado) + `pessoas` vinculada.
-- Cria `oportunidades` na primeira etapa do pipeline escolhido, valor estimado 0, título "Lead RD — {nome}".
-- Atualiza `leads_rd.status = 'convertido'`, grava `organizacao_id` e `oportunidade_id`.
+3. **Eixo Y**
+   Passar a suportar rotação em Y (hoje só X e Z), necessária porque a inclinação do 0202 tem componente em Y.
+
+4. **Aplicar em toda a exibição**
+   A rotação em Y precisa ser respeitada no visualizador do catálogo e na tela de detalhe do visualizador 3D, além do editor.
+
+5. **Salvar o valor do 0202**
+   Depois de validar visualmente, gravar a rotação corrigida no registro do equipamento 0202.
 
 ## Detalhes técnicos
 
-- **Secret novo**: `RD_PUBLIC_TOKEN` (será solicitado após aprovação do plano).
-- **Cron**: `select cron.schedule('rd-sync-hourly', '0 * * * *', ...)` chamando a edge function via `net.http_post` com o anon key.
-- **Idempotência**: chave única `rd_uuid` evita duplicar leads em re-execuções.
-- **Reaproveitamento**: a conversão usa `criarOportunidadeAuto` (`src/lib/autoOportunidade.ts`) adaptada para aceitar `pipeline_id` direto.
-- **Permissões**: tela `/leads` protegida por `ProtectedRoute`; descarte/conversão liberados para `comercial`, `gerente_comercial`, `admin`.
-- **Logs**: erros do RD logados em `rd_sync_log` para diagnóstico sem precisar abrir o painel da Supabase.
-
-## Fora de escopo (v2)
-
-- Webhook em tempo real do RD.
-- Sincronização bidirecional (atualizar lead no RD a partir do CRM).
-- Mapeamento avançado de campos customizados do RD.
-- Migração para OAuth quando o Public Token for descontinuado pelo RD.
-
-## Aviso
-
-O **Public API Token** do RD Station está marcado como legado pelo próprio RD e pode ser descontinuado. Quando isso acontecer, migramos para OAuth (Client ID + Secret + Refresh Token) sem mexer na estrutura — só troca da edge function.
+- Migração: adicionar coluna `glb_rotacao_y` (integer, default 0) em `public.equipamentos`.
+- `src/components/GlbOrientationEditor.tsx`: prop `rotacaoY`, `onChange(x, y, z)`, botões +/-90, +/-5, +/-1 por eixo, inputs numéricos, e o botão de alinhamento automático (extrai o quaternion do nó raiz via `GLTFLoader`, converte para Euler, inverte e arredonda).
+- `applyRotation` passa a aplicar `rotation.y` e recentrar/apoiar no chão como já faz hoje.
+- `src/components/visualizador/EquipmentViewer3D.tsx`: nova prop `rotacaoY`.
+- `src/pages/VisualizadorDetalhe.tsx`: buscar e repassar `glb_rotacao_y`.
+- `src/pages/Catalogo.tsx`: passar/salvar o novo campo no formulário do equipamento.
+- Sem mudança na lógica de negócio, preços ou PDFs.
