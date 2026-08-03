@@ -62,7 +62,15 @@ const norm = (v: number) => ((Math.round(v) % 360) + 360) % 360;
  * e devolve a correção inversa em graus.
  */
 function autoAlignFromModel(inner: THREE.Object3D): [number, number, number] | null {
-  const candidates: THREE.Object3D[] = [inner, ...inner.children];
+  // `inner` (gltf.scene) já recebe a rotação de correção que o usuário aplica,
+  // então só os nós filhos carregam a rotação embutida no arquivo.
+  const candidates: THREE.Object3D[] = [];
+  const walk = (o: THREE.Object3D, depth: number) => {
+    if (depth > 2) return;
+    candidates.push(o);
+    o.children.forEach((c) => walk(c, depth + 1));
+  };
+  inner.children.forEach((c) => walk(c, 0));
   const found = candidates.find((o) => {
     const q = o.quaternion;
     return Math.abs(q.w) < 0.99999;
