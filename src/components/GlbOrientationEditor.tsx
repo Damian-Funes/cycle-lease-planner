@@ -4,13 +4,15 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { Button } from "@/components/ui/button";
-import { RotateCw, RotateCcw, RefreshCw, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RotateCw, RotateCcw, RefreshCw, Loader2, Wand2 } from "lucide-react";
 
 interface GlbOrientationEditorProps {
   glbUrl: string;
   rotacaoX: number;
+  rotacaoY?: number;
   rotacaoZ: number;
-  onChange: (rotacaoX: number, rotacaoZ: number) => void;
+  onChange: (rotacaoX: number, rotacaoY: number, rotacaoZ: number) => void;
 }
 
 interface CameraInfo {
@@ -22,11 +24,11 @@ interface CameraInfo {
 function applyRotation(
   inner: THREE.Group,
   rx: number,
+  ry: number,
   rz: number,
   cameraInfoRef: { current: CameraInfo },
 ) {
-  inner.rotation.x = (rx * Math.PI) / 180;
-  inner.rotation.z = (rz * Math.PI) / 180;
+  inner.rotation.set((rx * Math.PI) / 180, (ry * Math.PI) / 180, (rz * Math.PI) / 180);
   inner.updateMatrixWorld(true);
 
   const box = new THREE.Box3().setFromObject(inner);
@@ -53,9 +55,32 @@ function applyRotation(
   cameraInfoRef.current = { radius, height, targetY };
 }
 
+const norm = (v: number) => ((Math.round(v) % 360) + 360) % 360;
+
+/**
+ * Descobre a rotação embutida no arquivo GLB (nó raiz exportado torto)
+ * e devolve a correção inversa em graus.
+ */
+function autoAlignFromModel(inner: THREE.Object3D): [number, number, number] | null {
+  const candidates: THREE.Object3D[] = [inner, ...inner.children];
+  const found = candidates.find((o) => {
+    const q = o.quaternion;
+    return Math.abs(q.w) < 0.99999;
+  });
+  if (!found) return null;
+  const inv = found.quaternion.clone().invert();
+  const e = new THREE.Euler().setFromQuaternion(inv, "XYZ");
+  return [
+    norm((e.x * 180) / Math.PI),
+    norm((e.y * 180) / Math.PI),
+    norm((e.z * 180) / Math.PI),
+  ];
+}
+
 export function GlbOrientationEditor({
   glbUrl,
   rotacaoX,
+  rotacaoY = 0,
   rotacaoZ,
   onChange,
 }: GlbOrientationEditorProps) {
@@ -154,7 +179,7 @@ export function GlbOrientationEditor({
         });
         scene.add(inner);
         innerRef.current = inner;
-        applyRotation(inner, rotacaoX, rotacaoZ, cameraInfoRef);
+        applyRotation(inner, rotacaoX, rotacaoY, rotacaoZ, cameraInfoRef);
         setLoading(false);
       },
       undefined,
@@ -215,13 +240,45 @@ export function GlbOrientationEditor({
 
   useEffect(() => {
     if (innerRef.current) {
-      applyRotation(innerRef.current, rotacaoX, rotacaoZ, cameraInfoRef);
+      applyRotation(innerRef.current, rotacaoX, rotacaoY, rotacaoZ, cameraInfoRef);
     }
-  }, [rotacaoX, rotacaoZ]);
+  }, [rotacaoX, rotacaoY, rotacaoZ]);
 
-  const rotateX = (dir: 1 | -1) => onChange((rotacaoX + dir * 90 + 360) % 360, rotacaoZ);
-  const rotateZ = (dir: 1 | -1) => onChange(rotacaoX, (rotacaoZ + dir * 90 + 360) % 360);
-  const reset = () => onChange(0, 0);
+  const bump = (axis: "x" | "y" | "z", delta: number) => {
+    const nx = axis === "x" ? norm(rotacaoX + delta) : rotacaoX;
+    const ny = axis === "y" ? norm(rotacaoY + delta) : rotacaoY;
+    const nz = axis === "z" ? norm(rotacaoZ + delta) : rotacaoZ;
+    onChange(nx, ny, nz);
+  };
+
+  const setAxis = (axis: "x" | "y" | "z", value: number) => {
+    const v = Number.isFinite(value) ? norm(value) : 0;
+    onChange(
+      axis === "x" ? v : rotacaoX,
+      axis === "y" ? v : rotacaoY,
+      axis === "z" ? v : rotacaoZ,
+    );
+  };
+
+  const reset = () => onChange(0, 0, 0);
+
+  const autoAlign = () => {
+    const inner = innerRef.current;
+    if (!inner) return;
+    // reseta antes de medir, para ler a rotação embutida no arquivo
+    const result = autoAlignFromModel(inner);
+    if (!result) {
+      setError(null);
+      return;
+    }
+    onChange(result[0], result[1], result[2]);
+  };
+
+  const axes: { key: "x" | "y" | "z"; label: string; value: number }[] = [
+    { key: "x", label: "X", value: rotacaoX },
+    { key: "y", label: "Y", value: rotacaoY },
+    { key: "z", label: "Z", value: rotacaoZ },
+  ];
 
   return (
     <div className="space-y-2">
@@ -237,34 +294,52 @@ export function GlbOrientationEditor({
           </div>
         )}
       </div>
+
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-medium text-muted-foreground mr-1">X:</span>
-          <Button type="button" size="sm" variant="outline" onClick={() => rotateX(-1)} className="gap-1.5" title="Girar X -90°">
-            <RotateCcw className="w-3.5 h-3.5" /> -90°
-          </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => rotateX(1)} className="gap-1.5" title="Girar X +90°">
-            <RotateCw className="w-3.5 h-3.5" /> +90°
-          </Button>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-medium text-muted-foreground mr-1">Z:</span>
-          <Button type="button" size="sm" variant="outline" onClick={() => rotateZ(-1)} className="gap-1.5" title="Girar Z -90°">
-            <RotateCcw className="w-3.5 h-3.5" /> -90°
-          </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => rotateZ(1)} className="gap-1.5" title="Girar Z +90°">
-            <RotateCw className="w-3.5 h-3.5" /> +90°
-          </Button>
-        </div>
+        <Button type="button" size="sm" variant="secondary" onClick={autoAlign} className="gap-1.5">
+          <Wand2 className="w-3.5 h-3.5" /> Alinhar automaticamente
+        </Button>
         <Button type="button" size="sm" variant="ghost" onClick={reset} className="gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" /> Resetar
         </Button>
-        <span className="text-xs text-muted-foreground ml-auto font-mono">
-          X={rotacaoX}° Z={rotacaoZ}°
-        </span>
       </div>
+
+      <div className="space-y-1.5">
+        {axes.map((a) => (
+          <div key={a.key} className="flex flex-wrap items-center gap-1">
+            <span className="text-xs font-medium text-muted-foreground w-4">{a.label}:</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => bump(a.key, -90)} title={`Girar ${a.label} -90°`} className="gap-1 px-2">
+              <RotateCcw className="w-3.5 h-3.5" /> 90
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => bump(a.key, -5)} className="px-2">
+              -5
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => bump(a.key, -1)} className="px-2">
+              -1
+            </Button>
+            <Input
+              type="number"
+              value={a.value}
+              onChange={(e) => setAxis(a.key, Number(e.target.value))}
+              className="h-8 w-20 text-center font-mono"
+            />
+            <Button type="button" size="sm" variant="outline" onClick={() => bump(a.key, 1)} className="px-2">
+              +1
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => bump(a.key, 5)} className="px-2">
+              +5
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => bump(a.key, 90)} title={`Girar ${a.label} +90°`} className="gap-1 px-2">
+              <RotateCw className="w-3.5 h-3.5" /> 90
+            </Button>
+          </div>
+        ))}
+      </div>
+
       <p className="text-xs text-muted-foreground">
-        Gire até a face desejada ficar grudada no chão. A câmera rotaciona sozinha pra você ver de todos os ângulos.
+        Use "Alinhar automaticamente" quando o modelo vier torto do CAD (rotação embutida no
+        arquivo). Depois ajuste de 1° em 1° até a face desejada ficar grudada no chão. A câmera
+        rotaciona sozinha pra você ver de todos os ângulos.
       </p>
     </div>
   );
