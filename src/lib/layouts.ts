@@ -44,6 +44,7 @@ export interface LayoutItemRow {
   cor_categoria: string | null;
   modelo_3d_url?: string | null;
   glb_rotacao_x?: number | null;
+  glb_rotacao_y?: number | null;
   glb_rotacao_z?: number | null;
 }
 

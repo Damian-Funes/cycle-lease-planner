@@ -140,6 +140,7 @@ const EquipmentViewer3D = forwardRef<EquipmentViewer3DApi, Props>(function Equip
       (gltf) => {
         const model = gltf.scene;
         model.rotation.x = rotacaoX || 0;
+        model.rotation.y = rotacaoY || 0;
         model.rotation.z = rotacaoZ || 0;
         model.traverse((o) => {
           if ((o as THREE.Mesh).isMesh) {
@@ -214,7 +215,7 @@ const EquipmentViewer3D = forwardRef<EquipmentViewer3DApi, Props>(function Equip
         mount.removeChild(renderer.domElement);
       }
     };
-  }, [modeloUrl, rotacaoX, rotacaoZ]);
+  }, [modeloUrl, rotacaoX, rotacaoY, rotacaoZ]);
 
   useImperativeHandle(ref, () => ({
     setAutoRotate(on) {
