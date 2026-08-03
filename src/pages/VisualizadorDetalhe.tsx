@@ -35,7 +35,7 @@ export default function VisualizadorDetalhe() {
       const { data } = await supabase
         .from("equipamentos")
         .select(
-          "id, codigo, descricao, modelo_3d_url, glb_rotacao_x, glb_rotacao_z, categoria, cor_categoria",
+          "id, codigo, descricao, modelo_3d_url, glb_rotacao_x, glb_rotacao_y, glb_rotacao_z, categoria, cor_categoria",
         )
         .eq("id", equipamentoId)
         .single();
@@ -85,9 +85,9 @@ export default function VisualizadorDetalhe() {
     if (p === "iso") apiRef.current?.reset();
   };
 
-  // Convert deg → rad (banco armazena em graus em outros usos; aqui o spec diz radianos
-  // — mas glb_rotacao_x é integer, tratamos como graus se for >2π)
+  // Banco armazena em graus; o viewer espera radianos.
   const rx = ((equip.glb_rotacao_x ?? 0) * Math.PI) / 180;
+  const ry = ((equip.glb_rotacao_y ?? 0) * Math.PI) / 180;
   const rz = ((equip.glb_rotacao_z ?? 0) * Math.PI) / 180;
 
   return (
@@ -96,6 +96,7 @@ export default function VisualizadorDetalhe() {
         ref={apiRef}
         modeloUrl={equip.modelo_3d_url}
         rotacaoX={rx}
+        rotacaoY={ry}
         rotacaoZ={rz}
         onAutoRotateChange={(on) => setPlaying(on)}
       />
