@@ -1,0 +1,1 @@
+ALTER TABLE public.equipamentos ADD COLUMN IF NOT EXISTS glb_rotacao_y integer NOT NULL DEFAULT 0;

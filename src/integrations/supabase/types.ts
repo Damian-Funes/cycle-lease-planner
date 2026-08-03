@@ -836,6 +836,7 @@ export type Database = {
           descricao: string
           dias_montagem_padrao: number
           glb_rotacao_x: number
+          glb_rotacao_y: number
           glb_rotacao_z: number
           id: string
           imagem_url: string | null
@@ -855,6 +856,7 @@ export type Database = {
           descricao: string
           dias_montagem_padrao?: number
           glb_rotacao_x?: number
+          glb_rotacao_y?: number
           glb_rotacao_z?: number
           id?: string
           imagem_url?: string | null
@@ -874,6 +876,7 @@ export type Database = {
           descricao?: string
           dias_montagem_padrao?: number
           glb_rotacao_x?: number
+          glb_rotacao_y?: number
           glb_rotacao_z?: number
           id?: string
           imagem_url?: string | null
