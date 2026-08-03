@@ -17,12 +17,13 @@ export interface EquipmentViewer3DApi {
 interface Props {
   modeloUrl: string;
   rotacaoX?: number; // radianos
+  rotacaoY?: number;
   rotacaoZ?: number;
   onAutoRotateChange?: (on: boolean) => void;
 }
 
 const EquipmentViewer3D = forwardRef<EquipmentViewer3DApi, Props>(function EquipmentViewer3D(
-  { modeloUrl, rotacaoX = 0, rotacaoZ = 0, onAutoRotateChange },
+  { modeloUrl, rotacaoX = 0, rotacaoY = 0, rotacaoZ = 0, onAutoRotateChange },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);

@@ -780,8 +780,10 @@ export function Layout3DCanvas({
           (gltf) => {
             const inner = gltf.scene;
             const rotX = (((it as unknown as { glb_rotacao_x?: number | null }).glb_rotacao_x ?? 0) * Math.PI) / 180;
+            const rotYglb = (((it as unknown as { glb_rotacao_y?: number | null }).glb_rotacao_y ?? 0) * Math.PI) / 180;
             const rotZ = (((it as unknown as { glb_rotacao_z?: number | null }).glb_rotacao_z ?? 0) * Math.PI) / 180;
             inner.rotation.x = rotX;
+            inner.rotation.y = rotYglb;
             inner.rotation.z = rotZ;
             inner.traverse((o: THREE.Object3D) => {
               const mesh = o as THREE.Mesh;
