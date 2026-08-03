@@ -42,6 +42,7 @@ export default function Catalogo() {
     valor_venda: "",
     modelo_3d_url: "",
     glb_rotacao_x: 0,
+    glb_rotacao_y: 0,
     glb_rotacao_z: 0,
     categoria: "" as EquipamentoCategoria | "",
     largura_mm: "",
@@ -87,6 +88,7 @@ export default function Catalogo() {
       valor_venda: "",
       modelo_3d_url: "",
       glb_rotacao_x: 0,
+      glb_rotacao_y: 0,
       glb_rotacao_z: 0,
       categoria: "",
       largura_mm: "",
@@ -125,6 +127,7 @@ export default function Catalogo() {
       valor_venda: formatMoneyForInput(eq.valor_venda),
       modelo_3d_url: (eq as any).modelo_3d_url || "",
       glb_rotacao_x: (eq as any).glb_rotacao_x ?? 0,
+      glb_rotacao_y: (eq as any).glb_rotacao_y ?? 0,
       glb_rotacao_z: (eq as any).glb_rotacao_z ?? 0,
       categoria: (eq.categoria as EquipamentoCategoria) || "",
       largura_mm: eq.largura_mm != null ? String(eq.largura_mm) : "",
@@ -229,6 +232,7 @@ export default function Catalogo() {
       valor_venda: parseMoney(form.valor_venda),
       modelo_3d_url: form.modelo_3d_url || null,
       glb_rotacao_x: form.glb_rotacao_x,
+      glb_rotacao_y: form.glb_rotacao_y,
       glb_rotacao_z: form.glb_rotacao_z,
       categoria: cat,
       cor_categoria: corCategoria,
@@ -514,8 +518,16 @@ export default function Catalogo() {
                   <GlbOrientationEditor
                     glbUrl={form.modelo_3d_url}
                     rotacaoX={form.glb_rotacao_x}
+                    rotacaoY={form.glb_rotacao_y}
                     rotacaoZ={form.glb_rotacao_z}
-                    onChange={(rx, rz) => setForm((f) => ({ ...f, glb_rotacao_x: rx, glb_rotacao_z: rz }))}
+                    onChange={(rx, ry, rz) =>
+                      setForm((f) => ({
+                        ...f,
+                        glb_rotacao_x: rx,
+                        glb_rotacao_y: ry,
+                        glb_rotacao_z: rz,
+                      }))
+                    }
                   />
                 </div>
               )}

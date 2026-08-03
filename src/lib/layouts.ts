@@ -44,6 +44,7 @@ export interface LayoutItemRow {
   cor_categoria: string | null;
   modelo_3d_url?: string | null;
   glb_rotacao_x?: number | null;
+  glb_rotacao_y?: number | null;
   glb_rotacao_z?: number | null;
 }
 
@@ -114,7 +115,7 @@ export async function listLayoutItems(layoutId: string): Promise<LayoutItemRow[]
   const equipamentoIds = Array.from(new Set(layoutItems.map((item) => item.equipamento_id).filter(Boolean)));
   const { data: equipamentos, error: equipamentosError } = await supabase
     .from("equipamentos")
-    .select("id, codigo, descricao, categoria, largura_mm, comprimento_mm, altura_mm, imagem_url, cor_categoria, modelo_3d_url, glb_rotacao_x, glb_rotacao_z")
+    .select("id, codigo, descricao, categoria, largura_mm, comprimento_mm, altura_mm, imagem_url, cor_categoria, modelo_3d_url, glb_rotacao_x, glb_rotacao_y, glb_rotacao_z")
     .in("id", equipamentoIds);
 
   if (equipamentosError) throw equipamentosError;
@@ -146,6 +147,7 @@ export async function listLayoutItems(layoutId: string): Promise<LayoutItemRow[]
         cor_categoria: equipamento.cor_categoria,
         modelo_3d_url: equipamento.modelo_3d_url,
         glb_rotacao_x: equipamento.glb_rotacao_x,
+        glb_rotacao_y: (equipamento as { glb_rotacao_y?: number | null }).glb_rotacao_y ?? 0,
         glb_rotacao_z: equipamento.glb_rotacao_z,
       };
     })

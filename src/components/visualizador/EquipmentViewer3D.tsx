@@ -17,12 +17,13 @@ export interface EquipmentViewer3DApi {
 interface Props {
   modeloUrl: string;
   rotacaoX?: number; // radianos
+  rotacaoY?: number;
   rotacaoZ?: number;
   onAutoRotateChange?: (on: boolean) => void;
 }
 
 const EquipmentViewer3D = forwardRef<EquipmentViewer3DApi, Props>(function EquipmentViewer3D(
-  { modeloUrl, rotacaoX = 0, rotacaoZ = 0, onAutoRotateChange },
+  { modeloUrl, rotacaoX = 0, rotacaoY = 0, rotacaoZ = 0, onAutoRotateChange },
   ref,
 ) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -139,6 +140,7 @@ const EquipmentViewer3D = forwardRef<EquipmentViewer3DApi, Props>(function Equip
       (gltf) => {
         const model = gltf.scene;
         model.rotation.x = rotacaoX || 0;
+        model.rotation.y = rotacaoY || 0;
         model.rotation.z = rotacaoZ || 0;
         model.traverse((o) => {
           if ((o as THREE.Mesh).isMesh) {
@@ -213,7 +215,7 @@ const EquipmentViewer3D = forwardRef<EquipmentViewer3DApi, Props>(function Equip
         mount.removeChild(renderer.domElement);
       }
     };
-  }, [modeloUrl, rotacaoX, rotacaoZ]);
+  }, [modeloUrl, rotacaoX, rotacaoY, rotacaoZ]);
 
   useImperativeHandle(ref, () => ({
     setAutoRotate(on) {
