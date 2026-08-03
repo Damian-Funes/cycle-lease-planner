@@ -147,6 +147,7 @@ export async function listLayoutItems(layoutId: string): Promise<LayoutItemRow[]
         cor_categoria: equipamento.cor_categoria,
         modelo_3d_url: equipamento.modelo_3d_url,
         glb_rotacao_x: equipamento.glb_rotacao_x,
+        glb_rotacao_y: (equipamento as { glb_rotacao_y?: number | null }).glb_rotacao_y ?? 0,
         glb_rotacao_z: equipamento.glb_rotacao_z,
       };
     })
