@@ -812,12 +812,15 @@ export function Layout3DCanvas({
         /* noop */
       }
       draco.dispose();
-      // Libera geometrias/materiais/texturas próprios da cena (envMap é tratado à parte)
+      // 1) Devolve os materiais originais (clones de seleção liberados)...
+      Object.values(ctxRef.current.groups || {}).forEach((g) => descartarMaterialClonado(g));
+      // 2) ...e só então libera geometrias/materiais/texturas únicos da cena.
       descartarObjeto3D(scene);
       descartarObjeto3D(roomEnv);
       scene.environment = null;
       envRT.dispose();
       pmremGenerator.dispose();
+      [keyLight, fillLight, rimLight].forEach((l) => descartarSombraDaLuz(l));
       renderer.dispose();
       ctxRef.current = {};
     };
