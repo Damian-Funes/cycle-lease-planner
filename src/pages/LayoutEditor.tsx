@@ -269,7 +269,7 @@ export default function LayoutEditor() {
       toast({ title: "PDF indisponível", description: "Gere o PDF novamente antes de tentar visualizar.", variant: "destructive" });
       return;
     }
-    if (visualizarBlobUrl(pdfPronto.url)) return;
+    if (visualizarBlobUrl(pdfPronto.url, pdfPronto.fname)) return;
 
     try {
       if (await compartilharBlob(pdfPronto.blob, pdfPronto.fname)) return;

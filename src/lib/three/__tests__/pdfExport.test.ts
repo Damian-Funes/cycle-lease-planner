@@ -130,14 +130,17 @@ describe("baixarBlobUrl", () => {
   });
 
   it("abre a visualização somente quando o navegador aceita a nova aba", () => {
-    const popup = { opener: window } as unknown as Window;
+    const popupDocument = document.implementation.createHTMLDocument();
+    const popup = { opener: window, document: popupDocument, close: vi.fn() } as unknown as Window;
     const win = { open: vi.fn().mockReturnValue(popup) } as unknown as Window;
-    expect(visualizarBlobUrl("blob:http://localhost/pdf", win)).toBe(true);
-    expect(win.open).toHaveBeenCalledWith("blob:http://localhost/pdf", "_blank");
+    expect(visualizarBlobUrl("blob:http://localhost/pdf", "layout.pdf", win)).toBe(true);
+    expect(win.open).toHaveBeenCalledWith("", "_blank");
     expect(popup.opener).toBeNull();
+    expect(popupDocument.querySelector("embed")?.getAttribute("src")).toBe("blob:http://localhost/pdf");
+    expect(popupDocument.querySelector("a")?.download).toBe("layout.pdf");
 
     const bloqueado = { open: vi.fn().mockReturnValue(null) } as unknown as Window;
-    expect(visualizarBlobUrl("blob:http://localhost/pdf", bloqueado)).toBe(false);
+    expect(visualizarBlobUrl("blob:http://localhost/pdf", "layout.pdf", bloqueado)).toBe(false);
   });
 
   it("oferece o arquivo ao compartilhamento nativo quando disponível", async () => {
