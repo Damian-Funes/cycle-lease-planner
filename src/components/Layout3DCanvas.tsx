@@ -262,6 +262,14 @@ export function Layout3DCanvas({
     };
     updateCam();
 
+    /** Deriva theta/phi/radius da posição atual da câmera (usado pelo ViewHelper). */
+    const sincronizarOrbit = () => {
+      const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
+      orbit.radius = Math.max(offset.length(), 0.001);
+      orbit.theta = Math.atan2(offset.z, offset.x);
+      orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
+    };
+
     const animateToView = (targetTheta: number, targetPhi: number, targetRadius?: number) => {
       cancelAnimationFrame(tweenRaf);
       const startTheta = orbit.theta;
@@ -586,18 +594,15 @@ export function Layout3DCanvas({
     viewHelperDiv.style.pointerEvents = "auto";
     mount.appendChild(viewHelperDiv);
     const viewHelper = new ViewHelper(camera, viewHelperDiv);
+    // O ViewHelper anima a própria câmera em volta de `center`; usamos o alvo do orbit.
+    (viewHelper as unknown as { center: THREE.Vector3 }).center = orbit.target;
     const onViewHelperPointerUp = (event: PointerEvent) => {
       const vh = viewHelper as unknown as { handleClick: (e: PointerEvent) => boolean };
       if (vh.handleClick(event)) {
+        // Navegação manual: cancela tween em andamento para não roubar a câmera.
+        cancelAnimationFrame(tweenRaf);
         ctxRef.current.userNavigated = true;
         invalidate();
-        setTimeout(() => {
-          const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
-          orbit.radius = offset.length();
-          orbit.theta = Math.atan2(offset.z, offset.x);
-          orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
-          invalidate();
-        }, 600);
       }
     };
     viewHelperDiv.addEventListener("pointerup", onViewHelperPointerUp);
@@ -696,16 +701,29 @@ export function Layout3DCanvas({
 
     let raf = 0;
     const viewHelperClock = new THREE.Clock();
+    let viewHelperAnimou = false;
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const delta = viewHelperClock.getDelta();
       const vh = viewHelper as unknown as { animating?: boolean; update: (d: number) => void };
       const animando = Boolean(vh.animating);
-      if (animando) vh.update(delta);
+      if (animando) {
+        // O ViewHelper move a câmera; sincronizamos o orbit a partir dela
+        // (em vez de sobrescrever a animação com updateCam).
+        vh.update(delta);
+        sincronizarOrbit();
+        viewHelperAnimou = true;
+        needsRender = true;
+      } else if (viewHelperAnimou) {
+        // Fim da animação do ViewHelper: estado final vira o estado do orbit.
+        sincronizarOrbit();
+        viewHelperAnimou = false;
+        needsRender = true;
+      }
       const arrastando =
         orbit.isDragging || Boolean((tc as unknown as { dragging?: boolean }).dragging);
       // Render sob demanda: só desenha quando algo mudou ou há animação/arraste ativo.
-      if (!needsRender && !animando && !arrastando) return;
+      if (!needsRender && !arrastando) return;
       needsRender = false;
       updateCam();
       renderer.autoClear = true;
