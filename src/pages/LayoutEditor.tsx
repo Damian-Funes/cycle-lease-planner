@@ -661,19 +661,27 @@ export default function LayoutEditor() {
       return;
     }
 
-    let restaurarEstado: (() => void) | null = null;
-    try {
-
-
-    // Desseleciona (inclusive multisseleção) para a captura sair limpa,
-    // sem gizmo nem transparência de seleção.
+    // Estado a restaurar já definido ANTES de qualquer alteração/await, para o
+    // finally devolver seleção e câmera mesmo se a captura lançar erro.
     const idSelecionadoAntes = selectedId;
     const idsSelecionadosAntes = selectedIds;
-    if (idSelecionadoAntes || idsSelecionadosAntes.length > 0) {
-      setSelectedId(null);
-      setSelectedIds([]);
-      await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
-    }
+    const restaurarEstado = () => {
+      if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
+      if (idsSelecionadosAntes.length > 0) setSelectedIds(idsSelecionadosAntes);
+      // Restaura uma vista útil para o usuário após captura
+      api.fitAll();
+    };
+
+    try {
+      // Desseleciona (inclusive multisseleção) para a captura sair limpa,
+      // sem gizmo nem transparência de seleção.
+      if (idSelecionadoAntes || idsSelecionadosAntes.length > 0) {
+        setSelectedId(null);
+        setSelectedIds([]);
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+      }
+
+
 
 
     const vistas: { view: ViewName; titulo: string }[] = [
@@ -701,12 +709,8 @@ export default function LayoutEditor() {
       }
     }
 
-    restaurarEstado = () => {
-      if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
-      if (idsSelecionadosAntes.length > 0) setSelectedIds(idsSelecionadosAntes);
-      // Restaura uma vista útil para o usuário após captura
-      api.fitAll();
-    };
+
+
 
 
     console.log("[PDF] total capturas:", capturas.length);
