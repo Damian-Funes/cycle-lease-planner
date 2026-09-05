@@ -114,7 +114,7 @@ export function Layout3DCanvas({
     const height = mount.clientHeight || 600;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xff0000);
+    scene.background = new THREE.Color(0xf5f5f4);
 
     const conexoesGroup = new THREE.Group();
     conexoesGroup.name = "conexoes";
