@@ -661,7 +661,9 @@ export default function LayoutEditor() {
       return;
     }
 
+    let restaurarEstado: (() => void) | null = null;
     try {
+
 
     // Desseleciona (inclusive multisseleção) para a captura sair limpa,
     // sem gizmo nem transparência de seleção.
