@@ -1126,6 +1126,7 @@ export function Layout3DCanvas({
   const goToView = (view: "top" | "front" | "back" | "left" | "right" | "iso") => {
     const c = ctxRef.current;
     if (!c.animateToView) return;
+    c.userNavigated = true;
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const baseRadius = Math.max(floorW, floorH) * 1.2;

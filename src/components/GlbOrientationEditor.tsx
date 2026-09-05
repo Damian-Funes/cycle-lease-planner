@@ -122,7 +122,9 @@ export function GlbOrientationEditor({
     mount.appendChild(renderer.domElement);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    const roomEnv = new RoomEnvironment();
+    const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
+    scene.environment = envRT.texture;
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.85);
     hemi.position.set(0, 20, 0);
