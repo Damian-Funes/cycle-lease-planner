@@ -209,7 +209,7 @@ export function Layout3DCanvas({
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
     // Cimento fosco, discreto — não compete com os equipamentos e recebe bem a sombra
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x8b8b89,
+      color: 0x76767a,
       roughness: 0.92,
       metalness: 0,
     });
