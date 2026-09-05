@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Save, Loader2, Trash2, RotateCw, Plus, ImageIcon,
-  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon, Layers,
+  Download, Box, Search, Move3d, ArrowUpDown, Link as LinkIcon, Layers, ExternalLink, Share2,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -27,7 +27,7 @@ import {
 import type { Equipamento } from "@/lib/equipamentos";
 import { CATEGORIAS } from "@/lib/equipamentos";
 import { listContidos, buildPaiParaFilhos, buildFilhoParaPais, calcularOcultos, type ContidoRow } from "@/lib/equipamentoContidos";
-import { baixarBlobUrl } from "@/lib/downloadBlob";
+import { baixarBlobUrl, compartilharBlob, visualizarBlobUrl } from "@/lib/downloadBlob";
 
 
 const PLANTAS_BUCKET = "plantas-cliente";
@@ -237,7 +237,8 @@ export default function LayoutEditor() {
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   // PDF gerado e disponível para download manual (fallback caso o navegador
   // não inicie o download automático).
-  const [pdfPronto, setPdfPronto] = useState<{ url: string; fname: string } | null>(null);
+  const [pdfPronto, setPdfPronto] = useState<{ blob: Blob; url: string; fname: string } | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const pdfUrlRef = useRef<string | null>(null);
   useEffect(() => {
     if (pdfPronto) {
@@ -246,6 +247,55 @@ export default function LayoutEditor() {
     }
   }, [pdfPronto]);
   useEffect(() => () => { if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current); }, []);
+
+  const handleBaixarPdfPronto = useCallback(() => {
+    if (!pdfPronto || pdfPronto.blob.size === 0) {
+      toast({ title: "PDF indisponível", description: "Gere o PDF novamente antes de tentar salvar.", variant: "destructive" });
+      return;
+    }
+    try {
+      baixarBlobUrl(pdfPronto.url, pdfPronto.fname);
+      toast({
+        title: "Download solicitado",
+        description: "Se o Safari não iniciar o download, use “Visualizar PDF” para abrir e salvar o arquivo.",
+      });
+    } catch (error) {
+      console.warn("[PDF] download manual bloqueado:", error);
+      toast({ title: "Download bloqueado", description: "Use “Visualizar PDF” para abrir e salvar o arquivo.", variant: "destructive" });
+    }
+  }, [pdfPronto, toast]);
+
+  const handleVisualizarPdfPronto = useCallback(() => {
+    if (!pdfPronto || pdfPronto.blob.size === 0) {
+      toast({ title: "PDF indisponível", description: "Gere o PDF novamente antes de tentar visualizar.", variant: "destructive" });
+      return;
+    }
+    setPdfPreviewOpen(true);
+  }, [pdfPronto, toast]);
+
+  const handleAbrirPdfNovaAba = useCallback(() => {
+    if (!pdfPronto || visualizarBlobUrl(pdfPronto.url, pdfPronto.fname)) return;
+    toast({
+      title: "Nova aba bloqueada",
+      description: "O preview não permite abrir esta visualização. O PDF continua disponível nesta tela.",
+      variant: "destructive",
+    });
+  }, [pdfPronto, toast]);
+
+  const handleCompartilharPdfPronto = useCallback(async () => {
+    if (!pdfPronto) return;
+    try {
+      if (await compartilharBlob(pdfPronto.blob, pdfPronto.fname)) return;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.warn("[PDF] compartilhamento bloqueado:", error);
+    }
+    toast({
+      title: "Salvar no dispositivo indisponível",
+      description: "Use “Baixar PDF” ou abra o aplicativo fora do preview para salvar o arquivo.",
+      variant: "destructive",
+    });
+  }, [pdfPronto, toast]);
 
 
 
@@ -837,8 +887,12 @@ export default function LayoutEditor() {
 
       // Registra o fallback ANTES de disparar o download, para o botão
       // "Baixar PDF" continuar acessível mesmo se o clique automático falhar.
-      setPdfPronto({ url, fname });
-      toast({ title: "PDF gerado", description: `Salvando ${fname}. Se não baixar, use o botão "Baixar PDF".` });
+      if (blob.size === 0 || blob.type !== "application/pdf") {
+        URL.revokeObjectURL(url);
+        throw new Error("O arquivo PDF gerado é inválido.");
+      }
+      setPdfPronto({ blob, url, fname });
+      toast({ title: "PDF pronto", description: `Tentando baixar ${fname}. Se não iniciar, use “Visualizar PDF”.` });
 
       try {
         baixarBlobUrl(url, fname);
@@ -972,11 +1026,14 @@ export default function LayoutEditor() {
               <Download className="w-4 h-4" /> PDF
             </Button>
             {pdfPronto && (
-              <Button size="sm" variant="default" className="gap-1" asChild>
-                <a href={pdfPronto.url} download={pdfPronto.fname} title={pdfPronto.fname}>
+              <>
+                <Button size="sm" variant="default" className="gap-1" onClick={handleBaixarPdfPronto} title={pdfPronto.fname}>
                   <Download className="w-4 h-4" /> Baixar PDF
-                </a>
-              </Button>
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={handleVisualizarPdfPronto} title="Abrir o PDF para visualizar e salvar">
+                  <ExternalLink className="w-4 h-4" /> Visualizar PDF
+                </Button>
+              </>
             )}
 
             <AppHeader />
@@ -985,6 +1042,38 @@ export default function LayoutEditor() {
       </header>
 
       {/* corpo */}
+      <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-8">{pdfPronto?.fname ?? "Visualizar PDF"}</DialogTitle>
+          </DialogHeader>
+          {pdfPronto && (
+            <object
+              data={pdfPronto.url}
+              type="application/pdf"
+              className="w-full flex-1 min-h-0 border rounded-md"
+              aria-label={`Visualização de ${pdfPronto.fname}`}
+            >
+              <div className="h-full flex items-center justify-center text-center p-6 text-muted-foreground">
+                Este navegador não exibiu o PDF. Use uma das opções abaixo para salvar o arquivo.
+              </div>
+            </object>
+          )}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button variant="outline" onClick={handleAbrirPdfNovaAba} className="gap-1">
+              <ExternalLink className="w-4 h-4" /> Abrir em nova aba
+            </Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={handleCompartilharPdfPronto} className="gap-1">
+                <Share2 className="w-4 h-4" /> Salvar no dispositivo
+              </Button>
+              <Button onClick={handleBaixarPdfPronto} className="gap-1">
+                <Download className="w-4 h-4" /> Baixar PDF
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex-1 flex min-h-0">
         {/* canvas */}
         <div className="flex-1 p-3 min-w-0">
