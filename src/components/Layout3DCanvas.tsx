@@ -130,7 +130,7 @@ export function Layout3DCanvas({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.95;
+    renderer.toneMappingExposure = 0.8;
     mount.appendChild(renderer.domElement);
 
     const alive = { current: true };
@@ -145,13 +145,13 @@ export function Layout3DCanvas({
     const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
     scene.environment = envRT.texture;
     // Ambiente contribui com reflexos/preenchimento sem lavar as cores dos GLBs.
-    scene.environmentIntensity = 0.55;
+    scene.environmentIntensity = 0.3;
 
-    const hemi = new THREE.HemisphereLight(0xdfe7f2, 0x9a9086, 0.32);
+    const hemi = new THREE.HemisphereLight(0xdfe7f2, 0x9a9086, 0.22);
     hemi.position.set(0, 50, 0);
     scene.add(hemi);
 
-    const keyLight = new THREE.DirectionalLight(0xfff3e0, 2.1);
+    const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.15);
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
@@ -193,15 +193,15 @@ export function Layout3DCanvas({
       invalidate();
     };
 
-    const fillLight = new THREE.DirectionalLight(0xd6e2ff, 0.34);
+    const fillLight = new THREE.DirectionalLight(0xd6e2ff, 0.22);
     fillLight.position.set(-15, 20, -10);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.42);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
     rimLight.position.set(0, 15, -25);
     scene.add(rimLight);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.1);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.06);
     scene.add(ambient);
 
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
