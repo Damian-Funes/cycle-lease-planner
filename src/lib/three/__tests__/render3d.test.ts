@@ -109,6 +109,7 @@ describe("rastreador de cargas", () => {
 });
 
 describe("DPR de captura", () => {
+  /** Mock com a assinatura real do three: getSize chama target.set(w, h). */
   function fakeRenderer(dpr: number, w = 800, h = 600) {
     const state = { dpr, w, h, sizes: [] as number[][] };
     return {
@@ -117,11 +118,7 @@ describe("DPR de captura", () => {
       setPixelRatio: (v: number) => {
         state.dpr = v;
       },
-      getSize: (t: { x: number; y: number }) => {
-        t.x = state.w;
-        t.y = state.h;
-        return t;
-      },
+      getSize: (target: THREE.Vector2) => target.set(state.w, state.h),
       setSize: (a: number, b: number) => {
         state.sizes.push([a, b]);
       },
@@ -131,29 +128,64 @@ describe("DPR de captura", () => {
   it("usa DPR cheio durante a captura e restaura o visual depois", () => {
     const r = fakeRenderer(2);
     let dprDurante = 0;
-    const png = comDprDeCaptura(r, 3, () => {
-      dprDurante = r.getPixelRatio();
-      return "png";
-    });
+    const png = comDprDeCaptura(
+      r,
+      3,
+      () => {
+        dprDurante = r.getPixelRatio();
+        return "png";
+      },
+      new THREE.Vector2(),
+    );
     expect(png).toBe("png");
     expect(dprDurante).toBe(3);
     expect(r.getPixelRatio()).toBe(2);
     expect(r.state.sizes).toEqual([[800, 600], [800, 600]]);
   });
 
+  it("captura as 6 vistas sem perder resolução e sempre volta ao DPR visual", () => {
+    const r = fakeRenderer(2);
+    const alvo = new THREE.Vector2();
+    const vistas = ["top", "front", "back", "left", "right", "iso"];
+    const dprs: number[] = [];
+    const pngs = vistas.map((v) =>
+      comDprDeCaptura(
+        r,
+        3,
+        () => {
+          dprs.push(r.getPixelRatio());
+          return `png:${v}`;
+        },
+        alvo,
+      ),
+    );
+    expect(pngs).toEqual(vistas.map((v) => `png:${v}`));
+    expect(dprs).toEqual([3, 3, 3, 3, 3, 3]);
+    expect(r.getPixelRatio()).toBe(2);
+    expect(r.state.sizes).toHaveLength(12);
+    expect(r.state.sizes.every(([w, h]) => w === 800 && h === 600)).toBe(true);
+  });
+
   it("restaura o DPR mesmo se a captura falhar", () => {
     const r = fakeRenderer(2);
     expect(() =>
-      comDprDeCaptura(r, 4, () => {
-        throw new Error("falhou");
-      }),
+      comDprDeCaptura(
+        r,
+        4,
+        () => {
+          throw new Error("falhou");
+        },
+        new THREE.Vector2(),
+      ),
     ).toThrow("falhou");
     expect(r.getPixelRatio()).toBe(2);
+    // tamanho reaplicado na restauração
+    expect(r.state.sizes).toEqual([[800, 600], [800, 600]]);
   });
 
   it("não mexe no tamanho quando o DPR já é o de captura", () => {
     const r = fakeRenderer(2);
-    comDprDeCaptura(r, 2, () => null);
+    comDprDeCaptura(r, 2, () => null, new THREE.Vector2());
     expect(r.state.sizes).toEqual([]);
     expect(r.getPixelRatio()).toBe(2);
   });
