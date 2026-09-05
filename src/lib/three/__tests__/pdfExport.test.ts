@@ -1,12 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { Vector2 } from "three";
 import { jsPDF } from "jspdf";
-import {
-  comDprDeCaptura,
-  dprSeguroDeCaptura,
-  capturaParecemVazia,
-  type RendererDprLike,
-} from "@/lib/three/captureDpr";
+import { comDprDeCaptura, type RendererDprLike } from "@/lib/three/captureDpr";
+import { baixarBlobUrl } from "@/lib/downloadBlob";
 
 /** Renderer falso que registra DPR/tamanho aplicados. */
 function rendererFake(dprInicial: number, w: number, h: number) {
@@ -25,13 +21,6 @@ function rendererFake(dprInicial: number, w: number, h: number) {
 }
 
 describe("DPR de captura", () => {
-  it("limita o DPR para o buffer não exceder o máximo do navegador", () => {
-    // 1400x900 CSS com DPR 3 daria 4200px de lado (acima de 4096 no Safari/iOS)
-    expect(dprSeguroDeCaptura(3, 1400, 900, 4096)).toBeCloseTo(4096 / 1400, 5);
-    expect(dprSeguroDeCaptura(2, 1000, 700, 4096)).toBe(2);
-    expect(dprSeguroDeCaptura(3, 8000, 8000, 4096)).toBe(1); // nunca abaixo de 1
-  });
-
   it("restaura o DPR visual mesmo quando a captura lança", () => {
     const { r, dprAtual } = rendererFake(2, 1200, 800);
     expect(() =>
@@ -42,19 +31,12 @@ describe("DPR de captura", () => {
     expect(dprAtual()).toBe(2);
   });
 
-  it("aplica o DPR de captura e restaura no sucesso", () => {
+  it("aplica o DPR de captura (resolução original) e restaura no sucesso", () => {
     const { r, chamadas, dprAtual } = rendererFake(2, 1200, 800);
     const dprDurante = comDprDeCaptura(r, 3, () => r.getPixelRatio(), new Vector2());
     expect(dprDurante).toBe(3);
     expect(dprAtual()).toBe(2);
     expect(chamadas.map((c) => c.dpr)).toEqual([3, 2]);
-  });
-
-  it("detecta captura vazia/branca", () => {
-    expect(capturaParecemVazia(null)).toBe(true);
-    expect(capturaParecemVazia("data:,")).toBe(true);
-    expect(capturaParecemVazia("data:image/png;base64,AAAA")).toBe(true);
-    expect(capturaParecemVazia("data:image/png;base64," + "A".repeat(5000))).toBe(false);
   });
 });
 
@@ -93,25 +75,57 @@ describe("PDF de layout (A3 paisagem)", () => {
   });
 });
 
-describe("saída do PDF no navegador", () => {
-  it("baixa via âncora com nome .pdf e NÃO abre aba nova", () => {
-    const open = vi.fn();
-    const a = document.createElement("a");
-    const click = vi.spyOn(a, "click");
-    vi.spyOn(document, "createElement").mockReturnValueOnce(a as HTMLAnchorElement);
-    vi.stubGlobal("open", open);
-
-    // Reproduz o caminho de saída implementado em LayoutEditor.handleExportPdf
-    const fname = "LAYOUT_CLIENTE_1_2026-09-05.pdf";
-    const url = "blob:http://localhost/abc";
-    const el = document.createElement("a") as HTMLAnchorElement;
-    el.href = url;
-    el.download = fname;
-    el.click();
-
-    expect(click).toHaveBeenCalledTimes(1);
-    expect(el.download.endsWith(".pdf")).toBe(true);
-    expect(open).not.toHaveBeenCalled();
+describe("baixarBlobUrl", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("cria âncora com nome/url, clica e limpa o DOM, sem abrir aba", () => {
+    const open = vi.fn();
+    vi.stubGlobal("open", open);
+    const url = "blob:http://localhost/abc";
+    const fname = "LAYOUT_CLIENTE_1_2026-09-05.pdf";
+
+    let ancora: HTMLAnchorElement | null = null;
+    const criar = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation(((tag: string) => {
+      const el = criar(tag);
+      if (tag === "a") {
+        ancora = el as HTMLAnchorElement;
+        vi.spyOn(ancora, "click");
+      }
+      return el;
+    }) as typeof document.createElement);
+
+    baixarBlobUrl(url, fname);
+
+    expect(ancora).not.toBeNull();
+    expect(ancora!.getAttribute("href")).toBe(url);
+    expect(ancora!.download).toBe(fname);
+    expect(ancora!.click).toHaveBeenCalledTimes(1);
+    expect(ancora!.isConnected).toBe(false);
+    expect(document.querySelectorAll("a").length).toBe(0);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("remove a âncora e propaga o erro quando o clique falha", () => {
+    const url = "blob:http://localhost/def";
+    let ancora: HTMLAnchorElement | null = null;
+    const criar = document.createElement.bind(document);
+    vi.spyOn(document, "createElement").mockImplementation(((tag: string) => {
+      const el = criar(tag);
+      if (tag === "a") {
+        ancora = el as HTMLAnchorElement;
+        vi.spyOn(ancora, "click").mockImplementation(() => {
+          throw new Error("bloqueado");
+        });
+      }
+      return el;
+    }) as typeof document.createElement);
+
+    expect(() => baixarBlobUrl(url, "x.pdf")).toThrow("bloqueado");
+    expect(ancora!.isConnected).toBe(false);
+    expect(document.querySelectorAll("a").length).toBe(0);
   });
 });
