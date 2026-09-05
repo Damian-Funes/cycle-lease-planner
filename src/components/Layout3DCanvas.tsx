@@ -18,7 +18,7 @@ import {
   descartarSombraDaLuz,
 } from "@/lib/three/dispose";
 import { calcularShadowFit } from "@/lib/three/shadowFit";
-import { comDprDeCaptura, dprSeguroDeCaptura, capturaParecemVazia } from "@/lib/three/captureDpr";
+import { comDprDeCaptura } from "@/lib/three/captureDpr";
 import { criarRastreadorCargas, type RastreadorCargas } from "@/lib/three/loadTracker";
 
 export interface Layout3DCanvasProps {
@@ -435,34 +435,21 @@ export function Layout3DCanvas({
       scene.add(camLight);
       scene.add(camLight.target);
 
-      // Captura em resolução cheia, mas com o DPR limitado ao máximo suportado
-      // pelo navegador (Safari perde o contexto e devolve PNG branco acima disso).
-      const desenhar = () => {
-        renderer.render(scene, camera);
-        return renderer.domElement.toDataURL("image/png");
-      };
+      // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
       try {
-        renderer.getSize(tamanhoCaptura);
-        const maxLado = Math.min(renderer.capabilities.maxTextureSize || 4096, 4096);
-        const dpr = dprSeguroDeCaptura(
+        return comDprDeCaptura(
+          renderer,
           window.devicePixelRatio || 1,
-          tamanhoCaptura.x,
-          tamanhoCaptura.y,
-          maxLado,
+          () => {
+            renderer.render(scene, camera);
+            return renderer.domElement.toDataURL("image/png");
+          },
+          tamanhoCaptura,
         );
-        let url = comDprDeCaptura(renderer, dpr, desenhar, tamanhoCaptura);
-        const gl = renderer.getContext();
-        if (capturaParecemVazia(url) || gl.isContextLost()) {
-          // Fallback conservador: repete no DPR visual atual, sem redimensionar.
-          console.warn("[captureView] captura suspeita em DPR", dpr, "— repetindo no DPR visual");
-          url = desenhar();
-        }
-        return capturaParecemVazia(url) ? null : url;
       } catch (e) {
         console.error("[captureView] falha:", e);
         return null;
       } finally {
-
         scene.remove(camLight);
         scene.remove(camLight.target);
         camLight.dispose();
