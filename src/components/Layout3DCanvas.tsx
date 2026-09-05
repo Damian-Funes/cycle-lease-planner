@@ -12,7 +12,14 @@ import {
   restaurarOpacidade,
   descartarMaterialClonado,
 } from "@/lib/three/selectionTransparency";
-import { descartarObjeto3D, removerEDescartar } from "@/lib/three/dispose";
+import {
+  descartarObjeto3D,
+  removerEDescartar,
+  descartarSombraDaLuz,
+} from "@/lib/three/dispose";
+import { calcularShadowFit } from "@/lib/three/shadowFit";
+import { comDprDeCaptura } from "@/lib/three/captureDpr";
+import { criarRastreadorCargas, type RastreadorCargas } from "@/lib/three/loadTracker";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -70,6 +77,11 @@ interface CanvasCtx {
   invalidate?: () => void;
   atualizarSombras?: () => void;
   userNavigated?: boolean;
+  /** Rastreador de cargas GLB, estável entre re-renders (dono = wrapper do item). */
+  cargas?: RastreadorCargas<THREE.Group>;
+  /** Enquadramento inicial já feito nesta cena. */
+  didInitialFit?: boolean;
+  sincronizarOrbit?: () => void;
 }
 
 export function Layout3DCanvas({
@@ -92,7 +104,6 @@ export function Layout3DCanvas({
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
-  const didInitialFitRef = useRef(false);
   const [loadingGlb, setLoadingGlb] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -158,58 +169,20 @@ export function Layout3DCanvas({
       box.union(
         new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(floorW, 0, floorH)),
       );
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      const raio = Math.max(size.length() / 2, 2);
-      const margem = raio * 0.1 + 0.5;
+      const fit = calcularShadowFit(box, keyLightDir);
 
-      keyLightTarget.position.copy(center);
+      keyLightTarget.position.copy(fit.target);
       keyLightTarget.updateMatrixWorld(true);
-      keyLight.position.copy(center).addScaledVector(keyLightDir, raio * 2.2 + 5);
+      keyLight.position.copy(fit.position);
       keyLight.updateMatrixWorld(true);
 
-      const lookAt = new THREE.Matrix4().lookAt(
-        keyLight.position,
-        center,
-        new THREE.Vector3(0, 1, 0),
-      );
-      const paraLuz = new THREE.Matrix4()
-        .compose(
-          keyLight.position,
-          new THREE.Quaternion().setFromRotationMatrix(lookAt),
-          new THREE.Vector3(1, 1, 1),
-        )
-        .invert();
-
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
-      let minD = Infinity;
-      let maxD = -Infinity;
-      const p = new THREE.Vector3();
-      for (let i = 0; i < 8; i += 1) {
-        p.set(
-          i & 1 ? box.max.x : box.min.x,
-          i & 2 ? box.max.y : box.min.y,
-          i & 4 ? box.max.z : box.min.z,
-        ).applyMatrix4(paraLuz);
-        minX = Math.min(minX, p.x);
-        maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y);
-        maxY = Math.max(maxY, p.y);
-        const depth = -p.z;
-        minD = Math.min(minD, depth);
-        maxD = Math.max(maxD, depth);
-      }
-
       const shadowCam = keyLight.shadow.camera;
-      shadowCam.left = minX - margem;
-      shadowCam.right = maxX + margem;
-      shadowCam.bottom = minY - margem;
-      shadowCam.top = maxY + margem;
-      shadowCam.near = Math.max(0.5, minD - margem);
-      shadowCam.far = Math.max(shadowCam.near + 1, maxD + margem);
+      shadowCam.left = fit.left;
+      shadowCam.right = fit.right;
+      shadowCam.bottom = fit.bottom;
+      shadowCam.top = fit.top;
+      shadowCam.near = fit.near;
+      shadowCam.far = fit.far;
       shadowCam.updateProjectionMatrix();
       keyLight.shadow.needsUpdate = true;
       invalidate();
@@ -287,6 +260,14 @@ export function Layout3DCanvas({
       camera.lookAt(orbit.target);
     };
     updateCam();
+
+    /** Deriva theta/phi/radius da posição atual da câmera (usado pelo ViewHelper). */
+    const sincronizarOrbit = () => {
+      const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
+      orbit.radius = Math.max(offset.length(), 0.001);
+      orbit.theta = Math.atan2(offset.z, offset.x);
+      orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
+    };
 
     const animateToView = (targetTheta: number, targetPhi: number, targetRadius?: number) => {
       cancelAnimationFrame(tweenRaf);
@@ -453,25 +434,15 @@ export function Layout3DCanvas({
       scene.add(camLight.target);
 
       // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
-      const dprVisual = renderer.getPixelRatio();
-      const dprCaptura = window.devicePixelRatio || 1;
-      const tamanhoCss = renderer.getSize(new THREE.Vector2());
-      if (dprCaptura !== dprVisual) {
-        renderer.setPixelRatio(dprCaptura);
-        renderer.setSize(tamanhoCss.x, tamanhoCss.y);
-      }
-
       try {
-        renderer.render(scene, camera);
-        return renderer.domElement.toDataURL("image/png");
+        return comDprDeCaptura(renderer, window.devicePixelRatio || 1, () => {
+          renderer.render(scene, camera);
+          return renderer.domElement.toDataURL("image/png");
+        });
       } catch (e) {
         console.error("[captureView] falha:", e);
         return null;
       } finally {
-        if (renderer.getPixelRatio() !== dprVisual) {
-          renderer.setPixelRatio(dprVisual);
-          renderer.setSize(tamanhoCss.x, tamanhoCss.y);
-        }
         scene.remove(camLight);
         scene.remove(camLight.target);
         camLight.dispose();
@@ -622,18 +593,15 @@ export function Layout3DCanvas({
     viewHelperDiv.style.pointerEvents = "auto";
     mount.appendChild(viewHelperDiv);
     const viewHelper = new ViewHelper(camera, viewHelperDiv);
+    // O ViewHelper anima a própria câmera em volta de `center`; usamos o alvo do orbit.
+    (viewHelper as unknown as { center: THREE.Vector3 }).center = orbit.target;
     const onViewHelperPointerUp = (event: PointerEvent) => {
       const vh = viewHelper as unknown as { handleClick: (e: PointerEvent) => boolean };
       if (vh.handleClick(event)) {
+        // Navegação manual: cancela tween em andamento para não roubar a câmera.
+        cancelAnimationFrame(tweenRaf);
         ctxRef.current.userNavigated = true;
         invalidate();
-        setTimeout(() => {
-          const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
-          orbit.radius = offset.length();
-          orbit.theta = Math.atan2(offset.z, offset.x);
-          orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
-          invalidate();
-        }, 600);
       }
     };
     viewHelperDiv.addEventListener("pointerup", onViewHelperPointerUp);
@@ -732,16 +700,29 @@ export function Layout3DCanvas({
 
     let raf = 0;
     const viewHelperClock = new THREE.Clock();
+    let viewHelperAnimou = false;
     const animate = () => {
       raf = requestAnimationFrame(animate);
       const delta = viewHelperClock.getDelta();
       const vh = viewHelper as unknown as { animating?: boolean; update: (d: number) => void };
       const animando = Boolean(vh.animating);
-      if (animando) vh.update(delta);
+      if (animando) {
+        // O ViewHelper move a câmera; sincronizamos o orbit a partir dela
+        // (em vez de sobrescrever a animação com updateCam).
+        vh.update(delta);
+        sincronizarOrbit();
+        viewHelperAnimou = true;
+        needsRender = true;
+      } else if (viewHelperAnimou) {
+        // Fim da animação do ViewHelper: estado final vira o estado do orbit.
+        sincronizarOrbit();
+        viewHelperAnimou = false;
+        needsRender = true;
+      }
       const arrastando =
         orbit.isDragging || Boolean((tc as unknown as { dragging?: boolean }).dragging);
       // Render sob demanda: só desenha quando algo mudou ou há animação/arraste ativo.
-      if (!needsRender && !animando && !arrastando) return;
+      if (!needsRender && !arrastando) return;
       needsRender = false;
       updateCam();
       renderer.autoClear = true;
@@ -769,6 +750,8 @@ export function Layout3DCanvas({
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
 
+    const cargas = criarRastreadorCargas<THREE.Group>();
+
     ctxRef.current = {
       scene, camera, renderer, tc,
       groups: {},
@@ -777,7 +760,10 @@ export function Layout3DCanvas({
       onTransform, onSelect, onConectarClick, onConexaoSelect,
       currentMode: mode,
       dom, animateToView, fitAll,
-      loader, alive, invalidate, atualizarSombras,
+      loader, alive, invalidate, atualizarSombras, sincronizarOrbit,
+      cargas,
+      // Flags resetadas por CENA (este effect), não por re-render.
+      didInitialFit: false,
       userNavigated: false,
     };
 
@@ -785,15 +771,20 @@ export function Layout3DCanvas({
 
     // Expõe API ao parent para captura de múltiplas vistas (PDF, etc).
     // Aguarda um frame para garantir que groups foram populados pelo effect de items.
+    let onReadyRaf = 0;
     if (onReady) {
       const api: Layout3DCanvasApi = { captureView, fitAll };
-      requestAnimationFrame(() => onReady(api));
+      onReadyRaf = requestAnimationFrame(() => {
+        if (alive.current) onReady(api);
+      });
     }
 
     return () => {
       alive.current = false;
+      cargas.limpar();
       cancelAnimationFrame(raf);
       cancelAnimationFrame(tweenRaf);
+      cancelAnimationFrame(onReadyRaf);
       ro.disconnect();
       dom.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
@@ -820,12 +811,15 @@ export function Layout3DCanvas({
         /* noop */
       }
       draco.dispose();
-      // Libera geometrias/materiais/texturas próprios da cena (envMap é tratado à parte)
+      // 1) Devolve os materiais originais (clones de seleção liberados)...
+      Object.values(ctxRef.current.groups || {}).forEach((g) => descartarMaterialClonado(g));
+      // 2) ...e só então libera geometrias/materiais/texturas únicos da cena.
       descartarObjeto3D(scene);
       descartarObjeto3D(roomEnv);
       scene.environment = null;
       envRT.dispose();
       pmremGenerator.dispose();
+      [keyLight, fillLight, rimLight].forEach((l) => descartarSombraDaLuz(l));
       renderer.dispose();
       ctxRef.current = {};
     };
@@ -866,10 +860,11 @@ export function Layout3DCanvas({
 
   useEffect(() => {
     const c = ctxRef.current;
-    if (!c.scene || !c.groups || !c.loader) return;
+    if (!c.scene || !c.groups || !c.loader || !c.cargas) return;
     const groups = c.groups;
     const loader = c.loader;
     const alive = c.alive;
+    const cargas = c.cargas;
 
     const existingIds = Object.keys(groups);
     const newIds = items.map((i) => i.item_id);
@@ -877,6 +872,8 @@ export function Layout3DCanvas({
     existingIds.forEach((id) => {
       if (!newIds.includes(id)) {
         const g = groups[id];
+        // Sai da contagem de pendentes imediatamente.
+        cargas.removerPorOwner(g);
         descartarMaterialClonado(g);
         c.scene!.remove(g);
         descartarObjeto3D(g);
@@ -884,16 +881,29 @@ export function Layout3DCanvas({
       }
     });
 
-    let pendentes = 0;
-    const concluirCarga = () => {
-      pendentes -= 1;
-      if (pendentes > 0) return;
-      c.atualizarSombras?.();
-      c.invalidate?.();
-      // Enquadramento inicial: uma única vez, e nunca sobrepondo navegação manual.
-      if (!didInitialFitRef.current && !c.userNavigated && items.length > 0) {
-        didInitialFitRef.current = true;
-        c.fitAll?.();
+    const limparProgresso = (itemId: string) => {
+      if (!alive?.current) return; // cena desmontada: nada de setState
+      setLoadingGlb((p) => {
+        if (!(itemId in p)) return p;
+        const np = { ...p };
+        delete np[itemId];
+        return np;
+      });
+    };
+
+    /** Conclui uma carga válida; se foi a última, atualiza sombras e enquadra. */
+    const concluirCarga = (token: number) => {
+      if (!cargas.concluir(token)) return; // callback stale
+      if (!alive?.current) return;
+      const ctx = ctxRef.current;
+      if (ctx.cargas !== cargas) return; // outra cena
+      if (cargas.pendentes() > 0) return;
+      ctx.atualizarSombras?.();
+      ctx.invalidate?.();
+      // Enquadramento inicial: uma única vez por cena, sem sobrepor navegação manual.
+      if (!ctx.didInitialFit && !ctx.userNavigated && Object.keys(groups).length > 0) {
+        ctx.didInitialFit = true;
+        ctx.fitAll?.();
       }
     };
 
@@ -920,20 +930,22 @@ export function Layout3DCanvas({
 
       const glbUrl = (it as unknown as { modelo_3d_url?: string | null }).modelo_3d_url;
       if (glbUrl) {
-        pendentes += 1;
+        const token = cargas.registrar(wrapper);
+        /** Contexto vivo e este wrapper ainda é o do item? */
+        const valido = () =>
+          Boolean(alive?.current) &&
+          ctxRef.current.cargas === cargas &&
+          cargas.valido(token, wrapper) &&
+          groups[it.item_id] === wrapper;
+
         loader.load(
           glbUrl,
           (gltf) => {
             const inner = gltf.scene;
-            // Se o item foi removido ou o canvas desmontou, descarta a carga.
-            if (!alive?.current || groups[it.item_id] !== wrapper) {
+            if (!valido()) {
+              // Carga descartada: só libera recursos (sem setState, sem fit).
               descartarObjeto3D(inner);
-              setLoadingGlb((p) => {
-                const np = { ...p };
-                delete np[it.item_id];
-                return np;
-              });
-              concluirCarga();
+              cargas.concluir(token);
               return;
             }
             const rotX = (((it as unknown as { glb_rotacao_x?: number | null }).glb_rotacao_x ?? 0) * Math.PI) / 180;
@@ -957,14 +969,16 @@ export function Layout3DCanvas({
             inner.position.z -= center.z;
             inner.position.y -= box.min.y;
             wrapper.add(inner);
-            setLoadingGlb((p) => {
-              const np = { ...p };
-              delete np[it.item_id];
-              return np;
-            });
-            concluirCarga();
+
+            // GLB concluído depois da seleção: aplica a transparência agora.
+            const sel = ctxRef.current.selectedIds ?? [];
+            if (sel.includes(it.item_id)) tornarTransparente(wrapper);
+
+            limparProgresso(it.item_id);
+            concluirCarga(token);
           },
           (xhr) => {
+            if (!valido()) return;
             if (xhr.total) {
               setLoadingGlb((p) => ({
                 ...p,
@@ -974,12 +988,12 @@ export function Layout3DCanvas({
           },
           () => {
             // Falha ao carregar GLB: não renderiza geometria de fallback.
-            setLoadingGlb((p) => {
-              const np = { ...p };
-              delete np[it.item_id];
-              return np;
-            });
-            concluirCarga();
+            if (!valido()) {
+              cargas.concluir(token);
+              return;
+            }
+            limparProgresso(it.item_id);
+            concluirCarga(token);
           },
         );
       }
@@ -990,9 +1004,17 @@ export function Layout3DCanvas({
     c.atualizarSombras?.();
     c.invalidate?.();
 
-    if (pendentes === 0 && !didInitialFitRef.current && !c.userNavigated && items.length > 0) {
-      didInitialFitRef.current = true;
-      requestAnimationFrame(() => c.fitAll?.());
+    if (
+      cargas.pendentes() === 0 &&
+      !c.didInitialFit &&
+      !c.userNavigated &&
+      Object.keys(groups).length > 0
+    ) {
+      c.didInitialFit = true;
+      const fitRaf = requestAnimationFrame(() => {
+        if (alive?.current && ctxRef.current.cargas === cargas) c.fitAll?.();
+      });
+      return () => cancelAnimationFrame(fitRaf);
     }
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 

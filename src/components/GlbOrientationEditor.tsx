@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { descartarObjeto3D } from "@/lib/three/dispose";
+import { descartarObjeto3D, descartarSombraDaLuz } from "@/lib/three/dispose";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RotateCw, RotateCcw, RefreshCw, Loader2, Wand2 } from "lucide-react";
@@ -113,7 +113,7 @@ export function GlbOrientationEditor({
     camera.lookAt(0, 1, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -179,7 +179,11 @@ export function GlbOrientationEditor({
     loader.load(
       glbUrl,
       (gltf) => {
-        if (cancelled) return;
+        if (cancelled) {
+          // Carga descartada: libera os recursos do GLB abandonado.
+          descartarObjeto3D(gltf.scene);
+          return;
+        }
         const inner = gltf.scene;
         inner.traverse((o: THREE.Object3D) => {
           const mesh = o as THREE.Mesh;
@@ -234,6 +238,7 @@ export function GlbOrientationEditor({
         /* noop */
       }
       draco.dispose();
+      [keyLight, fillLight, rimLight].forEach((l) => descartarSombraDaLuz(l));
       descartarObjeto3D(scene);
       descartarObjeto3D(roomEnv);
       scene.environment = null;
