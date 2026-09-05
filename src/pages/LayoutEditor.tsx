@@ -856,7 +856,10 @@ export default function LayoutEditor() {
         description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
+    } finally {
+      restaurarEstado?.();
     }
+
   }
 
   // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
