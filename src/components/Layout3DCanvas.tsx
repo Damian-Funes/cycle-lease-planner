@@ -480,6 +480,7 @@ export function Layout3DCanvas({
       orbit.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, orbit.phi - (p.y - lastMouse.y) * 0.005));
       lastMouse = p;
       ctxRef.current.userNavigated = true;
+      cancelAnimationFrame(tweenRaf); // gesto do usuário tem prioridade sobre o tween
       invalidate();
     };
     const onUp = () => {
@@ -514,6 +515,7 @@ export function Layout3DCanvas({
         orbit.target.z += (hit.z - orbit.target.z) * t;
       }
       ctxRef.current.userNavigated = true;
+      cancelAnimationFrame(tweenRaf); // gesto do usuário tem prioridade sobre o tween
       invalidate();
     };
     dom.addEventListener("mousedown", onDown);
