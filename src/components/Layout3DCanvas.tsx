@@ -104,7 +104,6 @@ export function Layout3DCanvas({
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
-  const didInitialFitRef = useRef(false);
   const [loadingGlb, setLoadingGlb] = useState<Record<string, number>>({});
 
   useEffect(() => {
