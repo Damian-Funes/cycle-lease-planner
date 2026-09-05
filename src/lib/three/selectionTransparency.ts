@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { descartarMaterial } from "./dispose";
 
 const OPACITY_SELECIONADO = 0.35;
 
@@ -37,6 +36,11 @@ export function tornarTransparente(object: THREE.Object3D, opacity = OPACITY_SEL
   });
 }
 
+/**
+ * Devolve o material original ao mesh e libera SOMENTE o clone.
+ * As texturas continuam pertencendo ao material original (o clone as compartilha),
+ * então nunca são descartadas aqui.
+ */
 export function restaurarOpacidade(object: THREE.Object3D) {
   object.traverse((child) => {
     const mesh = child as THREE.Mesh;
@@ -51,7 +55,7 @@ export function restaurarOpacidade(object: THREE.Object3D) {
     original.needsUpdate = true;
 
     if (ud.transparenciaClonada && clone && clone !== original) {
-      descartarMaterial(clone);
+      clone.dispose();
     }
 
     delete ud.materialOriginal;
@@ -59,7 +63,7 @@ export function restaurarOpacidade(object: THREE.Object3D) {
   });
 }
 
-/** Usado ao remover o objeto da cena: libera o clone e devolve o material original. */
+/** Usado antes de remover/descartar o objeto: devolve o original e libera o clone. */
 export function descartarMaterialClonado(object: THREE.Object3D) {
   restaurarOpacidade(object);
 }
