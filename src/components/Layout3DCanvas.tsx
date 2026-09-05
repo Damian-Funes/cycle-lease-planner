@@ -930,10 +930,7 @@ export function Layout3DCanvas({
     if (!c.scene) return;
 
     if (c.previewMarker) {
-      c.scene.remove(c.previewMarker);
-      if (c.previewMarker.geometry) c.previewMarker.geometry.dispose();
-      const m = c.previewMarker.material as THREE.Material | undefined;
-      if (m) m.dispose();
+      removerEDescartar(c.previewMarker);
       c.previewMarker = null;
     }
 
