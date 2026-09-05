@@ -18,7 +18,7 @@ import {
   descartarSombraDaLuz,
 } from "@/lib/three/dispose";
 import { calcularShadowFit } from "@/lib/three/shadowFit";
-import { comDprDeCaptura } from "@/lib/three/captureDpr";
+import { comDprDeCaptura, dprSeguroDeCaptura, capturaParecemVazia } from "@/lib/three/captureDpr";
 import { criarRastreadorCargas, type RastreadorCargas } from "@/lib/three/loadTracker";
 
 export interface Layout3DCanvasProps {
