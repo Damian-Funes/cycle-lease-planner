@@ -195,25 +195,25 @@ export function Layout3DCanvas({
       invalidate();
     };
 
-    const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.5);
+    const fillLight = new THREE.DirectionalLight(0xd6e2ff, 0.34);
     fillLight.position.set(-15, 20, -10);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.42);
     rimLight.position.set(0, 15, -25);
     scene.add(rimLight);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.25);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.1);
     scene.add(ambient);
 
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
-    // Cimento polido — cinza médio com leve brilho
+    // Cimento fosco, discreto — não compete com os equipamentos e recebe bem a sombra
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x9a9a9a,
-      roughness: 0.55,
-      metalness: 0.08,
+      color: 0x8b8b89,
+      roughness: 0.92,
+      metalness: 0,
     });
     const floor = new THREE.Mesh(floorGeom, floorMat);
     floor.rotation.x = -Math.PI / 2;
