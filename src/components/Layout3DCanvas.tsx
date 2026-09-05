@@ -709,6 +709,7 @@ export function Layout3DCanvas({
     if (mode === "connect") {
       c.tc.detach();
       (c.tc as unknown as { visible: boolean }).visible = false;
+      c.invalidate?.();
       return;
     }
     (c.tc as unknown as { visible: boolean }).visible = true;
@@ -722,6 +723,7 @@ export function Layout3DCanvas({
       c.tc.showY = true;
       c.tc.showZ = false;
     }
+    c.invalidate?.();
   }, [mode, alturaLiberada]);
 
   useEffect(() => {
