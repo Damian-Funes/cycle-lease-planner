@@ -810,30 +810,22 @@ export default function LayoutEditor() {
       const blob = pdf.output("blob");
       const url = URL.createObjectURL(blob);
 
-      // 1) Tenta abrir em nova aba (funciona dentro do iframe do preview)
-      const win = window.open(url, "_blank");
-
-      // 2) Também tenta o download direto (caso o navegador permita)
+      // Download direto (mesma gestualidade do clique, sem abrir aba nova:
+      // no Safari a aba com blob: renderiza em branco e consome a ativação).
       const a = document.createElement("a");
       a.href = url;
       a.download = fname;
       a.rel = "noopener";
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-
-      if (!win) {
-        toast({
-          title: "Permita pop-ups para visualizar o PDF",
-          description: "Seu navegador bloqueou a nova aba com o PDF gerado.",
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "PDF gerado", description: "Aberto em nova aba." });
-      }
+      // Fallback acionável pelo usuário caso o navegador não inicie o download.
+      setPdfPronto({ url, fname });
+      toast({ title: "PDF gerado", description: `Salvando ${fname}. Se não baixar, use o botão "Baixar PDF".` });
       console.log("[PDF] concluído");
+
     } catch (err) {
       console.error("[PDF] erro inesperado:", err);
       toast({
