@@ -751,6 +751,8 @@ export function Layout3DCanvas({
     const loader = new GLTFLoader();
     loader.setDRACOLoader(draco);
 
+    const cargas = criarRastreadorCargas<THREE.Group>();
+
     ctxRef.current = {
       scene, camera, renderer, tc,
       groups: {},
@@ -759,7 +761,10 @@ export function Layout3DCanvas({
       onTransform, onSelect, onConectarClick, onConexaoSelect,
       currentMode: mode,
       dom, animateToView, fitAll,
-      loader, alive, invalidate, atualizarSombras,
+      loader, alive, invalidate, atualizarSombras, sincronizarOrbit,
+      cargas,
+      // Flags resetadas por CENA (este effect), não por re-render.
+      didInitialFit: false,
       userNavigated: false,
     };
 
@@ -767,15 +772,20 @@ export function Layout3DCanvas({
 
     // Expõe API ao parent para captura de múltiplas vistas (PDF, etc).
     // Aguarda um frame para garantir que groups foram populados pelo effect de items.
+    let onReadyRaf = 0;
     if (onReady) {
       const api: Layout3DCanvasApi = { captureView, fitAll };
-      requestAnimationFrame(() => onReady(api));
+      onReadyRaf = requestAnimationFrame(() => {
+        if (alive.current) onReady(api);
+      });
     }
 
     return () => {
       alive.current = false;
+      cargas.limpar();
       cancelAnimationFrame(raf);
       cancelAnimationFrame(tweenRaf);
+      cancelAnimationFrame(onReadyRaf);
       ro.disconnect();
       dom.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
