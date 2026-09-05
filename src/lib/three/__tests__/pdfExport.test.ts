@@ -60,7 +60,7 @@ describe("DPR de captura", () => {
 
 /** PNG 2x2 real (não vazio) para embutir no PDF. */
 const PNG_2x2 =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAACp8Z5+AAAAFUlEQVR4nGP8z8DAwMDAxMDAwMAAAA8/AeMlOEjcAAAAAElFTkSuQmCC";
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAFElEQVR4nGOUq4hiwAaYsIoOWgkAwGwBAMG+AfgAAAAASUVORK5CYII=";
 
 describe("PDF de layout (A3 paisagem)", () => {
   it("gera PDF real com header %PDF, páginas esperadas e imagens embutidas", () => {
