@@ -214,7 +214,7 @@ export function Layout3DCanvas({
     const cimento = criarTexturasCimento(renderer.capabilities.getMaxAnisotropy());
     ajustarRepeticaoCimento(cimento, floorW, floorH);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x8e8e8a,
+      color: 0xa8a8a3,
       map: cimento.mapa,
       roughnessMap: cimento.rugosidade,
       roughness: 1,

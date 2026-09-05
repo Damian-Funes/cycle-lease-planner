@@ -74,7 +74,7 @@ export function criarTexturasCimento(anisotropy = 4): TexturasCimento {
           (fina(x, y) - 0.5) * 0.15;
         const granulado = (grao() - 0.5) * 0.045;
         // base cinza-concreto neutro, variação discreta (não "mancha")
-        const base = 0.58 + n * 0.1 + granulado;
+        const base = 0.9 + n * 0.12 + granulado;
         const v = Math.max(0, Math.min(1, base));
         const i = (y * size + x) * 4;
         img.data[i] = Math.round(v * 252);
