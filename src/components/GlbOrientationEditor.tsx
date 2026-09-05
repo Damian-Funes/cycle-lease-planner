@@ -113,7 +113,7 @@ export function GlbOrientationEditor({
     camera.lookAt(0, 1, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -179,7 +179,11 @@ export function GlbOrientationEditor({
     loader.load(
       glbUrl,
       (gltf) => {
-        if (cancelled) return;
+        if (cancelled) {
+          // Carga descartada: libera os recursos do GLB abandonado.
+          descartarObjeto3D(gltf.scene);
+          return;
+        }
         const inner = gltf.scene;
         inner.traverse((o: THREE.Object3D) => {
           const mesh = o as THREE.Mesh;
