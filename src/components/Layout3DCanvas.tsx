@@ -18,6 +18,8 @@ import {
   descartarSombraDaLuz,
 } from "@/lib/three/dispose";
 import { calcularShadowFit } from "@/lib/three/shadowFit";
+import { criarTexturasCimento, ajustarRepeticaoCimento } from "@/lib/three/concreteTexture";
+
 import { comDprDeCaptura } from "@/lib/three/captureDpr";
 import { criarRastreadorCargas, type RastreadorCargas } from "@/lib/three/loadTracker";
 
@@ -207,12 +209,18 @@ export function Layout3DCanvas({
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
-    // Cimento fosco, discreto — não compete com os equipamentos e recebe bem a sombra
+    // Cimento queimado procedural (tile de 4 m repetido conforme a área real):
+    // fosco e discreto, dá contraste para máquinas claras e escuras sem competir.
+    const cimento = criarTexturasCimento(renderer.capabilities.getMaxAnisotropy());
+    ajustarRepeticaoCimento(cimento, floorW, floorH);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x93938f,
-      roughness: 0.92,
+      color: 0xa8a8a3,
+      map: cimento.mapa,
+      roughnessMap: cimento.rugosidade,
+      roughness: 1,
       metalness: 0,
     });
+
     const floor = new THREE.Mesh(floorGeom, floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.position.x = floorW / 2;
