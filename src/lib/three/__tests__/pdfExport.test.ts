@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { Vector2 } from "three";
 import { jsPDF } from "jspdf";
 import { comDprDeCaptura, type RendererDprLike } from "@/lib/three/captureDpr";
-import { baixarBlobUrl } from "@/lib/downloadBlob";
+import { baixarBlobUrl, compartilharBlob, visualizarBlobUrl } from "@/lib/downloadBlob";
 
 /** Renderer falso que registra DPR/tamanho aplicados. */
 function rendererFake(dprInicial: number, w: number, h: number) {
@@ -127,5 +127,28 @@ describe("baixarBlobUrl", () => {
     expect(() => baixarBlobUrl(url, "x.pdf")).toThrow("bloqueado");
     expect(ancora!.isConnected).toBe(false);
     expect(document.querySelectorAll("a").length).toBe(0);
+  });
+
+  it("abre a visualização somente quando o navegador aceita a nova aba", () => {
+    const popup = { opener: window } as unknown as Window;
+    const win = { open: vi.fn().mockReturnValue(popup) } as unknown as Window;
+    expect(visualizarBlobUrl("blob:http://localhost/pdf", win)).toBe(true);
+    expect(win.open).toHaveBeenCalledWith("blob:http://localhost/pdf", "_blank");
+    expect(popup.opener).toBeNull();
+
+    const bloqueado = { open: vi.fn().mockReturnValue(null) } as unknown as Window;
+    expect(visualizarBlobUrl("blob:http://localhost/pdf", bloqueado)).toBe(false);
+  });
+
+  it("oferece o arquivo ao compartilhamento nativo quando disponível", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const canShare = vi.fn().mockReturnValue(true);
+    const nav = { share, canShare } as unknown as Navigator;
+    const blob = new Blob(["%PDF-1.4"], { type: "application/pdf" });
+
+    await expect(compartilharBlob(blob, "layout.pdf", nav)).resolves.toBe(true);
+    const payload = share.mock.calls[0][0] as ShareData;
+    expect(payload.files?.[0].name).toBe("layout.pdf");
+    expect(payload.files?.[0].type).toBe("application/pdf");
   });
 });
