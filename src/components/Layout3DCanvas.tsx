@@ -12,7 +12,14 @@ import {
   restaurarOpacidade,
   descartarMaterialClonado,
 } from "@/lib/three/selectionTransparency";
-import { descartarObjeto3D, removerEDescartar } from "@/lib/three/dispose";
+import {
+  descartarObjeto3D,
+  removerEDescartar,
+  descartarSombraDaLuz,
+} from "@/lib/three/dispose";
+import { calcularShadowFit } from "@/lib/three/shadowFit";
+import { comDprDeCaptura } from "@/lib/three/captureDpr";
+import { criarRastreadorCargas, type RastreadorCargas } from "@/lib/three/loadTracker";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -158,58 +165,20 @@ export function Layout3DCanvas({
       box.union(
         new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(floorW, 0, floorH)),
       );
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      const raio = Math.max(size.length() / 2, 2);
-      const margem = raio * 0.1 + 0.5;
+      const fit = calcularShadowFit(box, keyLightDir);
 
-      keyLightTarget.position.copy(center);
+      keyLightTarget.position.copy(fit.target);
       keyLightTarget.updateMatrixWorld(true);
-      keyLight.position.copy(center).addScaledVector(keyLightDir, raio * 2.2 + 5);
+      keyLight.position.copy(fit.position);
       keyLight.updateMatrixWorld(true);
 
-      const lookAt = new THREE.Matrix4().lookAt(
-        keyLight.position,
-        center,
-        new THREE.Vector3(0, 1, 0),
-      );
-      const paraLuz = new THREE.Matrix4()
-        .compose(
-          keyLight.position,
-          new THREE.Quaternion().setFromRotationMatrix(lookAt),
-          new THREE.Vector3(1, 1, 1),
-        )
-        .invert();
-
-      let minX = Infinity;
-      let maxX = -Infinity;
-      let minY = Infinity;
-      let maxY = -Infinity;
-      let minD = Infinity;
-      let maxD = -Infinity;
-      const p = new THREE.Vector3();
-      for (let i = 0; i < 8; i += 1) {
-        p.set(
-          i & 1 ? box.max.x : box.min.x,
-          i & 2 ? box.max.y : box.min.y,
-          i & 4 ? box.max.z : box.min.z,
-        ).applyMatrix4(paraLuz);
-        minX = Math.min(minX, p.x);
-        maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y);
-        maxY = Math.max(maxY, p.y);
-        const depth = -p.z;
-        minD = Math.min(minD, depth);
-        maxD = Math.max(maxD, depth);
-      }
-
       const shadowCam = keyLight.shadow.camera;
-      shadowCam.left = minX - margem;
-      shadowCam.right = maxX + margem;
-      shadowCam.bottom = minY - margem;
-      shadowCam.top = maxY + margem;
-      shadowCam.near = Math.max(0.5, minD - margem);
-      shadowCam.far = Math.max(shadowCam.near + 1, maxD + margem);
+      shadowCam.left = fit.left;
+      shadowCam.right = fit.right;
+      shadowCam.bottom = fit.bottom;
+      shadowCam.top = fit.top;
+      shadowCam.near = fit.near;
+      shadowCam.far = fit.far;
       shadowCam.updateProjectionMatrix();
       keyLight.shadow.needsUpdate = true;
       invalidate();
