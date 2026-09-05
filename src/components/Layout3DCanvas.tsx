@@ -728,8 +728,10 @@ export function Layout3DCanvas({
 
   useEffect(() => {
     const c = ctxRef.current;
-    if (!c.scene || !c.groups) return;
+    if (!c.scene || !c.groups || !c.loader) return;
     const groups = c.groups;
+    const loader = c.loader;
+    const alive = c.alive;
 
     const existingIds = Object.keys(groups);
     const newIds = items.map((i) => i.item_id);
@@ -739,24 +741,26 @@ export function Layout3DCanvas({
         const g = groups[id];
         descartarMaterialClonado(g);
         c.scene!.remove(g);
-        g.traverse((o: THREE.Object3D) => {
-          const mesh = o as THREE.Mesh;
-          if (mesh.geometry) mesh.geometry.dispose();
-        });
+        descartarObjeto3D(g);
         delete groups[id];
       }
     });
 
-    const loader = new GLTFLoader();
-    const draco = new DRACOLoader();
-    draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
-    loader.setDRACOLoader(draco);
+    let pendentes = 0;
+    const concluirCarga = () => {
+      pendentes -= 1;
+      if (pendentes > 0) return;
+      c.atualizarSombras?.();
+      c.invalidate?.();
+      // Enquadramento inicial: uma única vez, e nunca sobrepondo navegação manual.
+      if (!didInitialFitRef.current && !c.userNavigated && items.length > 0) {
+        didInitialFitRef.current = true;
+        c.fitAll?.();
+      }
+    };
 
     items.forEach((it) => {
       const existing = groups[it.item_id];
-      const w = (it.largura_mm ?? 1000) / 1000;
-      const h = (it.altura_mm ?? 2000) / 1000;
-      const d = (it.comprimento_mm ?? 1000) / 1000;
       const posX = (it.pos_x_mm ?? 0) / 1000;
       const posZ = (it.pos_y_mm ?? 0) / 1000;
       const posY = (it.pos_z_mm ?? 0) / 1000;
@@ -778,10 +782,22 @@ export function Layout3DCanvas({
 
       const glbUrl = (it as unknown as { modelo_3d_url?: string | null }).modelo_3d_url;
       if (glbUrl) {
+        pendentes += 1;
         loader.load(
           glbUrl,
           (gltf) => {
             const inner = gltf.scene;
+            // Se o item foi removido ou o canvas desmontou, descarta a carga.
+            if (!alive?.current || groups[it.item_id] !== wrapper) {
+              descartarObjeto3D(inner);
+              setLoadingGlb((p) => {
+                const np = { ...p };
+                delete np[it.item_id];
+                return np;
+              });
+              concluirCarga();
+              return;
+            }
             const rotX = (((it as unknown as { glb_rotacao_x?: number | null }).glb_rotacao_x ?? 0) * Math.PI) / 180;
             const rotYglb = (((it as unknown as { glb_rotacao_y?: number | null }).glb_rotacao_y ?? 0) * Math.PI) / 180;
             const rotZ = (((it as unknown as { glb_rotacao_z?: number | null }).glb_rotacao_z ?? 0) * Math.PI) / 180;
@@ -808,6 +824,7 @@ export function Layout3DCanvas({
               delete np[it.item_id];
               return np;
             });
+            concluirCarga();
           },
           (xhr) => {
             if (xhr.total) {
@@ -824,6 +841,7 @@ export function Layout3DCanvas({
               delete np[it.item_id];
               return np;
             });
+            concluirCarga();
           },
         );
       }
@@ -831,9 +849,13 @@ export function Layout3DCanvas({
 
     });
 
-    requestAnimationFrame(() => {
-      if (items.length > 0) c.fitAll?.();
-    });
+    c.atualizarSombras?.();
+    c.invalidate?.();
+
+    if (pendentes === 0 && !didInitialFitRef.current && !c.userNavigated && items.length > 0) {
+      didInitialFitRef.current = true;
+      requestAnimationFrame(() => c.fitAll?.());
+    }
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
   const prevSelectedIdsRef = useRef<string[]>([]);
