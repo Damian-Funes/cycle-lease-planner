@@ -27,6 +27,7 @@ import {
 import type { Equipamento } from "@/lib/equipamentos";
 import { CATEGORIAS } from "@/lib/equipamentos";
 import { listContidos, buildPaiParaFilhos, buildFilhoParaPais, calcularOcultos, type ContidoRow } from "@/lib/equipamentoContidos";
+import { baixarBlobUrl } from "@/lib/downloadBlob";
 
 
 const PLANTAS_BUCKET = "plantas-cliente";
@@ -234,8 +235,8 @@ export default function LayoutEditor() {
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
-  // PDF gerado e disponível para download manual (fallback quando o navegador
-  // não inicia o download automático — típico do Safari dentro de iframe).
+  // PDF gerado e disponível para download manual (fallback caso o navegador
+  // não inicie o download automático).
   const [pdfPronto, setPdfPronto] = useState<{ url: string; fname: string } | null>(null);
   const pdfUrlRef = useRef<string | null>(null);
   useEffect(() => {
