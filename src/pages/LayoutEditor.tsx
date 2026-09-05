@@ -970,6 +970,14 @@ export default function LayoutEditor() {
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
             </Button>
+            {pdfPronto && (
+              <Button size="sm" variant="default" className="gap-1" asChild>
+                <a href={pdfPronto.url} download={pdfPronto.fname} title={pdfPronto.fname}>
+                  <Download className="w-4 h-4" /> Baixar PDF
+                </a>
+              </Button>
+            )}
+
             <AppHeader />
           </div>
         </div>
