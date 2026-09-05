@@ -541,7 +541,7 @@ export function Layout3DCanvas({
     tc.setRotationSnap(THREE.MathUtils.degToRad(90));
     tc.showY = false;
     tc.setMode("translate");
-    tc.addEventListener("dragging-changed", (e) => {
+    const onDraggingChanged = (e: { value?: unknown }) => {
       const dragging = Boolean((e as { value: unknown }).value);
       orbit.locked = dragging;
       const c = ctxRef.current;
@@ -572,9 +572,11 @@ export function Layout3DCanvas({
           });
         }
         c.dragState = null;
+        atualizarSombras();
       }
-    });
-    tc.addEventListener("objectChange", () => {
+      invalidate();
+    };
+    const onObjectChange = () => {
       const c = ctxRef.current;
       const obj = tc.object;
       if (!obj || !obj.userData.itemId) return;
@@ -592,7 +594,12 @@ export function Layout3DCanvas({
           g.rotation.y = b.rotY + drot;
         });
       }
-    });
+      invalidate();
+    };
+    tc.addEventListener("dragging-changed", onDraggingChanged);
+    tc.addEventListener("objectChange", onObjectChange);
+    // hover/mudança de eixo do gizmo
+    tc.addEventListener("change", invalidate);
     const tcAny = tc as unknown as { getHelper?: () => THREE.Object3D };
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
     scene.add(tcHelper);
@@ -607,17 +614,21 @@ export function Layout3DCanvas({
     viewHelperDiv.style.pointerEvents = "auto";
     mount.appendChild(viewHelperDiv);
     const viewHelper = new ViewHelper(camera, viewHelperDiv);
-    viewHelperDiv.addEventListener("pointerup", (event) => {
+    const onViewHelperPointerUp = (event: PointerEvent) => {
       const vh = viewHelper as unknown as { handleClick: (e: PointerEvent) => boolean };
       if (vh.handleClick(event)) {
+        ctxRef.current.userNavigated = true;
+        invalidate();
         setTimeout(() => {
           const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
           orbit.radius = offset.length();
           orbit.theta = Math.atan2(offset.z, offset.x);
           orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
+          invalidate();
         }, 600);
       }
-    });
+    };
+    viewHelperDiv.addEventListener("pointerup", onViewHelperPointerUp);
 
     const raycaster = new THREE.Raycaster();
     const mouseV = new THREE.Vector2();
@@ -717,7 +728,13 @@ export function Layout3DCanvas({
       raf = requestAnimationFrame(animate);
       const delta = viewHelperClock.getDelta();
       const vh = viewHelper as unknown as { animating?: boolean; update: (d: number) => void };
-      if (vh.animating) vh.update(delta);
+      const animando = Boolean(vh.animating);
+      if (animando) vh.update(delta);
+      const arrastando =
+        orbit.isDragging || Boolean((tc as unknown as { dragging?: boolean }).dragging);
+      // Render sob demanda: só desenha quando algo mudou ou há animação/arraste ativo.
+      if (!needsRender && !animando && !arrastando) return;
+      needsRender = false;
       updateCam();
       renderer.autoClear = true;
       renderer.render(scene, camera);
@@ -734,9 +751,15 @@ export function Layout3DCanvas({
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      invalidate();
     };
     const ro = new ResizeObserver(onResize);
     ro.observe(mount);
+
+    const draco = new DRACOLoader();
+    draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(draco);
 
     ctxRef.current = {
       scene, camera, renderer, tc,
@@ -746,7 +769,11 @@ export function Layout3DCanvas({
       onTransform, onSelect, onConectarClick, onConexaoSelect,
       currentMode: mode,
       dom, animateToView, fitAll,
+      loader, alive, invalidate, atualizarSombras,
+      userNavigated: false,
     };
+
+    atualizarSombras();
 
     // Expõe API ao parent para captura de múltiplas vistas (PDF, etc).
     // Aguarda um frame para garantir que groups foram populados pelo effect de items.
@@ -756,7 +783,9 @@ export function Layout3DCanvas({
     }
 
     return () => {
+      alive.current = false;
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(tweenRaf);
       ro.disconnect();
       dom.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
@@ -764,6 +793,14 @@ export function Layout3DCanvas({
       dom.removeEventListener("wheel", onWheel);
       dom.removeEventListener("mousedown", onClickDown);
       dom.removeEventListener("mouseup", onClickUp);
+      viewHelperDiv.removeEventListener("pointerup", onViewHelperPointerUp);
+      tc.removeEventListener("dragging-changed", onDraggingChanged);
+      tc.removeEventListener("objectChange", onObjectChange);
+      tc.removeEventListener("change", invalidate);
+      tc.detach();
+      tc.dispose();
+      scene.remove(tcHelper);
+      (viewHelper as unknown as { dispose?: () => void }).dispose?.();
       try {
         mount.removeChild(dom);
       } catch {
@@ -774,15 +811,12 @@ export function Layout3DCanvas({
       } catch {
         /* noop */
       }
-      scene.traverse((o: THREE.Object3D) => {
-        const mesh = o as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose();
-        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
-        if (mat) {
-          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-          else mat.dispose();
-        }
-      });
+      draco.dispose();
+      // Libera geometrias/materiais/texturas próprios da cena (envMap é tratado à parte)
+      descartarObjeto3D(scene);
+      descartarObjeto3D(roomEnv);
+      scene.environment = null;
+      envRT.dispose();
       pmremGenerator.dispose();
       renderer.dispose();
       ctxRef.current = {};
