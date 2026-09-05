@@ -65,6 +65,11 @@ interface CanvasCtx {
   fitAll?: () => void;
   selectedIds?: string[];
   dragState?: DragState | null;
+  loader?: GLTFLoader;
+  alive?: { current: boolean };
+  invalidate?: () => void;
+  atualizarSombras?: () => void;
+  userNavigated?: boolean;
 }
 
 export function Layout3DCanvas({
@@ -87,6 +92,7 @@ export function Layout3DCanvas({
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
+  const didInitialFitRef = useRef(false);
   const [loadingGlb, setLoadingGlb] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -105,7 +111,8 @@ export function Layout3DCanvas({
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    // DPR visual limitado a 2 (a captura PNG/PDF restaura o DPR original abaixo).
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -114,8 +121,16 @@ export function Layout3DCanvas({
     renderer.toneMappingExposure = 1.15;
     mount.appendChild(renderer.domElement);
 
+    const alive = { current: true };
+    let needsRender = true;
+    const invalidate = () => {
+      needsRender = true;
+    };
+
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    const roomEnv = new RoomEnvironment();
+    const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
+    scene.environment = envRT.texture;
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.8);
     hemi.position.set(0, 50, 0);
@@ -125,14 +140,79 @@ export function Layout3DCanvas({
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.camera.left = -40;
-    keyLight.shadow.camera.right = 40;
-    keyLight.shadow.camera.top = 40;
-    keyLight.shadow.camera.bottom = -40;
-    keyLight.shadow.camera.near = 1;
-    keyLight.shadow.camera.far = 120;
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
+
+    const keyLightDir = new THREE.Vector3(20, 35, 15).normalize();
+    const keyLightTarget = new THREE.Object3D();
+    scene.add(keyLightTarget);
+    keyLight.target = keyLightTarget;
+
+    /**
+     * Ajusta a câmera de sombra aos bounds dos equipamentos (+ piso receptor),
+     * medidos no espaço da luz. Chamado ao carregar/mover/remover — nunca por frame.
+     */
+    const atualizarSombras = () => {
+      const { box } = getEquipmentBounds();
+      box.union(
+        new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(floorW, 0, floorH)),
+      );
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const raio = Math.max(size.length() / 2, 2);
+      const margem = raio * 0.1 + 0.5;
+
+      keyLightTarget.position.copy(center);
+      keyLightTarget.updateMatrixWorld(true);
+      keyLight.position.copy(center).addScaledVector(keyLightDir, raio * 2.2 + 5);
+      keyLight.updateMatrixWorld(true);
+
+      const lookAt = new THREE.Matrix4().lookAt(
+        keyLight.position,
+        center,
+        new THREE.Vector3(0, 1, 0),
+      );
+      const paraLuz = new THREE.Matrix4()
+        .compose(
+          keyLight.position,
+          new THREE.Quaternion().setFromRotationMatrix(lookAt),
+          new THREE.Vector3(1, 1, 1),
+        )
+        .invert();
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      let minD = Infinity;
+      let maxD = -Infinity;
+      const p = new THREE.Vector3();
+      for (let i = 0; i < 8; i += 1) {
+        p.set(
+          i & 1 ? box.max.x : box.min.x,
+          i & 2 ? box.max.y : box.min.y,
+          i & 4 ? box.max.z : box.min.z,
+        ).applyMatrix4(paraLuz);
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y);
+        maxY = Math.max(maxY, p.y);
+        const depth = -p.z;
+        minD = Math.min(minD, depth);
+        maxD = Math.max(maxD, depth);
+      }
+
+      const shadowCam = keyLight.shadow.camera;
+      shadowCam.left = minX - margem;
+      shadowCam.right = maxX + margem;
+      shadowCam.bottom = minY - margem;
+      shadowCam.top = maxY + margem;
+      shadowCam.near = Math.max(0.5, minD - margem);
+      shadowCam.far = Math.max(shadowCam.near + 1, maxD + margem);
+      shadowCam.updateProjectionMatrix();
+      keyLight.shadow.needsUpdate = true;
+      invalidate();
+    };
 
     const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.5);
     fillLight.position.set(-15, 20, -10);
