@@ -34,3 +34,28 @@ export function comDprDeCaptura<T>(
     }
   }
 }
+
+/**
+ * Limita o DPR de captura para o buffer não passar de `maxLado` px por lado.
+ * Safari/iOS perde o contexto WebGL (tela branca) quando o drawing buffer
+ * excede o máximo suportado — nesse caso a captura vira PNG vazio.
+ */
+export function dprSeguroDeCaptura(
+  dprDesejado: number,
+  largura: number,
+  altura: number,
+  maxLado = 4096,
+): number {
+  const lado = Math.max(largura, altura);
+  if (!Number.isFinite(dprDesejado) || dprDesejado <= 0) return 1;
+  if (lado <= 0) return dprDesejado;
+  const limite = maxLado / lado;
+  return Math.max(1, Math.min(dprDesejado, limite));
+}
+
+/** Heurística: data URL PNG minúsculo/ausente indica captura em branco. */
+export function capturaParecemVazia(dataUrl: string | null | undefined): boolean {
+  if (!dataUrl) return true;
+  if (!dataUrl.startsWith("data:image/png")) return true;
+  return dataUrl.length < 2000;
+}

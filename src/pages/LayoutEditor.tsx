@@ -234,6 +234,19 @@ export default function LayoutEditor() {
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  // PDF gerado e disponível para download manual (fallback quando o navegador
+  // não inicia o download automático — típico do Safari dentro de iframe).
+  const [pdfPronto, setPdfPronto] = useState<{ url: string; fname: string } | null>(null);
+  const pdfUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pdfPronto) {
+      if (pdfUrlRef.current && pdfUrlRef.current !== pdfPronto.url) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = pdfPronto.url;
+    }
+  }, [pdfPronto]);
+  useEffect(() => () => { if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current); }, []);
+
+
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
     if (id === null) {
@@ -648,14 +661,20 @@ export default function LayoutEditor() {
       return;
     }
 
+    let restaurarEstado: (() => void) | null = null;
     try {
 
-    // Desseleciona para a captura sair limpa (sem transparência)
+
+    // Desseleciona (inclusive multisseleção) para a captura sair limpa,
+    // sem gizmo nem transparência de seleção.
     const idSelecionadoAntes = selectedId;
-    if (idSelecionadoAntes) {
+    const idsSelecionadosAntes = selectedIds;
+    if (idSelecionadoAntes || idsSelecionadosAntes.length > 0) {
       setSelectedId(null);
+      setSelectedIds([]);
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     }
+
 
     const vistas: { view: ViewName; titulo: string }[] = [
       { view: "top",   titulo: "Vista Superior (Planta)" },
@@ -682,9 +701,13 @@ export default function LayoutEditor() {
       }
     }
 
-    if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
-    // Restaura uma vista útil para o usuário após captura
-    api.fitAll();
+    restaurarEstado = () => {
+      if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
+      if (idsSelecionadosAntes.length > 0) setSelectedIds(idsSelecionadosAntes);
+      // Restaura uma vista útil para o usuário após captura
+      api.fitAll();
+    };
+
 
     console.log("[PDF] total capturas:", capturas.length);
     if (capturas.length === 0) {
@@ -810,30 +833,22 @@ export default function LayoutEditor() {
       const blob = pdf.output("blob");
       const url = URL.createObjectURL(blob);
 
-      // 1) Tenta abrir em nova aba (funciona dentro do iframe do preview)
-      const win = window.open(url, "_blank");
-
-      // 2) Também tenta o download direto (caso o navegador permita)
+      // Download direto (mesma gestualidade do clique, sem abrir aba nova:
+      // no Safari a aba com blob: renderiza em branco e consome a ativação).
       const a = document.createElement("a");
       a.href = url;
       a.download = fname;
       a.rel = "noopener";
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
 
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-
-      if (!win) {
-        toast({
-          title: "Permita pop-ups para visualizar o PDF",
-          description: "Seu navegador bloqueou a nova aba com o PDF gerado.",
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "PDF gerado", description: "Aberto em nova aba." });
-      }
+      // Fallback acionável pelo usuário caso o navegador não inicie o download.
+      setPdfPronto({ url, fname });
+      toast({ title: "PDF gerado", description: `Salvando ${fname}. Se não baixar, use o botão "Baixar PDF".` });
       console.log("[PDF] concluído");
+
     } catch (err) {
       console.error("[PDF] erro inesperado:", err);
       toast({
@@ -841,7 +856,10 @@ export default function LayoutEditor() {
         description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
+    } finally {
+      restaurarEstado?.();
     }
+
   }
 
   // Regra "itens contidos": filhos cujos pais já estão no layout são ocultados do desenho.
@@ -952,6 +970,14 @@ export default function LayoutEditor() {
             <Button size="sm" variant="outline" onClick={handleExportPdf} className="gap-1">
               <Download className="w-4 h-4" /> PDF
             </Button>
+            {pdfPronto && (
+              <Button size="sm" variant="default" className="gap-1" asChild>
+                <a href={pdfPronto.url} download={pdfPronto.fname} title={pdfPronto.fname}>
+                  <Download className="w-4 h-4" /> Baixar PDF
+                </a>
+              </Button>
+            )}
+
             <AppHeader />
           </div>
         </div>
