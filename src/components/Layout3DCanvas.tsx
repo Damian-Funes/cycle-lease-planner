@@ -12,6 +12,7 @@ import {
   restaurarOpacidade,
   descartarMaterialClonado,
 } from "@/lib/three/selectionTransparency";
+import { descartarObjeto3D, removerEDescartar } from "@/lib/three/dispose";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -857,6 +858,7 @@ export function Layout3DCanvas({
     }
 
     prevSelectedIdsRef.current = allSel;
+    c.invalidate?.();
   }, [selectedId, selectedIds, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Renderiza conexoes
@@ -922,6 +924,8 @@ export function Layout3DCanvas({
 
       grp.add(mesh);
     });
+
+    c.invalidate?.();
   }, [conexoes, selectedConexaoId, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Marcador do ponto temporario (modo conectar)
@@ -952,6 +956,8 @@ export function Layout3DCanvas({
         c.previewMarker = sphere;
       }
     }
+
+    c.invalidate?.();
   }, [modoConexao, conexaoPontoTemp]);
 
 
