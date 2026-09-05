@@ -156,8 +156,9 @@ export function Layout3DCanvas({
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.bias = -0.0004;
-    keyLight.shadow.normalBias = 0.02;
+    // VSM: bias negativo quebra o filtro; usar normalBias para evitar acne.
+    keyLight.shadow.bias = 0;
+    keyLight.shadow.normalBias = 0.05;
     keyLight.shadow.radius = 4;
     keyLight.shadow.blurSamples = 12;
     scene.add(keyLight);
