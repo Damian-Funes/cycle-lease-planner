@@ -1030,7 +1030,9 @@ export function Layout3DCanvas({
     ) {
       c.didInitialFit = true;
       const fitRaf = requestAnimationFrame(() => {
-        if (alive?.current && ctxRef.current.cargas === cargas) c.fitAll?.();
+        const ctx = ctxRef.current;
+        // Navegação manual no intervalo cancela o enquadramento já agendado.
+        if (alive?.current && ctx.cargas === cargas && !ctx.userNavigated) c.fitAll?.();
       });
       return () => cancelAnimationFrame(fitRaf);
     }
