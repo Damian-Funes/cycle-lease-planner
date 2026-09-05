@@ -130,7 +130,7 @@ export function Layout3DCanvas({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.8;
+    renderer.toneMappingExposure = 1.0;
     mount.appendChild(renderer.domElement);
 
     const alive = { current: true };
@@ -145,13 +145,13 @@ export function Layout3DCanvas({
     const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
     scene.environment = envRT.texture;
     // Ambiente contribui com reflexos/preenchimento sem lavar as cores dos GLBs.
-    scene.environmentIntensity = 0.3;
+    scene.environmentIntensity = 0.45;
 
-    const hemi = new THREE.HemisphereLight(0xdfe7f2, 0x9a9086, 0.22);
+    const hemi = new THREE.HemisphereLight(0xdfe7f2, 0x9a9086, 0.3);
     hemi.position.set(0, 50, 0);
     scene.add(hemi);
 
-    const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.15);
+    const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.7);
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
@@ -193,7 +193,7 @@ export function Layout3DCanvas({
       invalidate();
     };
 
-    const fillLight = new THREE.DirectionalLight(0xd6e2ff, 0.22);
+    const fillLight = new THREE.DirectionalLight(0xd6e2ff, 0.28);
     fillLight.position.set(-15, 20, -10);
     scene.add(fillLight);
 
@@ -209,7 +209,7 @@ export function Layout3DCanvas({
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
     // Cimento fosco, discreto — não compete com os equipamentos e recebe bem a sombra
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x76767a,
+      color: 0x93938f,
       roughness: 0.92,
       metalness: 0,
     });
