@@ -130,7 +130,7 @@ export function Layout3DCanvas({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.0;
     mount.appendChild(renderer.domElement);
 
     const alive = { current: true };
@@ -144,16 +144,20 @@ export function Layout3DCanvas({
     const roomEnv = new RoomEnvironment();
     const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
     scene.environment = envRT.texture;
+    // Ambiente contribui com reflexos/preenchimento sem lavar as cores dos GLBs.
+    scene.environmentIntensity = 0.45;
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.8);
+    const hemi = new THREE.HemisphereLight(0xdfe7f2, 0x9a9086, 0.3);
     hemi.position.set(0, 50, 0);
     scene.add(hemi);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.4);
+    const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.7);
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.bias = -0.0005;
+    keyLight.shadow.bias = -0.0002;
+    // normalBias remove o "shadow acne" nas superfícies quase paralelas à luz
+    keyLight.shadow.normalBias = 0.03;
     scene.add(keyLight);
 
     const keyLightDir = new THREE.Vector3(20, 35, 15).normalize();
@@ -189,25 +193,25 @@ export function Layout3DCanvas({
       invalidate();
     };
 
-    const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.5);
+    const fillLight = new THREE.DirectionalLight(0xd6e2ff, 0.28);
     fillLight.position.set(-15, 20, -10);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
     rimLight.position.set(0, 15, -25);
     scene.add(rimLight);
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.25);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.06);
     scene.add(ambient);
 
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const floorGeom = new THREE.PlaneGeometry(floorW, floorH);
-    // Cimento polido — cinza médio com leve brilho
+    // Cimento fosco, discreto — não compete com os equipamentos e recebe bem a sombra
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x9a9a9a,
-      roughness: 0.55,
-      metalness: 0.08,
+      color: 0x93938f,
+      roughness: 0.92,
+      metalness: 0,
     });
     const floor = new THREE.Mesh(floorGeom, floorMat);
     floor.rotation.x = -Math.PI / 2;
