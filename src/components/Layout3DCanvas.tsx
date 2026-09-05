@@ -71,6 +71,7 @@ interface CanvasCtx {
   animateToView?: (theta: number, phi: number, radius?: number) => void;
   fitAll?: () => void;
   selectedIds?: string[];
+  selecaoEfetiva?: string[];
   dragState?: DragState | null;
   loader?: GLTFLoader;
   alive?: { current: boolean };
@@ -839,7 +840,11 @@ export function Layout3DCanvas({
     ctxRef.current.onConexaoSelect = onConexaoSelect;
     ctxRef.current.currentMode = mode;
     ctxRef.current.selectedIds = selectedIds;
-  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode, selectedIds]);
+    // Seleção efetiva (multisseleção com fallback para o item único),
+    // usada por callbacks assíncronos de GLB.
+    ctxRef.current.selecaoEfetiva =
+      selectedIds && selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode, selectedIds, selectedId]);
 
   useEffect(() => {
     const c = ctxRef.current;
@@ -982,7 +987,7 @@ export function Layout3DCanvas({
             wrapper.add(inner);
 
             // GLB concluído depois da seleção: aplica a transparência agora.
-            const sel = ctxRef.current.selectedIds ?? [];
+            const sel = ctxRef.current.selecaoEfetiva ?? [];
             if (sel.includes(it.item_id)) tornarTransparente(wrapper);
 
             limparProgresso(it.item_id);
