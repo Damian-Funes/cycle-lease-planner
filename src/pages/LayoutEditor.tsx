@@ -699,9 +699,13 @@ export default function LayoutEditor() {
       }
     }
 
-    if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
-    // Restaura uma vista útil para o usuário após captura
-    api.fitAll();
+    restaurarEstado = () => {
+      if (idSelecionadoAntes) setSelectedId(idSelecionadoAntes);
+      if (idsSelecionadosAntes.length > 0) setSelectedIds(idsSelecionadosAntes);
+      // Restaura uma vista útil para o usuário após captura
+      api.fitAll();
+    };
+
 
     console.log("[PDF] total capturas:", capturas.length);
     if (capturas.length === 0) {
