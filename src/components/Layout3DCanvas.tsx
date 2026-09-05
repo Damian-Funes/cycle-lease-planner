@@ -861,10 +861,11 @@ export function Layout3DCanvas({
 
   useEffect(() => {
     const c = ctxRef.current;
-    if (!c.scene || !c.groups || !c.loader) return;
+    if (!c.scene || !c.groups || !c.loader || !c.cargas) return;
     const groups = c.groups;
     const loader = c.loader;
     const alive = c.alive;
+    const cargas = c.cargas;
 
     const existingIds = Object.keys(groups);
     const newIds = items.map((i) => i.item_id);
@@ -872,6 +873,8 @@ export function Layout3DCanvas({
     existingIds.forEach((id) => {
       if (!newIds.includes(id)) {
         const g = groups[id];
+        // Sai da contagem de pendentes imediatamente.
+        cargas.removerPorOwner(g);
         descartarMaterialClonado(g);
         c.scene!.remove(g);
         descartarObjeto3D(g);
@@ -879,16 +882,29 @@ export function Layout3DCanvas({
       }
     });
 
-    let pendentes = 0;
-    const concluirCarga = () => {
-      pendentes -= 1;
-      if (pendentes > 0) return;
-      c.atualizarSombras?.();
-      c.invalidate?.();
-      // Enquadramento inicial: uma única vez, e nunca sobrepondo navegação manual.
-      if (!didInitialFitRef.current && !c.userNavigated && items.length > 0) {
-        didInitialFitRef.current = true;
-        c.fitAll?.();
+    const limparProgresso = (itemId: string) => {
+      if (!alive?.current) return; // cena desmontada: nada de setState
+      setLoadingGlb((p) => {
+        if (!(itemId in p)) return p;
+        const np = { ...p };
+        delete np[itemId];
+        return np;
+      });
+    };
+
+    /** Conclui uma carga válida; se foi a última, atualiza sombras e enquadra. */
+    const concluirCarga = (token: number) => {
+      if (!cargas.concluir(token)) return; // callback stale
+      if (!alive?.current) return;
+      const ctx = ctxRef.current;
+      if (ctx.cargas !== cargas) return; // outra cena
+      if (cargas.pendentes() > 0) return;
+      ctx.atualizarSombras?.();
+      ctx.invalidate?.();
+      // Enquadramento inicial: uma única vez por cena, sem sobrepor navegação manual.
+      if (!ctx.didInitialFit && !ctx.userNavigated && Object.keys(groups).length > 0) {
+        ctx.didInitialFit = true;
+        ctx.fitAll?.();
       }
     };
 
@@ -915,20 +931,22 @@ export function Layout3DCanvas({
 
       const glbUrl = (it as unknown as { modelo_3d_url?: string | null }).modelo_3d_url;
       if (glbUrl) {
-        pendentes += 1;
+        const token = cargas.registrar(wrapper);
+        /** Contexto vivo e este wrapper ainda é o do item? */
+        const valido = () =>
+          Boolean(alive?.current) &&
+          ctxRef.current.cargas === cargas &&
+          cargas.valido(token, wrapper) &&
+          groups[it.item_id] === wrapper;
+
         loader.load(
           glbUrl,
           (gltf) => {
             const inner = gltf.scene;
-            // Se o item foi removido ou o canvas desmontou, descarta a carga.
-            if (!alive?.current || groups[it.item_id] !== wrapper) {
+            if (!valido()) {
+              // Carga descartada: só libera recursos (sem setState, sem fit).
               descartarObjeto3D(inner);
-              setLoadingGlb((p) => {
-                const np = { ...p };
-                delete np[it.item_id];
-                return np;
-              });
-              concluirCarga();
+              cargas.concluir(token);
               return;
             }
             const rotX = (((it as unknown as { glb_rotacao_x?: number | null }).glb_rotacao_x ?? 0) * Math.PI) / 180;
@@ -952,14 +970,16 @@ export function Layout3DCanvas({
             inner.position.z -= center.z;
             inner.position.y -= box.min.y;
             wrapper.add(inner);
-            setLoadingGlb((p) => {
-              const np = { ...p };
-              delete np[it.item_id];
-              return np;
-            });
-            concluirCarga();
+
+            // GLB concluído depois da seleção: aplica a transparência agora.
+            const sel = ctxRef.current.selectedIds ?? [];
+            if (sel.includes(it.item_id)) tornarTransparente(wrapper);
+
+            limparProgresso(it.item_id);
+            concluirCarga(token);
           },
           (xhr) => {
+            if (!valido()) return;
             if (xhr.total) {
               setLoadingGlb((p) => ({
                 ...p,
@@ -969,12 +989,12 @@ export function Layout3DCanvas({
           },
           () => {
             // Falha ao carregar GLB: não renderiza geometria de fallback.
-            setLoadingGlb((p) => {
-              const np = { ...p };
-              delete np[it.item_id];
-              return np;
-            });
-            concluirCarga();
+            if (!valido()) {
+              cargas.concluir(token);
+              return;
+            }
+            limparProgresso(it.item_id);
+            concluirCarga(token);
           },
         );
       }
@@ -985,9 +1005,17 @@ export function Layout3DCanvas({
     c.atualizarSombras?.();
     c.invalidate?.();
 
-    if (pendentes === 0 && !didInitialFitRef.current && !c.userNavigated && items.length > 0) {
-      didInitialFitRef.current = true;
-      requestAnimationFrame(() => c.fitAll?.());
+    if (
+      cargas.pendentes() === 0 &&
+      !c.didInitialFit &&
+      !c.userNavigated &&
+      Object.keys(groups).length > 0
+    ) {
+      c.didInitialFit = true;
+      const fitRaf = requestAnimationFrame(() => {
+        if (alive?.current && ctxRef.current.cargas === cargas) c.fitAll?.();
+      });
+      return () => cancelAnimationFrame(fitRaf);
     }
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
