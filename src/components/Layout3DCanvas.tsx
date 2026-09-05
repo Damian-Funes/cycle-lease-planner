@@ -18,6 +18,8 @@ import {
   descartarSombraDaLuz,
 } from "@/lib/three/dispose";
 import { calcularShadowFit } from "@/lib/three/shadowFit";
+import { criarTexturasCimento, ajustarRepeticaoCimento } from "@/lib/three/concreteTexture";
+
 import { comDprDeCaptura } from "@/lib/three/captureDpr";
 import { criarRastreadorCargas, type RastreadorCargas } from "@/lib/three/loadTracker";
 
