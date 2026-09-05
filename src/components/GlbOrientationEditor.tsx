@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { descartarObjeto3D } from "@/lib/three/dispose";
+import { descartarObjeto3D, descartarSombraDaLuz } from "@/lib/three/dispose";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RotateCw, RotateCcw, RefreshCw, Loader2, Wand2 } from "lucide-react";
@@ -238,6 +238,7 @@ export function GlbOrientationEditor({
         /* noop */
       }
       draco.dispose();
+      [keyLight, fillLight, rimLight].forEach((l) => descartarSombraDaLuz(l));
       descartarObjeto3D(scene);
       descartarObjeto3D(roomEnv);
       scene.environment = null;
