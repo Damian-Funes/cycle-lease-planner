@@ -408,6 +408,7 @@ export function Layout3DCanvas({
       tween();
     };
 
+    const tamanhoCaptura = new THREE.Vector2();
     const captureView = (view: ViewName): string | null => {
       const presets: Record<ViewName, [number, number]> = {
         top:   [-Math.PI / 2, 0.05],
