@@ -300,7 +300,8 @@ export function Layout3DCanvas({
         orbit.theta = startTheta + (targetTheta - startTheta) * ease;
         orbit.phi = startPhi + (targetPhi - startPhi) * ease;
         orbit.radius = startRadius + (endRadius - startRadius) * ease;
-        if (t < 1) requestAnimationFrame(tween);
+        invalidate();
+        if (t < 1) tweenRaf = requestAnimationFrame(tween);
       };
       tween();
     };
@@ -417,7 +418,8 @@ export function Layout3DCanvas({
         const ease = 1 - Math.pow(1 - t, 3);
         orbit.target.lerpVectors(startTarget, endTarget, ease);
         orbit.radius = startRadius + (endRadius - startRadius) * ease;
-        if (t < 1) requestAnimationFrame(tween);
+        invalidate();
+        if (t < 1) tweenRaf = requestAnimationFrame(tween);
       };
       tween();
     };
@@ -447,6 +449,15 @@ export function Layout3DCanvas({
       scene.add(camLight);
       scene.add(camLight.target);
 
+      // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
+      const dprVisual = renderer.getPixelRatio();
+      const dprCaptura = window.devicePixelRatio || 1;
+      const tamanhoCss = renderer.getSize(new THREE.Vector2());
+      if (dprCaptura !== dprVisual) {
+        renderer.setPixelRatio(dprCaptura);
+        renderer.setSize(tamanhoCss.x, tamanhoCss.y);
+      }
+
       try {
         renderer.render(scene, camera);
         return renderer.domElement.toDataURL("image/png");
@@ -454,9 +465,14 @@ export function Layout3DCanvas({
         console.error("[captureView] falha:", e);
         return null;
       } finally {
+        if (renderer.getPixelRatio() !== dprVisual) {
+          renderer.setPixelRatio(dprVisual);
+          renderer.setSize(tamanhoCss.x, tamanhoCss.y);
+        }
         scene.remove(camLight);
         scene.remove(camLight.target);
         camLight.dispose();
+        invalidate();
       }
     };
 
