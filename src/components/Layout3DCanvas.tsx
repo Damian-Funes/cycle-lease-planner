@@ -123,6 +123,7 @@ export function Layout3DCanvas({
 
     const alive = { current: true };
     let needsRender = true;
+    let tweenRaf = 0;
     const invalidate = () => {
       needsRender = true;
     };
@@ -498,9 +499,12 @@ export function Layout3DCanvas({
       orbit.theta -= (p.x - lastMouse.x) * 0.005;
       orbit.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, orbit.phi - (p.y - lastMouse.y) * 0.005));
       lastMouse = p;
+      ctxRef.current.userNavigated = true;
+      invalidate();
     };
     const onUp = () => {
       orbit.isDragging = false;
+      invalidate();
     };
     const zoomRaycaster = new THREE.Raycaster();
     const zoomNdc = new THREE.Vector2();
@@ -529,6 +533,8 @@ export function Layout3DCanvas({
         orbit.target.x += (hit.x - orbit.target.x) * t;
         orbit.target.z += (hit.z - orbit.target.z) * t;
       }
+      ctxRef.current.userNavigated = true;
+      invalidate();
     };
     dom.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
