@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { descartarObjeto3D } from "@/lib/three/dispose";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RotateCw, RotateCcw, RefreshCw, Loader2, Wand2 } from "lucide-react";
@@ -232,15 +233,11 @@ export function GlbOrientationEditor({
       } catch {
         /* noop */
       }
-      scene.traverse((o: THREE.Object3D) => {
-        const mesh = o as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose();
-        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
-        if (mat) {
-          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-          else mat.dispose();
-        }
-      });
+      draco.dispose();
+      descartarObjeto3D(scene);
+      descartarObjeto3D(roomEnv);
+      scene.environment = null;
+      envRT.dispose();
       pmremGenerator.dispose();
       renderer.dispose();
       innerRef.current = null;
