@@ -435,10 +435,15 @@ export function Layout3DCanvas({
 
       // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
       try {
-        return comDprDeCaptura(renderer, window.devicePixelRatio || 1, () => {
-          renderer.render(scene, camera);
-          return renderer.domElement.toDataURL("image/png");
-        });
+        return comDprDeCaptura(
+          renderer,
+          window.devicePixelRatio || 1,
+          () => {
+            renderer.render(scene, camera);
+            return renderer.domElement.toDataURL("image/png");
+          },
+          tamanhoCaptura,
+        );
       } catch (e) {
         console.error("[captureView] falha:", e);
         return null;
