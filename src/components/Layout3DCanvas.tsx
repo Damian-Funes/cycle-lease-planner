@@ -77,6 +77,11 @@ interface CanvasCtx {
   invalidate?: () => void;
   atualizarSombras?: () => void;
   userNavigated?: boolean;
+  /** Rastreador de cargas GLB, estável entre re-renders (dono = wrapper do item). */
+  cargas?: RastreadorCargas<THREE.Group>;
+  /** Enquadramento inicial já feito nesta cena. */
+  didInitialFit?: boolean;
+  sincronizarOrbit?: () => void;
 }
 
 export function Layout3DCanvas({
@@ -422,25 +427,15 @@ export function Layout3DCanvas({
       scene.add(camLight.target);
 
       // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
-      const dprVisual = renderer.getPixelRatio();
-      const dprCaptura = window.devicePixelRatio || 1;
-      const tamanhoCss = renderer.getSize(new THREE.Vector2());
-      if (dprCaptura !== dprVisual) {
-        renderer.setPixelRatio(dprCaptura);
-        renderer.setSize(tamanhoCss.x, tamanhoCss.y);
-      }
-
       try {
-        renderer.render(scene, camera);
-        return renderer.domElement.toDataURL("image/png");
+        return comDprDeCaptura(renderer, window.devicePixelRatio || 1, () => {
+          renderer.render(scene, camera);
+          return renderer.domElement.toDataURL("image/png");
+        });
       } catch (e) {
         console.error("[captureView] falha:", e);
         return null;
       } finally {
-        if (renderer.getPixelRatio() !== dprVisual) {
-          renderer.setPixelRatio(dprVisual);
-          renderer.setSize(tamanhoCss.x, tamanhoCss.y);
-        }
         scene.remove(camLight);
         scene.remove(camLight.target);
         camLight.dispose();
