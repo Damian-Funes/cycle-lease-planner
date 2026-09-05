@@ -710,9 +710,6 @@ export default function LayoutEditor() {
     }
 
 
-
-
-
     console.log("[PDF] total capturas:", capturas.length);
     if (capturas.length === 0) {
       toast({
@@ -833,25 +830,24 @@ export default function LayoutEditor() {
       const fname = `LAYOUT_${(layout.cliente || "cliente").replace(/[^\w]+/g, "_")}_${layout.revisao}_${new Date().toISOString().slice(0, 10)}.pdf`;
       console.log("[PDF] gerando blob:", fname);
 
-      // Em iframe (preview), pdf.save() pode ser bloqueado. Gera blob e abre/baixa manualmente.
+      // Em iframe (preview), pdf.save() pode ser bloqueado. Gera blob e baixa manualmente.
       const blob = pdf.output("blob");
       const url = URL.createObjectURL(blob);
 
-      // Download direto (mesma gestualidade do clique, sem abrir aba nova:
-      // no Safari a aba com blob: renderiza em branco e consome a ativação).
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fname;
-      a.rel = "noopener";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      // Fallback acionável pelo usuário caso o navegador não inicie o download.
+      // Registra o fallback ANTES de disparar o download, para o botão
+      // "Baixar PDF" continuar acessível mesmo se o clique automático falhar.
       setPdfPronto({ url, fname });
       toast({ title: "PDF gerado", description: `Salvando ${fname}. Se não baixar, use o botão "Baixar PDF".` });
+
+      try {
+        baixarBlobUrl(url, fname);
+      } catch (e) {
+        // Falha apenas no disparo automático: o PDF existe e está no botão de fallback.
+        console.warn("[PDF] download automático não iniciou:", e);
+      }
       console.log("[PDF] concluído");
+
+
 
     } catch (err) {
       console.error("[PDF] erro inesperado:", err);
