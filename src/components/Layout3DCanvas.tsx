@@ -127,8 +127,7 @@ export function Layout3DCanvas({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
-    // VSM respeita shadow.radius/blurSamples (PCFSoft ignora), dando penumbra real.
-    renderer.shadowMap.type = THREE.VSMShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.95;
@@ -156,11 +155,9 @@ export function Layout3DCanvas({
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    // VSM: bias negativo quebra o filtro; usar normalBias para evitar acne.
-    keyLight.shadow.bias = 0;
-    keyLight.shadow.normalBias = 0.05;
-    keyLight.shadow.radius = 4;
-    keyLight.shadow.blurSamples = 12;
+    keyLight.shadow.bias = -0.0002;
+    // normalBias remove o "shadow acne" nas superfícies quase paralelas à luz
+    keyLight.shadow.normalBias = 0.03;
     scene.add(keyLight);
 
     const keyLightDir = new THREE.Vector3(20, 35, 15).normalize();
