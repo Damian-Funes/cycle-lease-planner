@@ -663,12 +663,16 @@ export default function LayoutEditor() {
 
     try {
 
-    // Desseleciona para a captura sair limpa (sem transparência)
+    // Desseleciona (inclusive multisseleção) para a captura sair limpa,
+    // sem gizmo nem transparência de seleção.
     const idSelecionadoAntes = selectedId;
-    if (idSelecionadoAntes) {
+    const idsSelecionadosAntes = selectedIds;
+    if (idSelecionadoAntes || idsSelecionadosAntes.length > 0) {
       setSelectedId(null);
+      setSelectedIds([]);
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
     }
+
 
     const vistas: { view: ViewName; titulo: string }[] = [
       { view: "top",   titulo: "Vista Superior (Planta)" },
