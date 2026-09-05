@@ -289,6 +289,7 @@ export function Layout3DCanvas({
     updateCam();
 
     const animateToView = (targetTheta: number, targetPhi: number, targetRadius?: number) => {
+      cancelAnimationFrame(tweenRaf);
       const startTheta = orbit.theta;
       const startPhi = orbit.phi;
       const startRadius = orbit.radius;
@@ -405,6 +406,7 @@ export function Layout3DCanvas({
     };
 
     const fitAll = () => {
+      cancelAnimationFrame(tweenRaf);
       const { center, corners } = getEquipmentBounds();
       const startTarget = orbit.target.clone();
       const endTarget = new THREE.Vector3(center.x, center.y, center.z);
