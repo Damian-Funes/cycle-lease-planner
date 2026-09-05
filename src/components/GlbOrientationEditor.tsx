@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { descartarObjeto3D } from "@/lib/three/dispose";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RotateCw, RotateCcw, RefreshCw, Loader2, Wand2 } from "lucide-react";
@@ -122,7 +123,9 @@ export function GlbOrientationEditor({
     mount.appendChild(renderer.domElement);
 
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    const roomEnv = new RoomEnvironment();
+    const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
+    scene.environment = envRT.texture;
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.85);
     hemi.position.set(0, 20, 0);
@@ -230,15 +233,11 @@ export function GlbOrientationEditor({
       } catch {
         /* noop */
       }
-      scene.traverse((o: THREE.Object3D) => {
-        const mesh = o as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose();
-        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
-        if (mat) {
-          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-          else mat.dispose();
-        }
-      });
+      draco.dispose();
+      descartarObjeto3D(scene);
+      descartarObjeto3D(roomEnv);
+      scene.environment = null;
+      envRT.dispose();
       pmremGenerator.dispose();
       renderer.dispose();
       innerRef.current = null;

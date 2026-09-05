@@ -12,6 +12,7 @@ import {
   restaurarOpacidade,
   descartarMaterialClonado,
 } from "@/lib/three/selectionTransparency";
+import { descartarObjeto3D, removerEDescartar } from "@/lib/three/dispose";
 
 export interface Layout3DCanvasProps {
   items: LayoutItemRow[];
@@ -64,6 +65,11 @@ interface CanvasCtx {
   fitAll?: () => void;
   selectedIds?: string[];
   dragState?: DragState | null;
+  loader?: GLTFLoader;
+  alive?: { current: boolean };
+  invalidate?: () => void;
+  atualizarSombras?: () => void;
+  userNavigated?: boolean;
 }
 
 export function Layout3DCanvas({
@@ -86,6 +92,7 @@ export function Layout3DCanvas({
 }: Layout3DCanvasProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const ctxRef = useRef<CanvasCtx>({});
+  const didInitialFitRef = useRef(false);
   const [loadingGlb, setLoadingGlb] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -104,7 +111,8 @@ export function Layout3DCanvas({
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    // DPR visual limitado a 2 (a captura PNG/PDF restaura o DPR original abaixo).
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -113,8 +121,17 @@ export function Layout3DCanvas({
     renderer.toneMappingExposure = 1.15;
     mount.appendChild(renderer.domElement);
 
+    const alive = { current: true };
+    let needsRender = true;
+    let tweenRaf = 0;
+    const invalidate = () => {
+      needsRender = true;
+    };
+
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+    const roomEnv = new RoomEnvironment();
+    const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
+    scene.environment = envRT.texture;
 
     const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.8);
     hemi.position.set(0, 50, 0);
@@ -124,14 +141,79 @@ export function Layout3DCanvas({
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.camera.left = -40;
-    keyLight.shadow.camera.right = 40;
-    keyLight.shadow.camera.top = 40;
-    keyLight.shadow.camera.bottom = -40;
-    keyLight.shadow.camera.near = 1;
-    keyLight.shadow.camera.far = 120;
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
+
+    const keyLightDir = new THREE.Vector3(20, 35, 15).normalize();
+    const keyLightTarget = new THREE.Object3D();
+    scene.add(keyLightTarget);
+    keyLight.target = keyLightTarget;
+
+    /**
+     * Ajusta a câmera de sombra aos bounds dos equipamentos (+ piso receptor),
+     * medidos no espaço da luz. Chamado ao carregar/mover/remover — nunca por frame.
+     */
+    const atualizarSombras = () => {
+      const { box } = getEquipmentBounds();
+      box.union(
+        new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(floorW, 0, floorH)),
+      );
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const raio = Math.max(size.length() / 2, 2);
+      const margem = raio * 0.1 + 0.5;
+
+      keyLightTarget.position.copy(center);
+      keyLightTarget.updateMatrixWorld(true);
+      keyLight.position.copy(center).addScaledVector(keyLightDir, raio * 2.2 + 5);
+      keyLight.updateMatrixWorld(true);
+
+      const lookAt = new THREE.Matrix4().lookAt(
+        keyLight.position,
+        center,
+        new THREE.Vector3(0, 1, 0),
+      );
+      const paraLuz = new THREE.Matrix4()
+        .compose(
+          keyLight.position,
+          new THREE.Quaternion().setFromRotationMatrix(lookAt),
+          new THREE.Vector3(1, 1, 1),
+        )
+        .invert();
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      let minD = Infinity;
+      let maxD = -Infinity;
+      const p = new THREE.Vector3();
+      for (let i = 0; i < 8; i += 1) {
+        p.set(
+          i & 1 ? box.max.x : box.min.x,
+          i & 2 ? box.max.y : box.min.y,
+          i & 4 ? box.max.z : box.min.z,
+        ).applyMatrix4(paraLuz);
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y);
+        maxY = Math.max(maxY, p.y);
+        const depth = -p.z;
+        minD = Math.min(minD, depth);
+        maxD = Math.max(maxD, depth);
+      }
+
+      const shadowCam = keyLight.shadow.camera;
+      shadowCam.left = minX - margem;
+      shadowCam.right = maxX + margem;
+      shadowCam.bottom = minY - margem;
+      shadowCam.top = maxY + margem;
+      shadowCam.near = Math.max(0.5, minD - margem);
+      shadowCam.far = Math.max(shadowCam.near + 1, maxD + margem);
+      shadowCam.updateProjectionMatrix();
+      keyLight.shadow.needsUpdate = true;
+      invalidate();
+    };
 
     const fillLight = new THREE.DirectionalLight(0xc8d8ff, 0.5);
     fillLight.position.set(-15, 20, -10);
@@ -207,6 +289,7 @@ export function Layout3DCanvas({
     updateCam();
 
     const animateToView = (targetTheta: number, targetPhi: number, targetRadius?: number) => {
+      cancelAnimationFrame(tweenRaf);
       const startTheta = orbit.theta;
       const startPhi = orbit.phi;
       const startRadius = orbit.radius;
@@ -219,7 +302,8 @@ export function Layout3DCanvas({
         orbit.theta = startTheta + (targetTheta - startTheta) * ease;
         orbit.phi = startPhi + (targetPhi - startPhi) * ease;
         orbit.radius = startRadius + (endRadius - startRadius) * ease;
-        if (t < 1) requestAnimationFrame(tween);
+        invalidate();
+        if (t < 1) tweenRaf = requestAnimationFrame(tween);
       };
       tween();
     };
@@ -322,6 +406,7 @@ export function Layout3DCanvas({
     };
 
     const fitAll = () => {
+      cancelAnimationFrame(tweenRaf);
       const { center, corners } = getEquipmentBounds();
       const startTarget = orbit.target.clone();
       const endTarget = new THREE.Vector3(center.x, center.y, center.z);
@@ -336,7 +421,8 @@ export function Layout3DCanvas({
         const ease = 1 - Math.pow(1 - t, 3);
         orbit.target.lerpVectors(startTarget, endTarget, ease);
         orbit.radius = startRadius + (endRadius - startRadius) * ease;
-        if (t < 1) requestAnimationFrame(tween);
+        invalidate();
+        if (t < 1) tweenRaf = requestAnimationFrame(tween);
       };
       tween();
     };
@@ -366,6 +452,15 @@ export function Layout3DCanvas({
       scene.add(camLight);
       scene.add(camLight.target);
 
+      // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
+      const dprVisual = renderer.getPixelRatio();
+      const dprCaptura = window.devicePixelRatio || 1;
+      const tamanhoCss = renderer.getSize(new THREE.Vector2());
+      if (dprCaptura !== dprVisual) {
+        renderer.setPixelRatio(dprCaptura);
+        renderer.setSize(tamanhoCss.x, tamanhoCss.y);
+      }
+
       try {
         renderer.render(scene, camera);
         return renderer.domElement.toDataURL("image/png");
@@ -373,9 +468,14 @@ export function Layout3DCanvas({
         console.error("[captureView] falha:", e);
         return null;
       } finally {
+        if (renderer.getPixelRatio() !== dprVisual) {
+          renderer.setPixelRatio(dprVisual);
+          renderer.setSize(tamanhoCss.x, tamanhoCss.y);
+        }
         scene.remove(camLight);
         scene.remove(camLight.target);
         camLight.dispose();
+        invalidate();
       }
     };
 
@@ -401,9 +501,12 @@ export function Layout3DCanvas({
       orbit.theta -= (p.x - lastMouse.x) * 0.005;
       orbit.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, orbit.phi - (p.y - lastMouse.y) * 0.005));
       lastMouse = p;
+      ctxRef.current.userNavigated = true;
+      invalidate();
     };
     const onUp = () => {
       orbit.isDragging = false;
+      invalidate();
     };
     const zoomRaycaster = new THREE.Raycaster();
     const zoomNdc = new THREE.Vector2();
@@ -432,6 +535,8 @@ export function Layout3DCanvas({
         orbit.target.x += (hit.x - orbit.target.x) * t;
         orbit.target.z += (hit.z - orbit.target.z) * t;
       }
+      ctxRef.current.userNavigated = true;
+      invalidate();
     };
     dom.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
@@ -444,7 +549,7 @@ export function Layout3DCanvas({
     tc.setRotationSnap(THREE.MathUtils.degToRad(90));
     tc.showY = false;
     tc.setMode("translate");
-    tc.addEventListener("dragging-changed", (e) => {
+    const onDraggingChanged = (e: { value?: unknown }) => {
       const dragging = Boolean((e as { value: unknown }).value);
       orbit.locked = dragging;
       const c = ctxRef.current;
@@ -475,9 +580,11 @@ export function Layout3DCanvas({
           });
         }
         c.dragState = null;
+        atualizarSombras();
       }
-    });
-    tc.addEventListener("objectChange", () => {
+      invalidate();
+    };
+    const onObjectChange = () => {
       const c = ctxRef.current;
       const obj = tc.object;
       if (!obj || !obj.userData.itemId) return;
@@ -495,7 +602,12 @@ export function Layout3DCanvas({
           g.rotation.y = b.rotY + drot;
         });
       }
-    });
+      invalidate();
+    };
+    tc.addEventListener("dragging-changed", onDraggingChanged);
+    tc.addEventListener("objectChange", onObjectChange);
+    // hover/mudança de eixo do gizmo
+    tc.addEventListener("change", invalidate);
     const tcAny = tc as unknown as { getHelper?: () => THREE.Object3D };
     const tcHelper = tcAny.getHelper ? tcAny.getHelper() : (tc as unknown as THREE.Object3D);
     scene.add(tcHelper);
@@ -510,17 +622,21 @@ export function Layout3DCanvas({
     viewHelperDiv.style.pointerEvents = "auto";
     mount.appendChild(viewHelperDiv);
     const viewHelper = new ViewHelper(camera, viewHelperDiv);
-    viewHelperDiv.addEventListener("pointerup", (event) => {
+    const onViewHelperPointerUp = (event: PointerEvent) => {
       const vh = viewHelper as unknown as { handleClick: (e: PointerEvent) => boolean };
       if (vh.handleClick(event)) {
+        ctxRef.current.userNavigated = true;
+        invalidate();
         setTimeout(() => {
           const offset = new THREE.Vector3().subVectors(camera.position, orbit.target);
           orbit.radius = offset.length();
           orbit.theta = Math.atan2(offset.z, offset.x);
           orbit.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / orbit.radius)));
+          invalidate();
         }, 600);
       }
-    });
+    };
+    viewHelperDiv.addEventListener("pointerup", onViewHelperPointerUp);
 
     const raycaster = new THREE.Raycaster();
     const mouseV = new THREE.Vector2();
@@ -620,7 +736,13 @@ export function Layout3DCanvas({
       raf = requestAnimationFrame(animate);
       const delta = viewHelperClock.getDelta();
       const vh = viewHelper as unknown as { animating?: boolean; update: (d: number) => void };
-      if (vh.animating) vh.update(delta);
+      const animando = Boolean(vh.animating);
+      if (animando) vh.update(delta);
+      const arrastando =
+        orbit.isDragging || Boolean((tc as unknown as { dragging?: boolean }).dragging);
+      // Render sob demanda: só desenha quando algo mudou ou há animação/arraste ativo.
+      if (!needsRender && !animando && !arrastando) return;
+      needsRender = false;
       updateCam();
       renderer.autoClear = true;
       renderer.render(scene, camera);
@@ -637,9 +759,15 @@ export function Layout3DCanvas({
       renderer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+      invalidate();
     };
     const ro = new ResizeObserver(onResize);
     ro.observe(mount);
+
+    const draco = new DRACOLoader();
+    draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(draco);
 
     ctxRef.current = {
       scene, camera, renderer, tc,
@@ -649,7 +777,11 @@ export function Layout3DCanvas({
       onTransform, onSelect, onConectarClick, onConexaoSelect,
       currentMode: mode,
       dom, animateToView, fitAll,
+      loader, alive, invalidate, atualizarSombras,
+      userNavigated: false,
     };
+
+    atualizarSombras();
 
     // Expõe API ao parent para captura de múltiplas vistas (PDF, etc).
     // Aguarda um frame para garantir que groups foram populados pelo effect de items.
@@ -659,7 +791,9 @@ export function Layout3DCanvas({
     }
 
     return () => {
+      alive.current = false;
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(tweenRaf);
       ro.disconnect();
       dom.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
@@ -667,6 +801,14 @@ export function Layout3DCanvas({
       dom.removeEventListener("wheel", onWheel);
       dom.removeEventListener("mousedown", onClickDown);
       dom.removeEventListener("mouseup", onClickUp);
+      viewHelperDiv.removeEventListener("pointerup", onViewHelperPointerUp);
+      tc.removeEventListener("dragging-changed", onDraggingChanged);
+      tc.removeEventListener("objectChange", onObjectChange);
+      tc.removeEventListener("change", invalidate);
+      tc.detach();
+      tc.dispose();
+      scene.remove(tcHelper);
+      (viewHelper as unknown as { dispose?: () => void }).dispose?.();
       try {
         mount.removeChild(dom);
       } catch {
@@ -677,15 +819,12 @@ export function Layout3DCanvas({
       } catch {
         /* noop */
       }
-      scene.traverse((o: THREE.Object3D) => {
-        const mesh = o as THREE.Mesh;
-        if (mesh.geometry) mesh.geometry.dispose();
-        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
-        if (mat) {
-          if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-          else mat.dispose();
-        }
-      });
+      draco.dispose();
+      // Libera geometrias/materiais/texturas próprios da cena (envMap é tratado à parte)
+      descartarObjeto3D(scene);
+      descartarObjeto3D(roomEnv);
+      scene.environment = null;
+      envRT.dispose();
       pmremGenerator.dispose();
       renderer.dispose();
       ctxRef.current = {};
@@ -708,6 +847,7 @@ export function Layout3DCanvas({
     if (mode === "connect") {
       c.tc.detach();
       (c.tc as unknown as { visible: boolean }).visible = false;
+      c.invalidate?.();
       return;
     }
     (c.tc as unknown as { visible: boolean }).visible = true;
@@ -721,12 +861,15 @@ export function Layout3DCanvas({
       c.tc.showY = true;
       c.tc.showZ = false;
     }
+    c.invalidate?.();
   }, [mode, alturaLiberada]);
 
   useEffect(() => {
     const c = ctxRef.current;
-    if (!c.scene || !c.groups) return;
+    if (!c.scene || !c.groups || !c.loader) return;
     const groups = c.groups;
+    const loader = c.loader;
+    const alive = c.alive;
 
     const existingIds = Object.keys(groups);
     const newIds = items.map((i) => i.item_id);
@@ -736,24 +879,26 @@ export function Layout3DCanvas({
         const g = groups[id];
         descartarMaterialClonado(g);
         c.scene!.remove(g);
-        g.traverse((o: THREE.Object3D) => {
-          const mesh = o as THREE.Mesh;
-          if (mesh.geometry) mesh.geometry.dispose();
-        });
+        descartarObjeto3D(g);
         delete groups[id];
       }
     });
 
-    const loader = new GLTFLoader();
-    const draco = new DRACOLoader();
-    draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
-    loader.setDRACOLoader(draco);
+    let pendentes = 0;
+    const concluirCarga = () => {
+      pendentes -= 1;
+      if (pendentes > 0) return;
+      c.atualizarSombras?.();
+      c.invalidate?.();
+      // Enquadramento inicial: uma única vez, e nunca sobrepondo navegação manual.
+      if (!didInitialFitRef.current && !c.userNavigated && items.length > 0) {
+        didInitialFitRef.current = true;
+        c.fitAll?.();
+      }
+    };
 
     items.forEach((it) => {
       const existing = groups[it.item_id];
-      const w = (it.largura_mm ?? 1000) / 1000;
-      const h = (it.altura_mm ?? 2000) / 1000;
-      const d = (it.comprimento_mm ?? 1000) / 1000;
       const posX = (it.pos_x_mm ?? 0) / 1000;
       const posZ = (it.pos_y_mm ?? 0) / 1000;
       const posY = (it.pos_z_mm ?? 0) / 1000;
@@ -775,10 +920,22 @@ export function Layout3DCanvas({
 
       const glbUrl = (it as unknown as { modelo_3d_url?: string | null }).modelo_3d_url;
       if (glbUrl) {
+        pendentes += 1;
         loader.load(
           glbUrl,
           (gltf) => {
             const inner = gltf.scene;
+            // Se o item foi removido ou o canvas desmontou, descarta a carga.
+            if (!alive?.current || groups[it.item_id] !== wrapper) {
+              descartarObjeto3D(inner);
+              setLoadingGlb((p) => {
+                const np = { ...p };
+                delete np[it.item_id];
+                return np;
+              });
+              concluirCarga();
+              return;
+            }
             const rotX = (((it as unknown as { glb_rotacao_x?: number | null }).glb_rotacao_x ?? 0) * Math.PI) / 180;
             const rotYglb = (((it as unknown as { glb_rotacao_y?: number | null }).glb_rotacao_y ?? 0) * Math.PI) / 180;
             const rotZ = (((it as unknown as { glb_rotacao_z?: number | null }).glb_rotacao_z ?? 0) * Math.PI) / 180;
@@ -805,6 +962,7 @@ export function Layout3DCanvas({
               delete np[it.item_id];
               return np;
             });
+            concluirCarga();
           },
           (xhr) => {
             if (xhr.total) {
@@ -821,6 +979,7 @@ export function Layout3DCanvas({
               delete np[it.item_id];
               return np;
             });
+            concluirCarga();
           },
         );
       }
@@ -828,9 +987,13 @@ export function Layout3DCanvas({
 
     });
 
-    requestAnimationFrame(() => {
-      if (items.length > 0) c.fitAll?.();
-    });
+    c.atualizarSombras?.();
+    c.invalidate?.();
+
+    if (pendentes === 0 && !didInitialFitRef.current && !c.userNavigated && items.length > 0) {
+      didInitialFitRef.current = true;
+      requestAnimationFrame(() => c.fitAll?.());
+    }
   }, [items, pisoLarguraMm, pisoComprimentoMm]);
 
   const prevSelectedIdsRef = useRef<string[]>([]);
@@ -857,6 +1020,7 @@ export function Layout3DCanvas({
     }
 
     prevSelectedIdsRef.current = allSel;
+    c.invalidate?.();
   }, [selectedId, selectedIds, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Renderiza conexoes
@@ -922,6 +1086,8 @@ export function Layout3DCanvas({
 
       grp.add(mesh);
     });
+
+    c.invalidate?.();
   }, [conexoes, selectedConexaoId, items, pisoLarguraMm, pisoComprimentoMm]);
 
   // Marcador do ponto temporario (modo conectar)
@@ -930,10 +1096,7 @@ export function Layout3DCanvas({
     if (!c.scene) return;
 
     if (c.previewMarker) {
-      c.scene.remove(c.previewMarker);
-      if (c.previewMarker.geometry) c.previewMarker.geometry.dispose();
-      const m = c.previewMarker.material as THREE.Material | undefined;
-      if (m) m.dispose();
+      removerEDescartar(c.previewMarker);
       c.previewMarker = null;
     }
 
@@ -955,12 +1118,15 @@ export function Layout3DCanvas({
         c.previewMarker = sphere;
       }
     }
+
+    c.invalidate?.();
   }, [modoConexao, conexaoPontoTemp]);
 
 
   const goToView = (view: "top" | "front" | "back" | "left" | "right" | "iso") => {
     const c = ctxRef.current;
     if (!c.animateToView) return;
+    c.userNavigated = true;
     const floorW = Math.max(pisoLarguraMm / 1000, 5);
     const floorH = Math.max(pisoComprimentoMm / 1000, 5);
     const baseRadius = Math.max(floorW, floorH) * 1.2;
