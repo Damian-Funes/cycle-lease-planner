@@ -71,6 +71,7 @@ interface CanvasCtx {
   animateToView?: (theta: number, phi: number, radius?: number) => void;
   fitAll?: () => void;
   selectedIds?: string[];
+  selecaoEfetiva?: string[];
   dragState?: DragState | null;
   loader?: GLTFLoader;
   alive?: { current: boolean };
@@ -408,6 +409,7 @@ export function Layout3DCanvas({
       tween();
     };
 
+    const tamanhoCaptura = new THREE.Vector2();
     const captureView = (view: ViewName): string | null => {
       const presets: Record<ViewName, [number, number]> = {
         top:   [-Math.PI / 2, 0.05],
@@ -435,10 +437,15 @@ export function Layout3DCanvas({
 
       // Captura na resolução original (DPR do dispositivo), sem o limite visual de 2.
       try {
-        return comDprDeCaptura(renderer, window.devicePixelRatio || 1, () => {
-          renderer.render(scene, camera);
-          return renderer.domElement.toDataURL("image/png");
-        });
+        return comDprDeCaptura(
+          renderer,
+          window.devicePixelRatio || 1,
+          () => {
+            renderer.render(scene, camera);
+            return renderer.domElement.toDataURL("image/png");
+          },
+          tamanhoCaptura,
+        );
       } catch (e) {
         console.error("[captureView] falha:", e);
         return null;
@@ -473,6 +480,7 @@ export function Layout3DCanvas({
       orbit.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, orbit.phi - (p.y - lastMouse.y) * 0.005));
       lastMouse = p;
       ctxRef.current.userNavigated = true;
+      cancelAnimationFrame(tweenRaf); // gesto do usuário tem prioridade sobre o tween
       invalidate();
     };
     const onUp = () => {
@@ -507,6 +515,7 @@ export function Layout3DCanvas({
         orbit.target.z += (hit.z - orbit.target.z) * t;
       }
       ctxRef.current.userNavigated = true;
+      cancelAnimationFrame(tweenRaf); // gesto do usuário tem prioridade sobre o tween
       invalidate();
     };
     dom.addEventListener("mousedown", onDown);
@@ -833,7 +842,11 @@ export function Layout3DCanvas({
     ctxRef.current.onConexaoSelect = onConexaoSelect;
     ctxRef.current.currentMode = mode;
     ctxRef.current.selectedIds = selectedIds;
-  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode, selectedIds]);
+    // Seleção efetiva (multisseleção com fallback para o item único),
+    // usada por callbacks assíncronos de GLB.
+    ctxRef.current.selecaoEfetiva =
+      selectedIds && selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : [];
+  }, [onTransform, onSelect, onConectarClick, onConexaoSelect, mode, selectedIds, selectedId]);
 
   useEffect(() => {
     const c = ctxRef.current;
@@ -869,18 +882,6 @@ export function Layout3DCanvas({
     const existingIds = Object.keys(groups);
     const newIds = items.map((i) => i.item_id);
 
-    existingIds.forEach((id) => {
-      if (!newIds.includes(id)) {
-        const g = groups[id];
-        // Sai da contagem de pendentes imediatamente.
-        cargas.removerPorOwner(g);
-        descartarMaterialClonado(g);
-        c.scene!.remove(g);
-        descartarObjeto3D(g);
-        delete groups[id];
-      }
-    });
-
     const limparProgresso = (itemId: string) => {
       if (!alive?.current) return; // cena desmontada: nada de setState
       setLoadingGlb((p) => {
@@ -891,15 +892,32 @@ export function Layout3DCanvas({
       });
     };
 
-    /** Conclui uma carga válida; se foi a última, atualiza sombras e enquadra. */
+    existingIds.forEach((id) => {
+      if (!newIds.includes(id)) {
+        const g = groups[id];
+        // Sai da contagem de pendentes imediatamente...
+        cargas.removerPorOwner(g);
+        // ...e o spinner de progresso vai junto.
+        limparProgresso(id);
+        descartarMaterialClonado(g);
+        c.scene!.remove(g);
+        descartarObjeto3D(g);
+        delete groups[id];
+      }
+    });
+
+    /**
+     * Conclui uma carga válida: cada modelo aparece assim que chega
+     * (sombras + redesenho a cada carga); só o enquadramento aguarda pendentes = 0.
+     */
     const concluirCarga = (token: number) => {
       if (!cargas.concluir(token)) return; // callback stale
       if (!alive?.current) return;
       const ctx = ctxRef.current;
       if (ctx.cargas !== cargas) return; // outra cena
-      if (cargas.pendentes() > 0) return;
       ctx.atualizarSombras?.();
       ctx.invalidate?.();
+      if (cargas.pendentes() > 0) return;
       // Enquadramento inicial: uma única vez por cena, sem sobrepor navegação manual.
       if (!ctx.didInitialFit && !ctx.userNavigated && Object.keys(groups).length > 0) {
         ctx.didInitialFit = true;
@@ -971,7 +989,7 @@ export function Layout3DCanvas({
             wrapper.add(inner);
 
             // GLB concluído depois da seleção: aplica a transparência agora.
-            const sel = ctxRef.current.selectedIds ?? [];
+            const sel = ctxRef.current.selecaoEfetiva ?? [];
             if (sel.includes(it.item_id)) tornarTransparente(wrapper);
 
             limparProgresso(it.item_id);
@@ -1012,7 +1030,9 @@ export function Layout3DCanvas({
     ) {
       c.didInitialFit = true;
       const fitRaf = requestAnimationFrame(() => {
-        if (alive?.current && ctxRef.current.cargas === cargas) c.fitAll?.();
+        const ctx = ctxRef.current;
+        // Navegação manual no intervalo cancela o enquadramento já agendado.
+        if (alive?.current && ctx.cargas === cargas && !ctx.userNavigated) c.fitAll?.();
       });
       return () => cancelAnimationFrame(fitRaf);
     }
