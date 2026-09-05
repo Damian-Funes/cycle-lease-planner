@@ -145,16 +145,21 @@ export function Layout3DCanvas({
     const roomEnv = new RoomEnvironment();
     const envRT = pmremGenerator.fromScene(roomEnv, 0.04);
     scene.environment = envRT.texture;
+    // Ambiente contribui com reflexos/preenchimento sem lavar as cores dos GLBs.
+    scene.environmentIntensity = 0.55;
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0xb0a89e, 0.8);
+    const hemi = new THREE.HemisphereLight(0xdfe7f2, 0x9a9086, 0.32);
     hemi.position.set(0, 50, 0);
     scene.add(hemi);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.4);
+    const keyLight = new THREE.DirectionalLight(0xfff3e0, 2.1);
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.bias = -0.0005;
+    keyLight.shadow.bias = -0.0004;
+    keyLight.shadow.normalBias = 0.02;
+    keyLight.shadow.radius = 4;
+    keyLight.shadow.blurSamples = 12;
     scene.add(keyLight);
 
     const keyLightDir = new THREE.Vector3(20, 35, 15).normalize();
