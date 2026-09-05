@@ -127,7 +127,8 @@ export function Layout3DCanvas({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.VSMShadowMap;
+    // (teste)
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -155,7 +156,9 @@ export function Layout3DCanvas({
     keyLight.position.set(20, 35, 15);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.set(2048, 2048);
-    keyLight.shadow.bias = -0.0002;
+    keyLight.shadow.bias = 0;
+    keyLight.shadow.radius = 3;
+    keyLight.shadow.blurSamples = 12;
     // normalBias remove o "shadow acne" nas superfícies quase paralelas à luz
     keyLight.shadow.normalBias = 0.03;
     scene.add(keyLight);
