@@ -234,6 +234,19 @@ export default function LayoutEditor() {
   const [contidosPares, setContidosPares] = useState<ContidoRow[]>([]);
   const [orgInfo, setOrgInfo] = useState<{ nome: string; cidade: string | null } | null>(null);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  // PDF gerado e disponível para download manual (fallback quando o navegador
+  // não inicia o download automático — típico do Safari dentro de iframe).
+  const [pdfPronto, setPdfPronto] = useState<{ url: string; fname: string } | null>(null);
+  const pdfUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pdfPronto) {
+      if (pdfUrlRef.current && pdfUrlRef.current !== pdfPronto.url) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = pdfPronto.url;
+    }
+  }, [pdfPronto]);
+  useEffect(() => () => { if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current); }, []);
+
+
 
   const handleSelect = useCallback((id: string | null, shift?: boolean) => {
     if (id === null) {
