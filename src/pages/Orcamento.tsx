@@ -313,15 +313,16 @@ export default function Orcamento() {
       let currentNumero = numeroOrcamento!;
       for (let attempts = 0; attempts < 10; attempts++) {
         const attemptRow = { ...row, numero_orcamento: currentNumero };
-        const res = await supabase.from("orcamentos").insert(attemptRow as any).select("id").maybeSingle();
+        const res = await supabase.from("orcamentos").insert(attemptRow as any).select("id, numero_orcamento").maybeSingle();
         if (!res.error) {
           error = undefined;
           if (res.data) {
             novoId = res.data.id;
             setSavedId(res.data.id);
           }
-          numeroOrcamento = currentNumero;
-          setParams((prev) => ({ ...prev, numeroOrcamento: currentNumero }));
+          const numeroSalvo = res.data?.numero_orcamento || currentNumero;
+          numeroOrcamento = numeroSalvo;
+          setParams((prev) => ({ ...prev, numeroOrcamento: numeroSalvo }));
           break;
         }
         const msg = (res.error as any)?.message || "";

@@ -371,7 +371,7 @@ export default function DealDetalhe() {
         montagem_margem_aplicada: orcOrig.montagem_margem_aplicada,
         montagem_observacoes: orcOrig.montagem_observacoes,
       } as any)
-      .select("id")
+      .select("id, numero_orcamento")
       .single();
 
     if (errOrc) {
@@ -379,6 +379,14 @@ export default function DealDetalhe() {
       await supabase.from("oportunidades").delete().eq("id", novoDeal!.id);
       toast.error(`Erro ao criar orçamento: ${errOrc.message}`);
       return;
+    }
+
+    const numeroSalvo = novoOrc?.numero_orcamento || novoNumero;
+    if (numeroSalvo !== novoNumero) {
+      await supabase
+        .from("oportunidades")
+        .update({ titulo: `Orçamento ${numeroSalvo}` })
+        .eq("id", novoDeal!.id);
     }
 
     toast.success("Deal duplicado com sucesso. Edite as informações necessárias.");
