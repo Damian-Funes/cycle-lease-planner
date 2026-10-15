@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -1468,6 +1468,183 @@ export type Database = {
         }
         Relationships: []
       }
+      ligacoes_bot: {
+        Row: {
+          atendeu: string | null
+          atividade_id: string | null
+          chance_reabrir: string | null
+          concorrente: string | null
+          created_at: string
+          custo_estimado: number | null
+          dados_coletados: Json | null
+          data_retomar: string | null
+          duracao_segundos: number | null
+          elevenlabs_conversation_id: string | null
+          erro: string | null
+          id: string
+          iniciada_por: string | null
+          motivo_detalhe: string | null
+          motivo_principal: string | null
+          oportunidade_id: string | null
+          orcamento_id: string | null
+          organizacao_id: string | null
+          outros_decisores: string | null
+          pessoa_id: string | null
+          proximo_passo: string | null
+          responsavel_id: string | null
+          resumo: string | null
+          sentimento: string | null
+          status: string
+          telefone: string
+          tentativa: number
+          transcricao: Json | null
+          updated_at: string
+          valor_concorrente: string | null
+        }
+        Insert: {
+          atendeu?: string | null
+          atividade_id?: string | null
+          chance_reabrir?: string | null
+          concorrente?: string | null
+          created_at?: string
+          custo_estimado?: number | null
+          dados_coletados?: Json | null
+          data_retomar?: string | null
+          duracao_segundos?: number | null
+          elevenlabs_conversation_id?: string | null
+          erro?: string | null
+          id?: string
+          iniciada_por?: string | null
+          motivo_detalhe?: string | null
+          motivo_principal?: string | null
+          oportunidade_id?: string | null
+          orcamento_id?: string | null
+          organizacao_id?: string | null
+          outros_decisores?: string | null
+          pessoa_id?: string | null
+          proximo_passo?: string | null
+          responsavel_id?: string | null
+          resumo?: string | null
+          sentimento?: string | null
+          status?: string
+          telefone: string
+          tentativa?: number
+          transcricao?: Json | null
+          updated_at?: string
+          valor_concorrente?: string | null
+        }
+        Update: {
+          atendeu?: string | null
+          atividade_id?: string | null
+          chance_reabrir?: string | null
+          concorrente?: string | null
+          created_at?: string
+          custo_estimado?: number | null
+          dados_coletados?: Json | null
+          data_retomar?: string | null
+          duracao_segundos?: number | null
+          elevenlabs_conversation_id?: string | null
+          erro?: string | null
+          id?: string
+          iniciada_por?: string | null
+          motivo_detalhe?: string | null
+          motivo_principal?: string | null
+          oportunidade_id?: string | null
+          orcamento_id?: string | null
+          organizacao_id?: string | null
+          outros_decisores?: string | null
+          pessoa_id?: string | null
+          proximo_passo?: string | null
+          responsavel_id?: string | null
+          resumo?: string | null
+          sentimento?: string | null
+          status?: string
+          telefone?: string
+          tentativa?: number
+          transcricao?: Json | null
+          updated_at?: string
+          valor_concorrente?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_bot_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dias_montagem_sugerido"
+            referencedColumns: ["orcamento_id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_orcamento_montagem"
+            referencedColumns: ["orcamento_id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensagens_comercial: {
         Row: {
           conteudo_texto: string | null
@@ -2211,6 +2388,8 @@ export type Database = {
           informacoes_atualizadas_em: string | null
           informacoes_importantes: string | null
           linkedin: string | null
+          nao_ligar_bot: boolean
+          nao_ligar_bot_em: string | null
           nome: string
           observacoes: string | null
           organizacao_id: string | null
@@ -2228,6 +2407,8 @@ export type Database = {
           informacoes_atualizadas_em?: string | null
           informacoes_importantes?: string | null
           linkedin?: string | null
+          nao_ligar_bot?: boolean
+          nao_ligar_bot_em?: string | null
           nome: string
           observacoes?: string | null
           organizacao_id?: string | null
@@ -2245,6 +2426,8 @@ export type Database = {
           informacoes_atualizadas_em?: string | null
           informacoes_importantes?: string | null
           linkedin?: string | null
+          nao_ligar_bot?: boolean
+          nao_ligar_bot_em?: string | null
           nome?: string
           observacoes?: string | null
           organizacao_id?: string | null
