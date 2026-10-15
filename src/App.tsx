@@ -26,6 +26,7 @@ import Crm from "./pages/Crm";
 const DealDetalhe = lazy(() => import("./pages/DealDetalhe"));
 const Atividades = lazy(() => import("./pages/Atividades"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
+const JuliaMotivosPerda = lazy(() => import("./pages/JuliaMotivosPerda"));
 import Orcamento from "./pages/Orcamento";
 import Reforma from "./pages/Reforma";
 import Frete from "./pages/Frete";
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="/crm/deal/:id" element={<ProtectedRoute><DealDetalhe /></ProtectedRoute>} />
               <Route path="/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+              <Route path="/julia/motivos-perda" element={<ProtectedRoute><JuliaMotivosPerda /></ProtectedRoute>} />
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/rotas" element={<ProtectedRoute><Rotas /></ProtectedRoute>} />

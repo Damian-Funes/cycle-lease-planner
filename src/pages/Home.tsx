@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
-import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck, Route, AlertTriangle, FileSearch } from "lucide-react";
+import { FileText, Receipt, FolderOpen, Package, LayoutGrid, Wrench, Users, KanbanSquare, Building2, User, CheckSquare, BarChart3, Library, Box, Inbox, Truck, Route, AlertTriangle, FileSearch, Phone } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
@@ -9,6 +9,13 @@ import CrmWidgets from "@/components/CrmWidgets";
 import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
 
 const cards = [
+  {
+    title: "Motivos de perda (Júlia)",
+    desc: "Ligações concluídas",
+    icon: Phone,
+    to: "/julia/motivos-perda",
+    color: "bg-secondary text-secondary-foreground",
+  },
   {
     title: "Nova Proposta de Aluguel",
     desc: "Calculadora SmartCycle · Contrato 10 anos",

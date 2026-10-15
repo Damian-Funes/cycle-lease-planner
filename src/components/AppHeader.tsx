@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, Users, Home, Plug } from "lucide-react";
+import { LogOut, User as UserIcon, Users, Home, Plug, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function AppHeader() {
@@ -30,6 +30,9 @@ export default function AppHeader() {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate("/configuracoes/integracoes")} className="gap-2">
           <Plug className="w-4 h-4" /> Integrações
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/julia/motivos-perda")} className="gap-2">
+          <Phone className="w-4 h-4" /> Motivos de perda (Júlia)
         </DropdownMenuItem>
         {isAdmin && (
           <DropdownMenuItem onClick={() => navigate("/admin/usuarios")} className="gap-2">
