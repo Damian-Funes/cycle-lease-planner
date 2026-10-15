@@ -27,6 +27,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ActivityFeed from "@/components/ActivityFeed";
 import DealPropostasOrcamentos from "@/components/DealPropostasOrcamentos";
+import JuliaHistorico from "@/components/JuliaHistorico";
 import SemPermissao from "@/components/SemPermissao";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
@@ -692,12 +693,13 @@ export default function DealDetalhe() {
           </Card>
 
           <Tabs defaultValue="atividades">
-            <TabsList>
+            <TabsList className="flex w-full justify-start overflow-x-auto">
               <TabsTrigger value="atividades">Atividades</TabsTrigger>
               <TabsTrigger value="notas">Notas</TabsTrigger>
               <TabsTrigger value="arquivos">Arquivos</TabsTrigger>
               <TabsTrigger value="propostas">Propostas</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
+              <TabsTrigger value="julia">Ligações da Júlia</TabsTrigger>
             </TabsList>
 
             <TabsContent value="atividades">
@@ -762,6 +764,9 @@ export default function DealDetalhe() {
                 ))}
                 {historico.length === 0 && <div className="text-sm text-muted-foreground text-center py-4">Sem histórico.</div>}
               </CardContent></Card>
+            </TabsContent>
+            <TabsContent value="julia">
+              <JuliaHistorico key={deal.id} oportunidadeId={deal.id} />
             </TabsContent>
           </Tabs>
         </div>
