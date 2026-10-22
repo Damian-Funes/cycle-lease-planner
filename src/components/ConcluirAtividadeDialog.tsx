@@ -99,7 +99,7 @@ export default function ConcluirAtividadeDialog({ atividade, onClose, onDone }: 
     onDone();
   };
 
-  const agendarPrimario = oferecerProximo && (temVinculo || abrirProximo);
+  const agendarPrimario = oferecerProximo && temVinculo;
   const tipoSel = tipos.find((t) => t.id === tipoId);
 
   return (

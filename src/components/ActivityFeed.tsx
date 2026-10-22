@@ -10,6 +10,7 @@ import { formatDistanceToNow, isToday, isYesterday, startOfWeek, startOfMonth, s
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import NovaAtividadeQuickForm from "./NovaAtividadeQuickForm";
+import ConcluirAtividadeDialog from "./ConcluirAtividadeDialog";
 
 type EntityType = "oportunidade" | "organizacao" | "pessoa";
 
@@ -62,6 +63,7 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
   const [editing, setEditing] = useState<string | null>(null);
   const [editTitulo, setEditTitulo] = useState("");
   const tables = useReadTables();
+  const [concluirAtiv, setConcluirAtiv] = useState<Atividade | null>(null);
 
   const carregar = async () => {
     setLoading(true);
@@ -121,6 +123,7 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
   }, [atividades]);
 
   const concluir = async (a: Atividade) => {
+    if (!a.concluida) { setConcluirAtiv(a); return; }
     const { error } = await (supabase as any).from("atividades").update({
       concluida: !a.concluida,
       data_conclusao: !a.concluida ? new Date().toISOString() : null,
@@ -235,6 +238,8 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
           onClose={() => setShowForm(false)}
         />
       )}
+
+      <ConcluirAtividadeDialog atividade={concluirAtiv} onClose={() => setConcluirAtiv(null)} onDone={() => { setConcluirAtiv(null); carregar(); }} />
 
       {loading ? (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
