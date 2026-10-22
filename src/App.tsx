@@ -3,7 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
+
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -50,6 +52,13 @@ const ConfiguracoesNotificacoes = lazy(() => import("./pages/ConfiguracoesNotifi
 
 const queryClient = new QueryClient();
 
+// SmartCycle desativado: /smartcycle → /orcamento (preserva apenas propostas=1)
+const SmartcycleRedirect = () => {
+  const { search } = useLocation();
+  const abrirPropostas = new URLSearchParams(search).get("propostas") === "1";
+  return <Navigate replace to={abrirPropostas ? "/orcamento?propostas=1" : "/orcamento"} />;
+};
+
 const RouteLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
     <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -70,7 +79,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/pendente" element={<Pendente />} />
               <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-              <Route path="/smartcycle" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/smartcycle" element={SMARTCYCLE_ATIVO ? <ProtectedRoute><Index /></ProtectedRoute> : <SmartcycleRedirect />} />
               <Route path="/orcamento" element={<ProtectedRoute><Orcamento /></ProtectedRoute>} />
               <Route path="/frete" element={<ProtectedRoute><Frete /></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><Catalogo /></ProtectedRoute>} />

@@ -28,7 +28,7 @@ export default function CrmWidgets() {
   useEffect(() => {
     if (!uid) return;
     (async () => {
-      const [oRes, eRes, aRes] = await Promise.all([
+      const [oRes, eRes, aRes, pRes] = await Promise.all([
         (isAdmin
           ? sb.from(tables.oportunidades).select("*")
           : sb.from(tables.oportunidades).select("*").eq("responsavel_id", uid)),
@@ -37,8 +37,11 @@ export default function CrmWidgets() {
           ? sb.from("atividades").select("*").eq("evento_automatico", false)
           : sb.from("atividades").select("*").eq("responsavel_id", uid).eq("evento_automatico", false))
           .order("data_inicio", { ascending: true }),
+        sb.from("pipelines").select("id").eq("ativo", true),
       ]);
-      const allOpps = oRes.data || [];
+      // Regra geral: pipeline inativo = oculto
+      const ativos = new Set((pRes.data || []).map((p: any) => p.id));
+      const allOpps = (oRes.data || []).filter((o: any) => ativos.has(o.pipeline_id));
       setOpps(allOpps);
       setEtapas(eRes.data || []);
       setAtividades(aRes.data || []);

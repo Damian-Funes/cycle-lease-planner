@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -304,10 +305,12 @@ function NovoLayoutModal({
   async function loadOrigens() {
     setLoadingOrigens(true);
     const [props, orcs] = await Promise.all([
-      supabase
-        .from("propostas")
-        .select("id, numero_proposta, nome_cliente, cliente_endereco, cliente_telefone, itens_projeto, organizacao_id")
-        .order("created_at", { ascending: false }),
+      SMARTCYCLE_ATIVO
+        ? supabase
+            .from("propostas")
+            .select("id, numero_proposta, nome_cliente, cliente_endereco, cliente_telefone, itens_projeto, organizacao_id")
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] as any[], error: null }),
       supabase
         .from("orcamentos")
         .select("id, numero_orcamento, nome_cliente, cliente_endereco, cliente_telefone, itens, organizacao_id")

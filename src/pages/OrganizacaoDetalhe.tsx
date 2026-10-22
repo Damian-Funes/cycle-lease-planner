@@ -37,6 +37,7 @@ import OrgKpis from "@/components/OrgKpis";
 import SemPermissao from "@/components/SemPermissao";
 import { InformacoesImportantes } from "@/components/IaInsights";
 import PessoaDetalheSheet from "@/components/PessoaDetalheSheet";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 
 const STATUS = ["lead", "prospect", "ativo", "inativo", "perdido"] as const;
 const STATUS_STYLES: Record<string, string> = {
@@ -278,7 +279,7 @@ export default function OrganizacaoDetalhe() {
             <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="visao">Visão Geral</TabsTrigger>
               <TabsTrigger value="pessoas">Pessoas ({pessoas.length})</TabsTrigger>
-              <TabsTrigger value="propostas">Propostas SmartCycle</TabsTrigger>
+              {SMARTCYCLE_ATIVO && <TabsTrigger value="propostas">Propostas SmartCycle</TabsTrigger>}
               <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
               <TabsTrigger value="layouts">Layouts</TabsTrigger>
               <TabsTrigger value="interacoes">Interações de campo</TabsTrigger>
@@ -367,9 +368,11 @@ export default function OrganizacaoDetalhe() {
               </Card>
             </TabsContent>
 
+            {SMARTCYCLE_ATIVO && (
             <TabsContent value="propostas" className="mt-4">
               <OrgPropostas organizacaoId={id} />
             </TabsContent>
+            )}
             <TabsContent value="orcamentos" className="mt-4">
               <OrgOrcamentos organizacaoId={id} />
             </TabsContent>
