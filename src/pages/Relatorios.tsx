@@ -100,27 +100,26 @@ export default function Relatorios() {
   // dados
   useEffect(() => {
     (async () => {
-      let oQ = sb.from("oportunidades").select("*");
-      if (pipelineId !== "todos") oQ = oQ.eq("pipeline_id", pipelineId);
+      // Regra geral: pipeline inativo = oculto nos relatórios
+      const { data: ativos } = await sb.from("pipelines").select("id").eq("ativo", true);
+      const ativosIds: string[] = (ativos || []).map((p: any) => p.id);
+      const porPipeline = (q: any) => pipelineId !== "todos" ? q.eq("pipeline_id", pipelineId) : q.in("pipeline_id", ativosIds);
+      let oQ = porPipeline(sb.from("oportunidades").select("*"));
       if (responsavelId !== "todos") oQ = oQ.eq("responsavel_id", responsavelId);
       const { data: opps } = await oQ;
       setOportunidades(opps || []);
 
-      let fQ = sb.from("v_relatorio_forecast_mensal").select("*");
-      if (pipelineId !== "todos") fQ = fQ.eq("pipeline_id", pipelineId);
+      let fQ = porPipeline(sb.from("v_relatorio_forecast_mensal").select("*"));
       if (responsavelId !== "todos") fQ = fQ.eq("responsavel_id", responsavelId);
       setForecastView((await fQ).data || []);
 
-      let perf = sb.from("v_relatorio_performance_vendedor").select("*");
-      if (pipelineId !== "todos") perf = perf.eq("pipeline_id", pipelineId);
+      let perf = porPipeline(sb.from("v_relatorio_performance_vendedor").select("*"));
       setPerfView((await perf).data || []);
 
-      let mp = sb.from("v_relatorio_motivos_perda").select("*");
-      if (pipelineId !== "todos") mp = mp.eq("pipeline_id", pipelineId);
+      let mp = porPipeline(sb.from("v_relatorio_motivos_perda").select("*"));
       setMotivosView((await mp).data || []);
 
-      let te = sb.from("v_relatorio_tempo_etapa").select("*");
-      if (pipelineId !== "todos") te = te.eq("pipeline_id", pipelineId);
+      let te = porPipeline(sb.from("v_relatorio_tempo_etapa").select("*"));
       setTempoEtapaView((await te).data || []);
 
       let aQ = sb.from("atividades").select("*")
