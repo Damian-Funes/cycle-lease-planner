@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tipico, TipicoInput, TipicoItem, TipicoTipo } from "@/lib/tipicos";
 import { useCreateTipico, useUpdateTipico } from "@/hooks/useTipicos";
 import { toast } from "sonner";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 
 interface Props {
   open: boolean;
@@ -159,7 +160,7 @@ export default function TipicoFormModal({ open, onOpenChange, tipico }: Props) {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="orcamento">Orçamento</SelectItem>
-                  <SelectItem value="aluguel">Aluguel (SmartCycle)</SelectItem>
+                  {(SMARTCYCLE_ATIVO || tipo === "aluguel") && <SelectItem value="aluguel">Aluguel (SmartCycle)</SelectItem>}
                 </SelectContent>
               </Select>
             </div>

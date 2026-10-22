@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { FilePlus, FileText, Receipt, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 
 interface Props {
   onNovoAluguel?: () => void;
@@ -19,6 +20,14 @@ export default function NovaPropostaButton({ onNovoAluguel, onNovoOrcamento }: P
     if (onNovoOrcamento) onNovoOrcamento();
     else navigate("/orcamento?novo=1");
   };
+
+  if (!SMARTCYCLE_ATIVO) {
+    return (
+      <Button size="sm" variant="outline" className="gap-1" onClick={handleOrcamento}>
+        <FilePlus className="w-4 h-4" /> Nova Proposta
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

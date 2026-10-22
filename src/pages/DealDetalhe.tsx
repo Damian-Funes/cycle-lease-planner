@@ -31,6 +31,7 @@ import JuliaHistorico from "@/components/JuliaHistorico";
 import SemPermissao from "@/components/SemPermissao";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0);
@@ -114,7 +115,7 @@ export default function DealDetalhe() {
       .order("created_at", { ascending: false });
     setHistorico(hist || []);
 
-    if (d.proposta_id) {
+    if (SMARTCYCLE_ATIVO && d.proposta_id) {
       const { data: p } = await supabase.from("propostas").select("*").eq("id", d.proposta_id).maybeSingle();
       setProposta(p);
     } else setProposta(null);
@@ -183,7 +184,7 @@ export default function DealDetalhe() {
     // Warnings não bloqueantes
     const temDecisor = oppPessoas.some(op => op.papel === "decisor");
     if (!temDecisor) toast.warning("⚠️ Sem pessoa decisora vinculada");
-    if (!deal.proposta_id) toast.warning("⚠️ Sem proposta vinculada");
+    if (SMARTCYCLE_ATIVO && !deal.proposta_id) toast.warning("⚠️ Sem proposta vinculada");
 
     toast.success("🎉 Marcada como Ganha!");
     setPostWinDialog(true);
@@ -448,7 +449,7 @@ export default function DealDetalhe() {
 
   const vincularProposta = async (pid: string) => {
     await patch({ proposta_id: pid });
-    if (deal?.status === "ganha") {
+    if (SMARTCYCLE_ATIVO && deal?.status === "ganha") {
       await supabase.from("propostas").update({ status: "aprovada" }).eq("id", pid);
     }
     toast.success("Proposta vinculada");
@@ -812,9 +813,11 @@ export default function DealDetalhe() {
             <DialogTitle>🏆 Deal ganho! E agora?</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
+            {SMARTCYCLE_ATIVO && (
             <Button variant="outline" className="w-full justify-start" onClick={() => { carregarPropostas(); setPostWinDialog(false); setVincPropDialog(true); }}>
               <FileText className="w-4 h-4 mr-2" />Vincular proposta existente
             </Button>
+            )}
             <Button variant="outline" className="w-full justify-start" onClick={() => navigate(`/orcamento?oportunidade=${id}`)}>
               <Plus className="w-4 h-4 mr-2" />Criar proposta
             </Button>

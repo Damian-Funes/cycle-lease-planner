@@ -8,6 +8,7 @@ import { useReadTables } from "@/lib/tables";
 import { Trash2, Loader2, FileText, Receipt, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -72,10 +73,12 @@ export default function PropostasUnificadasModal({
   async function fetchAll() {
     setLoading(true);
     const [{ data: prop, error: e1 }, { data: orc, error: e2 }] = await Promise.all([
-      (supabase as any).from(tables.propostas).select(
-        isMkt ? "id, numero_proposta, nome_cliente, organizacao_id, status, created_at"
-              : "id, numero_proposta, nome_cliente, organizacao_id, total_10_anos, status, created_at"
-      ).order("created_at", { ascending: false }),
+      SMARTCYCLE_ATIVO
+        ? (supabase as any).from(tables.propostas).select(
+            isMkt ? "id, numero_proposta, nome_cliente, organizacao_id, status, created_at"
+                  : "id, numero_proposta, nome_cliente, organizacao_id, total_10_anos, status, created_at"
+          ).order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
       (supabase as any).from(tables.orcamentos).select(
         isMkt ? "id, numero_orcamento, nome_cliente, organizacao_id, status, created_at"
               : "id, numero_orcamento, nome_cliente, organizacao_id, total, status, created_at"
@@ -183,6 +186,7 @@ export default function PropostasUnificadasModal({
         </DialogHeader>
 
         <div className="flex items-center gap-3 flex-wrap">
+          {SMARTCYCLE_ATIVO && (
           <Tabs value={filtro} onValueChange={(v) => setFiltro(v as TipoFiltro)}>
             <TabsList>
               <TabsTrigger value="todas">Todas</TabsTrigger>
@@ -190,6 +194,7 @@ export default function PropostasUnificadasModal({
               <TabsTrigger value="orcamento" className="gap-1"><Receipt className="w-3 h-3" /> Orçamento</TabsTrigger>
             </TabsList>
           </Tabs>
+          )}
           <div className="relative flex-1 min-w-[200px]">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input

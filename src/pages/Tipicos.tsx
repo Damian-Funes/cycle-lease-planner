@@ -14,6 +14,7 @@ import { useTipicos, useUpdateTipico } from "@/hooks/useTipicos";
 import { Tipico, TipicoTipo, formatSacosAno } from "@/lib/tipicos";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 
 function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -28,7 +29,8 @@ export default function Tipicos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Tipico | null>(null);
 
-  const { data: tipicos = [], isLoading } = useTipicos({ tipo, busca, incluirArquivados: isAdmin && incluirArquivados });
+  const { data: tipicosRaw = [], isLoading } = useTipicos({ tipo, busca, incluirArquivados: isAdmin && incluirArquivados });
+  const tipicos = SMARTCYCLE_ATIVO ? tipicosRaw : tipicosRaw.filter((t) => t.tipo !== "aluguel");
   const update = useUpdateTipico();
 
   function handleUsar(t: Tipico) {
@@ -76,7 +78,7 @@ export default function Tipicos() {
               <TabsList>
                 <TabsTrigger value="todos">Todos</TabsTrigger>
                 <TabsTrigger value="orcamento">Orçamento</TabsTrigger>
-                <TabsTrigger value="aluguel">Aluguel</TabsTrigger>
+                {SMARTCYCLE_ATIVO && <TabsTrigger value="aluguel">Aluguel</TabsTrigger>}
               </TabsList>
             </Tabs>
             {isAdmin && (

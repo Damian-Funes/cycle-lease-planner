@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useReadTables } from "@/lib/tables";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ export default function DealPropostasOrcamentos({
 
   const { data: propostas = [], isLoading: l1 } = useQuery({
     queryKey: ["deal-propostas", oportunidadeId, isMkt],
+    enabled: SMARTCYCLE_ATIVO,
     queryFn: async () => {
       const { data } = await (supabase as any).from(tables.propostas)
         .select(isMkt
@@ -70,19 +72,21 @@ export default function DealPropostasOrcamentos({
     <Card>
       <CardContent className="pt-6 space-y-4">
         <div className="flex flex-wrap gap-2">
+          {SMARTCYCLE_ATIVO && (
           <Button size="sm" className="gap-1" onClick={() => navigate(`/?oportunidade=${oportunidadeId}${orgQs}&novo=1`)}>
             <Plus className="w-4 h-4" /> Criar Proposta SmartCycle
           </Button>
+          )}
           <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate(`/orcamento?oportunidade=${oportunidadeId}${orgQs}&novo=1`)}>
             <Plus className="w-4 h-4" /> Criar Orçamento
           </Button>
           <Button size="sm" variant="outline" className="gap-1" onClick={() => navigate(`/reforma?oportunidade=${oportunidadeId}${orgQs}&novo=1`)}>
             <Plus className="w-4 h-4" /> Criar Reforma
           </Button>
-          <Button size="sm" variant="ghost" onClick={onAbrirVincular}>Vincular proposta existente</Button>
+          {SMARTCYCLE_ATIVO && <Button size="sm" variant="ghost" onClick={onAbrirVincular}>Vincular proposta existente</Button>}
         </div>
 
-        {propostaVinculada && (
+        {SMARTCYCLE_ATIVO && propostaVinculada && (
           <div className="border rounded p-3 bg-emerald-50 border-emerald-200">
             <div className="text-xs font-medium text-emerald-700 mb-1">Proposta principal vinculada</div>
             <div className="font-medium">{propostaVinculada.numero_proposta || "Proposta"}</div>
@@ -92,6 +96,7 @@ export default function DealPropostasOrcamentos({
           </div>
         )}
 
+        {SMARTCYCLE_ATIVO && (
         <Section
           icon={<FileText className="w-4 h-4" />}
           titulo="Propostas SmartCycle vinculadas"
@@ -102,6 +107,7 @@ export default function DealPropostasOrcamentos({
               num={p.numero_proposta} status={p.status} valor={p.total_10_anos} data={p.created_at} />
           )}
         />
+        )}
         <Section
           icon={<Receipt className="w-4 h-4" />}
           titulo="Orçamentos de Venda"

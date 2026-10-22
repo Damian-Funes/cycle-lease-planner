@@ -7,8 +7,9 @@ import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 import CrmWidgets from "@/components/CrmWidgets";
 import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
+import { SMARTCYCLE_ATIVO } from "@/config/features";
 
-const cards = [
+const allCards = [
   {
     title: "Motivos de perda (Júlia)",
     desc: "Ligações concluídas",
@@ -39,9 +40,9 @@ const cards = [
   },
   {
     title: "Propostas",
-    desc: "Ver aluguéis e orçamentos salvos",
+    desc: SMARTCYCLE_ATIVO ? "Ver aluguéis e orçamentos salvos" : "Ver orçamentos salvos",
     icon: FolderOpen,
-    to: "/smartcycle?propostas=1",
+    to: SMARTCYCLE_ATIVO ? "/smartcycle?propostas=1" : "/orcamento?propostas=1",
     color: "bg-blue-500/10 text-blue-600",
   },
   {
@@ -137,6 +138,8 @@ const cards = [
     color: "bg-violet-500/10 text-violet-600",
   },
 ];
+
+const cards = SMARTCYCLE_ATIVO ? allCards : allCards.filter((c) => c.to !== "/smartcycle?novo=1");
 
 export default function Home() {
   const navigate = useNavigate();
