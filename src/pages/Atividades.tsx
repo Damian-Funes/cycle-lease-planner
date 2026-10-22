@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppHeader from "@/components/AppHeader";
 import NovaAtividadeQuickForm from "@/components/NovaAtividadeQuickForm";
+import ConcluirAtividadeDialog from "@/components/ConcluirAtividadeDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,7 +91,6 @@ export default function Atividades() {
   const [novoModal, setNovoModal] = useState(false);
   const [editAtiv, setEditAtiv] = useState<Atividade | null>(null);
   const [concluirAtiv, setConcluirAtiv] = useState<Atividade | null>(null);
-  const [resultado, setResultado] = useState("");
   const [testando, setTestando] = useState(false);
 
   const carregar = async () => {
@@ -210,19 +210,10 @@ export default function Atividades() {
   const toggleTipo = (id: string) => setTiposSel(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
   const marcarConcluida = async (a: Atividade) => {
-    if (!a.concluida) { setConcluirAtiv(a); setResultado(""); return; }
+    if (!a.concluida) { setConcluirAtiv(a); return; }
     const { error } = await (supabase as any).from("atividades").update({ concluida: false, data_conclusao: null }).eq("id", a.id);
     if (error) return toast.error(error.message);
     carregar();
-  };
-
-  const confirmarConclusao = async () => {
-    if (!concluirAtiv) return;
-    const { error } = await (supabase as any).from("atividades").update({
-      concluida: true, data_conclusao: new Date().toISOString(), resultado: resultado.trim() || null,
-    }).eq("id", concluirAtiv.id);
-    if (error) return toast.error(error.message);
-    setConcluirAtiv(null); carregar();
   };
 
   const adiar = async (a: Atividade, dias?: number, dataCustom?: string) => {
@@ -458,17 +449,8 @@ export default function Atividades() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmar conclusão */}
-      <Dialog open={!!concluirAtiv} onOpenChange={(o) => !o && setConcluirAtiv(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Marcar como concluída</DialogTitle></DialogHeader>
-          <Textarea placeholder="Resultado (opcional)" value={resultado} onChange={e => setResultado(e.target.value)} rows={3} />
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setConcluirAtiv(null)}>Cancelar</Button>
-            <Button onClick={confirmarConclusao}>Concluir</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Concluir atividade + próximo passo */}
+      <ConcluirAtividadeDialog atividade={concluirAtiv} onClose={() => setConcluirAtiv(null)} onDone={() => { setConcluirAtiv(null); carregar(); }} />
     </div>
   );
 }
