@@ -1,3 +1,9 @@
+# Diagnóstico técnico
+- [ ] Banco, permissões e auditoria.
+- [ ] Cálculo e testes de negócio.
+- [ ] Calculador, configuração e acessos nos vínculos.
+- [ ] Verificação e entrega do SQL.
+
 # Rotas: autorização e prestação de contas
 - [x] Alinhar datas ao fuso America/Sao_Paulo no banco e na interface; e-mail de amanhã somente para aprovadas; testar a virada do dia.
 
