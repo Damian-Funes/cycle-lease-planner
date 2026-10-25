@@ -38,7 +38,7 @@ export default function Diagnostico() {
         if(id){
           const {data:d,error}=await supabase.from('diagnosticos_tecnicos').select('*').eq('id',id).single();
           if(error)throw error;
-          if(active){setEntrada({...d,equipamento_atual:d.equipamento_atual??'',observacoes:d.observacoes??''});setOrganizacao(d.organizacao_id);setOportunidade(d.oportunidade_id);}
+          if(active){setEntrada({cultura:d.cultura,sacos_safra:d.sacos_safra,kg_por_saco:d.kg_por_saco,janela_dias:d.janela_dias,horas_trabalhadas_dia:d.horas_trabalhadas_dia,lotes_liberados_dia_anterior:d.lotes_liberados_dia_anterior,horas_perdidas_dia:d.horas_perdidas_dia,tempo_receita_s:d.tempo_receita_s,num_produtos_liquidos:d.num_produtos_liquidos,usa_po:d.usa_po,capacidade_atual_kg_h:d.capacidade_atual_kg_h,equipamento_atual:d.equipamento_atual??'',observacoes:d.observacoes??''});setOrganizacao(d.organizacao_id);setOportunidade(d.oportunidade_id);}
         }else{
           const p=config.data.parametros;
           if(active)setEntrada({cultura:'soja',sacos_safra:0,kg_por_saco:p.peso_soja??0,janela_dias:0,horas_trabalhadas_dia:p.horas_trabalhadas_padrao,lotes_liberados_dia_anterior:true,horas_perdidas_dia:p.horas_perdidas_padrao,tempo_receita_s:p.tempo_receita_padrao_s,num_produtos_liquidos:0,usa_po:false,capacidade_atual_kg_h:null,equipamento_atual:'',observacoes:''});
