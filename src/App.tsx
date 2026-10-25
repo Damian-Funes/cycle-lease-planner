@@ -43,6 +43,7 @@ const Layouts = lazy(() => import("./pages/Layouts"));
 const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
 const Rotas = lazy(() => import("./pages/Rotas"));
 const RotaEditor = lazy(() => import("./pages/RotaEditor"));
+const RotasAprovacoes = lazy(() => import('./pages/RotasAprovacoes'));
 const AdminUsuarios = lazy(() => import("./pages/AdminUsuarios"));
 const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
 const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegracoes"));
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/rotas" element={<ProtectedRoute><Rotas /></ProtectedRoute>} />
+              <Route path="/rotas/aprovacoes" element={<ProtectedRoute><RequireRole roles={["admin"]}><RotasAprovacoes /></RequireRole></ProtectedRoute>} />
               <Route path="/rotas/:id" element={<ProtectedRoute><RotaEditor /></ProtectedRoute>} />
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
               <Route path="/tipicos" element={<ProtectedRoute><Tipicos /></ProtectedRoute>} />

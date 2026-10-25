@@ -17,10 +17,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import RotaStatus from '@/components/rotas/RotaStatus';
+import { useRotasAlertas } from '@/hooks/useRotasAlertas';
+import { diaRota } from '@/lib/rotasFluxo';
 
 export default function Rotas() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const { pendentes } = useRotasAlertas();
   const qc = useQueryClient();
   const [novoOpen, setNovoOpen] = useState(false);
   const [data, setData] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -33,7 +37,7 @@ export default function Rotas() {
   const { data: minhas = [] } = useQuery({
     queryKey: ["rotas-minhas", user?.id],
     enabled: !!user,
-    queryFn: () => listMinhasRotas(user!.id),
+    queryFn: () => user ? listMinhasRotas(user.id) : Promise.resolve([]),
   });
 
   const { data: equipe = [] } = useQuery({
@@ -79,6 +83,7 @@ export default function Rotas() {
       qc.invalidateQueries({ queryKey: ["rotas-minhas"] });
       qc.invalidateQueries({ queryKey: ["rotas-equipe"] });
     },
+    onError: (e: any) => toast.error(e?.message || 'Não foi possível remover a rota.'),
   });
 
   const geocodificar = useMutation({
@@ -118,7 +123,7 @@ export default function Rotas() {
               <div className="font-semibold capitalize">
                 {format(parseISO(r.data_rota), "EEE, dd MMM yyyy", { locale: ptBR })}
               </div>
-              <Badge variant={r.status === "realizada" ? "default" : "secondary"}>{r.status}</Badge>
+              <RotaStatus status={r.status} />
             </div>
             {mostrarVendedor && (
               <div className="text-xs text-muted-foreground">
@@ -130,13 +135,13 @@ export default function Rotas() {
               <div className="text-xs text-muted-foreground mt-1">{Number(r.km_total_estimado).toFixed(1)} km estimados</div>
             )}
           </div>
-          <Button
+          {(isAdmin || ['rascunho', 'reprovada', 'cancelada'].includes(r.status)) && <Button
             variant="ghost"
             size="icon"
             onClick={(e) => { e.stopPropagation(); if (confirm("Apagar rota?")) apagar.mutate(r.id); }}
           >
             <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
+          </Button>}
         </div>
       </Card>
     );
@@ -164,6 +169,8 @@ export default function Rotas() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
+        {pendentes.length > 0 && <div className="mb-4 rounded-md border border-destructive bg-destructive/10 text-destructive p-4 flex flex-wrap items-center gap-3"><p className="flex-1">Você tem a rota de {diaRota(pendentes[0].data_rota)} sem prestação de contas — nova viagem bloqueada</p><Button variant="destructive" onClick={() => navigate(`/rotas/${pendentes[0].id}`)}>Prestar contas</Button></div>}
+        {isAdmin && <Button className="mb-4" variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Autorizações de viagem</Button>}
         <Tabs defaultValue="minhas">
           <TabsList>
             <TabsTrigger value="minhas">Minhas Rotas</TabsTrigger>
