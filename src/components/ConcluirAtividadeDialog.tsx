@@ -26,10 +26,12 @@ export interface AtividadeConcluir {
 
 const norm = (s?: string | null) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-export default function ConcluirAtividadeDialog({ atividade, onClose, onDone }: {
+export default function ConcluirAtividadeDialog({ atividade, onClose, onDone, resultadoObrigatorio = false, onResultado }: {
   atividade: AtividadeConcluir | null;
   onClose: () => void;
   onDone: () => void;
+  resultadoObrigatorio?: boolean;
+  onResultado?: (resultado: string) => Promise<void>;
 }) {
   const listas = useAtividadeListas();
   const { tipos, deals } = listas;
@@ -68,23 +70,30 @@ export default function ConcluirAtividadeDialog({ atividade, onClose, onDone }: 
   useEffect(() => {
     const dealId = atividade?.oportunidade_id;
     if (!dealId) return;
+    const atividadeId = atividade?.id;
+    if (!atividadeId) return;
     const deal = deals.find((d) => d.id === dealId);
     if (!deal || deal.status !== "aberta") { setDealSemProxima(false); return; }
     (async () => {
       const { data: fut } = await (supabase as any).from("atividades").select("id")
-        .eq("oportunidade_id", dealId).eq("concluida", false).neq("id", atividade!.id)
+        .eq("oportunidade_id", dealId).eq("concluida", false).neq("id", atividadeId)
         .gt("data_inicio", new Date().toISOString()).limit(1);
       setDealSemProxima(!(fut || []).length);
     })();
   }, [atividade?.id, deals]);
 
   const concluir = async (agendar: boolean) => {
-    if (!atividade) return;
+    if (!atividade || saving) return;
+    if (resultadoObrigatorio && !resultado.trim()) { toast.error('Informe o resultado da visita.'); return; }
     setSaving(true);
     const { error } = await (supabase as any).from("atividades").update({
       concluida: true, data_conclusao: new Date().toISOString(), resultado: resultado.trim() || null,
     }).eq("id", atividade.id);
     if (error) { setSaving(false); toast.error(error.message); return; }
+    if (onResultado) {
+      try { await onResultado(resultado.trim()); }
+      catch (e) { setSaving(false); toast.error(e instanceof Error ? e.message : (e as { message?: string })?.message || 'Não foi possível registrar a parada.'); return; }
+    }
     if (agendar) {
       const id = await inserirAtividade({
         tipo: tipos.find((t) => t.id === tipoId), titulo, dataLocal: data, duracao: 30, concluida: false,
@@ -110,7 +119,7 @@ export default function ConcluirAtividadeDialog({ atividade, onClose, onDone }: 
         <DialogHeader><DialogTitle>Concluir atividade</DialogTitle></DialogHeader>
         <div className="space-y-1">
           <Label className="text-xs">Resultado</Label>
-          <Textarea placeholder="Resultado (opcional)" value={resultado} onChange={e => setResultado(e.target.value)} rows={3} autoFocus />
+          <Textarea placeholder={resultadoObrigatorio ? 'Resultado da visita (obrigatório)' : 'Resultado (opcional)'} value={resultado} onChange={e => setResultado(e.target.value)} rows={3} autoFocus />
         </div>
 
         {oferecerProximo && (

@@ -7,6 +7,7 @@ import { Loader2, MapPin, Search, Plus } from "lucide-react";
 import { loadGoogleMaps, geocodeAddress } from "@/lib/maps";
 import { buscarOrganizacoesProximas, semaforoVisita, type OrganizacaoProxima } from "@/lib/rotas";
 import { toast } from "sonner";
+import { Label } from '@/components/ui/label';
 
 interface CidadeSugestao {
   placeId: string;
@@ -20,11 +21,13 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   onSelectOrganizacao: (org: OrganizacaoProxima, cidade: { nome: string; estado: string; lat: number; lng: number }) => Promise<void> | void;
   onAddProspeccao: (cidade: { nome: string; estado: string; lat: number; lng: number }) => Promise<void> | void;
+  onObjetivo?: (objetivo: string) => void;
 }
 
 const SIGLA_RE = /\b([A-Z]{2})\b/;
 
-export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrganizacao, onAddProspeccao }: Props) {
+export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrganizacao, onAddProspeccao, onObjetivo }: Props) {
+  const [objetivo, setObjetivo] = useState('');
   const [query, setQuery] = useState("");
   const [sugestoes, setSugestoes] = useState<CidadeSugestao[]>([]);
   const [loadingSugest, setLoadingSugest] = useState(false);
@@ -35,6 +38,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
 
   useEffect(() => {
     if (!open) {
+      setObjetivo('');
       setQuery(""); setSugestoes([]); setCidadeSel(null); setOrgs([]);
       sessionTokenRef.current = null;
     }
@@ -110,6 +114,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
           <DialogTitle>Adicionar parada</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          {onObjetivo && <div className="space-y-1"><Label htmlFor="objetivo-nova-parada">Objetivo *</Label><Input id="objetivo-nova-parada" value={objetivo} onChange={e => { setObjetivo(e.target.value); onObjetivo(e.target.value); }} placeholder="Ex.: apresentar LSB150" /></div>}
           <div className="relative">
             <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -147,7 +152,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
                     ? "Nenhuma organização cadastrada num raio de 100 km."
                     : `${orgs.length} organização(ões) num raio de 100 km`}
                 </div>
-                <Button size="sm" variant="outline" onClick={() => onAddProspeccao(cidadeSel)}>
+                <Button size="sm" variant="outline" disabled={Boolean(onObjetivo && !objetivo.trim())} onClick={() => onAddProspeccao(cidadeSel)}>
                   <Plus className="w-3.5 h-3.5 mr-1" /> Prospecção (sem org)
                 </Button>
               </div>
@@ -178,7 +183,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
                           </Badge>
                         )}
                       </div>
-                      <Button size="sm" onClick={() => onSelectOrganizacao(o, cidadeSel)}>
+                      <Button size="sm" disabled={Boolean(onObjetivo && !objetivo.trim())} onClick={() => onSelectOrganizacao(o, cidadeSel)}>
                         <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
                       </Button>
                     </div>

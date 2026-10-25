@@ -8,6 +8,8 @@ import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 import CrmWidgets from "@/components/CrmWidgets";
 import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
 import { SMARTCYCLE_ATIVO } from "@/config/features";
+import { useRotasAlertas } from '@/hooks/useRotasAlertas';
+import { useAuth } from '@/hooks/useAuth';
 
 const allCards = [
   {
@@ -143,6 +145,8 @@ const cards = SMARTCYCLE_ATIVO ? allCards : allCards.filter((c) => c.to !== "/sm
 
 export default function Home() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+  const { pendentes: rotasPendentes, aprovacoes } = useRotasAlertas();
   const ativBadge = useAtividadesBadge();
   const { data: incompletas } = useOrganizacoesIncompletas();
   const incompletasTotal = incompletas?.total ?? 0;
@@ -186,6 +190,7 @@ export default function Home() {
           <h2 className="text-lg font-semibold mb-4">O que você quer fazer?</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {isAdmin && aprovacoes > 0 && <Card className="p-6 border-primary flex items-center gap-4"><Route className="w-6 h-6 text-primary" /><Button variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Rotas p/ aprovar ({aprovacoes})</Button></Card>}
           {cards.map((c: any) => {
             const Icon = c.icon;
             const showBadge = c.badgeKey === "atividades" && ativBadge > 0;
@@ -196,6 +201,7 @@ export default function Home() {
                 onClick={() => navigate(c.to)}
                 className="p-6 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group relative"
               >
+                {c.to === '/rotas' && rotasPendentes.length > 0 && <span title="Prestação de contas pendente" className="absolute top-3 right-3 min-w-5 h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">{rotasPendentes.length}</span>}
                 {showBadge && (
                   <span className="absolute top-3 right-3 min-w-5 h-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">
                     {ativBadge}

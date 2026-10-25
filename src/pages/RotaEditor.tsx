@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getRota, getParadas, atualizarRota, adicionarParada, removerParada,
-  reordenarParadas, criarAtividadeVisita, type RotaParada,
+  reordenarParadas, criarAtividadeVisita, atualizarParada, type RotaParada,
 } from "@/lib/rotas";
 import { loadGoogleMaps, optimizeRoute, getOrigemVendedor } from "@/lib/maps";
 import AppHeader from "@/components/AppHeader";
@@ -17,11 +17,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Trash2, Save, Wand2, GripVertical, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import RotaStatus from '@/components/rotas/RotaStatus';
+import PrestacaoParada from '@/components/rotas/PrestacaoParada';
+import { hojeRota, paradaInformada, validarEnvio, type StatusRota } from '@/lib/rotasFluxo';
+import { useRotasAlertas } from '@/hooks/useRotasAlertas';
 
 export default function RotaEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { pendentes } = useRotasAlertas();
   const qc = useQueryClient();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -29,19 +34,23 @@ export default function RotaEditor() {
   const polylineRef = useRef<any>(null);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [novoObjetivo, setNovoObjetivo] = useState('');
   const [data, setData] = useState("");
   const [obs, setObs] = useState("");
+  const [objetivos, setObjetivos] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [faltas, setFaltas] = useState<string[]>([]);
 
   const { data: rota } = useQuery({
     queryKey: ["rota", id],
     enabled: !!id,
-    queryFn: () => getRota(id!),
+    queryFn: () => id ? getRota(id) : Promise.resolve(null),
   });
 
   const { data: paradas = [] } = useQuery({
     queryKey: ["rota-paradas", id],
     enabled: !!id,
-    queryFn: () => getParadas(id!),
+    queryFn: () => id ? getParadas(id) : Promise.resolve([]),
   });
 
   useEffect(() => {
@@ -49,7 +58,44 @@ export default function RotaEditor() {
       setData(rota.data_rota);
       setObs(rota.observacoes ?? "");
     }
-  }, [rota?.id]);
+  }, [rota?.id, rota?.data_rota, rota?.observacoes]);
+
+  const planejamento = Boolean(rota && (rota.status === 'rascunho' || rota.status === 'reprovada' || (rota.status === 'aprovada' && rota.data_rota > hojeRota())));
+  const prestacao = rota?.status === 'aprovada' && rota.data_rota <= hojeRota();
+  const recarregar = () => {
+    qc.invalidateQueries({ queryKey: ['rota', id] });
+    qc.invalidateQueries({ queryKey: ['rota-paradas', id] });
+    qc.invalidateQueries({ queryKey: ['rotas-minhas'] });
+    qc.invalidateQueries({ queryKey: ['rotas-pendencias'] });
+    qc.invalidateQueries({ queryKey: ['rotas-aprovacoes'] });
+    qc.invalidateQueries({ queryKey: ['rotas-aprovacoes-contagem'] });
+  };
+  async function executar(fn: () => Promise<void>) {
+    setBusy(true);
+    try { await fn(); recarregar(); }
+    catch (e) { toast.error((e as { message?: string })?.message || 'Não foi possível salvar a rota.'); }
+    finally { setBusy(false); }
+  }
+  async function salvarObjetivos() {
+    for (const p of paradas) if (objetivos[p.id] !== undefined && objetivos[p.id] !== (p.objetivo ?? '')) await atualizarParada(p.id, { objetivo: objetivos[p.id].trim() });
+    setObjetivos({});
+  }
+  async function mudarStatus(status: StatusRota) {
+    if (!id || !rota) return;
+    if (status === 'aguardando_aprovacao') {
+      const erros = validarEnvio(data, paradas.map(p => ({ ...p, objetivo: objetivos[p.id] ?? p.objetivo })), pendentes.find(p => p.id !== id));
+      setFaltas(erros);
+      if (erros.length) return;
+    }
+    await executar(async () => {
+      if (status === 'aguardando_aprovacao') {
+        await atualizarRota(id, { data_rota: data, observacoes: obs || null });
+        await salvarObjetivos();
+      }
+      await atualizarRota(id, { status });
+      setFaltas([]); toast.success(status === 'concluida' ? 'Prestação de contas concluída' : 'Status atualizado');
+    });
+  }
 
   // Init map (re-roda quando o container monta ou a rota carrega)
   useEffect(() => {
@@ -148,10 +194,13 @@ export default function RotaEditor() {
 
   async function salvarMeta() {
     if (!id) return;
+    await executar(async () => {
     await atualizarRota(id, { data_rota: data, observacoes: obs || null });
+    await salvarObjetivos();
     qc.invalidateQueries({ queryKey: ["rota", id] });
     qc.invalidateQueries({ queryKey: ["rotas-minhas"] });
     toast.success("Rota salva");
+    });
   }
 
   async function onAddOrg(org: any, cidade: any) {
@@ -177,9 +226,11 @@ export default function RotaEditor() {
         observacoes: null,
         atividade_id: atividadeId,
         concluida: false,
+        objetivo: novoObjetivo.trim(),
       });
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
       toast.success(`${org.nome_fantasia || org.nome} adicionada`);
+      recarregar();
       setAddOpen(false);
     } catch (e: any) {
       toast.error("Erro ao adicionar", { description: e?.message });
@@ -202,9 +253,11 @@ export default function RotaEditor() {
         observacoes: null,
         atividade_id: null,
         concluida: false,
+        objetivo: novoObjetivo.trim(),
       });
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
       toast.success(`Prospecção em ${cidade.nome} adicionada`);
+      recarregar();
       setAddOpen(false);
     } catch (e: any) {
       toast.error("Erro", { description: e?.message });
@@ -212,8 +265,10 @@ export default function RotaEditor() {
   }
 
   async function removeParada(p: RotaParada) {
+    await executar(async () => {
     await removerParada(p.id);
     qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
+    });
   }
 
   async function otimizar() {
@@ -242,8 +297,7 @@ export default function RotaEditor() {
     if (target < 0 || target >= sorted.length) return;
     [sorted[idx], sorted[target]] = [sorted[target], sorted[idx]];
     const updates = sorted.map((x, i) => ({ id: x.id, ordem: i }));
-    await reordenarParadas(updates);
-    qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
+    await executar(async () => { await reordenarParadas(updates); });
   }
 
   if (!rota) {
@@ -253,16 +307,17 @@ export default function RotaEditor() {
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col">
       <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/rotas")}><ArrowLeft className="w-4 h-4" /></Button>
-            <h1 className="font-semibold">Editar Rota</h1>
+            <h1 className="font-semibold">{prestacao ? 'Prestação de contas' : 'Rota Comercial'}</h1>
+            <RotaStatus status={rota.status} />
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={otimizar} disabled={paradas.length < 1}>
+            <Button variant="outline" onClick={() => executar(otimizar)} disabled={!planejamento || busy || paradas.length < 1}>
               <Wand2 className="w-4 h-4 mr-1" /> Otimizar ordem
             </Button>
-            <Button onClick={salvarMeta}><Save className="w-4 h-4 mr-1" /> Salvar</Button>
+            {planejamento && <Button onClick={salvarMeta} disabled={busy}><Save className="w-4 h-4 mr-1" /> Salvar</Button>}
             <AppHeader />
           </div>
         </div>
@@ -270,11 +325,18 @@ export default function RotaEditor() {
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="space-y-3 flex flex-col min-h-0">
+          {rota.status === 'reprovada' && <div className="border border-destructive bg-destructive/10 text-destructive p-3 rounded-md">Reprovada: {rota.motivo_reprovacao}</div>}
+          {rota.status === 'aguardando_aprovacao' && <div className="border p-3 rounded-md space-y-2"><p>Aguardando aprovação</p><Button variant="outline" disabled={busy} onClick={() => mudarStatus('rascunho')}>Voltar para rascunho</Button></div>}
+          {rota.status === 'aprovada' && !prestacao && <p className="text-sm text-primary">Viagem aprovada. Alterar o plano exigirá nova aprovação.</p>}
+          {faltas.length > 0 && <ul className="border border-destructive bg-destructive/10 text-destructive p-3 pl-7 rounded-md list-disc text-sm">{faltas.map(f => <li key={f}>{f}</li>)}</ul>}
+          {(rota.status === 'rascunho' || rota.status === 'reprovada') && <Button disabled={busy} onClick={() => mudarStatus('aguardando_aprovacao')}>Enviar para aprovação</Button>}
+          {prestacao && <Button disabled={busy || !paradas.length || !paradas.every(paradaInformada)} onClick={() => mudarStatus('concluida')}>Concluir prestação de contas</Button>}
+          {isAdmin && rota.status === 'aprovada' && <Button variant="outline" disabled={busy} onClick={() => { if (confirm('Cancelar esta viagem aprovada?')) mudarStatus('cancelada'); }}>Cancelar viagem</Button>}
           <Card className="p-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs">Data</Label>
-                <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+                <Input type="date" value={data} disabled={!planejamento || busy} onChange={(e) => setData(e.target.value)} />
               </div>
               {rota.km_total_estimado != null && (
                 <div className="flex items-end">
@@ -284,13 +346,13 @@ export default function RotaEditor() {
             </div>
             <div>
               <Label className="text-xs">Observações</Label>
-              <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+              <Textarea rows={2} value={obs} disabled={!planejamento || busy} onChange={(e) => setObs(e.target.value)} />
             </div>
           </Card>
 
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm">Paradas ({paradas.length})</h2>
-            <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>
+            {planejamento && <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>}
           </div>
 
           <div className="space-y-2 overflow-y-auto pr-1">
@@ -301,15 +363,19 @@ export default function RotaEditor() {
               </Card>
             )}
             {paradas.map((p, idx) => (
-              <Card key={p.id} className="p-3 flex items-center gap-2">
+              <Card key={p.id} className="p-3">
+              <div className="flex items-center gap-2">
                 <div className="flex flex-col gap-0.5">
-                  <button onClick={() => mover(p, -1)} disabled={idx === 0} className="text-xs disabled:opacity-30">▲</button>
-                  <button onClick={() => mover(p, 1)} disabled={idx === paradas.length - 1} className="text-xs disabled:opacity-30">▼</button>
+                  {planejamento && <><Button size="icon" variant="ghost" aria-label="Mover parada para cima" onClick={() => mover(p, -1)} disabled={busy || idx === 0} className="h-6 w-6">▲</Button>
+                  <Button size="icon" variant="ghost" aria-label="Mover parada para baixo" onClick={() => mover(p, 1)} disabled={busy || idx === paradas.length - 1} className="h-6 w-6">▼</Button></>}
                 </div>
                 <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
                   {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">
+                    {p.organizacao?.nome_fantasia || p.organizacao?.nome || ''}
+                  </div>
                   <div className="text-sm font-medium truncate">
                     {p.cidade ?? "—"}{p.estado ? ` / ${p.estado}` : ""}
                   </div>
@@ -319,9 +385,13 @@ export default function RotaEditor() {
                     </Badge>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => removeParada(p)}>
+                {planejamento && <Button variant="ghost" size="icon" disabled={busy} aria-label="Remover parada" onClick={() => removeParada(p)}>
                   <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>
+                </Button>}
+              </div>
+              <div className="mt-3 space-y-1"><Label htmlFor={`objetivo-${p.id}`}>Objetivo *</Label><Input id={`objetivo-${p.id}`} value={objetivos[p.id] ?? p.objetivo ?? ''} disabled={!planejamento || busy} onChange={e => setObjetivos(v => ({ ...v, [p.id]: e.target.value }))} placeholder="Ex.: apresentar LSB150" /></div>
+              {prestacao && <PrestacaoParada key={`${p.id}-${p.informada_em}`} parada={p} onSaved={recarregar} />}
+              {rota.status === 'concluida' && <p className="text-sm mt-3">{p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</p>}
               </Card>
             ))}
           </div>
@@ -337,6 +407,7 @@ export default function RotaEditor() {
         onOpenChange={setAddOpen}
         onSelectOrganizacao={onAddOrg}
         onAddProspeccao={onAddProspeccao}
+        onObjetivo={setNovoObjetivo}
       />
     </div>
   );

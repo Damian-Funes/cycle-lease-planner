@@ -2713,14 +2713,19 @@ export type Database = {
           created_at: string
           estado: string | null
           id: string
+          informada_em: string | null
           latitude: number | null
           longitude: number | null
+          motivo_nao_visita: string | null
+          objetivo: string | null
           observacoes: string | null
           oportunidade_id: string | null
           ordem: number
           organizacao_id: string | null
+          resultado: string | null
           rota_id: string
           tipo: string
+          visitada: boolean | null
         }
         Insert: {
           atividade_id?: string | null
@@ -2729,14 +2734,19 @@ export type Database = {
           created_at?: string
           estado?: string | null
           id?: string
+          informada_em?: string | null
           latitude?: number | null
           longitude?: number | null
+          motivo_nao_visita?: string | null
+          objetivo?: string | null
           observacoes?: string | null
           oportunidade_id?: string | null
           ordem?: number
           organizacao_id?: string | null
+          resultado?: string | null
           rota_id: string
           tipo?: string
+          visitada?: boolean | null
         }
         Update: {
           atividade_id?: string | null
@@ -2745,14 +2755,19 @@ export type Database = {
           created_at?: string
           estado?: string | null
           id?: string
+          informada_em?: string | null
           latitude?: number | null
           longitude?: number | null
+          motivo_nao_visita?: string | null
+          objetivo?: string | null
           observacoes?: string | null
           oportunidade_id?: string | null
           ordem?: number
           organizacao_id?: string | null
+          resultado?: string | null
           rota_id?: string
           tipo?: string
+          visitada?: boolean | null
         }
         Relationships: [
           {
@@ -2808,31 +2823,46 @@ export type Database = {
       }
       rotas: {
         Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
           created_at: string
           data_rota: string
+          enviada_em: string | null
           id: string
           km_total_estimado: number | null
+          motivo_reprovacao: string | null
           observacoes: string | null
+          prestacao_concluida_em: string | null
           status: string
           updated_at: string
           vendedor_id: string
         }
         Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
           created_at?: string
           data_rota: string
+          enviada_em?: string | null
           id?: string
           km_total_estimado?: number | null
+          motivo_reprovacao?: string | null
           observacoes?: string | null
+          prestacao_concluida_em?: string | null
           status?: string
           updated_at?: string
           vendedor_id: string
         }
         Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
           created_at?: string
           data_rota?: string
+          enviada_em?: string | null
           id?: string
           km_total_estimado?: number | null
+          motivo_reprovacao?: string | null
           observacoes?: string | null
+          prestacao_concluida_em?: string | null
           status?: string
           updated_at?: string
           vendedor_id?: string
