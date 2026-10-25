@@ -41,7 +41,7 @@ export default function RotaEditor() {
   const [busy, setBusy] = useState(false);
   const [faltas, setFaltas] = useState<string[]>([]);
 
-  const { data: rota } = useQuery({
+  const { data: rota, error: erroRota, isLoading: carregandoRota } = useQuery({
     queryKey: ["rota", id],
     enabled: !!id,
     queryFn: () => id ? getRota(id) : Promise.resolve(null),
@@ -301,7 +301,7 @@ export default function RotaEditor() {
   }
 
   if (!rota) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
+    return <div className="min-h-screen flex flex-col gap-3 items-center justify-center text-muted-foreground"><p>{erroRota ? (erroRota as { message?: string }).message : carregandoRota ? 'Carregando...' : 'Rota não encontrada.'}</p><Button variant="outline" onClick={() => navigate('/rotas')}>Voltar para rotas</Button></div>;
   }
 
   return (
