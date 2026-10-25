@@ -21,7 +21,7 @@ function bloqueado(query: string, trecho: string) {
 }
 describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartável', () => {
   beforeAll(() => {
-    sql(`CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE service_role;
+    sql(`DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role; END IF; END $$;
       CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
       CREATE TYPE public.app_role AS ENUM('admin','comercial');
       CREATE TABLE public.user_roles(user_id uuid,role public.app_role);
@@ -29,7 +29,7 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
       CREATE FUNCTION public.has_role(_user_id uuid,_role public.app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=_user_id AND role=_role) $$;
       CREATE TABLE public.rotas(id uuid PRIMARY KEY,vendedor_id uuid NOT NULL,data_rota date NOT NULL,status text NOT NULL DEFAULT 'planejada',observacoes text,km_total_estimado numeric,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now());
       CREATE TABLE public.rota_paradas(id uuid PRIMARY KEY,rota_id uuid REFERENCES public.rotas ON DELETE CASCADE,organizacao_id uuid,oportunidade_id uuid,cidade text,estado text,ordem int DEFAULT 0,tipo text DEFAULT 'visita',latitude numeric,longitude numeric,atividade_id uuid,concluida boolean DEFAULT false,observacoes text);`);
-    const migrations = readdirSync('supabase/migrations').filter(f => f.startsWith('20261025031715') || f.startsWith('20261025032100')).sort();
+    const migrations = readdirSync('supabase/migrations').filter(f => f.startsWith('20261025031715') || f.startsWith('20261025032100') || f.startsWith('20261025032329')).sort();
     for (const f of migrations) sql(readFileSync(`supabase/migrations/${f}`, 'utf8'));
     // Running the migrations again proves idempotence on the isolated database.
     for (const f of migrations) sql(readFileSync(`supabase/migrations/${f}`, 'utf8'));
@@ -53,4 +53,12 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
   it('mudança de objetivo reabre aprovação', () => expect(sql(`BEGIN; ${fixture()} ${aprovar()} UPDATE public.rota_paradas SET objetivo='fechar orçamento ORC-xxx'; SELECT status FROM public.rotas; ROLLBACK;`)).toContain('aguardando_aprovacao'));
   it('concluída impede editar parada por vendedor', () => bloqueado(`${fixture()} ${aprovar()} UPDATE public.rota_paradas SET visitada=false,motivo_nao_visita='Cliente ausente'; UPDATE public.rotas SET status='concluida'; UPDATE public.rota_paradas SET resultado='alteração';`, 'encerrada'));
   it('impede criar aprovada diretamente', () => bloqueado(`${actor()} INSERT INTO public.rotas(id,vendedor_id,data_rota,status) VALUES('${rota}','${vendedor}',current_date,'aprovada');`, 'rascunho'));
+  it('vendedor não elimina pendência por status ou exclusão', () => {
+    for (const query of ["UPDATE public.rotas SET status='rascunho';", "UPDATE public.rotas SET status='cancelada';", 'DELETE FROM public.rotas;']) bloqueado(`${fixture()} ${aprovar()} ${query}`, query.startsWith('DELETE') ? 'não pode ser apagada' : query.includes('cancelada') ? 'Somente admin' : 'não pode voltar');
+  });
+  it('RLS oculta rota de outro vendedor e admin vê todas', () => {
+    const outro = '00000000-0000-0000-0000-000000000003';
+    expect(sql(`BEGIN; ${fixture()} ${actor(outro)} SET LOCAL ROLE authenticated; SELECT count(*) FROM public.rotas; ROLLBACK;`)).toContain('SET\n0');
+    expect(sql(`BEGIN; ${fixture()} ${actor(admin)} SET LOCAL ROLE authenticated; SELECT count(*) FROM public.rotas; ROLLBACK;`)).toContain('SET\n1');
+  });
 });
