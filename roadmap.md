@@ -1,8 +1,10 @@
 # Rotas: autorização e prestação de contas
-- [ ] Migration idempotente e testes das travas no banco.
-- [ ] Editor com objetivos, envio e prestação por parada.
-- [ ] Aprovações admin, resumo mensal e alertas na Home/lista.
-- [ ] Validar testes, telas e entregar SQL/arquivos.
+- [x] Migration idempotente e testes das travas no banco.
+- [x] Editor com objetivos, envio e prestação por parada.
+- [x] Aprovações admin, resumo mensal e alertas na Home/lista.
+- [x] Validar testes, telas e entregar SQL/arquivos.
+
+Verificação Rotas: 29 testes passaram, incluindo triggers reais e RLS em Postgres descartável. Componentes reais exercitados em navegador com dados fictícios: envio, aprovação em um clique, não visita, conclusão e visita vinculada à atividade com resultado obrigatório. Sem erros de execução; mobile sem overflow. Build OK. As cinco rotas antigas continuam preservadas como rascunho. Sem sessão de Supabase externo para validar o percurso autenticado com dados reais.
 
 # Integração Júlia
 - [x] Ação de ligação com confirmação e bloqueio por contato.

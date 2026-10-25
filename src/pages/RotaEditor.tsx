@@ -390,7 +390,7 @@ export default function RotaEditor() {
                 </Button>}
               </div>
               <div className="mt-3 space-y-1"><Label htmlFor={`objetivo-${p.id}`}>Objetivo *</Label><Input id={`objetivo-${p.id}`} value={objetivos[p.id] ?? p.objetivo ?? ''} disabled={!planejamento || busy} onChange={e => setObjetivos(v => ({ ...v, [p.id]: e.target.value }))} placeholder="Ex.: apresentar LSB150" /></div>
-              {prestacao && <PrestacaoParada key={`${p.id}-${p.informada_em}`} parada={p} onSaved={recarregar} />}
+              {prestacao && <PrestacaoParada parada={p} onSaved={recarregar} />}
               {rota.status === 'concluida' && <p className="text-sm mt-3">{p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</p>}
               </Card>
             ))}
