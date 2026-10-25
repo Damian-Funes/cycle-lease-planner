@@ -1,3 +1,9 @@
+# Rotas: autorização e prestação de contas
+- [ ] Migration idempotente e testes das travas no banco.
+- [ ] Editor com objetivos, envio e prestação por parada.
+- [ ] Aprovações admin, resumo mensal e alertas na Home/lista.
+- [ ] Validar testes, telas e entregar SQL/arquivos.
+
 # Integração Júlia
 - [x] Ação de ligação com confirmação e bloqueio por contato.
 - [x] Histórico e transcrição em orçamentos e oportunidades, com polling.
