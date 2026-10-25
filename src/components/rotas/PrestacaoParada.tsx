@@ -55,7 +55,7 @@ export default function PrestacaoParada({ parada, onSaved }: { parada: RotaParad
     </>}
     {visitada && !parada.atividade_id && <div className="space-y-2">
       <Label>Organização para o próximo passo</Label>
-      <Select value={orgId} onValueChange={v => { setOrgId(v); setProximo(false); }}><SelectTrigger><SelectValue placeholder="Selecionar organização" /></SelectTrigger><SelectContent>{orgs.map(o => <SelectItem key={o.id} value={o.id}>{o.nome_fantasia || o.nome}</SelectItem>)}</SelectContent></Select>
+      <Select value={orgId} onValueChange={v => { setOrgId(v); setProximo(false); }}><SelectTrigger><SelectValue placeholder="Selecionar organização" /></SelectTrigger><SelectContent>{orgs.map(o => <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>)}</SelectContent></Select>
       {orgId && <Button variant="outline" size="sm" onClick={() => setProximo(true)}>Agendar próximo passo</Button>}
       {proximo && orgId && <NovaAtividadeQuickForm key={orgId} organizacaoId={orgId} onClose={() => setProximo(false)} onSaved={() => setProximo(false)} />}
     </div>}

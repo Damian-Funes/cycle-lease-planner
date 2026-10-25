@@ -4,7 +4,8 @@ export const STATUS_ROTAS: Record<StatusRota, string> = {
   reprovada: 'Reprovada', concluida: 'Concluída', cancelada: 'Cancelada',
 };
 export function hojeRota() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  // Supabase uses UTC for current_date; match the database boundary exactly.
+  return new Date().toISOString().slice(0, 10);
 }
 export function diaRota(data: string) { const [, mes, dia] = data.split('-'); return `${dia}/${mes}`; }
 export function prestacaoPendente(rota: { status: string; data_rota: string }, hoje = hojeRota()) {

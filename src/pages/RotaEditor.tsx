@@ -34,6 +34,7 @@ export default function RotaEditor() {
   const polylineRef = useRef<any>(null);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [novoObjetivo, setNovoObjetivo] = useState('');
   const [data, setData] = useState("");
   const [obs, setObs] = useState("");
   const [objetivos, setObjetivos] = useState<Record<string, string>>({});
@@ -225,9 +226,11 @@ export default function RotaEditor() {
         observacoes: null,
         atividade_id: atividadeId,
         concluida: false,
+        objetivo: novoObjetivo.trim(),
       });
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
       toast.success(`${org.nome_fantasia || org.nome} adicionada`);
+      recarregar();
       setAddOpen(false);
     } catch (e: any) {
       toast.error("Erro ao adicionar", { description: e?.message });
@@ -250,9 +253,11 @@ export default function RotaEditor() {
         observacoes: null,
         atividade_id: null,
         concluida: false,
+        objetivo: novoObjetivo.trim(),
       });
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
       toast.success(`Prospecção em ${cidade.nome} adicionada`);
+      recarregar();
       setAddOpen(false);
     } catch (e: any) {
       toast.error("Erro", { description: e?.message });
@@ -302,7 +307,7 @@ export default function RotaEditor() {
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col">
       <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/rotas")}><ArrowLeft className="w-4 h-4" /></Button>
             <h1 className="font-semibold">{prestacao ? 'Prestação de contas' : 'Rota Comercial'}</h1>
@@ -402,6 +407,7 @@ export default function RotaEditor() {
         onOpenChange={setAddOpen}
         onSelectOrganizacao={onAddOrg}
         onAddProspeccao={onAddProspeccao}
+        onObjetivo={setNovoObjetivo}
       />
     </div>
   );
