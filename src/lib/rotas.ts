@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { type StatusRota, hojeRota } from './rotasFluxo';
 
 // UUID confirmado do tipo "Visita"
 export const TIPO_VISITA_ID = "54328293-d880-4b51-bf3a-167bfb773105";
@@ -7,7 +8,12 @@ export interface Rota {
   id: string;
   vendedor_id: string;
   data_rota: string;
-  status: string;
+  status: StatusRota;
+  enviada_em: string | null;
+  aprovada_em: string | null;
+  aprovada_por: string | null;
+  motivo_reprovacao: string | null;
+  prestacao_concluida_em: string | null;
   observacoes: string | null;
   km_total_estimado: number | null;
   created_at: string;
@@ -28,6 +34,12 @@ export interface RotaParada {
   observacoes: string | null;
   atividade_id: string | null;
   concluida: boolean;
+  objetivo: string | null;
+  resultado: string | null;
+  visitada: boolean | null;
+  motivo_nao_visita: string | null;
+  informada_em: string | null;
+  organizacao?: { nome: string; nome_fantasia: string | null } | null;
 }
 
 export async function listMinhasRotas(userId: string) {
@@ -59,7 +71,7 @@ export async function getRota(id: string) {
 export async function getParadas(rotaId: string) {
   const { data, error } = await (supabase as any)
     .from("rota_paradas")
-    .select("*")
+    .select("*, organizacao:organizacoes(nome,nome_fantasia)")
     .eq("rota_id", rotaId)
     .order("ordem", { ascending: true });
   if (error) throw error;
@@ -69,7 +81,7 @@ export async function getParadas(rotaId: string) {
 export async function criarRota(payload: { vendedor_id: string; data_rota: string; observacoes?: string | null }) {
   const { data, error } = await (supabase as any)
     .from("rotas")
-    .insert({ ...payload, status: "planejada" })
+    .insert({ ...payload, status: "rascunho" })
     .select("*")
     .single();
   if (error) throw error;
@@ -86,7 +98,7 @@ export async function deletarRota(id: string) {
   if (error) throw error;
 }
 
-export async function adicionarParada(parada: Omit<RotaParada, "id"> & Partial<Pick<RotaParada, "id">>) {
+export async function adicionarParada(parada: Omit<RotaParada, "id" | "objetivo" | "resultado" | "visitada" | "motivo_nao_visita" | "informada_em"> & Partial<Pick<RotaParada, "id" | "objetivo">>) {
   const { data, error } = await (supabase as any).from("rota_paradas").insert(parada).select("*").single();
   if (error) throw error;
   return data as RotaParada;
@@ -106,8 +118,42 @@ export async function removerParada(id: string) {
 export async function reordenarParadas(updates: { id: string; ordem: number }[]) {
   // Atualiza em série para respeitar RLS
   for (const u of updates) {
-    await (supabase as any).from("rota_paradas").update({ ordem: u.ordem }).eq("id", u.id);
+    const { error } = await supabase.from("rota_paradas").update({ ordem: u.ordem }).eq("id", u.id);
+    if (error) throw error;
   }
+}
+
+export async function atualizarParada(id: string, patch: Partial<Pick<RotaParada, 'objetivo' | 'visitada' | 'resultado' | 'motivo_nao_visita' | 'organizacao_id'>>) {
+  const { error } = await supabase.from('rota_paradas').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function pendenciasRotas(vendedorId?: string) {
+  let q = supabase.from('rotas').select('*').eq('status', 'aprovada').lt('data_rota', hojeRota()).order('data_rota');
+  if (vendedorId) q = q.eq('vendedor_id', vendedorId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Rota[];
+}
+
+export type RotaEquipe = Rota & { vendedor: { nome: string | null; email: string } | null; paradas: RotaParada[] };
+export async function rotasAprovacoes(aba: 'aguardando' | 'pendentes' | 'concluidas', mes: string) {
+  let q = supabase.from('rotas').select('*, vendedor:profiles!rotas_vendedor_id_fkey(nome,email), paradas:rota_paradas(*, organizacao:organizacoes(nome,nome_fantasia))').order('data_rota');
+  if (aba === 'aguardando') q = q.eq('status', 'aguardando_aprovacao');
+  if (aba === 'pendentes') q = q.eq('status', 'aprovada').lt('data_rota', hojeRota());
+  if (aba === 'concluidas') {
+    const [ano, numeroMes] = mes.split('-').map(Number);
+    const fim = new Date(Date.UTC(ano, numeroMes, 1)).toISOString();
+    q = q.eq('status', 'concluida').gte('prestacao_concluida_em', `${mes}-01T00:00:00-03:00`).lt('prestacao_concluida_em', fim.replace('T00:00:00.000Z', 'T03:00:00.000Z'));
+  }
+  const rows: RotaEquipe[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await q.range(offset, offset + 499);
+    if (error) throw error;
+    rows.push(...(data ?? []) as unknown as RotaEquipe[]);
+    if ((data?.length ?? 0) < 500) break;
+  }
+  return rows.map(r => ({ ...r, paradas: r.paradas.sort((a,b) => a.ordem-b.ordem) }));
 }
 
 export async function criarAtividadeVisita(opts: {
