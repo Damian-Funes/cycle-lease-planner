@@ -1,4 +1,5 @@
 # Rotas: autorização e prestação de contas
+- [ ] Alinhar datas ao fuso America/Sao_Paulo no banco e na interface; e-mail de amanhã somente para aprovadas; testar a virada do dia.
 - [x] Migration idempotente e testes das travas no banco.
 - [x] Editor com objetivos, envio e prestação por parada.
 - [x] Aprovações admin, resumo mensal e alertas na Home/lista.
