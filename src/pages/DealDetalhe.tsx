@@ -28,6 +28,7 @@ import { ptBR } from "date-fns/locale";
 import ActivityFeed from "@/components/ActivityFeed";
 import DealPropostasOrcamentos from "@/components/DealPropostasOrcamentos";
 import JuliaHistorico from "@/components/JuliaHistorico";
+import DiagnosticoResumo from "@/components/capacidade/DiagnosticoResumo";
 import SemPermissao from "@/components/SemPermissao";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
@@ -701,10 +702,15 @@ export default function DealDetalhe() {
               <TabsTrigger value="propostas">Propostas</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
               <TabsTrigger value="julia">Ligações da Júlia</TabsTrigger>
+              <TabsTrigger value="diagnostico">Diagnóstico técnico</TabsTrigger>
             </TabsList>
 
             <TabsContent value="atividades">
               <ActivityFeed entityType="oportunidade" entityId={deal.id} />
+            </TabsContent>
+
+            <TabsContent value="diagnostico">
+              <DiagnosticoResumo oportunidadeId={deal.id} organizacaoId={deal.organizacao_id} />
             </TabsContent>
 
             <TabsContent value="notas">

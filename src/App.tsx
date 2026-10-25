@@ -50,6 +50,8 @@ const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegra
 const ConfiguracoesMontagem = lazy(() => import("./pages/ConfiguracoesMontagem"));
 const ConfiguracoesFormasPagamento = lazy(() => import("./pages/ConfiguracoesFormasPagamento"));
 const ConfiguracoesNotificacoes = lazy(() => import("./pages/ConfiguracoesNotificacoes"));
+const Diagnostico = lazy(() => import("./pages/Diagnostico"));
+const ConfiguracoesCapacidade = lazy(() => import("./pages/ConfiguracoesCapacidade"));
 
 const queryClient = new QueryClient();
 
@@ -83,6 +85,8 @@ const App = () => (
               <Route path="/smartcycle" element={SMARTCYCLE_ATIVO ? <ProtectedRoute><Index /></ProtectedRoute> : <SmartcycleRedirect />} />
               <Route path="/orcamento" element={<ProtectedRoute><Orcamento /></ProtectedRoute>} />
               <Route path="/frete" element={<ProtectedRoute><Frete /></ProtectedRoute>} />
+              <Route path="/diagnostico" element={<ProtectedRoute><Diagnostico /></ProtectedRoute>} />
+              <Route path="/configuracoes/capacidade" element={<ProtectedRoute><RequireRole roles={["admin"]}><ConfiguracoesCapacidade /></RequireRole></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><Catalogo /></ProtectedRoute>} />
               <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
               <Route path="/organizacoes" element={<ProtectedRoute><Organizacoes /></ProtectedRoute>} />
