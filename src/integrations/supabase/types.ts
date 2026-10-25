@@ -146,6 +146,89 @@ export type Database = {
         }
         Relationships: []
       }
+      capacidade_modelos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          kg_batelada: number
+          modelo: string
+          ordem: number
+          tipico_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          kg_batelada: number
+          modelo: string
+          ordem?: number
+          tipico_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          kg_batelada?: number
+          modelo?: string
+          ordem?: number
+          tipico_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capacidade_modelos_tipico_id_fkey"
+            columns: ["tipico_id"]
+            isOneToOne: false
+            referencedRelation: "tipicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      capacidade_parametros: {
+        Row: {
+          created_at: string
+          folga_minima: number
+          horas_perdidas_lotes_desorganizados: number
+          horas_perdidas_padrao: number
+          horas_trabalhadas_padrao: number
+          id: string
+          peso_milho: number | null
+          peso_soja: number | null
+          peso_trigo: number | null
+          tempo_receita_padrao_s: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          folga_minima?: number
+          horas_perdidas_lotes_desorganizados?: number
+          horas_perdidas_padrao?: number
+          horas_trabalhadas_padrao?: number
+          id?: string
+          peso_milho?: number | null
+          peso_soja?: number | null
+          peso_trigo?: number | null
+          tempo_receita_padrao_s?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          folga_minima?: number
+          horas_perdidas_lotes_desorganizados?: number
+          horas_perdidas_padrao?: number
+          horas_trabalhadas_padrao?: number
+          id?: string
+          peso_milho?: number | null
+          peso_soja?: number | null
+          peso_trigo?: number | null
+          tempo_receita_padrao_s?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       config_montagem: {
         Row: {
           cidade_origem: string
@@ -225,6 +308,121 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diagnosticos_tecnicos: {
+        Row: {
+          capacidade_atual_kg_h: number | null
+          created_at: string
+          cultura: string
+          equipamento_atual: string | null
+          horas_perdidas_dia: number
+          horas_trabalhadas_dia: number
+          id: string
+          janela_dias: number
+          kg_por_saco: number
+          lotes_liberados_dia_anterior: boolean
+          modelo_sugerido_id: string | null
+          num_produtos_liquidos: number
+          observacoes: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          responsavel_id: string
+          resultado: Json
+          sacos_safra: number
+          tempo_receita_s: number
+          updated_at: string
+          usa_po: boolean
+        }
+        Insert: {
+          capacidade_atual_kg_h?: number | null
+          created_at?: string
+          cultura: string
+          equipamento_atual?: string | null
+          horas_perdidas_dia: number
+          horas_trabalhadas_dia: number
+          id?: string
+          janela_dias: number
+          kg_por_saco: number
+          lotes_liberados_dia_anterior: boolean
+          modelo_sugerido_id?: string | null
+          num_produtos_liquidos?: number
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          responsavel_id?: string
+          resultado: Json
+          sacos_safra: number
+          tempo_receita_s: number
+          updated_at?: string
+          usa_po?: boolean
+        }
+        Update: {
+          capacidade_atual_kg_h?: number | null
+          created_at?: string
+          cultura?: string
+          equipamento_atual?: string | null
+          horas_perdidas_dia?: number
+          horas_trabalhadas_dia?: number
+          id?: string
+          janela_dias?: number
+          kg_por_saco?: number
+          lotes_liberados_dia_anterior?: boolean
+          modelo_sugerido_id?: string | null
+          num_produtos_liquidos?: number
+          observacoes?: string | null
+          oportunidade_id?: string | null
+          organizacao_id?: string | null
+          responsavel_id?: string
+          resultado?: Json
+          sacos_safra?: number
+          tempo_receita_s?: number
+          updated_at?: string
+          usa_po?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diagnosticos_tecnicos_modelo_sugerido_id_fkey"
+            columns: ["modelo_sugerido_id"]
+            isOneToOne: false
+            referencedRelation: "capacidade_modelos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnosticos_tecnicos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnosticos_tecnicos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnosticos_tecnicos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnosticos_tecnicos_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnosticos_tecnicos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
             referencedColumns: ["id"]
           },
         ]

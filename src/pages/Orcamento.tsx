@@ -513,12 +513,9 @@ export default function Orcamento() {
           });
         }
       })();
-      return;
     }
 
-    if (novo) return;
-
-    if (propostas) {
+    if (propostas && !novo && !tipicoId) {
       setModalOpen(true);
       return;
     }

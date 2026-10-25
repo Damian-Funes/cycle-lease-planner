@@ -1,0 +1,18 @@
+import { describe, expect, it } from 'vitest';
+import { calcularCapacidade, validarCapacidade, urlOrcamentoDiagnostico, type EntradaCapacidade, type ModeloCapacidade } from './capacidade';
+const entrada: EntradaCapacidade = { cultura:'soja', sacos_safra:200000, kg_por_saco:40, janela_dias:45, horas_trabalhadas_dia:20, lotes_liberados_dia_anterior:true, horas_perdidas_dia:2, tempo_receita_s:43, num_produtos_liquidos:0, usa_po:false, capacidade_atual_kg_h:null, equipamento_atual:'', observacoes:'' };
+const modelos: ModeloCapacidade[] = [50,130,150,300,570].map((kg,i) => ({ id:String(kg), modelo:`LSB${kg}`, kg_batelada:kg, ordem:i, ativo:true, tipico_id:null }));
+describe('Capacidade LS', () => {
+  it('43 s e 150 kg produzem aproximadamente 12.558 kg/h', () => { expect(calcularCapacidade(entrada,modelos,.15).modelos.find(m=>m.id==='150')?.kg_h).toBeCloseTo(12558,0); });
+  it('200.000 sacos de 40 kg, 20 menos 2 horas, LSB150 exigem 35,4 dias', () => { expect(calcularCapacidade(entrada,modelos,.15).modelos.find(m=>m.id==='150')?.dias).toBeCloseTo(35.4,1); });
+  it('Duo de 570 kg produz aproximadamente 47.721 kg/h', () => { expect(calcularCapacidade(entrada,modelos,.15).modelos.find(m=>m.id==='570')?.kg_h).toBeCloseTo(47721,0); });
+  it('recomenda o menor modelo com pelo menos 15% de folga', () => { const r=calcularCapacidade(entrada,[...modelos].reverse(),.15); expect(r.recomendado_id).toBe('150'); expect(r.modelos.find(m=>m.id==='130')?.folga).toBeLessThan(.15); expect(r.modelos.find(m=>m.id==='150')?.folga).toBeGreaterThanOrEqual(.15); });
+  it('horas efetivas e capacidade necessária usam janela e peso', () => { const r=calcularCapacidade(entrada,modelos,.15); expect(r.horas_efetivas_dia).toBe(18); expect(r.kg_totais).toBe(8000000); expect(r.capacidade_necessaria_kg_h).toBeCloseTo(9876.54321); });
+  it('equipamento atual leva 44,444 dias a 10.000 kg/h', () => { expect(calcularCapacidade({...entrada,capacidade_atual_kg_h:10000},modelos,.15).dias_equipamento_atual).toBeCloseTo(44.444444); });
+  it('modelos inativos não podem ser recomendados', () => { expect(calcularCapacidade(entrada,modelos.map(m=>({...m,ativo:m.id!=='150'})),.15).recomendado_id).toBe('300'); });
+  it('não inventa recomendação quando nenhum atende', () => { expect(calcularCapacidade({...entrada,janela_dias:1},modelos,.15).recomendado_id).toBeNull(); });
+  it('aceita o limite exato de 15% de folga', () => { const r=calcularCapacidade({...entrada,sacos_safra:153000,tempo_receita_s:3600,janela_dias:400},[{...modelos[0],kg_batelada:1000}],.15); expect(r.modelos[0].folga).toBe(.15); expect(r.recomendado_id).toBe('50'); });
+  it('não divide por zero nem aceita horas efetivas negativas', () => { expect(validarCapacidade({...entrada,horas_perdidas_dia:20})).not.toHaveLength(0); expect(()=>calcularCapacidade({...entrada,tempo_receita_s:0},modelos,.15)).toThrow(); });
+  it('produtos e pó não alteram a fórmula', () => { expect(calcularCapacidade({...entrada,num_produtos_liquidos:4,usa_po:true},modelos,.15).modelos[2].kg_h).toBe(calcularCapacidade(entrada,modelos,.15).modelos[2].kg_h); });
+  it('geração preserva típico e vínculos com novo=1', () => { const url=urlOrcamentoDiagnostico('t','d','o'); const p=new URLSearchParams(url.split('?')[1]); expect(p.get('tipico')).toBe('t'); expect(p.get('oportunidade')).toBe('d'); expect(p.get('organizacao')).toBe('o'); expect(p.get('novo')).toBe('1'); });
+});

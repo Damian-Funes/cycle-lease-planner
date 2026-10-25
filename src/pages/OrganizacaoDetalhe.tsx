@@ -33,6 +33,7 @@ import InteracoesCampo from "@/components/InteracoesCampo";
 import OrgPropostas from "@/components/OrgPropostas";
 import OrgOrcamentos from "@/components/OrgOrcamentos";
 import OrgLayouts from "@/components/OrgLayouts";
+import DiagnosticoResumo from "@/components/capacidade/DiagnosticoResumo";
 import OrgKpis from "@/components/OrgKpis";
 import SemPermissao from "@/components/SemPermissao";
 import { InformacoesImportantes } from "@/components/IaInsights";
@@ -281,6 +282,7 @@ export default function OrganizacaoDetalhe() {
               <TabsTrigger value="pessoas">Pessoas ({pessoas.length})</TabsTrigger>
               {SMARTCYCLE_ATIVO && <TabsTrigger value="propostas">Propostas SmartCycle</TabsTrigger>}
               <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
+              <TabsTrigger value="diagnostico">Diagnóstico técnico</TabsTrigger>
               <TabsTrigger value="layouts">Layouts</TabsTrigger>
               <TabsTrigger value="interacoes">Interações de campo</TabsTrigger>
               <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
@@ -375,6 +377,9 @@ export default function OrganizacaoDetalhe() {
             )}
             <TabsContent value="orcamentos" className="mt-4">
               <OrgOrcamentos organizacaoId={id} />
+            </TabsContent>
+            <TabsContent value="diagnostico" className="mt-4">
+              <DiagnosticoResumo organizacaoId={id} />
             </TabsContent>
             <TabsContent value="layouts" className="mt-4">
               <OrgLayouts organizacaoId={id} organizacaoNome={org.nome} />

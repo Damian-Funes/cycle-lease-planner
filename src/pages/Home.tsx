@@ -13,6 +13,13 @@ import { useAuth } from '@/hooks/useAuth';
 
 const allCards = [
   {
+    title: "Diagnóstico Técnico",
+    desc: "Calcule a capacidade e o modelo ideal",
+    icon: BarChart3,
+    to: "/diagnostico",
+    color: "bg-secondary text-secondary-foreground",
+  },
+  {
     title: "Motivos de perda (Júlia)",
     desc: "Ligações concluídas",
     icon: Phone,
