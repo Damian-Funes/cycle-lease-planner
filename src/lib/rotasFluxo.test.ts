@@ -1,8 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { paradaInformada, prestacaoPendente, resumoMensal, validarEnvio } from './rotasFluxo';
+import { describe, expect, it, vi } from 'vitest';
+import { hojeRota, paradaInformada, prestacaoPendente, resumoMensal, validarEnvio } from './rotasFluxo';
 const hoje = '2026-10-25';
 const visita = { tipo: 'visita', organizacao_id: 'org', objetivo: 'apresentar LSB150' };
 describe('autorização e prestação das rotas', () => {
+  it('hoje só muda à meia-noite de São Paulo, não às 21h', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-25T00:00:00Z'));
+      expect(hojeRota()).toBe('2026-10-24');
+      expect(prestacaoPendente({ status: 'aprovada', data_rota: '2026-10-24' })).toBe(false);
+      expect(validarEnvio('2026-10-24', [visita])).toEqual([]);
+      vi.setSystemTime(new Date('2026-10-25T02:59:59Z'));
+      expect(hojeRota()).toBe('2026-10-24');
+      vi.setSystemTime(new Date('2026-10-25T03:00:00Z'));
+      expect(hojeRota()).toBe('2026-10-25');
+    } finally { vi.useRealTimers(); }
+  });
   it('rejeita envio com data passada', () => expect(validarEnvio('2026-10-24', [visita], undefined, hoje)).toHaveLength(1));
   it('exige ao menos uma parada', () => expect(validarEnvio(hoje, [], undefined, hoje)).toHaveLength(1));
   it('exige objetivo em todas as paradas', () => expect(validarEnvio(hoje, [{ ...visita, objetivo: '  ' }], undefined, hoje)).toHaveLength(1));

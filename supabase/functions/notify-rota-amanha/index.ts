@@ -7,14 +7,16 @@ const TIPO = "rota_amanha";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const amanha = new Date();
-  amanha.setDate(amanha.getDate() + 1);
+  const hojeBrt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const amanha = new Date(`${hojeBrt}T12:00:00Z`);
+  amanha.setUTCDate(amanha.getUTCDate() + 1);
   const dataAmanha = amanha.toISOString().slice(0, 10);
 
   const { data: rotas } = await adminClient
     .from("rotas")
     .select("id, vendedor_id, data_rota, observacoes")
-    .eq("data_rota", dataAmanha);
+    .eq("data_rota", dataAmanha)
+    .eq("status", "aprovada");
 
   let enviados = 0;
   for (const r of rotas || []) {
@@ -40,7 +42,7 @@ Deno.serve(async (req) => {
 
     const total = paradas?.length || 0;
     const subject = `Sua rota de amanhã — ${total} parada${total !== 1 ? "s" : ""} planejada${total !== 1 ? "s" : ""}`;
-    const html = htmlWrap(subject, `<p>Olá ${prof.nome || ""},</p><p>Rota para <strong>${amanha.toLocaleDateString("pt-BR")}</strong>:</p><ol>${linhas}</ol><p><a href="https://crmls.com.br/rotas/${r.id}" style="background:#059669;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block">Abrir rota</a></p>`);
+    const html = htmlWrap(subject, `<p>Olá ${prof.nome || ""},</p><p>Rota para <strong>${amanha.toLocaleDateString("pt-BR", { timeZone: 'America/Sao_Paulo' })}</strong>:</p><ol>${linhas}</ol><p><a href="https://crmls.com.br/rotas/${r.id}" style="background:#059669;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block">Abrir rota</a></p>`);
     await sendEmail({ tipo: TIPO, to: prof.email, subject, html, destinatarioUserId: r.vendedor_id, referenciaId: r.id, referenciaTipo: "rota" });
     enviados++;
   }

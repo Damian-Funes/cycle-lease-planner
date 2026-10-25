@@ -1,4 +1,7 @@
 # Rotas: autorização e prestação de contas
+- [x] Alinhar datas ao fuso America/Sao_Paulo no banco e na interface; e-mail de amanhã somente para aprovadas; testar a virada do dia.
+
+Verificação do ajuste BRT: 25 testes passaram (10 interface, 13 banco, 2 e-mail). Migration reaplicada no banco descartável para confirmar idempotência; oito comparações BRT e nenhum current_date nas funções do banco conectado. Testes cobrem 21h BRT, meia-noite, aprovação e reaprovação noturnas e bloqueio de prestação antecipada. E-mail atualizado e função publicada, sem envio real. Build OK.
 - [x] Migration idempotente e testes das travas no banco.
 - [x] Editor com objetivos, envio e prestação por parada.
 - [x] Aprovações admin, resumo mensal e alertas na Home/lista.
