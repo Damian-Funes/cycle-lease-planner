@@ -5,6 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 const url=process.env.CAPACIDADE_TEST_DATABASE_URL;
 const sql=(q:string)=>execFileSync('psql',[url??'','-X','-v','ON_ERROR_STOP=1','-At','-c',q],{encoding:'utf8',stdio:['pipe','pipe','pipe']});
 const owner='00000000-0000-0000-0000-000000000001',admin='00000000-0000-0000-0000-000000000002',shared='00000000-0000-0000-0000-000000000003',other='00000000-0000-0000-0000-000000000004';
+const CRESCIMENTO='20261027153157';
 const org='10000000-0000-0000-0000-000000000001',deal='20000000-0000-0000-0000-000000000001',diag='30000000-0000-0000-0000-000000000001';
 const actor=(id:string)=>`SELECT set_config('request.jwt.claim.sub','${id}',true); SET LOCAL ROLE authenticated;`;
 const insert=(linked=true)=>`INSERT INTO public.diagnosticos_tecnicos(id,${linked?'oportunidade_id,organizacao_id,':''}cultura,sacos_safra,kg_por_saco,janela_dias,horas_trabalhadas_dia,lotes_liberados_dia_anterior,horas_perdidas_dia,tempo_receita_s,resultado) VALUES('${diag}',${linked?`'${deal}','${org}',`:''}'soja',200000,40,45,20,true,2,43,'{}');`;
