@@ -8,7 +8,7 @@ export default function DiagnosticoResultados({resultado:r,erros,saving,onSave,o
   const recomendado=r?.modelos.find(m=>m.id===r.recomendado_id);
   const proj=r?.projecao??null; const ultimo=proj?.anos[proj.anos.length-1]; const frase=fraseCrescimento(r);
   const hoje=r?.modelos.find(m=>m.id===r.recomendado_hoje_id);
-  const cor={atende:'bg-primary/15 text-primary',justo:'bg-accent text-accent-foreground',nao_atende:'bg-destructive/15 text-destructive'} as const;
+  const cor={atende:'bg-primary/15 text-primary',justo:'bg-warning/20 text-warning-foreground',nao_atende:'bg-destructive/15 text-destructive'} as const;
   const icone={atende:'✓',justo:'⚠',nao_atende:'✗'} as const;
   return <section className="space-y-6 lg:sticky lg:top-6 lg:self-start min-w-0" aria-label="Resultado do diagnóstico">
     <div className="border-b pb-5"><h2 className="text-lg font-semibold">Capacidade necessária</h2>{r?<><div className="text-3xl font-bold text-primary mt-2">{n(r.capacidade_necessaria_sacos_h)} <span className="text-lg font-medium">sacos/h</span></div><p className="text-muted-foreground">{n(r.capacidade_necessaria_kg_h,0)} kg/h · {n(r.horas_efetivas_dia)} horas efetivas/dia</p>{proj&&ultimo&&<p className="text-sm mt-1">Em {proj.ano_final}: <strong>{n(ultimo.sacos_h_necessarios)} sacos/h</strong> ({n(ultimo.sacos,0)} sacos, {n(proj.taxa_anual*100,2)}% a.a.)</p>}</>:<ul className="text-sm text-muted-foreground mt-3 space-y-1">{erros.map(e=><li key={e}>{e}</li>)}</ul>}</div>
