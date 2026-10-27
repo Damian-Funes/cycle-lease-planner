@@ -21,9 +21,9 @@ describe.skipIf(!url)('Capacidade: migration e RLS em Postgres descartável',()=
     CREATE TABLE public.audit_log(id uuid,registro_id uuid,acao text);
     CREATE FUNCTION public.fn_audit_trigger() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ BEGIN INSERT INTO audit_log VALUES(gen_random_uuid(),COALESCE(NEW.id,OLD.id),TG_OP);RETURN COALESCE(NEW,OLD);END $$;
     CREATE FUNCTION public.update_updated_at_column() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN NEW.updated_at=now();RETURN NEW;END $$;`);
-    const file=readdirSync('supabase/migrations').find(f=>f.startsWith('20261025035406'));
+    for(const prefix of ['20261025035406',CRESCIMENTO]){const file=readdirSync('supabase/migrations').find(f=>f.startsWith(prefix));
     if(!file)throw new Error('Migration não localizada');
-    const migration=readFileSync(`supabase/migrations/${file}`,'utf8');sql(migration);sql(migration);
+    const migration=readFileSync(`supabase/migrations/${file}`,'utf8');sql(migration);sql(migration);}
   });
   it('seed idempotente preserva cinco modelos e o Duo de 570 kg',()=>{expect(sql("SELECT count(*),max(kg_batelada) FROM capacidade_modelos")).toContain('5|570');});
   it('padrões são 43 s, 20 h, perdas 2/4 h, 15%, soja 40; milho/trigo nulos',()=>{expect(sql('SELECT tempo_receita_padrao_s,horas_trabalhadas_padrao,horas_perdidas_padrao,horas_perdidas_lotes_desorganizados,folga_minima,peso_soja,peso_milho IS NULL,peso_trigo IS NULL FROM capacidade_parametros')).toContain('43|20|2|4|0.15|40|t|t');});
@@ -37,4 +37,12 @@ describe.skipIf(!url)('Capacidade: migration e RLS em Postgres descartável',()=
   it('não-admin não transfere responsável',()=>{rejected(`${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET responsavel_id='${other}';`,'Somente admin');});
   it('diagnóstico não pode ter zero horas efetivas',()=>{rejected(`${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET horas_perdidas_dia=20;`,'Diagnóstico inválido');});
   it('não permite típico de aluguel',()=>{rejected(`INSERT INTO tipicos VALUES('40000000-0000-0000-0000-000000000001','aluguel');${actor(admin)}UPDATE capacidade_modelos SET tipico_id='40000000-0000-0000-0000-000000000001' WHERE modelo='LSB150';`,'Típico do tipo orçamento');});
+  it('crescimento: rejeita horizonte 0 e 16, 250% e meta 0',()=>{
+    rejected(`${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET crescimento_modo='percentual',crescimento_anual_pct=10,horizonte_anos=0;`,'horizonte');
+    rejected(`${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET crescimento_modo='percentual',crescimento_anual_pct=10,horizonte_anos=16;`,'horizonte');
+    rejected(`${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET crescimento_modo='percentual',crescimento_anual_pct=250,horizonte_anos=5;`,'percentual');
+    rejected(`${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET crescimento_modo='meta',meta_sacos=0,horizonte_anos=5;`,'meta');
+    rejected(`${actor(admin)}UPDATE capacidade_parametros SET horizonte_padrao_anos=16;`,'crescimento');
+  });
+  it('crescimento válido e modo nulo são aceitos',()=>{expect(sql(`BEGIN;${actor(owner)}${insert()}UPDATE diagnosticos_tecnicos SET crescimento_modo='meta',meta_sacos=300000,horizonte_anos=5;UPDATE diagnosticos_tecnicos SET crescimento_modo=NULL,horizonte_anos=0;SELECT 'ok';ROLLBACK;`)).toContain('ok');});
 });
