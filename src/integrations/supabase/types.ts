@@ -190,10 +190,12 @@ export type Database = {
       capacidade_parametros: {
         Row: {
           created_at: string
+          crescimento_padrao_pct: number
           folga_minima: number
           horas_perdidas_lotes_desorganizados: number
           horas_perdidas_padrao: number
           horas_trabalhadas_padrao: number
+          horizonte_padrao_anos: number
           id: string
           peso_milho: number | null
           peso_soja: number | null
@@ -203,10 +205,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          crescimento_padrao_pct?: number
           folga_minima?: number
           horas_perdidas_lotes_desorganizados?: number
           horas_perdidas_padrao?: number
           horas_trabalhadas_padrao?: number
+          horizonte_padrao_anos?: number
           id?: string
           peso_milho?: number | null
           peso_soja?: number | null
@@ -216,10 +220,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          crescimento_padrao_pct?: number
           folga_minima?: number
           horas_perdidas_lotes_desorganizados?: number
           horas_perdidas_padrao?: number
           horas_trabalhadas_padrao?: number
+          horizonte_padrao_anos?: number
           id?: string
           peso_milho?: number | null
           peso_soja?: number | null
@@ -316,14 +322,18 @@ export type Database = {
         Row: {
           capacidade_atual_kg_h: number | null
           created_at: string
+          crescimento_anual_pct: number | null
+          crescimento_modo: string | null
           cultura: string
           equipamento_atual: string | null
           horas_perdidas_dia: number
           horas_trabalhadas_dia: number
+          horizonte_anos: number | null
           id: string
           janela_dias: number
           kg_por_saco: number
           lotes_liberados_dia_anterior: boolean
+          meta_sacos: number | null
           modelo_sugerido_id: string | null
           num_produtos_liquidos: number
           observacoes: string | null
@@ -339,14 +349,18 @@ export type Database = {
         Insert: {
           capacidade_atual_kg_h?: number | null
           created_at?: string
+          crescimento_anual_pct?: number | null
+          crescimento_modo?: string | null
           cultura: string
           equipamento_atual?: string | null
           horas_perdidas_dia: number
           horas_trabalhadas_dia: number
+          horizonte_anos?: number | null
           id?: string
           janela_dias: number
           kg_por_saco: number
           lotes_liberados_dia_anterior: boolean
+          meta_sacos?: number | null
           modelo_sugerido_id?: string | null
           num_produtos_liquidos?: number
           observacoes?: string | null
@@ -362,14 +376,18 @@ export type Database = {
         Update: {
           capacidade_atual_kg_h?: number | null
           created_at?: string
+          crescimento_anual_pct?: number | null
+          crescimento_modo?: string | null
           cultura?: string
           equipamento_atual?: string | null
           horas_perdidas_dia?: number
           horas_trabalhadas_dia?: number
+          horizonte_anos?: number | null
           id?: string
           janela_dias?: number
           kg_por_saco?: number
           lotes_liberados_dia_anterior?: boolean
+          meta_sacos?: number | null
           modelo_sugerido_id?: string | null
           num_produtos_liquidos?: number
           observacoes?: string | null
