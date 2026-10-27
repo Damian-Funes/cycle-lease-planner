@@ -26,6 +26,8 @@ interface Props {
 }
 
 export default function FormaPagamentoSelector({ formaPagamentoId, legacyText, onChange }: Props) {
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [opcoes, setOpcoes] = useState<Forma[]>([]);
