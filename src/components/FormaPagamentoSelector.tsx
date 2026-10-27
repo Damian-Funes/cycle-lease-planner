@@ -167,7 +167,16 @@ export default function FormaPagamentoSelector({ formaPagamentoId, legacyText, o
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                className="gap-2 sm:mr-auto"
+                onClick={() => { setOpen(false); navigate("/configuracoes/formas-pagamento"); }}
+              >
+                <Settings2 className="w-4 h-4" /> Gerenciar formas
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={confirmar} disabled={!pending}>Confirmar seleção</Button>
           </DialogFooter>
