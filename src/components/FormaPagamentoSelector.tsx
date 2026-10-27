@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Wallet, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { Wallet, Check, AlertTriangle, Loader2, Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Forma {
   id: string;
@@ -24,6 +26,8 @@ interface Props {
 }
 
 export default function FormaPagamentoSelector({ formaPagamentoId, legacyText, onChange }: Props) {
+  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [opcoes, setOpcoes] = useState<Forma[]>([]);
@@ -163,7 +167,16 @@ export default function FormaPagamentoSelector({ formaPagamentoId, legacyText, o
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                className="gap-2 sm:mr-auto"
+                onClick={() => { setOpen(false); navigate("/configuracoes/formas-pagamento"); }}
+              >
+                <Settings2 className="w-4 h-4" /> Gerenciar formas
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={confirmar} disabled={!pending}>Confirmar seleção</Button>
           </DialogFooter>
