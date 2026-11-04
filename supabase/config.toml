@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.notify-assumir-organizacoes]
 verify_jwt = false
+
+[functions.pedagio-viagem]
+verify_jwt = false
+
+[functions.hoteis-proximos]
+verify_jwt = false

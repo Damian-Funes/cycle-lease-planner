@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { loadGoogleMaps, getOrigemVendedor, calcularRota, erroRotaMensagem } from '@/lib/maps';
+import { loadGoogleMaps, getOrigemVendedor, erroRotaMensagem } from '@/lib/maps';
+import { calcularViagem } from '@/lib/viagemRota';
+import { ordenarParadasViagem } from '@/lib/viagem';
 import { coordenadaValida, formatarDuracao, formatarKm } from '@/lib/rotaNavegacao';
 import { type RotaParada } from '@/lib/rotas';
 
-export default function RotaMapa({ vendedorId, paradas }: { vendedorId: string; paradas: RotaParada[] }) {
+export default function RotaMapa({ vendedorId, paradas: brutas, inicio, fim }: { vendedorId: string; paradas: RotaParada[]; inicio: string; fim?: string | null }) {
   const container = useRef<HTMLDivElement>(null);
   const [resumo, setResumo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   useEffect(() => {
+    const paradas = ordenarParadasViagem(brutas.map((p) => ({ ...p, dia: p.dia ?? inicio })), inicio);
     let cancelled = false;
     const markers: any[] = [];
-    let renderer: any;
+    const renderers: any[] = [];
     (async () => {
       try {
         const g = await loadGoogleMaps();
@@ -27,24 +30,27 @@ export default function RotaMapa({ vendedorId, paradas }: { vendedorId: string; 
           if (!coordenadaValida(p.latitude, p.longitude)) { invalidas.push(`parada ${i + 1} (${nome || 'sem nome'})`); return; }
           const position = { lat: Number(p.latitude), lng: Number(p.longitude) };
           validas.push(position); bounds.extend(position);
-          markers.push(new g.maps.Marker({ map, position, label: String(i + 1), title: nome }));
+          markers.push(new g.maps.Marker({ map, position, label: p.tipo === 'pernoite' ? 'H' : String(i + 1), title: p.tipo === 'pernoite' ? `Pernoite: ${p.hotel_nome}` : nome }));
         });
         if (validas.length) map.fitBounds(bounds, 40);
         setErro(invalidas.length ? `Sem coordenada válida: ${invalidas.join(', ')}.` : null);
         if (!validas.length) return;
         try {
-          const r = await calcularRota(base, validas, false);
+          const r = await calcularViagem(base, paradas, inicio, fim);
           if (cancelled || !r) return;
-          renderer = new g.maps.DirectionsRenderer({ map, suppressMarkers: true, preserveViewport: true, polylineOptions: { strokeColor: '#059669', strokeWeight: 4 } });
-          renderer.setDirections(r.result);
-          setResumo(`${formatarKm(r.totalKm * 1000)} · ${formatarDuracao(r.totalSegundos)} de direção`);
+          const cores = ['#059669', '#2563eb', '#d97706', '#7c3aed', '#db2777'];
+          r.dias.forEach((d, i) => {
+            const ren = new g.maps.DirectionsRenderer({ map, suppressMarkers: true, preserveViewport: true, polylineOptions: { strokeColor: cores[i % cores.length], strokeWeight: 4 } });
+            ren.setDirections(d.rota.result); renderers.push(ren);
+          });
+          setResumo(`${formatarKm(r.totalKm * 1000)} · ${formatarDuracao(r.totalSegundos)} de direção${r.dias.length > 1 ? ` em ${r.dias.length} dias` : ''}`);
         } catch (e) {
           if (!cancelled) setErro(erroRotaMensagem(e, invalidas));
         }
       } catch { if (container.current) container.current.textContent = 'Não foi possível carregar o mapa.'; }
     })();
-    return () => { cancelled = true; markers.forEach(m => m.setMap(null)); renderer?.setMap(null); };
-  }, [vendedorId, paradas]);
+    return () => { cancelled = true; markers.forEach(m => m.setMap(null)); renderers.forEach(r => r.setMap(null)); };
+  }, [vendedorId, brutas, inicio, fim]);
   return (
     <div>
       <div ref={container} className="h-64 w-full bg-muted" aria-label="Mapa da rota" />

@@ -19,7 +19,10 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import RotaStatus from '@/components/rotas/RotaStatus';
 import { useRotasAlertas } from '@/hooks/useRotasAlertas';
-import { diaRota } from '@/lib/rotasFluxo';
+import { diaRota, fimRota, periodoRota } from '@/lib/rotasFluxo';
+import { custoSalvo } from '@/components/rotas/CustoViagemCard';
+import { formatBRL } from '@/lib/smartcycle';
+import { listVeiculos } from '@/lib/rotas';
 
 export default function Rotas() {
   const navigate = useNavigate();
@@ -28,6 +31,7 @@ export default function Rotas() {
   const qc = useQueryClient();
   const [novoOpen, setNovoOpen] = useState(false);
   const [data, setData] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [dataFimNova, setDataFimNova] = useState("");
   const [obs, setObs] = useState("");
 
   const [filtroVendedor, setFiltroVendedor] = useState<string>("todos");
@@ -64,7 +68,10 @@ export default function Rotas() {
   const criar = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Não autenticado");
-      const r = await criarRota({ vendedor_id: user.id, data_rota: data, observacoes: obs || null });
+      const fimNova = dataFimNova && dataFimNova >= data ? dataFimNova : data;
+      const veiculos = await listVeiculos().catch(() => []);
+      const v = veiculos.find((x) => x.vendedor_id === user.id && x.ativo);
+      const r = await criarRota({ vendedor_id: user.id, data_rota: data, data_fim: fimNova, veiculo_id: v?.id ?? null, observacoes: obs || null });
       return r;
     },
     onSuccess: (r) => {
@@ -121,7 +128,8 @@ export default function Rotas() {
             <div className="flex items-center gap-2 mb-1">
               <Route className="w-4 h-4 text-primary" />
               <div className="font-semibold capitalize">
-                {format(parseISO(r.data_rota), "EEE, dd MMM yyyy", { locale: ptBR })}
+                {format(parseISO(r.data_inicio ?? r.data_rota), "EEE, dd MMM yyyy", { locale: ptBR })}
+                {fimRota(r) !== (r.data_inicio ?? r.data_rota) && ` a ${format(parseISO(fimRota(r)), "dd MMM", { locale: ptBR })}`}
               </div>
               <RotaStatus status={r.status} />
             </div>
@@ -134,6 +142,7 @@ export default function Rotas() {
             {r.km_total_estimado != null && (
               <div className="text-xs text-muted-foreground mt-1">{Number(r.km_total_estimado).toFixed(1)} km estimados</div>
             )}
+            {custoSalvo(r) && <div className="text-sm font-medium mt-1">Investimento: {formatBRL(custoSalvo(r)!.total)}</div>}
           </div>
           {(isAdmin || ['rascunho', 'reprovada', 'cancelada'].includes(r.status)) && <Button
             variant="ghost"
@@ -169,7 +178,7 @@ export default function Rotas() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6">
-        {pendentes.length > 0 && <div className="mb-4 rounded-md border border-destructive bg-destructive/10 text-destructive p-4 flex flex-wrap items-center gap-3"><p className="flex-1">Você tem a rota de {diaRota(pendentes[0].data_rota)} sem prestação de contas — nova viagem bloqueada</p><Button variant="destructive" onClick={() => navigate(`/rotas/${pendentes[0].id}`)}>Prestar contas</Button></div>}
+        {pendentes.length > 0 && <div className="mb-4 rounded-md border border-destructive bg-destructive/10 text-destructive p-4 flex flex-wrap items-center gap-3"><p className="flex-1">Você tem a viagem de {periodoRota(pendentes[0])} sem prestação de contas — nova viagem bloqueada</p><Button variant="destructive" onClick={() => navigate(`/rotas/${pendentes[0].id}`)}>Prestar contas</Button></div>}
         {isAdmin && <Button className="mb-4" variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Autorizações de viagem</Button>}
         <Tabs defaultValue="minhas">
           <TabsList>
@@ -225,8 +234,12 @@ export default function Rotas() {
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>Data da rota</Label>
-              <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+              <Label htmlFor="nova-inicio">Início</Label>
+              <Input id="nova-inicio" type="date" value={data} onChange={(e) => setData(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="nova-fim">Fim (para viagens de vários dias)</Label>
+              <Input id="nova-fim" type="date" min={data} value={dataFimNova} onChange={(e) => setDataFimNova(e.target.value)} placeholder="Mesmo dia" />
             </div>
             <div>
               <Label>Observações</Label>

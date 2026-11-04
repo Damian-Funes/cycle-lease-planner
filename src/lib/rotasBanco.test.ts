@@ -27,10 +27,11 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
       CREATE TYPE public.app_role AS ENUM('admin','comercial');
       CREATE TABLE public.user_roles(user_id uuid,role public.app_role);
       INSERT INTO public.user_roles VALUES('${admin}','admin');
+      CREATE FUNCTION public.is_approved(_user_id uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT true $$;
       CREATE FUNCTION public.has_role(_user_id uuid,_role public.app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT EXISTS(SELECT 1 FROM public.user_roles WHERE user_id=_user_id AND role=_role) $$;
       CREATE TABLE public.rotas(id uuid PRIMARY KEY,vendedor_id uuid NOT NULL,data_rota date NOT NULL,status text NOT NULL DEFAULT 'planejada',observacoes text,km_total_estimado numeric,created_at timestamptz DEFAULT now(),updated_at timestamptz DEFAULT now());
       CREATE TABLE public.rota_paradas(id uuid PRIMARY KEY,rota_id uuid REFERENCES public.rotas ON DELETE CASCADE,organizacao_id uuid,oportunidade_id uuid,cidade text,estado text,ordem int DEFAULT 0,tipo text DEFAULT 'visita',latitude numeric,longitude numeric,atividade_id uuid,concluida boolean DEFAULT false,observacoes text);`);
-    const migrations = readdirSync('supabase/migrations').filter(f => f.startsWith('20261025031715') || f.startsWith('20261025032100') || f.startsWith('20261025032329') || f.startsWith('20261025033223')).sort();
+    const migrations = readdirSync('supabase/migrations').filter(f => f.startsWith('20261025031715') || f.startsWith('20261025032100') || f.startsWith('20261025032329') || f.startsWith('20261025033223') || f.startsWith('20261104142049')).sort();
     for (const f of migrations) sql(readFileSync(`supabase/migrations/${f}`, 'utf8'));
     // Running the migrations again proves idempotence on the isolated database.
     for (const f of migrations) sql(readFileSync(`supabase/migrations/${f}`, 'utf8'));
@@ -45,7 +46,7 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
     bloqueado(`${fixture()} UPDATE public.rota_paradas SET tipo='visita'; UPDATE public.rotas SET status='aguardando_aprovacao' WHERE id='${rota}';`, 'organização');
   });
   it('bloqueio 3: aprovada passada impede próxima viagem', () => {
-    bloqueado(`${fixture()} ${aprovar()} ALTER TABLE public.rotas DISABLE TRIGGER rotas_autorizacao; UPDATE public.rotas SET data_rota=${hojeBrt}-1 WHERE id='${rota}'; ALTER TABLE public.rotas ENABLE TRIGGER rotas_autorizacao; INSERT INTO public.rotas(id,vendedor_id,data_rota) VALUES('10000000-0000-0000-0000-000000000002','${vendedor}',${hojeBrt}+1); INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo) VALUES('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','prospeccao','fechar orçamento'); UPDATE public.rotas SET status='aguardando_aprovacao' WHERE id='10000000-0000-0000-0000-000000000002';`, 'antes de pedir nova viagem');
+    bloqueado(`${fixture()} ${aprovar()} ALTER TABLE public.rotas DISABLE TRIGGER rotas_autorizacao; UPDATE public.rotas SET data_rota=${hojeBrt}-1,data_inicio=${hojeBrt}-1,data_fim=${hojeBrt}-1 WHERE id='${rota}'; ALTER TABLE public.rotas ENABLE TRIGGER rotas_autorizacao; INSERT INTO public.rotas(id,vendedor_id,data_rota) VALUES('10000000-0000-0000-0000-000000000002','${vendedor}',${hojeBrt}+1); INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo) VALUES('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','prospeccao','fechar orçamento'); UPDATE public.rotas SET status='aguardando_aprovacao' WHERE id='10000000-0000-0000-0000-000000000002';`, 'antes de pedir nova viagem');
   });
   it('bloqueio 4: conclusão exige visitada e relato correspondente', () => {
     for (const patch of ['', "UPDATE public.rota_paradas SET visitada=true;", "UPDATE public.rota_paradas SET visitada=false;"]) bloqueado(`${fixture()} ${aprovar()} ${patch} UPDATE public.rotas SET status='concluida' WHERE id='${rota}';`, 'Informe todas as paradas');
@@ -68,5 +69,26 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
     const outro = '00000000-0000-0000-0000-000000000003';
     expect(sql(`BEGIN; ${fixture()} ${actor(outro)} SET LOCAL ROLE authenticated; SELECT count(*) FROM public.rotas; ROLLBACK;`)).toContain('SET\n0');
     expect(sql(`BEGIN; ${fixture()} ${actor(admin)} SET LOCAL ROLE authenticated; SELECT count(*) FROM public.rotas; ROLLBACK;`)).toContain('SET\n1');
+  });
+  // ---- Viagens de vários dias ----
+  const viagem = (dias = 2) => `${actor()} INSERT INTO public.rotas(id,vendedor_id,data_inicio,data_fim) VALUES('${rota}','${vendedor}',${hojeBrt},${hojeBrt}+${dias}); INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia) VALUES('${parada}','${rota}','prospeccao','apresentar LSB150',${hojeBrt});`;
+  it('rota antiga (só data_rota) vira viagem de 1 dia', () => expect(sql(`BEGIN; ${fixture()} SELECT (data_inicio=data_rota AND data_fim=data_rota)::text FROM public.rotas; SELECT (dia=${hojeBrt})::text FROM public.rota_paradas; ROLLBACK;`)).toContain('true\ntrue'));
+  it('data_rota acompanha o início e fim antes do início é recusado', () => {
+    expect(sql(`BEGIN; ${viagem()} UPDATE public.rotas SET data_inicio=${hojeBrt}+1; SELECT (data_rota=${hojeBrt}+1)::text FROM public.rotas; ROLLBACK;`)).toContain('true');
+    bloqueado(`${viagem()} UPDATE public.rotas SET data_fim=${hojeBrt}-1;`, 'fim não pode ser antes');
+    bloqueado(`${viagem(15)}`, 'no máximo 15 dias');
+  });
+  it('parada fora do período é recusada', () => bloqueado(`${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia) VALUES('20000000-0000-0000-0000-000000000009','${rota}','prospeccao','x',${hojeBrt}+5);`, 'dentro do período'));
+  it('pernoite sem hotel ou diária bloqueia o envio', () => bloqueado(`${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite','Pernoite',${hojeBrt}); UPDATE public.rotas SET status='aguardando_aprovacao';`, 'hotel e valor da diária'));
+  it('prestação liberada desde o início e conclusão ignora pernoite', () => expect(sql(`BEGIN; ${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia,hotel_nome,valor_diaria_est) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite','Pernoite',${hojeBrt},'Hotel X',250); ${aprovar()} UPDATE public.rota_paradas SET visitada=true,resultado='ok' WHERE id='${parada}'; UPDATE public.rotas SET status='concluida'; SELECT status FROM public.rotas; ROLLBACK;`)).toContain('concluida'));
+  it('nova viagem só é bloqueada quando a data de FIM da aprovada passou', () => {
+    const outra = `INSERT INTO public.rotas(id,vendedor_id,data_rota) VALUES('10000000-0000-0000-0000-000000000002','${vendedor}',${hojeBrt}+3); INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo) VALUES('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','prospeccao','x'); UPDATE public.rotas SET status='aguardando_aprovacao' WHERE id='10000000-0000-0000-0000-000000000002';`;
+    const mover = (ini: string, fim: string) => `ALTER TABLE public.rotas DISABLE TRIGGER rotas_autorizacao; ALTER TABLE public.rota_paradas DISABLE TRIGGER USER; UPDATE public.rotas SET data_inicio=${ini},data_fim=${fim},data_rota=${ini} WHERE id='${rota}'; UPDATE public.rota_paradas SET dia=${ini} WHERE rota_id='${rota}'; ALTER TABLE public.rotas ENABLE TRIGGER rotas_autorizacao; ALTER TABLE public.rota_paradas ENABLE TRIGGER USER;`;
+    expect(sql(`BEGIN; ${viagem()} ${aprovar()} ${mover(`${hojeBrt}-2`, hojeBrt)} ${outra} SELECT status FROM public.rotas WHERE id='10000000-0000-0000-0000-000000000002'; ROLLBACK;`)).toContain('aguardando_aprovacao');
+    bloqueado(`${viagem()} ${aprovar()} ${mover(`${hojeBrt}-3`, `${hojeBrt}-1`)} ${outra}`, 'antes de pedir nova viagem');
+  });
+  it('vendedor não grava pedágio; mudar pernoite reabre aprovação', () => {
+    expect(sql(`BEGIN; ${viagem()} UPDATE public.rotas SET custo_pedagio_est=1, pedagio_assinatura='x'; SELECT coalesce(custo_pedagio_est::text,'nulo') FROM public.rotas; ROLLBACK;`)).toContain('nulo');
+    expect(sql(`BEGIN; ${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia,hotel_nome,valor_diaria_est) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite','Pernoite',${hojeBrt},'Hotel X',250); ${aprovar()} UPDATE public.rota_paradas SET valor_diaria_est=300 WHERE tipo='pernoite'; SELECT status FROM public.rotas; ROLLBACK;`)).toContain('aguardando_aprovacao');
   });
 });
