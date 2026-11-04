@@ -29,3 +29,40 @@ describe("rota navegação", () => {
     expect(coordenadaValida("-23.1", "-51")).toBe(true);
   });
 });
+
+import { distanciaAoTrajeto, posicaoInsercaoMaisBarata, classificarMotivo, ordenarSugestoes, objetivoSugerido } from "./rotaNavegacao";
+
+describe("clientes no caminho", () => {
+  // trajeto reto no equador, ~111 km por grau
+  const caminho = [{ lat: 0, lng: 0 }, { lat: 0, lng: 1 }, { lat: 0, lng: 2 }];
+  it("distância perpendicular ao segmento e posição ao longo", () => {
+    const r = distanciaAoTrajeto({ lat: 0.1, lng: 1.5 }, caminho);
+    expect(r.km).toBeCloseTo(11.1, 0);
+    expect(r.posicaoKm).toBeCloseTo(166.8, 0);
+  });
+  it("ponto além do fim mede até a extremidade", () => {
+    expect(distanciaAoTrajeto({ lat: 0, lng: 2.5 }, caminho).km).toBeCloseTo(55.6, 0);
+  });
+  it("inserção mais barata entra entre as paradas vizinhas, não no fim", () => {
+    const base = { lat: -1, lng: 0 };
+    const paradas = [{ lat: 0, lng: 1 }, { lat: 0, lng: 3 }];
+    expect(posicaoInsercaoMaisBarata(base, paradas, { lat: 0, lng: 2 })).toBe(1);
+    expect(posicaoInsercaoMaisBarata(base, paradas, { lat: -0.5, lng: 0.5 })).toBe(0);
+  });
+  const agora = new Date("2026-11-04T12:00:00Z");
+  it("prioridades 1-4", () => {
+    expect(classificarMotivo({ deal: { titulo: "D", valor: 1, proximaAtividadeEm: null }, carteiraDoVendedor: true, ultimoContato: null, agora }).prioridade).toBe(1);
+    expect(classificarMotivo({ deal: { titulo: "D", valor: 1, proximaAtividadeEm: "2026-11-01T00:00:00Z" }, carteiraDoVendedor: false, ultimoContato: null, agora }).prioridade).toBe(1);
+    expect(classificarMotivo({ deal: { titulo: "D", valor: 1, proximaAtividadeEm: "2026-11-10T00:00:00Z" }, carteiraDoVendedor: false, ultimoContato: null, agora }).prioridade).toBe(2);
+    expect(classificarMotivo({ carteiraDoVendedor: true, ultimoContato: "2026-08-01T00:00:00Z", agora })).toEqual({ prioridade: 3, tipo: "sem_contato", dias: 95 });
+    expect(classificarMotivo({ carteiraDoVendedor: true, ultimoContato: "2026-10-01T00:00:00Z", agora }).prioridade).toBe(4);
+    expect(classificarMotivo({ carteiraDoVendedor: true, ultimoContato: null, agora })).toEqual({ prioridade: 3, tipo: "sem_contato", dias: null });
+  });
+  it("ordena por prioridade e depois pela posição na viagem; objetivo sugerido", () => {
+    const t = { prioridade: 4 as const, tipo: "territorio" as const };
+    const d = { prioridade: 2 as const, tipo: "deal_aberto" as const, dealTitulo: "X", dealValor: 1, numeroOrcamento: "ORC2026-047" };
+    const r = ordenarSugestoes([{ motivo: t, posicaoKm: 1, n: "a" }, { motivo: d, posicaoKm: 50, n: "b" }, { motivo: d, posicaoKm: 10, n: "c" }]);
+    expect(r.map((x) => x.n)).toEqual(["c", "b", "a"]);
+    expect(objetivoSugerido(d)).toBe("Retomar negociação ORC2026-047");
+  });
+});

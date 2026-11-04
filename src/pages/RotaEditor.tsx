@@ -9,6 +9,10 @@ import {
 import { loadGoogleMaps, optimizeRoute, getOrigemVendedor, calcularRota, erroRotaMensagem, type RotaCalculada } from "@/lib/maps";
 import { linksGoogleMaps, linkWaze, formatarDuracao, formatarKm, rotaLonga, coordenadaValida } from "@/lib/rotaNavegacao";
 import { AlertTriangle, Navigation } from "lucide-react";
+import { posicaoInsercaoMaisBarata, textoMotivo } from "@/lib/rotaNavegacao";
+import { buscarClientesNoCaminho, type SugestaoCaminho } from "@/lib/clientesNoCaminho";
+import { formatBRL } from "@/lib/smartcycle";
+import ClientesNoCaminho from "@/components/rotas/ClientesNoCaminho";
 import AppHeader from "@/components/AppHeader";
 import AdicionarParadaModal from "@/components/AdicionarParadaModal";
 import { Button } from "@/components/ui/button";
@@ -174,6 +178,84 @@ export default function RotaEditor() {
   }, [chaveParadas, rota?.vendedor_id, mapaPronto]);
 
   useEffect(() => () => directionsRef.current?.setMap(null), []);
+
+  // ---- Clientes no caminho ----
+  const [raioKm, setRaioKm] = useState(30);
+  const [sugestoes, setSugestoes] = useState<SugestaoCaminho[]>([]);
+  const [carregandoSug, setCarregandoSug] = useState(false);
+  const [erroSug, setErroSug] = useState<string | null>(null);
+  const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const sugMarkersRef = useRef<any[]>([]);
+  const infoRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!planejamento || !calculo || !rota) { setSugestoes([]); return; }
+    let cancel = false;
+    const path = (calculo.result?.routes?.[0]?.overview_path ?? []).map((ll: any) => ({ lat: ll.lat(), lng: ll.lng() }));
+    setCarregandoSug(true); setErroSug(null);
+    buscarClientesNoCaminho({
+      caminho: path, raioKm, vendedorId: rota.vendedor_id,
+      excluirIds: paradas.map((p) => p.organizacao_id).filter(Boolean) as string[],
+    })
+      .then((r) => { if (!cancel) setSugestoes(r); })
+      .catch((e) => { if (!cancel) { setSugestoes([]); setErroSug(e?.message || "Não foi possível buscar clientes no caminho."); } })
+      .finally(() => { if (!cancel) setCarregandoSug(false); });
+    return () => { cancel = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculo, raioKm, planejamento, rota?.vendedor_id]);
+
+  useEffect(() => {
+    const g = (window as any).google;
+    sugMarkersRef.current.forEach((m) => m.setMap(null));
+    sugMarkersRef.current = [];
+    if (!g || !mapInstanceRef.current) return;
+    if (!infoRef.current) infoRef.current = new g.maps.InfoWindow();
+    sugestoes.forEach((s) => {
+      const m = new g.maps.Marker({
+        map: mapInstanceRef.current,
+        position: { lat: s.lat, lng: s.lng },
+        title: s.nome,
+        zIndex: 1,
+        icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: "#9ca3af", fillOpacity: 0.9, strokeColor: "#4b5563", strokeWeight: 1 },
+      });
+      m.addListener("click", () => {
+        const div = document.createElement("div");
+        div.style.fontSize = "12px";
+        const t = document.createElement("strong"); t.textContent = s.nome;
+        const p = document.createElement("p"); p.textContent = textoMotivo(s.motivo, formatBRL);
+        const b = document.createElement("button"); b.textContent = "Adicionar à rota"; b.style.textDecoration = "underline";
+        b.onclick = () => { setSelecionadaId(s.id); infoRef.current?.close(); };
+        div.append(t, p, b);
+        infoRef.current.setContent(div);
+        infoRef.current.open({ map: mapInstanceRef.current, anchor: m });
+      });
+      sugMarkersRef.current.push(m);
+    });
+    return () => { sugMarkersRef.current.forEach((m) => m.setMap(null)); sugMarkersRef.current = []; };
+  }, [sugestoes, mapaPronto]);
+
+  async function adicionarSugestao(s: SugestaoCaminho, objetivo: string) {
+    if (!id || !rota) return;
+    await executar(async () => {
+      const atividadeId = await criarAtividadeVisita({
+        organizacaoId: s.id, organizacaoNome: s.nome, responsavelId: rota.vendedor_id, dataAtividade: rota.data_rota,
+      });
+      const nova = await adicionarParada({
+        rota_id: id, ordem: paradas.length, organizacao_id: s.id, oportunidade_id: s.oportunidadeId,
+        cidade: s.cidade, estado: s.estado, latitude: s.lat, longitude: s.lng, tipo: "visita",
+        observacoes: null, atividade_id: atividadeId, concluida: false, objetivo,
+      });
+      const ordenadas = [...paradas].sort((a, b) => a.ordem - b.ordem);
+      const validas = ordenadas.filter((p) => coordenadaValida(p.latitude, p.longitude));
+      const origem = getOrigemVendedor(rota.vendedor_id);
+      const k = posicaoInsercaoMaisBarata({ lat: origem.lat, lng: origem.lng }, validas.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), { lat: s.lat, lng: s.lng });
+      const antesDe = validas[k];
+      const idxFull = antesDe ? ordenadas.findIndex((p) => p.id === antesDe.id) : ordenadas.length;
+      const lista = [...ordenadas.slice(0, idxFull), nova, ...ordenadas.slice(idxFull)];
+      await reordenarParadas(lista.map((p, i) => ({ id: p.id, ordem: i })).filter((u, i) => lista[i].ordem !== u.ordem));
+      toast.success(`${s.nome} adicionada como parada ${idxFull + 1}`);
+    });
+  }
 
   const trechoPorParada = useMemo(() => {
     const m: Record<string, { distanciaM: number; duracaoS: number; desde: string }> = {};
@@ -419,6 +501,15 @@ export default function RotaEditor() {
                 </div>
               )}
             </Card>
+          )}
+
+          {planejamento && calculo && (
+            <ClientesNoCaminho
+              sugestoes={sugestoes} carregando={carregandoSug} erro={erroSug}
+              raioKm={raioKm} onRaio={setRaioKm}
+              selecionadaId={selecionadaId} onSelecionar={setSelecionadaId}
+              onAdicionar={adicionarSugestao} busy={busy}
+            />
           )}
 
           <div className="flex items-center justify-between">

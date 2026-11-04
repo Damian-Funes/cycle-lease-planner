@@ -27,3 +27,6 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 
 # Rotas: traçado pelas estradas
 - [x] calcularRota, DirectionsRenderer no editor e aprovações, recálculo automático, resumo, Google Maps/Waze, erros por parada.
+- [x] Clientes no caminho: sugestões por trajeto, prioridade, inserção mais barata, marcadores.
+- [x] Localizar organizações sem coordenada (admin, lote).
+- [ ] Coluna `coordenada_aproximada` — aguardando aprovação da SQL pelo usuário.
