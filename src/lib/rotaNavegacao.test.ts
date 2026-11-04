@@ -66,3 +66,34 @@ describe("clientes no caminho", () => {
     expect(objetivoSugerido(d)).toBe("Retomar negociação ORC2026-047");
   });
 });
+
+import { agruparPorGrade, categoriaMapa, CATEGORIAS_MAPA } from "./rotaNavegacao";
+import { medirClientes, filtrarNoCaminho, type ClienteMapa } from "./clientesNoCaminho";
+
+describe("mapa de clientes", () => {
+  const cli = (id: string, lat: number, lng: number, prioridade: 1 | 2 | 3 | 4): ClienteMapa => ({
+    id, nome: id, cidade: null, estado: null, lat, lng, aproximada: false, oportunidadeId: null,
+    motivo: prioridade === 4 ? { prioridade: 4, tipo: "territorio" } : prioridade === 3 ? { prioridade: 3, tipo: "sem_contato", dias: null }
+      : prioridade === 2 ? { prioridade: 2, tipo: "deal_aberto", dealTitulo: "D", dealValor: 1 } : { prioridade: 1, tipo: "deal_parado", dealTitulo: "D", dealValor: 1, atividadeAtrasada: true },
+  });
+
+  it("categoria segue a prioridade com cores vermelho/laranja/azul/cinza", () => {
+    expect(categoriaMapa(cli("a", 0, 0, 1).motivo)).toBe(1);
+    expect(categoriaMapa(cli("a", 0, 0, 4).motivo)).toBe(4);
+    expect(CATEGORIAS_MAPA[1].cor).toBe("#dc2626");
+    expect(CATEGORIAS_MAPA[4].cor).toBe("#9ca3af");
+  });
+
+  it("agrupa pontos próximos no zoom do Brasil e separa no zoom alto", () => {
+    const pts = [{ lat: -23.5, lng: -46.6 }, { lat: -23.55, lng: -46.65 }, { lat: -3.1, lng: -60.0 }];
+    expect(agruparPorGrade(pts, 4)).toHaveLength(2);
+    expect(agruparPorGrade(pts, 12)).toHaveLength(3);
+  });
+
+  it("todos aparecem sem trajeto; 'só no caminho' respeita o raio e exclui paradas", () => {
+    const lista = [cli("perto", 0.1, 0.5, 4), cli("longe", 2, 0.5, 1), cli("parada", 0, 0.5, 2)];
+    expect(medirClientes(lista, [], ["parada"]).map((c) => c.id)).toEqual(["perto", "longe"]);
+    const medidos = medirClientes(lista, [{ lat: 0, lng: 0 }, { lat: 0, lng: 1 }], ["parada"]);
+    expect(filtrarNoCaminho(medidos, 30).map((c) => c.id)).toEqual(["perto"]);
+  });
+});
