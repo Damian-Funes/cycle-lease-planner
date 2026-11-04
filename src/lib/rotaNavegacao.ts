@@ -144,3 +144,33 @@ export function objetivoSugerido(m: MotivoSugestao): string {
 export function ordenarSugestoes<T extends { motivo: MotivoSugestao; posicaoKm: number }>(lista: T[]): T[] {
   return [...lista].sort((a, b) => a.motivo.prioridade - b.motivo.prioridade || a.posicaoKm - b.posicaoKm);
 }
+
+// ---- Mapa de clientes: categorias e agrupamento ----
+export type CategoriaMapa = 1 | 2 | 3 | 4;
+/** Cores do marcador (canvas do Google Maps exige cor literal). */
+export const CATEGORIAS_MAPA: Record<CategoriaMapa, { rotulo: string; cor: string }> = {
+  1: { rotulo: "Deal parado/atrasado", cor: "#dc2626" },
+  2: { rotulo: "Deal aberto", cor: "#ea580c" },
+  3: { rotulo: "Sem contato +60 dias", cor: "#2563eb" },
+  4: { rotulo: "Demais clientes", cor: "#9ca3af" },
+};
+export function categoriaMapa(m: MotivoSugestao): CategoriaMapa { return m.prioridade; }
+
+export interface Grupo<T> { centro: Ponto; itens: T[] }
+/** Agrupa pontos numa grade em pixels Web Mercator conforme o zoom. Em zoom alto (≥ zoomMax) não agrupa. */
+export function agruparPorGrade<T extends Ponto>(pontos: T[], zoom: number, celulaPx = 60, zoomMax = 11): Grupo<T>[] {
+  if (zoom >= zoomMax) return pontos.map((p) => ({ centro: { lat: p.lat, lng: p.lng }, itens: [p] }));
+  const escala = 256 * Math.pow(2, zoom);
+  const celulas = new Map<string, T[]>();
+  for (const p of pontos) {
+    const x = ((p.lng + 180) / 360) * escala;
+    const s = Math.sin((p.lat * Math.PI) / 180);
+    const y = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * escala;
+    const k = `${Math.floor(x / celulaPx)}:${Math.floor(y / celulaPx)}`;
+    const arr = celulas.get(k); if (arr) arr.push(p); else celulas.set(k, [p]);
+  }
+  return [...celulas.values()].map((itens) => ({
+    centro: { lat: itens.reduce((a, p) => a + p.lat, 0) / itens.length, lng: itens.reduce((a, p) => a + p.lng, 0) / itens.length },
+    itens,
+  }));
+}

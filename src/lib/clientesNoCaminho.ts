@@ -18,15 +18,10 @@ export interface SugestaoCaminho {
   oportunidadeId: string | null;
 }
 
-/** Organizações visíveis (RLS) a até `raioKm` do trajeto, com motivo e prioridade. */
-export async function buscarClientesNoCaminho(opts: {
-  caminho: Ponto[];
-  raioKm: number;
-  vendedorId: string;
-  excluirIds: string[];
-}): Promise<SugestaoCaminho[]> {
-  const { caminho, raioKm, vendedorId } = opts;
-  if (caminho.length < 2) return [];
+export type ClienteMapa = Omit<SugestaoCaminho, "distanciaKm" | "posicaoKm">;
+
+/** Todas as organizações visíveis (RLS) com coordenada, já classificadas. Buscar uma vez por tela. */
+export async function buscarClientesMapa(vendedorId: string): Promise<ClienteMapa[]> {
   const sb = supabase as any;
   const { data: orgs, error } = await sb
     .from("organizacoes")
@@ -34,20 +29,14 @@ export async function buscarClientesNoCaminho(opts: {
     .not("latitude", "is", null).not("longitude", "is", null)
     .limit(5000);
   if (error) throw error;
-
-  const excluir = new Set(opts.excluirIds);
-  const perto = (orgs ?? [])
-    .filter((o: any) => !excluir.has(o.id) && coordenadaValida(o.latitude, o.longitude))
-    .map((o: any) => ({ o, d: distanciaAoTrajeto({ lat: Number(o.latitude), lng: Number(o.longitude) }, caminho) }))
-    .filter(({ d }: any) => d.km <= raioKm);
-  if (!perto.length) return [];
-  const ids: string[] = perto.map(({ o }: any) => o.id);
+  const validas = (orgs ?? []).filter((o: any) => coordenadaValida(o.latitude, o.longitude));
+  if (!validas.length) return [];
 
   const [opps, atvs] = await Promise.all([
-    sb.from("oportunidades").select("id, organizacao_id, titulo, valor_estimado, proxima_atividade_em, updated_at")
-      .eq("status", "aberta").eq("responsavel_id", vendedorId).in("organizacao_id", ids),
+    sb.from("oportunidades").select("id, organizacao_id, titulo, valor_estimado, proxima_atividade_em")
+      .eq("status", "aberta").eq("responsavel_id", vendedorId).not("organizacao_id", "is", null).limit(5000),
     sb.from("atividades").select("organizacao_id, data_conclusao, data_atividade")
-      .eq("concluida", true).in("organizacao_id", ids).order("data_atividade", { ascending: false }).limit(5000),
+      .eq("concluida", true).not("organizacao_id", "is", null).order("data_atividade", { ascending: false }).limit(10000),
   ]);
   if (opps.error) throw opps.error;
 
@@ -70,7 +59,7 @@ export async function buscarClientesNoCaminho(opts: {
     if (dt && (!prev || dt > prev)) ultimoContato.set(a.organizacao_id, dt);
   }
 
-  return ordenarSugestoes(perto.map(({ o, d }: any) => {
+  return validas.map((o: any) => {
     const deal = dealPorOrg.get(o.id);
     return {
       id: o.id,
@@ -78,13 +67,28 @@ export async function buscarClientesNoCaminho(opts: {
       cidade: o.cidade, estado: o.estado,
       lat: Number(o.latitude), lng: Number(o.longitude),
       aproximada: !o.endereco,
-      distanciaKm: d.km, posicaoKm: d.posicaoKm,
       oportunidadeId: deal?.id ?? null,
       motivo: classificarMotivo({
         deal: deal ? { titulo: deal.titulo, valor: Number(deal.valor_estimado), proximaAtividadeEm: deal.proxima_atividade_em, numeroOrcamento: numeroPorOpp.get(deal.id) } : null,
         carteiraDoVendedor: o.responsavel_id === vendedorId,
         ultimoContato: ultimoContato.get(o.id) ?? null,
       }),
-    } as SugestaoCaminho;
-  }));
+    } as ClienteMapa;
+  });
+}
+
+/** Distância de cada cliente ao trajeto (null se não há trajeto), excluindo paradas. */
+export function medirClientes(clientes: ClienteMapa[], caminho: Ponto[], excluirIds: string[]): (ClienteMapa & { distanciaKm: number | null; posicaoKm: number })[] {
+  const excluir = new Set(excluirIds);
+  const temCaminho = caminho.length >= 2;
+  return clientes.filter((c) => !excluir.has(c.id)).map((c) => {
+    if (!temCaminho) return { ...c, distanciaKm: null, posicaoKm: 0 };
+    const d = distanciaAoTrajeto({ lat: c.lat, lng: c.lng }, caminho);
+    return { ...c, distanciaKm: d.km, posicaoKm: d.posicaoKm };
+  });
+}
+
+/** Clientes a até `raioKm` do trajeto, ordenados por prioridade e posição na viagem. */
+export function filtrarNoCaminho(medidos: ReturnType<typeof medirClientes>, raioKm: number): SugestaoCaminho[] {
+  return ordenarSugestoes(medidos.filter((c) => c.distanciaKm != null && c.distanciaKm <= raioKm) as SugestaoCaminho[]);
 }
