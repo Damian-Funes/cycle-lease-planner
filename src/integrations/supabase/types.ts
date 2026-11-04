@@ -2921,6 +2921,117 @@ export type Database = {
         }
         Relationships: []
       }
+      rota_diario: {
+        Row: {
+          autor_id: string
+          created_at: string
+          fotos: string[]
+          id: string
+          latitude: number | null
+          longitude: number | null
+          organizacao_id: string | null
+          parada_id: string | null
+          registrado_em: string
+          rota_id: string
+          texto: string
+        }
+        Insert: {
+          autor_id?: string
+          created_at?: string
+          fotos?: string[]
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          organizacao_id?: string | null
+          parada_id?: string | null
+          registrado_em?: string
+          rota_id: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string
+          created_at?: string
+          fotos?: string[]
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          organizacao_id?: string | null
+          parada_id?: string | null
+          registrado_em?: string
+          rota_id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_diario_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_diario_parada_id_fkey"
+            columns: ["parada_id"]
+            isOneToOne: false
+            referencedRelation: "rota_paradas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_diario_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rota_gastos: {
+        Row: {
+          arquivo_path: string | null
+          autor_id: string
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string | null
+          id: string
+          rota_id: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          arquivo_path?: string | null
+          autor_id?: string
+          categoria: string
+          created_at?: string
+          data: string
+          descricao?: string | null
+          id?: string
+          rota_id: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          arquivo_path?: string | null
+          autor_id?: string
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          id?: string
+          rota_id?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_gastos_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rota_paradas: {
         Row: {
           atividade_id: string | null
@@ -4464,12 +4575,26 @@ export type Database = {
       }
       fn_match_pessoa_por_telefone: { Args: { _tel: string }; Returns: string }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
+      fn_pode_escrever_diario: {
+        Args: { _rota: string; _user: string }
+        Returns: boolean
+      }
+      fn_pode_lancar_gasto: {
+        Args: { _rota: string; _user: string }
+        Returns: boolean
+      }
+      fn_pode_ver_rota: {
+        Args: { _rota: string; _user: string }
+        Returns: boolean
+      }
       fn_proximo_comercial_para_estado: {
         Args: { _estado_id: string }
         Returns: string
       }
+      fn_rota_hoje_brt: { Args: never; Returns: string }
       fn_tel_chave_match: { Args: { _t: string }; Returns: string }
       fn_tel_digitos: { Args: { _t: string }; Returns: string }
+      fn_uuid_seguro: { Args: { _t: string }; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
