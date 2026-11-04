@@ -8,3 +8,4 @@
 - Seller departure base is data on `veiculos` (trip vehicle → seller vehicle → Maringá fallback), shared by frontend and toll function; never hardcode per-user bases.
 - Trip day routing and cost are pure functions in `src/lib/viagem.ts`; the toll edge function duplicates `assinaturaTrajeto` so an unchanged route never re-spends QualP credits.
 - Toll estimates are written only by the server function (trigger keeps client writes out); the seller-facing cost snapshot is frozen when sent for approval.
+- Trip logbook/expense access windows live in SQL helpers (`fn_pode_escrever_diario`, `fn_pode_lancar_gasto`, `fn_pode_ver_rota`); `src/lib/viagemDiario.ts` mirrors them only for UI hints. Storage policies on the `viagens` bucket wrap UUID casts in `CASE bucket_id` + `fn_uuid_seguro` so other buckets never hit a cast error.
