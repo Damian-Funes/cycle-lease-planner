@@ -43,7 +43,7 @@ async function preloadLogo(): Promise<string | null> {
   return new Promise((resolve) => {
     try {
       const img = new Image();
-      img.crossOrigin = "Anonymous";
+      img.crossOrigin = "anonymous";
       img.onload = () => {
         try {
           const canvas = document.createElement("canvas");

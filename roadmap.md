@@ -22,3 +22,8 @@ Verificação Rotas: 29 testes passaram, incluindo triggers reais e RLS em Postg
 - [x] Verificar tipos existentes, erros e testes frontend sem iniciar ligações reais.
 
 Verificação: cinco testes unitários e testes isolados no navegador com dados fictícios (relatório desktop/mobile, filtro, transcrição, confirmação, erro 403 em português, bloqueio e polling). Sem sessão disponível para testar o fluxo autenticado real; nenhuma ligação real iniciada.
+# Funil: referência x projeto
+- [ ] Plano pronto, aguardando o usuário retomar (pausado a pedido).
+
+# Rotas: traçado pelas estradas
+- [x] calcularRota, DirectionsRenderer no editor e aprovações, recálculo automático, resumo, Google Maps/Waze, erros por parada.

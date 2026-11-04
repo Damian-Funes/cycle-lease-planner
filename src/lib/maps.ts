@@ -62,27 +62,54 @@ export function getOrigemVendedor(vendedorId?: string | null) {
   return MARINGA;
 }
 
+export type TrechoRota = { distanciaM: number; duracaoS: number };
+export type RotaCalculada = {
+  result: any; // google.maps.DirectionsResult
+  order: number[];
+  totalKm: number;
+  totalSegundos: number;
+  trechos: TrechoRota[]; // trechos[i] = chegada à parada i (na ordem final); último = volta à base
+};
+
+/** Rota pelas estradas (DRIVING): base → paradas → base. */
+export async function calcularRota(
+  origem: { lat: number; lng: number },
+  paradas: { lat: number; lng: number }[],
+  otimizar: boolean
+): Promise<RotaCalculada | null> {
+  if (paradas.length < 1) return null;
+  const g = await loadGoogleMaps();
+  const ds = new g.maps.DirectionsService();
+  const res: any = await ds.route({
+    origin: { lat: origem.lat, lng: origem.lng },
+    destination: { lat: origem.lat, lng: origem.lng },
+    waypoints: paradas.map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true })),
+    optimizeWaypoints: otimizar,
+    travelMode: g.maps.TravelMode.DRIVING,
+  });
+  const route = res?.routes?.[0];
+  if (!route) return null;
+  const wp: number[] = route.waypoint_order ?? [];
+  const order = otimizar && wp.length ? wp : paradas.map((_, i) => i);
+  const trechos: TrechoRota[] = route.legs.map((l: any) => ({ distanciaM: l.distance?.value ?? 0, duracaoS: l.duration?.value ?? 0 }));
+  const totalM = trechos.reduce((a, t) => a + t.distanciaM, 0);
+  const totalSegundos = trechos.reduce((a, t) => a + t.duracaoS, 0);
+  return { result: res, order, totalKm: totalM / 1000, totalSegundos, trechos };
+}
+
 export async function optimizeRoute(
   paradas: { lat: number; lng: number }[],
   origem: { lat: number; lng: number } = MARINGA
 ): Promise<{ order: number[]; totalKm: number } | null> {
-  if (paradas.length < 1) return null;
-  const g = await loadGoogleMaps();
-  const ds = new g.maps.DirectionsService();
-  // Origem e destino = base do vendedor; paradas viram waypoints
-  const waypoints = paradas.map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true }));
-  const res: any = await ds.route({
-    origin: { lat: origem.lat, lng: origem.lng },
-    destination: { lat: origem.lat, lng: origem.lng },
-    waypoints,
-    optimizeWaypoints: true,
-    travelMode: g.maps.TravelMode.DRIVING,
-  });
-  const route = res.routes?.[0];
-  if (!route) return null;
-  const wpOrder: number[] = route.waypoint_order ?? paradas.map((_, i) => i);
-  // order = índices das paradas na nova ordem (sem Maringá)
-  const order = wpOrder.length ? wpOrder : paradas.map((_, i) => i);
-  const totalKm = route.legs.reduce((acc: number, leg: any) => acc + (leg.distance?.value ?? 0), 0) / 1000;
-  return { order, totalKm };
+  const r = await calcularRota(origem, paradas, true);
+  return r ? { order: r.order, totalKm: r.totalKm } : null;
+}
+
+/** Mensagem legível para falhas do DirectionsService. */
+export function erroRotaMensagem(e: any, nomes: string[]): string {
+  const code = e?.code || e?.message || "";
+  if (/NOT_FOUND|ZERO_RESULTS/.test(code)) return `O Google não encontrou rota de carro para uma das paradas (${nomes.join(", ")}). Confira as coordenadas.`;
+  if (/REQUEST_DENIED/.test(code)) return "O Google recusou o cálculo de rota (permissão da chave de mapas).";
+  if (/MAX_WAYPOINTS/.test(code)) return "Paradas demais para calcular a rota de uma vez.";
+  return "Não foi possível calcular o trajeto pelas estradas.";
 }
