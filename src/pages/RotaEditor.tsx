@@ -104,7 +104,7 @@ export default function RotaEditor() {
   // ---- Custo estimado ----
   const veiculo = veiculos.find((v) => v.id === veiculoId) ?? null;
   const alimentacaoNum = parseValorBR(alimentacao);
-  const assinaturaAtual = rota ? assinaturaTrajeto(getOrigemVendedor(rota.vendedor_id), paradas, inicioRota) : "";
+  const assinaturaAtual = rota ? assinaturaTrajeto(getOrigemVendedor(rota.vendedor_id, veiculos, veiculoId), paradas, inicioRota) : "";
   const pedagioValido = rota?.custo_pedagio_est != null && rota?.pedagio_assinatura === assinaturaAtual;
   const custo = custoViagem({
     km: calculo ? calculo.totalKm : (rota?.km_total_estimado ?? null),
@@ -209,7 +209,7 @@ export default function RotaEditor() {
     let cancel = false;
     const t = setTimeout(async () => {
       try {
-        const origem = getOrigemVendedor(rota.vendedor_id);
+        const origem = getOrigemVendedor(rota.vendedor_id, veiculos, veiculoId);
         const r = await calcularViagem({ lat: origem.lat, lng: origem.lng }, paradas, inicioRota, fimRotaSalvo);
         if (cancel || !r) return;
         setCalculo(r);
@@ -350,7 +350,7 @@ export default function RotaEditor() {
     await executar(async () => {
       const ordenadas = paradas;
       const validas = ordenadas.filter((p) => coordenadaValida(p.latitude, p.longitude));
-      const origem = getOrigemVendedor(rota.vendedor_id);
+      const origem = getOrigemVendedor(rota.vendedor_id, veiculos, veiculoId);
       const k = posicaoInsercaoMaisBarata({ lat: origem.lat, lng: origem.lng }, validas.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), { lat: s.lat, lng: s.lng });
       const antesDe = validas[k];
       const depoisDe = validas[k - 1];
@@ -389,7 +389,7 @@ export default function RotaEditor() {
     return m;
   }, [calculo]);
 
-  const origemNav = getOrigemVendedor(rota?.vendedor_id);
+  const origemNav = getOrigemVendedor(rota?.vendedor_id, veiculos, veiculoId);
   const linksMaps = linksGoogleMaps(
     { lat: origemNav.lat, lng: origemNav.lng },
     paradas.filter((p) => coordenadaValida(p.latitude, p.longitude)).map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) }))
@@ -413,7 +413,7 @@ export default function RotaEditor() {
     const path: any[] = [];
 
     // Marker de origem (base do vendedor)
-    const origem = getOrigemVendedor(rota?.vendedor_id);
+    const origem = getOrigemVendedor(rota?.vendedor_id, veiculos, veiculoId);
     const origemPos = { lat: origem.lat, lng: origem.lng };
     const origemMarker = new g.maps.Marker({
       position: origemPos,
@@ -562,7 +562,7 @@ export default function RotaEditor() {
     if (!id || !rota) return;
     if (!paradas.some((p) => coordenadaValida(p.latitude, p.longitude))) { toast.error("Adicione ao menos 1 parada"); return; }
     try {
-      const origem = getOrigemVendedor(rota.vendedor_id);
+      const origem = getOrigemVendedor(rota.vendedor_id, veiculos, veiculoId);
       const { planoPorDia } = await import("@/lib/viagem");
       const planos = planoPorDia({ lat: origem.lat, lng: origem.lng }, paradas, inicioRota, fimRotaSalvo);
       const novaOrdem: Record<string, number> = {};

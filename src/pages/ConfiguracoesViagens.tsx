@@ -13,7 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
 
-type Linha = Omit<Veiculo, "consumo_km_l"> & { consumo: string; novo?: boolean };
+type Linha = Omit<Veiculo, "consumo_km_l" | "base_lat" | "base_lng"> & { consumo: string; lat: string; lng: string; novo?: boolean };
+const coord = (s: string) => (s.trim() === "" ? null : Number(s.trim().replace(",", ".")));
 const fmt = (n: number | null | undefined) => (n == null ? "" : String(n).replace(".", ","));
 
 export default function ConfiguracoesViagens() {
@@ -30,7 +31,7 @@ export default function ConfiguracoesViagens() {
   const [gasolina, setGasolina] = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  useEffect(() => { if (veiculos) setLinhas(veiculos.map((v) => ({ ...v, consumo: fmt(v.consumo_km_l) }))); }, [veiculos]);
+  useEffect(() => { if (veiculos) setLinhas(veiculos.map((v) => ({ ...v, consumo: fmt(v.consumo_km_l), lat: fmt(v.base_lat), lng: fmt(v.base_lng) }))); }, [veiculos]);
   useEffect(() => { if (parametros) { setDiesel(fmt(parametros.preco_diesel)); setGasolina(fmt(parametros.preco_gasolina)); } }, [parametros]);
 
   const upd = (id: string, v: Partial<Linha>) => setLinhas((ls) => ls.map((l) => (l.id === id ? { ...l, ...v } : l)));
@@ -41,13 +42,15 @@ export default function ConfiguracoesViagens() {
     for (const l of linhas) {
       if (!l.modelo.trim()) { toast.error("Informe o modelo de todos os veículos"); return; }
       if (!(parseValorBR(l.consumo) > 0)) { toast.error(`Consumo inválido em ${l.modelo}`); return; }
+      const la = coord(l.lat), ln = coord(l.lng);
+      if ((la == null) !== (ln == null) || (la != null && !(Math.abs(la) <= 90 && Math.abs(ln!) <= 180))) { toast.error(`Base de saída inválida em ${l.modelo} (informe latitude e longitude)`); return; }
     }
     setSalvando(true);
     try {
       const p = await (supabase as any).from("viagem_parametros").update({ preco_diesel: d, preco_gasolina: g }).eq("id", "padrao");
       if (p.error) throw p.error;
       for (const l of linhas) {
-        const row = { modelo: l.modelo.trim(), combustivel: l.combustivel, consumo_km_l: parseValorBR(l.consumo), placa: l.placa?.trim() || null, vendedor_id: l.vendedor_id || null, ativo: l.ativo };
+        const row = { modelo: l.modelo.trim(), combustivel: l.combustivel, consumo_km_l: parseValorBR(l.consumo), placa: l.placa?.trim() || null, vendedor_id: l.vendedor_id || null, ativo: l.ativo, base_nome: l.base_nome?.trim() || null, base_lat: coord(l.lat), base_lng: coord(l.lng) };
         const r = l.novo ? await (supabase as any).from("veiculos").insert(row) : await (supabase as any).from("veiculos").update(row).eq("id", l.id);
         if (r.error) throw r.error;
       }
@@ -74,11 +77,11 @@ export default function ConfiguracoesViagens() {
         </Card>
         <Card className="p-4 space-y-3">
           <div className="flex items-center justify-between"><h2 className="font-semibold">Veículos</h2>
-            <Button size="sm" variant="outline" onClick={() => setLinhas((ls) => [...ls, { id: crypto.randomUUID(), modelo: "", combustivel: "diesel", consumo: "", placa: null, vendedor_id: null, ativo: true, novo: true }])}><Plus className="w-4 h-4 mr-1" />Adicionar veículo</Button>
+            <Button size="sm" variant="outline" onClick={() => setLinhas((ls) => [...ls, { id: crypto.randomUUID(), modelo: "", combustivel: "diesel", consumo: "", placa: null, vendedor_id: null, ativo: true, base_nome: null, lat: "", lng: "", novo: true }])}><Plus className="w-4 h-4 mr-1" />Adicionar veículo</Button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-left border-b"><th className="p-2">Modelo</th><th>Combustível</th><th>Consumo (km/L)</th><th>Placa</th><th>Vendedor</th><th>Ativo</th></tr></thead>
+              <thead><tr className="text-left border-b"><th className="p-2">Modelo</th><th>Combustível</th><th>Consumo (km/L)</th><th>Placa</th><th>Vendedor</th><th>Base de saída (cidade · lat · lng)</th><th>Ativo</th></tr></thead>
               <tbody>
                 {linhas.map((l) => (
                   <tr key={l.id} className="border-b">
@@ -89,6 +92,7 @@ export default function ConfiguracoesViagens() {
                     <td><select aria-label="Vendedor" className="h-10 rounded-md border border-input bg-background px-2 max-w-48" value={l.vendedor_id ?? ""} onChange={(e) => upd(l.id, { vendedor_id: e.target.value || null })}>
                       <option value="">—</option>{vendedores.map((v: any) => <option key={v.user_id} value={v.user_id}>{v.nome || v.email}</option>)}
                     </select></td>
+                    <td><div className="flex gap-1"><Input aria-label="Base de saída" placeholder="Maringá - PR" className="w-32" value={l.base_nome ?? ""} onChange={(e) => upd(l.id, { base_nome: e.target.value })} /><Input aria-label="Latitude da base" inputMode="decimal" placeholder="-23,4253" className="w-24" value={l.lat} onChange={(e) => upd(l.id, { lat: e.target.value })} /><Input aria-label="Longitude da base" inputMode="decimal" placeholder="-51,9386" className="w-24" value={l.lng} onChange={(e) => upd(l.id, { lng: e.target.value })} /></div></td>
                     <td><Switch aria-label="Ativo" checked={l.ativo} onCheckedChange={(c) => upd(l.id, { ativo: c })} /></td>
                   </tr>
                 ))}
