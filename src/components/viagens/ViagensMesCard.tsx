@@ -1,4 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { hojeRota } from "@/lib/rotasFluxo";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,7 +9,8 @@ import { formatBRL } from "@/lib/smartcycle";
 import { resumoViagensMes, type RotaResumo } from "@/lib/viagemDiario";
 
 /** "Viagens do mês" por vendedor. `mes` = YYYY-MM. Viagens contam no mês em que começam. */
-export default function ViagensMesCard({ mes }: { mes: string }) {
+export default function ViagensMesCard() {
+  const [mes, setMes] = useState(hojeRota().slice(0, 7));
   const [a, m] = mes.split("-").map(Number);
   const inicio = `${mes}-01`;
   const fim = new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10);
@@ -34,7 +38,7 @@ export default function ViagensMesCard({ mes }: { mes: string }) {
   });
   return (
     <Card className="p-4">
-      <h3 className="font-semibold mb-1">Viagens do mês</h3>
+      <div className="flex items-center justify-between gap-2 mb-1"><h3 className="font-semibold">Viagens do mês</h3><Input type="month" aria-label="Mês" className="w-40" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} /></div>
       <p className="text-xs text-muted-foreground mb-3">Investido = gastos reais lançados; sem gastos, usa o estimado (*). Deals = oportunidades que mudaram de etapa no mês.</p>
       <Table>
         <TableHeader><TableRow>

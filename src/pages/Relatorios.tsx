@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import ViagensMesCard from "@/components/viagens/ViagensMesCard";
 import { Card } from "@/components/ui/card";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -674,6 +675,7 @@ export default function Relatorios() {
             </Table>
           </Card>
         </section>
+        <section><ViagensMesCard /></section>
       </main>
     </div>
   );

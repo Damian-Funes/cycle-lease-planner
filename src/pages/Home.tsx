@@ -10,6 +10,9 @@ import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
 import { SMARTCYCLE_ATIVO } from "@/config/features";
 import { useRotasAlertas } from '@/hooks/useRotasAlertas';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { viagensEmAndamento } from '@/lib/viagemDados';
+import { hojeRota, paradaInformada } from '@/lib/rotasFluxo';
 
 const allCards = [
   {
@@ -152,7 +155,9 @@ const cards = SMARTCYCLE_ATIVO ? allCards : allCards.filter((c) => c.to !== "/sm
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const { data: minhasViagens = [] } = useQuery({ queryKey: ['viagem-hoje', user?.id, hojeRota()], enabled: !!user, queryFn: () => viagensEmAndamento(hojeRota(), user!.id) });
+  const viagemHoje = minhasViagens[0];
   const { pendentes: rotasPendentes, aprovacoes } = useRotasAlertas();
   const ativBadge = useAtividadesBadge();
   const { data: incompletas } = useOrganizacoesIncompletas();
@@ -186,6 +191,13 @@ export default function Home() {
             </Button>
           </div>
         )}
+
+        {viagemHoje && (() => { const v = viagemHoje.paradas.filter((p) => p.tipo !== 'pernoite'); return (
+          <Card onClick={() => navigate(`/viagens/${viagemHoje.id}/hoje`)} className="p-6 cursor-pointer border-primary bg-primary/5 hover:shadow-md flex items-center gap-4">
+            <div className="w-14 h-14 rounded-lg bg-primary text-primary-foreground flex items-center justify-center"><Route className="w-7 h-7" /></div>
+            <div className="flex-1"><h2 className="text-xl font-semibold">Viagem de hoje</h2><p className="text-sm text-muted-foreground">{v.filter(paradaInformada).length} de {v.length} paradas informadas · toque para registrar visitas, informativos e gastos</p></div>
+            <Button size="lg">Abrir</Button>
+          </Card>); })()}
 
         <section className="space-y-4">
           <ProximaReuniaoWidget />
