@@ -287,7 +287,7 @@ export function semaforoVisita(dias: number | null): "verde" | "amarelo" | "verm
   return "vermelho";
 }
 
-export interface Veiculo { id: string; modelo: string; combustivel: 'diesel' | 'gasolina'; consumo_km_l: number; placa: string | null; vendedor_id: string | null; ativo: boolean }
+export interface Veiculo { id: string; modelo: string; combustivel: 'diesel' | 'gasolina'; consumo_km_l: number; placa: string | null; vendedor_id: string | null; ativo: boolean; base_nome: string | null; base_lat: number | null; base_lng: number | null }
 export interface ViagemParametros { id: string; preco_diesel: number; preco_gasolina: number }
 
 export async function listVeiculos() {

@@ -3,13 +3,16 @@ import { loadGoogleMaps, getOrigemVendedor, erroRotaMensagem } from '@/lib/maps'
 import { calcularViagem } from '@/lib/viagemRota';
 import { ordenarParadasViagem } from '@/lib/viagem';
 import { coordenadaValida, formatarDuracao, formatarKm } from '@/lib/rotaNavegacao';
-import { type RotaParada } from '@/lib/rotas';
+import { type RotaParada, listVeiculos } from '@/lib/rotas';
+import { useQuery } from '@tanstack/react-query';
 
-export default function RotaMapa({ vendedorId, paradas: brutas, inicio, fim }: { vendedorId: string; paradas: RotaParada[]; inicio: string; fim?: string | null }) {
+export default function RotaMapa({ vendedorId, veiculoId, paradas: brutas, inicio, fim }: { vendedorId: string; veiculoId?: string | null; paradas: RotaParada[]; inicio: string; fim?: string | null }) {
   const container = useRef<HTMLDivElement>(null);
   const [resumo, setResumo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const { data: veiculos, isFetched } = useQuery({ queryKey: ['veiculos'], queryFn: listVeiculos });
   useEffect(() => {
+    if (!isFetched) return;
     const paradas = ordenarParadasViagem(brutas.map((p) => ({ ...p, dia: p.dia ?? inicio })), inicio);
     let cancelled = false;
     const markers: any[] = [];
@@ -18,7 +21,7 @@ export default function RotaMapa({ vendedorId, paradas: brutas, inicio, fim }: {
       try {
         const g = await loadGoogleMaps();
         if (cancelled || !container.current) return;
-        const origem = getOrigemVendedor(vendedorId);
+        const origem = getOrigemVendedor(vendedorId, veiculos ?? [], veiculoId);
         const base = { lat: origem.lat, lng: origem.lng };
         const map = new g.maps.Map(container.current, { center: base, zoom: 7, mapTypeControl: false, streetViewControl: false });
         const bounds = new g.maps.LatLngBounds(); bounds.extend(base);
@@ -50,7 +53,7 @@ export default function RotaMapa({ vendedorId, paradas: brutas, inicio, fim }: {
       } catch { if (container.current) container.current.textContent = 'Não foi possível carregar o mapa.'; }
     })();
     return () => { cancelled = true; markers.forEach(m => m.setMap(null)); renderers.forEach(r => r.setMap(null)); };
-  }, [vendedorId, brutas, inicio, fim]);
+  }, [vendedorId, veiculoId, veiculos, isFetched, brutas, inicio, fim]);
   return (
     <div>
       <div ref={container} className="h-64 w-full bg-muted" aria-label="Mapa da rota" />

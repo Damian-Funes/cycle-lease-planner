@@ -97,3 +97,20 @@ describe("mapa de clientes", () => {
     expect(filtrarNoCaminho(medidos, 30).map((c) => c.id)).toEqual(["perto"]);
   });
 });
+
+import { getOrigemVendedor, MARINGA } from './maps';
+describe('base de saída por veículo', () => {
+  const murilo = '14138b1c-5b33-4a66-b0f0-fc06e58da561';
+  const veiculos = [
+    { id: 'toro', vendedor_id: murilo, ativo: true, base_nome: 'Formosa - GO', base_lat: -15.5372, base_lng: -47.3344 },
+    { id: 's10', vendedor_id: 'flavio', ativo: true, base_nome: 'Maringá - PR', base_lat: '-23.4253', base_lng: '-51.9386' },
+    { id: 'semBase', vendedor_id: 'x', ativo: true, base_nome: null, base_lat: null, base_lng: null },
+  ];
+  it('usa o veículo da viagem', () => expect(getOrigemVendedor('flavio', veiculos, 'toro')).toEqual({ lat: -15.5372, lng: -47.3344, nome: 'Formosa - GO' }));
+  it('sem veículo na viagem usa o do vendedor (Murilo = Formosa)', () => expect(getOrigemVendedor(murilo, veiculos, null).nome).toBe('Formosa - GO'));
+  it('veículo sem base cai no do vendedor ou Maringá', () => {
+    expect(getOrigemVendedor(murilo, veiculos, 'semBase').nome).toBe('Formosa - GO');
+    expect(getOrigemVendedor('x', veiculos, 'semBase')).toBe(MARINGA);
+    expect(getOrigemVendedor('desconhecido')).toBe(MARINGA);
+  });
+});

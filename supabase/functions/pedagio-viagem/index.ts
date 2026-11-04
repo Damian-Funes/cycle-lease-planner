@@ -10,8 +10,8 @@ const json = (obj: unknown, status = 200) =>
 
 // Mesmas bases de src/lib/maps.ts (getOrigemVendedor)
 const MARINGA = { lat: -23.4253, lng: -51.9386 };
-const FORMOSA = { lat: -15.5372, lng: -47.3344 };
-const BASES: Record<string, { lat: number; lng: number }> = { "9b83ada3-3ee4-4710-9577-6782d4699fd1": FORMOSA };
+type VB = { id: string; vendedor_id: string | null; ativo: boolean | null; base_lat: number | null; base_lng: number | null };
+const baseDe = (v?: VB) => v && v.base_lat != null && v.base_lng != null ? { lat: Number(v.base_lat), lng: Number(v.base_lng) } : null;
 
 type Parada = { dia: string | null; ordem: number; tipo: string; latitude: number | null; longitude: number | null };
 const valida = (p: Parada) => p.latitude != null && p.longitude != null && !(Number(p.latitude) === 0 && Number(p.longitude) === 0)
@@ -59,13 +59,17 @@ Deno.serve(async (req) => {
     if (ue || !u?.user) return json({ error: "Sessão inválida." }, 401);
 
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: rota } = await admin.from("rotas").select("id, vendedor_id, data_inicio, data_rota, pedagio_assinatura, custo_pedagio_est, custo_combustivel_est, custo_hospedagem_est, custo_alimentacao_est").eq("id", parsed.data.rota_id).maybeSingle();
+    const { data: rota } = await admin.from("rotas").select("id, vendedor_id, veiculo_id, data_inicio, data_rota, pedagio_assinatura, custo_pedagio_est, custo_combustivel_est, custo_hospedagem_est, custo_alimentacao_est").eq("id", parsed.data.rota_id).maybeSingle();
     if (!rota) return json({ error: "Rota não encontrada." }, 404);
     const { data: papel } = await admin.from("user_roles").select("role").eq("user_id", u.user.id).eq("role", "admin").maybeSingle();
     if (rota.vendedor_id !== u.user.id && !papel) return json({ error: "Sem permissão para esta rota." }, 403);
 
     const { data: paradas } = await admin.from("rota_paradas").select("dia, ordem, tipo, latitude, longitude").eq("rota_id", rota.id);
-    const base = BASES[rota.vendedor_id] ?? MARINGA;
+    const { data: veics } = await admin.from("veiculos").select("id, vendedor_id, ativo, base_lat, base_lng").or(`vendedor_id.eq.${rota.vendedor_id}${rota.veiculo_id ? `,id.eq.${rota.veiculo_id}` : ""}`);
+    const lista = (veics ?? []) as VB[];
+    const base = baseDe(lista.find((v) => v.id === rota.veiculo_id))
+      ?? lista.filter((v) => v.vendedor_id === rota.vendedor_id).sort((a, b) => Number(b.ativo !== false) - Number(a.ativo !== false)).map(baseDe).find(Boolean)
+      ?? MARINGA;
     const { pts, assinatura } = pontosEAssinatura(base, (paradas ?? []) as Parada[], rota.data_inicio ?? rota.data_rota);
     if (pts.length < 3) return json({ error: "Rota sem paradas com coordenada." }, 400);
 

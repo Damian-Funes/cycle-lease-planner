@@ -50,16 +50,23 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
 
 // Bases de origem por vendedor (default: Maringá-PR)
 export const MARINGA = { lat: -23.4253, lng: -51.9386, nome: "Maringá - PR" };
-export const FORMOSA = { lat: -15.5372, lng: -47.3344, nome: "Formosa - GO" };
 
-// Mapeia vendedor_id → base de origem
-const BASES_VENDEDOR: Record<string, { lat: number; lng: number; nome: string }> = {
-  "9b83ada3-3ee4-4710-9577-6782d4699fd1": FORMOSA, // Murilo Sinatura Sipioni
-};
 
-export function getOrigemVendedor(vendedorId?: string | null) {
-  if (vendedorId && BASES_VENDEDOR[vendedorId]) return BASES_VENDEDOR[vendedorId];
-  return MARINGA;
+export type VeiculoBase = { id: string; vendedor_id: string | null; ativo?: boolean; base_nome?: string | null; base_lat?: number | string | null; base_lng?: number | string | null };
+
+function baseDe(v?: VeiculoBase | null) {
+  if (!v || v.base_lat == null || v.base_lng == null || v.base_lat === "" || v.base_lng === "") return null;
+  const lat = Number(v.base_lat), lng = Number(v.base_lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng, nome: v.base_nome?.trim() || "Base" };
+}
+
+/** Base de saída: veículo da viagem → veículo ativo do vendedor → Maringá. */
+export function getOrigemVendedor(vendedorId?: string | null, veiculos: VeiculoBase[] = [], veiculoId?: string | null) {
+  const daViagem = veiculoId ? baseDe(veiculos.find((v) => v.id === veiculoId)) : null;
+  if (daViagem) return daViagem;
+  const doVendedor = vendedorId ? veiculos.filter((v) => v.vendedor_id === vendedorId).sort((a, b) => Number(b.ativo !== false) - Number(a.ativo !== false)).map(baseDe).find(Boolean) : null;
+  return doVendedor ?? MARINGA;
 }
 
 export type TrechoRota = { distanciaM: number; duracaoS: number };

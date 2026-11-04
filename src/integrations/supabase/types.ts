@@ -3279,6 +3279,9 @@ export type Database = {
       veiculos: {
         Row: {
           ativo: boolean
+          base_lat: number | null
+          base_lng: number | null
+          base_nome: string | null
           combustivel: string
           consumo_km_l: number
           created_at: string
@@ -3290,6 +3293,9 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          base_lat?: number | null
+          base_lng?: number | null
+          base_nome?: string | null
           combustivel: string
           consumo_km_l: number
           created_at?: string
@@ -3301,6 +3307,9 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          base_lat?: number | null
+          base_lng?: number | null
+          base_nome?: string | null
           combustivel?: string
           consumo_km_l?: number
           created_at?: string
