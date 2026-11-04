@@ -6,7 +6,9 @@ import {
   getRota, getParadas, atualizarRota, adicionarParada, removerParada,
   reordenarParadas, criarAtividadeVisita, atualizarParada, type RotaParada,
 } from "@/lib/rotas";
-import { loadGoogleMaps, optimizeRoute, getOrigemVendedor } from "@/lib/maps";
+import { loadGoogleMaps, optimizeRoute, getOrigemVendedor, calcularRota, erroRotaMensagem, type RotaCalculada } from "@/lib/maps";
+import { linksGoogleMaps, linkWaze, formatarDuracao, formatarKm, rotaLonga, coordenadaValida } from "@/lib/rotaNavegacao";
+import { AlertTriangle, Navigation } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import AdicionarParadaModal from "@/components/AdicionarParadaModal";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,10 @@ export default function RotaEditor() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  const polylineRef = useRef<any>(null);
+  const directionsRef = useRef<any>(null);
+  const [mapaPronto, setMapaPronto] = useState(false);
+  const [calculo, setCalculo] = useState<(RotaCalculada & { ids: string[] }) | null>(null);
+  const [erroTrajeto, setErroTrajeto] = useState<string | null>(null);
 
   const [addOpen, setAddOpen] = useState(false);
   const [novoObjetivo, setNovoObjetivo] = useState('');
@@ -118,6 +123,7 @@ export default function RotaEditor() {
           if (mapInstanceRef.current) {
             g.maps.event.trigger(mapInstanceRef.current, "resize");
             renderMap();
+            setMapaPronto(true);
           }
         }, 100);
       } catch (e) {
@@ -129,14 +135,70 @@ export default function RotaEditor() {
 
   useEffect(() => { renderMap(); }, [paradas, rota?.vendedor_id]);
 
+  // Traçado pelas estradas: recalcula (sem otimizar) sempre que as paradas mudam
+  const chaveParadas = paradas.map((p) => `${p.id}:${p.latitude}:${p.longitude}`).join("|");
+  useEffect(() => {
+    if (!rota) return;
+    const valid = paradas.filter((p) => coordenadaValida(p.latitude, p.longitude));
+    const invalidas = paradas.map((p, i) => ({ p, i })).filter(({ p }) => !coordenadaValida(p.latitude, p.longitude));
+    const nomeParada = (p: RotaParada, i: number) => `parada ${i + 1} (${p.organizacao?.nome_fantasia || p.organizacao?.nome || p.cidade || "sem nome"})`;
+    setErroTrajeto(invalidas.length ? `Sem coordenada válida: ${invalidas.map(({ p, i }) => nomeParada(p, i)).join(", ")}. Ela ficou fora do trajeto.` : null);
+    if (!valid.length) { setCalculo(null); directionsRef.current?.setMap(null); return; }
+    let cancel = false;
+    const t = setTimeout(async () => {
+      try {
+        const origem = getOrigemVendedor(rota.vendedor_id);
+        const r = await calcularRota(origem, valid.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), false);
+        if (cancel || !r) return;
+        setCalculo({ ...r, ids: valid.map((p) => p.id) });
+        const g = (window as any).google;
+        if (g && mapInstanceRef.current) {
+          if (!directionsRef.current) directionsRef.current = new g.maps.DirectionsRenderer({ suppressMarkers: true, preserveViewport: true, polylineOptions: { strokeColor: "#059669", strokeWeight: 4, strokeOpacity: 0.85 } });
+          directionsRef.current.setMap(mapInstanceRef.current);
+          directionsRef.current.setDirections(r.result);
+        }
+        const km = Math.round(r.totalKm * 10) / 10;
+        if (planejamento && id && Number(rota.km_total_estimado ?? -1) !== km) {
+          atualizarRota(id, { km_total_estimado: km }).then(() => qc.invalidateQueries({ queryKey: ["rota", id] })).catch(() => {});
+        }
+      } catch (e) {
+        if (cancel) return;
+        console.error("[calcularRota]", e);
+        setCalculo(null);
+        directionsRef.current?.setMap(null);
+        setErroTrajeto(erroRotaMensagem(e, valid.map((p) => nomeParada(p, paradas.indexOf(p)))));
+      }
+    }, 600);
+    return () => { cancel = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveParadas, rota?.vendedor_id, mapaPronto]);
+
+  useEffect(() => () => directionsRef.current?.setMap(null), []);
+
+  const trechoPorParada = useMemo(() => {
+    const m: Record<string, { distanciaM: number; duracaoS: number; desde: string }> = {};
+    if (!calculo) return m;
+    calculo.ids.forEach((pid, i) => {
+      const anteriorId = i > 0 ? calculo.ids[i - 1] : null;
+      const anteriorIdx = anteriorId ? paradas.findIndex((p) => p.id === anteriorId) : -1;
+      m[pid] = { ...calculo.trechos[i], desde: anteriorIdx >= 0 ? `desde a parada ${anteriorIdx + 1}` : "desde a base" };
+    });
+    return m;
+  }, [calculo, paradas]);
+
+  const origemNav = getOrigemVendedor(rota?.vendedor_id);
+  const linksMaps = linksGoogleMaps(
+    { lat: origemNav.lat, lng: origemNav.lng },
+    paradas.filter((p) => coordenadaValida(p.latitude, p.longitude)).map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) }))
+  );
+
   async function renderMap() {
     const g = (window as any).google;
     if (!g || !mapInstanceRef.current) return;
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
-    if (polylineRef.current) polylineRef.current.setMap(null);
 
-    const valid = paradas.filter((p) => p.latitude != null && p.longitude != null);
+    const valid = paradas.filter((p) => coordenadaValida(p.latitude, p.longitude));
 
     const bounds = new g.maps.LatLngBounds();
     const path: any[] = [];
@@ -172,16 +234,6 @@ export default function RotaEditor() {
       markersRef.current.push(marker);
       bounds.extend(pos);
       path.push(pos);
-    });
-
-    // Fecha o ciclo voltando para Maringá
-    if (valid.length > 0) path.push(origemPos);
-
-    polylineRef.current = new g.maps.Polyline({
-      path,
-      strokeColor: "#059669",
-      strokeWeight: 3,
-      map: mapInstanceRef.current,
     });
 
     if (valid.length === 0) {
@@ -350,6 +402,25 @@ export default function RotaEditor() {
             </div>
           </Card>
 
+          {(calculo || erroTrajeto || linksMaps.length > 0) && (
+            <Card className="p-3 space-y-2" aria-label="Resumo da rota">
+              {calculo && <p className="font-semibold">{formatarKm(calculo.totalKm * 1000)} · {formatarDuracao(calculo.totalSegundos)} de direção</p>}
+              {calculo && rotaLonga(calculo.totalSegundos) && (
+                <p className="flex items-center gap-2 text-sm rounded-md border border-warning/40 bg-warning/10 text-warning-foreground p-2"><AlertTriangle className="w-4 h-4 text-warning" /> Rota longa para um dia</p>
+              )}
+              {erroTrajeto && <p className="text-sm text-destructive">{erroTrajeto}</p>}
+              {linksMaps.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {linksMaps.map((url, i) => (
+                    <Button key={url} asChild size="sm" variant="outline">
+                      <a href={url} target="_blank" rel="noopener noreferrer"><Navigation className="w-4 h-4 mr-1" />Abrir no Google Maps{linksMaps.length > 1 ? ` — Trecho ${i + 1}` : ""}</a>
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
+
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm">Paradas ({paradas.length})</h2>
             {planejamento && <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>}
@@ -379,12 +450,20 @@ export default function RotaEditor() {
                   <div className="text-sm font-medium truncate">
                     {p.cidade ?? "—"}{p.estado ? ` / ${p.estado}` : ""}
                   </div>
+                  {trechoPorParada[p.id] && (
+                    <div className="text-xs text-muted-foreground">+ {formatarKm(trechoPorParada[p.id].distanciaM)} · {formatarDuracao(trechoPorParada[p.id].duracaoS)} {trechoPorParada[p.id].desde}</div>
+                  )}
                   <div className="text-xs text-muted-foreground">
                     <Badge variant={p.tipo === "prospeccao" ? "outline" : "secondary"} className="text-[10px]">
                       {p.tipo === "prospeccao" ? "Prospecção" : "Visita"}
                     </Badge>
                   </div>
                 </div>
+                {coordenadaValida(p.latitude, p.longitude) && (
+                  <Button asChild variant="outline" size="sm" aria-label={`Abrir parada ${idx + 1} no Waze`}>
+                    <a href={linkWaze({ lat: Number(p.latitude), lng: Number(p.longitude) })} target="_blank" rel="noopener noreferrer">Waze</a>
+                  </Button>
+                )}
                 {planejamento && <Button variant="ghost" size="icon" disabled={busy} aria-label="Remover parada" onClick={() => removeParada(p)}>
                   <Trash2 className="w-4 h-4 text-destructive" />
                 </Button>}
