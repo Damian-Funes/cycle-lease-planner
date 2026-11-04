@@ -10,7 +10,8 @@ import { loadGoogleMaps, optimizeRoute, getOrigemVendedor, calcularRota, erroRot
 import { linksGoogleMaps, linkWaze, formatarDuracao, formatarKm, rotaLonga, coordenadaValida } from "@/lib/rotaNavegacao";
 import { AlertTriangle, Navigation } from "lucide-react";
 import { posicaoInsercaoMaisBarata, textoMotivo } from "@/lib/rotaNavegacao";
-import { buscarClientesNoCaminho, type SugestaoCaminho } from "@/lib/clientesNoCaminho";
+import { buscarClientesMapa, medirClientes, filtrarNoCaminho, type ClienteMapa } from "@/lib/clientesNoCaminho";
+import { agruparPorGrade, categoriaMapa, CATEGORIAS_MAPA, objetivoSugerido, type CategoriaMapa } from "@/lib/rotaNavegacao";
 import { formatBRL } from "@/lib/smartcycle";
 import ClientesNoCaminho from "@/components/rotas/ClientesNoCaminho";
 import AppHeader from "@/components/AppHeader";
@@ -179,62 +180,114 @@ export default function RotaEditor() {
 
   useEffect(() => () => directionsRef.current?.setMap(null), []);
 
-  // ---- Clientes no caminho ----
+  // ---- Clientes no mapa / no caminho ----
   const [raioKm, setRaioKm] = useState(30);
-  const [sugestoes, setSugestoes] = useState<SugestaoCaminho[]>([]);
+  const [clientes, setClientes] = useState<ClienteMapa[]>([]);
   const [carregandoSug, setCarregandoSug] = useState(false);
   const [erroSug, setErroSug] = useState<string | null>(null);
   const [selecionadaId, setSelecionadaId] = useState<string | null>(null);
+  const [categoriasOn, setCategoriasOn] = useState<Record<CategoriaMapa, boolean>>({ 1: true, 2: true, 3: true, 4: true });
+  const [soCaminho, setSoCaminho] = useState(false);
+  const [zoom, setZoom] = useState(4);
   const sugMarkersRef = useRef<any[]>([]);
   const infoRef = useRef<any>(null);
+  const adicionarRef = useRef<(s: ClienteMapa, objetivo: string) => Promise<void>>();
 
+  // Busca única por abertura da tela
   useEffect(() => {
-    if (!planejamento || !calculo || !rota) { setSugestoes([]); return; }
+    const vend = rota?.vendedor_id;
+    if (!vend) return;
     let cancel = false;
-    const path = (calculo.result?.routes?.[0]?.overview_path ?? []).map((ll: any) => ({ lat: ll.lat(), lng: ll.lng() }));
     setCarregandoSug(true); setErroSug(null);
-    buscarClientesNoCaminho({
-      caminho: path, raioKm, vendedorId: rota.vendedor_id,
-      excluirIds: paradas.map((p) => p.organizacao_id).filter(Boolean) as string[],
-    })
-      .then((r) => { if (!cancel) setSugestoes(r); })
-      .catch((e) => { if (!cancel) { setSugestoes([]); setErroSug(e?.message || "Não foi possível buscar clientes no caminho."); } })
+    buscarClientesMapa(vend)
+      .then((r) => { if (!cancel) setClientes(r); })
+      .catch((e) => { if (!cancel) setErroSug(e?.message || "Não foi possível carregar os clientes."); })
       .finally(() => { if (!cancel) setCarregandoSug(false); });
     return () => { cancel = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calculo, raioKm, planejamento, rota?.vendedor_id]);
+  }, [rota?.vendedor_id]);
+
+  const caminho = useMemo(
+    () => (calculo?.result?.routes?.[0]?.overview_path ?? []).map((ll: any) => ({ lat: ll.lat(), lng: ll.lng() })),
+    [calculo],
+  );
+  const paradaOrgIds = useMemo(() => paradas.map((p) => p.organizacao_id).filter(Boolean) as string[], [paradas]);
+  const medidos = useMemo(() => medirClientes(clientes, caminho, paradaOrgIds), [clientes, caminho, paradaOrgIds]);
+  const sugestoes = useMemo(() => filtrarNoCaminho(medidos, raioKm), [medidos, raioKm]);
+  const visiveisMapa = useMemo(() => medidos.filter((c) =>
+    categoriasOn[categoriaMapa(c.motivo)] && (!soCaminho || (c.distanciaKm != null && c.distanciaKm <= raioKm)),
+  ), [medidos, categoriasOn, soCaminho, raioKm]);
+
+  useEffect(() => {
+    const g = (window as any).google;
+    const map = mapInstanceRef.current;
+    if (!g || !map) return;
+    setZoom(map.getZoom() ?? 4);
+    const l = map.addListener("zoom_changed", () => setZoom(map.getZoom() ?? 4));
+    return () => l.remove();
+  }, [mapaPronto]);
 
   useEffect(() => {
     const g = (window as any).google;
     sugMarkersRef.current.forEach((m) => m.setMap(null));
     sugMarkersRef.current = [];
-    if (!g || !mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    if (!g || !map) return;
     if (!infoRef.current) infoRef.current = new g.maps.InfoWindow();
-    sugestoes.forEach((s) => {
+    const abrirCard = (c: (typeof visiveisMapa)[number], anchor: any) => {
+      const div = document.createElement("div");
+      div.style.cssText = "font-size:12px;max-width:240px";
+      const t = document.createElement("strong"); t.textContent = c.nome;
+      const loc = document.createElement("div"); loc.textContent = `${c.cidade ?? "—"}${c.estado ? `/${c.estado}` : ""}${c.aproximada ? " · localização aproximada" : ""}`;
+      const mot = document.createElement("div"); mot.style.marginTop = "4px"; mot.textContent = textoMotivo(c.motivo, formatBRL);
+      div.append(t, loc, mot);
+      if (c.distanciaKm != null) {
+        const d = document.createElement("div"); d.textContent = `${Math.round(c.distanciaKm)} km da rota · desvio ≈ ${Math.round(c.distanciaKm * 2)} km (estimativa)`; div.append(d);
+      }
+      if (planejamento) {
+        const inp = document.createElement("input");
+        inp.value = objetivoSugerido(c.motivo); inp.placeholder = "Objetivo *"; inp.setAttribute("aria-label", "Objetivo da visita");
+        inp.style.cssText = "margin-top:6px;width:100%;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px";
+        const b = document.createElement("button"); b.textContent = "Adicionar à rota";
+        b.style.cssText = "margin-top:4px;font-weight:600;text-decoration:underline";
+        b.onclick = async () => {
+          const obj = inp.value.trim();
+          if (!obj) { toast.error("Informe o objetivo da visita"); return; }
+          b.disabled = true;
+          infoRef.current?.close();
+          await adicionarRef.current?.(c, obj);
+        };
+        div.append(inp, b);
+      }
+      infoRef.current.setContent(div);
+      infoRef.current.open({ map, anchor });
+    };
+    agruparPorGrade(visiveisMapa, zoom).forEach((grp) => {
+      if (grp.itens.length === 1) {
+        const c = grp.itens[0];
+        const cat = CATEGORIAS_MAPA[categoriaMapa(c.motivo)];
+        const m = new g.maps.Marker({
+          map, position: { lat: c.lat, lng: c.lng }, title: c.nome, zIndex: 5 - categoriaMapa(c.motivo),
+          icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: cat.cor, fillOpacity: 0.9, strokeColor: "#ffffff", strokeWeight: 1 },
+        });
+        m.addListener("click", () => abrirCard(c, m));
+        sugMarkersRef.current.push(m);
+        return;
+      }
+      const melhor = Math.min(...grp.itens.map((c) => categoriaMapa(c.motivo))) as CategoriaMapa;
+      const n = grp.itens.length;
       const m = new g.maps.Marker({
-        map: mapInstanceRef.current,
-        position: { lat: s.lat, lng: s.lng },
-        title: s.nome,
-        zIndex: 1,
-        icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: "#9ca3af", fillOpacity: 0.9, strokeColor: "#4b5563", strokeWeight: 1 },
+        map, position: grp.centro, zIndex: 6, title: `${n} clientes`,
+        label: { text: String(n), color: "#ffffff", fontSize: "11px", fontWeight: "700" },
+        icon: { path: g.maps.SymbolPath.CIRCLE, scale: 11 + Math.min(9, Math.log2(n) * 2), fillColor: CATEGORIAS_MAPA[melhor].cor, fillOpacity: 0.85, strokeColor: "#ffffff", strokeWeight: 2 },
       });
-      m.addListener("click", () => {
-        const div = document.createElement("div");
-        div.style.fontSize = "12px";
-        const t = document.createElement("strong"); t.textContent = s.nome;
-        const p = document.createElement("p"); p.textContent = textoMotivo(s.motivo, formatBRL);
-        const b = document.createElement("button"); b.textContent = "Adicionar à rota"; b.style.textDecoration = "underline";
-        b.onclick = () => { setSelecionadaId(s.id); infoRef.current?.close(); };
-        div.append(t, p, b);
-        infoRef.current.setContent(div);
-        infoRef.current.open({ map: mapInstanceRef.current, anchor: m });
-      });
+      m.addListener("click", () => { map.setCenter(grp.centro); map.setZoom((map.getZoom() ?? 4) + 2); });
       sugMarkersRef.current.push(m);
     });
     return () => { sugMarkersRef.current.forEach((m) => m.setMap(null)); sugMarkersRef.current = []; };
-  }, [sugestoes, mapaPronto]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visiveisMapa, zoom, mapaPronto, planejamento]);
 
-  async function adicionarSugestao(s: SugestaoCaminho, objetivo: string) {
+  async function adicionarSugestao(s: ClienteMapa, objetivo: string) {
     if (!id || !rota) return;
     await executar(async () => {
       const atividadeId = await criarAtividadeVisita({
@@ -256,6 +309,8 @@ export default function RotaEditor() {
       toast.success(`${s.nome} adicionada como parada ${idxFull + 1}`);
     });
   }
+
+  adicionarRef.current = adicionarSugestao;
 
   const trechoPorParada = useMemo(() => {
     const m: Record<string, { distanciaM: number; duracaoS: number; desde: string }> = {};
@@ -567,8 +622,32 @@ export default function RotaEditor() {
           </div>
         </div>
 
-        <Card className="overflow-hidden min-h-[400px] lg:min-h-0">
-          <div ref={mapRef} className="w-full h-full min-h-[400px]" />
+        <Card className="overflow-hidden min-h-[400px] lg:min-h-0 flex flex-col">
+          <div className="flex flex-wrap items-center gap-1.5 p-2 border-b" role="group" aria-label="Filtros de clientes no mapa">
+            {([1, 2, 3, 4] as CategoriaMapa[]).map((c) => (
+              <Button key={c} size="sm" variant={categoriasOn[c] ? "secondary" : "ghost"} aria-pressed={categoriasOn[c]}
+                className={`h-7 px-2 text-xs ${categoriasOn[c] ? "" : "opacity-50"}`}
+                onClick={() => setCategoriasOn((v) => ({ ...v, [c]: !v[c] }))}>
+                <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5" style={{ backgroundColor: CATEGORIAS_MAPA[c].cor }} />
+                {CATEGORIAS_MAPA[c].rotulo}
+              </Button>
+            ))}
+            <Button size="sm" variant={soCaminho ? "default" : "outline"} aria-pressed={soCaminho} className="h-7 px-2 text-xs ml-auto"
+              disabled={!calculo} onClick={() => setSoCaminho((v) => !v)}>
+              Só no caminho ({raioKm} km)
+            </Button>
+            {carregandoSug && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+          </div>
+          <div className="relative flex-1 min-h-[400px]">
+            <div ref={mapRef} className="absolute inset-0" />
+            <div className="absolute bottom-6 left-2 bg-background/95 border rounded-md shadow-sm p-2 text-xs space-y-1 pointer-events-none">
+              {([1, 2, 3, 4] as CategoriaMapa[]).map((c) => (
+                <div key={c} className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORIAS_MAPA[c].cor }} />{CATEGORIAS_MAPA[c].rotulo}</div>
+              ))}
+              <div className="flex items-center gap-1.5"><span className="inline-flex w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[8px] items-center justify-center font-bold">1</span>Paradas da rota</div>
+              <div className="text-muted-foreground">{visiveisMapa.length} clientes no mapa</div>
+            </div>
+          </div>
         </Card>
       </main>
 
