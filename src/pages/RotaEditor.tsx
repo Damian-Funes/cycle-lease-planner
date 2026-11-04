@@ -8,7 +8,7 @@ import {
 } from "@/lib/rotas";
 import { loadGoogleMaps, optimizeRoute, getOrigemVendedor, calcularRota, erroRotaMensagem, type RotaCalculada } from "@/lib/maps";
 import { linksGoogleMaps, linkWaze, formatarDuracao, formatarKm, rotaLonga, coordenadaValida } from "@/lib/rotaNavegacao";
-import { AlertTriangle, Navigation } from "lucide-react";
+import { AlertTriangle, Navigation, Loader2 } from "lucide-react";
 import { posicaoInsercaoMaisBarata, textoMotivo } from "@/lib/rotaNavegacao";
 import { buscarClientesMapa, medirClientes, filtrarNoCaminho, type ClienteMapa } from "@/lib/clientesNoCaminho";
 import { agruparPorGrade, categoriaMapa, CATEGORIAS_MAPA, objetivoSugerido, type CategoriaMapa } from "@/lib/rotaNavegacao";
@@ -346,7 +346,7 @@ export default function RotaEditor() {
     const origemMarker = new g.maps.Marker({
       position: origemPos,
       map: mapInstanceRef.current,
-      label: { text: origem.nome[0], color: "white", fontWeight: "bold" },
+      zIndex: 1000, label: { text: origem.nome[0], color: "white", fontWeight: "bold" },
       title: `Origem: ${origem.nome}`,
       icon: {
         path: g.maps.SymbolPath.CIRCLE,
@@ -366,7 +366,7 @@ export default function RotaEditor() {
       const marker = new g.maps.Marker({
         position: pos,
         map: mapInstanceRef.current,
-        label: { text: String(idx + 1), color: "white", fontWeight: "bold" },
+        zIndex: 1001, label: { text: String(idx + 1), color: "white", fontWeight: "bold" },
       });
       markersRef.current.push(marker);
       bounds.extend(pos);
