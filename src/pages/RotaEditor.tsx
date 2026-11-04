@@ -393,12 +393,10 @@ export default function RotaEditor() {
     paradas.filter((p) => coordenadaValida(p.latitude, p.longitude)).map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) }))
   );
   const linksPorDia = (calculo?.dias.length ?? 0) > 1 ? calculo!.dias.map((d) => {
-    const pts = [...d.plano.waypoints.map((w) => w.p), d.plano.destino];
-    const url = linksGoogleMaps(d.plano.origem, pts.slice(0, -1).length ? pts.slice(0, -1) : [], 9)[0];
-    // linksGoogleMaps volta à base; para o dia, montamos origem → paradas → destino do dia
+    // origem → paradas → destino do dia (pernoite ou base)
     const enc = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
     const wps = d.plano.waypoints.map((w) => enc(w.p)).join("|");
-    return { dia: d.plano.dia, url: `https://www.google.com/maps/dir/?api=1&origin=${enc(d.plano.origem)}&destination=${enc(d.plano.destino)}${wps ? `&waypoints=${encodeURIComponent(wps)}` : ""}&travelmode=driving`, _u: url };
+    return { dia: d.plano.dia, url: `https://www.google.com/maps/dir/?api=1&origin=${enc(d.plano.origem)}&destination=${enc(d.plano.destino)}${wps ? `&waypoints=${encodeURIComponent(wps)}` : ""}&travelmode=driving` };
   }) : [];
 
   async function renderMap() {
