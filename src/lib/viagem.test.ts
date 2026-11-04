@@ -58,3 +58,12 @@ describe("viagem de vários dias", () => {
     expect(assinaturaTrajeto(base, [a[1], { ...a[0], ordem: 2 }], "2026-11-10")).not.toBe(s1);
   });
 });
+
+import { parseValorBR } from "./viagem";
+describe("valor digitado", () => {
+  it("aceita formato brasileiro", () => {
+    expect(parseValorBR("1.250,50")).toBe(1250.5);
+    expect(parseValorBR("250")).toBe(250);
+    expect(Number.isNaN(parseValorBR(""))).toBe(true);
+  });
+});

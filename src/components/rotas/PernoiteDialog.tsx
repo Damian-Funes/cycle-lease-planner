@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { geocodeAddress } from "@/lib/maps";
 import { diaRota } from "@/lib/rotasFluxo";
-import { parseBRL } from "@/lib/moedaInput";
+import { parseValorBR as parseBRL } from "@/lib/viagem";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

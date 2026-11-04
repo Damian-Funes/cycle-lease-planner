@@ -94,3 +94,12 @@ export function custoViagem(i: {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** "1.250,50" → 1250.5; vazio/ inválido → NaN. */
+export function parseValorBR(txt: string): number {
+  const t = String(txt ?? "").trim().replace(/[R$\s]/g, "");
+  if (!t) return NaN;
+  const norm = t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t;
+  const n = Number(norm);
+  return Number.isFinite(n) ? n : NaN;
+}
