@@ -44,6 +44,9 @@ const LayoutEditor = lazy(() => import("./pages/LayoutEditor"));
 const Rotas = lazy(() => import("./pages/Rotas"));
 const RotaEditor = lazy(() => import("./pages/RotaEditor"));
 const RotasAprovacoes = lazy(() => import('./pages/RotasAprovacoes'));
+const ViagemHoje = lazy(() => import('./pages/ViagemHoje'));
+const ViagemAcompanhar = lazy(() => import('./pages/ViagemAcompanhar'));
+const ViagensAndamento = lazy(() => import('./pages/ViagensAndamento'));
 const AdminUsuarios = lazy(() => import("./pages/AdminUsuarios"));
 const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
 const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegracoes"));
@@ -105,6 +108,9 @@ const App = () => (
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
               <Route path="/layouts/:id" element={<ProtectedRoute><LayoutEditor /></ProtectedRoute>} />
               <Route path="/rotas" element={<ProtectedRoute><Rotas /></ProtectedRoute>} />
+              <Route path="/viagens/andamento" element={<ProtectedRoute><RequireRole roles={["admin"]}><ViagensAndamento /></RequireRole></ProtectedRoute>} />
+              <Route path="/viagens/:id/hoje" element={<ProtectedRoute><ViagemHoje /></ProtectedRoute>} />
+              <Route path="/viagens/:id/acompanhar" element={<ProtectedRoute><ViagemAcompanhar /></ProtectedRoute>} />
               <Route path="/rotas/aprovacoes" element={<ProtectedRoute><RequireRole roles={["admin"]}><RotasAprovacoes /></RequireRole></ProtectedRoute>} />
               <Route path="/rotas/:id" element={<ProtectedRoute><RotaEditor /></ProtectedRoute>} />
               <Route path="/reforma" element={<ProtectedRoute><Reforma /></ProtectedRoute>} />
