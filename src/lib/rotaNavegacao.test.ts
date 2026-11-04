@@ -44,10 +44,10 @@ describe("clientes no caminho", () => {
     expect(distanciaAoTrajeto({ lat: 0, lng: 2.5 }, caminho).km).toBeCloseTo(55.6, 0);
   });
   it("inserção mais barata entra entre as paradas vizinhas, não no fim", () => {
-    const base = { lat: 0, lng: 0 };
+    const base = { lat: -1, lng: 0 };
     const paradas = [{ lat: 0, lng: 1 }, { lat: 0, lng: 3 }];
-    expect(posicaoInsercaoMaisBarata(base, paradas, { lat: 0.01, lng: 2 })).toBe(1);
-    expect(posicaoInsercaoMaisBarata(base, paradas, { lat: 0.01, lng: 0.5 })).toBe(0);
+    expect(posicaoInsercaoMaisBarata(base, paradas, { lat: 0, lng: 2 })).toBe(1);
+    expect(posicaoInsercaoMaisBarata(base, paradas, { lat: -0.5, lng: 0.5 })).toBe(0);
   });
   const agora = new Date("2026-11-04T12:00:00Z");
   it("prioridades 1-4", () => {
