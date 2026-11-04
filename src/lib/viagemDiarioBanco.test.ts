@@ -44,8 +44,8 @@ describe.skipIf(!url)('diário, gastos e arquivos das viagens (RLS real)', () =>
       -- Política de outro bucket com pastas não-UUID (como modelos-3d), liberada a todos
       CREATE POLICY outros_select ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'modelos-3d');
       INSERT INTO storage.objects(bucket_id,name) VALUES ('modelos-3d','plantas/LSB150/modelo.glb'), ('viagens','nao-uuid/diario/x.jpg'), ('viagens','${rota}/diario/a.jpg');`);
-    const migs = readdirSync('supabase/migrations').filter((f) => f.startsWith('20261104145856') || f.startsWith('20261104145922')).sort();
-    expect(migs.length).toBe(2);
+    const migs = readdirSync('supabase/migrations').filter((f) => f.startsWith('20261104145856') || f.startsWith('20261104145922') || f.startsWith('20261104150721')).sort();
+    expect(migs.length).toBe(3);
     for (const f of migs) sql(readFileSync(`supabase/migrations/${f}`, 'utf8'));
     for (const f of migs) sql(readFileSync(`supabase/migrations/${f}`, 'utf8')); // idempotente
   });
@@ -71,7 +71,7 @@ describe.skipIf(!url)('diário, gastos e arquivos das viagens (RLS real)', () =>
     const base = `${viagem()} INSERT INTO public.rota_diario(rota_id,autor_id,texto) VALUES('${rota}','${dono}','x');`;
     expect(erro(`${base} ${como(dono)} UPDATE public.rota_diario SET texto='y';`)).toContain('permission denied');
     expect(erro(`${base} UPDATE public.rota_diario SET texto='y';`)).toContain('não pode ser alterado');
-    expect(run(`${base} ${como(dono)} DELETE FROM public.rota_diario; RESET ROLE; SELECT count(*) FROM public.rota_diario;`)).toMatch(/DELETE 0[\s\S]*\n1$/);
+    expect(run(`${base} ${como(dono)} DELETE FROM public.rota_diario; RESET ROLE; SELECT count(*) FROM public.rota_diario;`)).toMatch(/DELETE 0[\s\S]*\n1$/m);
     expect(run(`${base} ${como(admin)} DELETE FROM public.rota_diario;`)).toContain('DELETE 1');
   });
   it('foto do informativo precisa estar na pasta da própria rota', () =>
