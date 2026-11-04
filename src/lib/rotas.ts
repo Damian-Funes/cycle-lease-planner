@@ -8,6 +8,18 @@ export interface Rota {
   id: string;
   vendedor_id: string;
   data_rota: string;
+  data_inicio: string | null;
+  data_fim: string | null;
+  veiculo_id: string | null;
+  alimentacao_dia_estimada: number | null;
+  custo_combustivel_est: number | null;
+  custo_pedagio_est: number | null;
+  custo_hospedagem_est: number | null;
+  custo_alimentacao_est: number | null;
+  custo_total_est: number | null;
+  tempo_total_estimado_s: number | null;
+  pedagio_consultado_em: string | null;
+  pedagio_assinatura: string | null;
   status: StatusRota;
   enviada_em: string | null;
   aprovada_em: string | null;
@@ -39,6 +51,9 @@ export interface RotaParada {
   visitada: boolean | null;
   motivo_nao_visita: string | null;
   informada_em: string | null;
+  dia?: string | null;
+  hotel_nome?: string | null;
+  valor_diaria_est?: number | null;
   organizacao?: { nome: string; nome_fantasia: string | null } | null;
 }
 
@@ -78,10 +93,10 @@ export async function getParadas(rotaId: string) {
   return (data ?? []) as RotaParada[];
 }
 
-export async function criarRota(payload: { vendedor_id: string; data_rota: string; observacoes?: string | null }) {
+export async function criarRota(payload: { vendedor_id: string; data_rota: string; data_fim?: string | null; veiculo_id?: string | null; observacoes?: string | null }) {
   const { data, error } = await (supabase as any)
     .from("rotas")
-    .insert({ ...payload, status: "rascunho" })
+    .insert({ ...payload, data_inicio: payload.data_rota, status: "rascunho" })
     .select("*")
     .single();
   if (error) throw error;
@@ -123,13 +138,13 @@ export async function reordenarParadas(updates: { id: string; ordem: number }[])
   }
 }
 
-export async function atualizarParada(id: string, patch: Partial<Pick<RotaParada, 'objetivo' | 'visitada' | 'resultado' | 'motivo_nao_visita' | 'organizacao_id'>>) {
-  const { error } = await supabase.from('rota_paradas').update(patch).eq('id', id);
+export async function atualizarParada(id: string, patch: Partial<Pick<RotaParada, 'objetivo' | 'visitada' | 'resultado' | 'motivo_nao_visita' | 'organizacao_id' | 'dia' | 'hotel_nome' | 'valor_diaria_est' | 'ordem'>>) {
+  const { error } = await (supabase as any).from('rota_paradas').update(patch).eq('id', id);
   if (error) throw error;
 }
 
 export async function pendenciasRotas(vendedorId?: string) {
-  let q = supabase.from('rotas').select('*').eq('status', 'aprovada').lt('data_rota', hojeRota()).order('data_rota');
+  let q = (supabase as any).from('rotas').select('*').eq('status', 'aprovada').lt('data_fim', hojeRota()).order('data_fim');
   if (vendedorId) q = q.eq('vendedor_id', vendedorId);
   const { data, error } = await q;
   if (error) throw error;
@@ -140,7 +155,7 @@ export type RotaEquipe = Rota & { vendedor: { nome: string | null; email: string
 export async function rotasAprovacoes(aba: 'aguardando' | 'pendentes' | 'concluidas', mes: string) {
   let q = supabase.from('rotas').select('*, vendedor:profiles!rotas_vendedor_id_fkey(nome,email), paradas:rota_paradas(*, organizacao:organizacoes(nome,nome_fantasia))').order('data_rota');
   if (aba === 'aguardando') q = q.eq('status', 'aguardando_aprovacao');
-  if (aba === 'pendentes') q = q.eq('status', 'aprovada').lt('data_rota', hojeRota());
+  if (aba === 'pendentes') q = q.eq('status', 'aprovada').lt('data_fim', hojeRota());
   if (aba === 'concluidas') {
     const [ano, numeroMes] = mes.split('-').map(Number);
     const fim = new Date(Date.UTC(ano, numeroMes, 1)).toISOString();
@@ -270,4 +285,22 @@ export function semaforoVisita(dias: number | null): "verde" | "amarelo" | "verm
   if (dias < 60) return "verde";
   if (dias <= 180) return "amarelo";
   return "vermelho";
+}
+
+export interface Veiculo { id: string; modelo: string; combustivel: 'diesel' | 'gasolina'; consumo_km_l: number; placa: string | null; vendedor_id: string | null; ativo: boolean }
+export interface ViagemParametros { id: string; preco_diesel: number; preco_gasolina: number }
+
+export async function listVeiculos() {
+  const { data, error } = await (supabase as any).from('veiculos').select('*').order('modelo');
+  if (error) throw error;
+  return (data ?? []) as Veiculo[];
+}
+export async function getViagemParametros() {
+  const { data, error } = await (supabase as any).from('viagem_parametros').select('*').eq('id', 'padrao').maybeSingle();
+  if (error) throw error;
+  return data as ViagemParametros | null;
+}
+export function precoLitro(v: Veiculo | null | undefined, p: ViagemParametros | null | undefined) {
+  if (!v || !p) return null;
+  return Number(v.combustivel === 'diesel' ? p.preco_diesel : p.preco_gasolina);
 }
