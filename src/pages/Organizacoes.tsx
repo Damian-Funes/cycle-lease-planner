@@ -17,6 +17,8 @@ import { ArrowLeft, Plus, Search, Pencil, Loader2, Building2, ChevronLeft, Chevr
 import AppHeader from "@/components/AppHeader";
 import OrganizacaoFormModal, { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ImportarOrganizacoesCsvModal from "@/components/ImportarOrganizacoesCsvModal";
+import LocalizarOrganizacoesModal from "@/components/LocalizarOrganizacoesModal";
+import { useAuth } from "@/hooks/useAuth";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 
@@ -56,6 +58,8 @@ export default function Organizacoes() {
   const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [localizarOpen, setLocalizarOpen] = useState(false);
+  const { isAdmin } = useAuth();
   const [editing, setEditing] = useState<OrganizacaoRow | null>(null);
 
   useEffect(() => {
@@ -178,6 +182,7 @@ export default function Organizacoes() {
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-1"><Upload className="w-4 h-4" /> Importar CSV</Button>
+          {isAdmin && <Button variant="outline" onClick={() => setLocalizarOpen(true)}>Localizar clientes sem coordenada</Button>}
           <Button onClick={openNew} className="gap-1"><Plus className="w-4 h-4" /> Nova</Button>
         </div>
 
@@ -271,6 +276,7 @@ export default function Organizacoes() {
 
       <OrganizacaoFormModal open={modalOpen} onOpenChange={setModalOpen} organizacao={editing} />
       <ImportarOrganizacoesCsvModal open={importOpen} onOpenChange={setImportOpen} />
+      <LocalizarOrganizacoesModal open={localizarOpen} onOpenChange={setLocalizarOpen} />
     </div>
   );
 }
