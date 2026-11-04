@@ -50,7 +50,7 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
 
 // Bases de origem por vendedor (default: Maringá-PR)
 export const MARINGA = { lat: -23.4253, lng: -51.9386, nome: "Maringá - PR" };
-export const FORMOSA = { lat: -15.5372, lng: -47.3344, nome: "Formosa - GO" };
+
 
 export type VeiculoBase = { id: string; vendedor_id: string | null; ativo?: boolean; base_nome?: string | null; base_lat?: number | string | null; base_lng?: number | string | null };
 
