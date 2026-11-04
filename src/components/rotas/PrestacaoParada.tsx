@@ -13,7 +13,9 @@ import { useAtividadeListas } from '@/components/atividade/AtividadeCampos';
 import { Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-export default function PrestacaoParada({ parada, onSaved }: { parada: RotaParada; onSaved: () => void }) {
+export default function PrestacaoParada({ parada, onSaved, grande }: { parada: RotaParada; onSaved: () => void; grande?: boolean }) {
+  const tam = grande ? 'lg' as const : 'sm' as const;
+  const cls = grande ? 'flex-1 h-14 text-base' : '';
   const qc = useQueryClient();
   const [visitada, setVisitada] = useState(parada.visitada);
   const [texto, setTexto] = useState(parada.visitada === false ? parada.motivo_nao_visita ?? '' : parada.resultado ?? '');
@@ -45,8 +47,8 @@ export default function PrestacaoParada({ parada, onSaved }: { parada: RotaParad
   return <div className="border-t pt-3 mt-3 space-y-3">
     {paradaInformada(parada) && <p className="text-xs text-primary flex gap-1 items-center"><Check className="w-3 h-3" /> Prestação registrada</p>}
     <div className="flex gap-2">
-      <Button size="sm" variant={visitada === true ? 'default' : 'outline'} disabled={saving} onClick={visitar}><Check className="w-4 h-4 mr-1" />Visitei</Button>
-      <Button size="sm" variant={visitada === false ? 'destructive' : 'outline'} disabled={saving} onClick={() => { setVisitada(false); setTexto(parada.motivo_nao_visita ?? ''); }}><X className="w-4 h-4 mr-1" />Não visitei</Button>
+      <Button size={tam} className={cls} variant={visitada === true ? 'default' : 'outline'} disabled={saving} onClick={visitar}><Check className="w-4 h-4 mr-1" />Visitei</Button>
+      <Button size={tam} className={cls} variant={visitada === false ? 'destructive' : 'outline'} disabled={saving} onClick={() => { setVisitada(false); setTexto(parada.motivo_nao_visita ?? ''); }}><X className="w-4 h-4 mr-1" />Não visitei</Button>
     </div>
     {visitada !== null && <>
       <Label>{visitada ? 'Resultado da visita' : 'Motivo da não visita'} *</Label>

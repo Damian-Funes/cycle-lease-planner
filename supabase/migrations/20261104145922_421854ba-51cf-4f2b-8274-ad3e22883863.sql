@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.fn_pode_escrever_diario(uuid, uuid), public.fn_pode_lancar_gasto(uuid, uuid), public.fn_pode_ver_rota(uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_pode_escrever_diario(uuid, uuid), public.fn_pode_lancar_gasto(uuid, uuid), public.fn_pode_ver_rota(uuid, uuid) TO authenticated, service_role;

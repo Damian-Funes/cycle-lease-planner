@@ -651,9 +651,14 @@ export default function RotaEditor() {
           {rota.status === 'reprovada' && <div className="border border-destructive bg-destructive/10 text-destructive p-3 rounded-md">Reprovada: {rota.motivo_reprovacao}</div>}
           {rota.status === 'aguardando_aprovacao' && <div className="border p-3 rounded-md space-y-2"><p>Aguardando aprovação</p><Button variant="outline" disabled={busy} onClick={() => mudarStatus('rascunho')}>Voltar para rascunho</Button></div>}
           {rota.status === 'aprovada' && !prestacao && <p className="text-sm text-primary">Viagem aprovada. Alterar o plano exigirá nova aprovação.</p>}
+          {(rota.status === 'aprovada' || rota.status === 'concluida') && <div className="flex flex-wrap gap-2">{prestacao && rota.vendedor_id === user?.id && <Button variant="outline" onClick={() => navigate(`/viagens/${id}/hoje`)}>Viagem de hoje (celular)</Button>}<Button variant="outline" onClick={() => navigate(`/viagens/${id}/acompanhar`)}>Acompanhar · diário e gastos</Button></div>}
           {faltas.length > 0 && <ul className="border border-destructive bg-destructive/10 text-destructive p-3 pl-7 rounded-md list-disc text-sm">{faltas.map(f => <li key={f}>{f}</li>)}</ul>}
           {(rota.status === 'rascunho' || rota.status === 'reprovada') && <Button disabled={busy} onClick={() => mudarStatus('aguardando_aprovacao')}>Enviar para aprovação</Button>}
-          {prestacao && <Button disabled={busy || !paradasParaPrestar(paradas).length || !paradasParaPrestar(paradas).every(paradaInformada)} onClick={() => mudarStatus('concluida')}>Concluir prestação de contas</Button>}
+          {prestacao && <Button disabled={busy || !paradasParaPrestar(paradas).length || !paradasParaPrestar(paradas).every(paradaInformada)} onClick={async () => {
+            const { count } = await (supabase as any).from('rota_gastos').select('id', { count: 'exact', head: true }).eq('rota_id', id);
+            if (!count && !confirm('Nenhum gasto real foi lançado nesta viagem (combustível, pedágio, hotel...). Concluir mesmo assim?')) return;
+            mudarStatus('concluida');
+          }}>Concluir prestação de contas</Button>}
           {isAdmin && rota.status === 'aprovada' && <Button variant="outline" disabled={busy} onClick={() => { if (confirm('Cancelar esta viagem aprovada?')) mudarStatus('cancelada'); }}>Cancelar viagem</Button>}
           <Card className="p-3 space-y-3">
             <div className="grid grid-cols-2 gap-2">

@@ -179,7 +179,7 @@ export default function Rotas() {
 
       <main className="max-w-6xl mx-auto px-4 py-6">
         {pendentes.length > 0 && <div className="mb-4 rounded-md border border-destructive bg-destructive/10 text-destructive p-4 flex flex-wrap items-center gap-3"><p className="flex-1">Você tem a viagem de {periodoRota(pendentes[0])} sem prestação de contas — nova viagem bloqueada</p><Button variant="destructive" onClick={() => navigate(`/rotas/${pendentes[0].id}`)}>Prestar contas</Button></div>}
-        {isAdmin && <Button className="mb-4" variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Autorizações de viagem</Button>}
+        {isAdmin && <div className="mb-4 flex flex-wrap gap-2"><Button variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Autorizações de viagem</Button><Button variant="outline" onClick={() => navigate('/viagens/andamento')}>Viagens em andamento</Button></div>}
         <Tabs defaultValue="minhas">
           <TabsList>
             <TabsTrigger value="minhas">Minhas Rotas</TabsTrigger>
