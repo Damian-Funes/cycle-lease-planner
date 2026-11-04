@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it, beforeAll } from 'vitest';
+import { objetivoPernoite } from './viagem';
 
 // Opt-in integration suite for an isolated disposable Postgres, never production.
 const ativo = Boolean(process.env.ROTAS_TEST_DATABASE_URL);
@@ -80,6 +81,8 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
   });
   it('parada fora do período é recusada', () => bloqueado(`${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia) VALUES('20000000-0000-0000-0000-000000000009','${rota}','prospeccao','x',${hojeBrt}+5);`, 'dentro do período'));
   it('pernoite sem hotel ou diária bloqueia o envio', () => bloqueado(`${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite','Pernoite',${hojeBrt}); UPDATE public.rotas SET status='aguardando_aprovacao';`, 'hotel e valor da diária'));
+  it('pernoite com objetivo automático vai para aguardando_aprovacao', () => expect(sql(`BEGIN; ${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia,hotel_nome,valor_diaria_est,cidade) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite','${objetivoPernoite({ hotel_nome: 'Hotel X', cidade: 'Passo Fundo' })}',${hojeBrt},'Hotel X',250,'Passo Fundo'); UPDATE public.rotas SET status='aguardando_aprovacao'; SELECT status FROM public.rotas; ROLLBACK;`)).toContain('aguardando_aprovacao'));
+  it('pernoite sem objetivo seria barrado (por isso o app preenche)', () => bloqueado(`${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia,hotel_nome,valor_diaria_est) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite',NULL,${hojeBrt},'Hotel X',250); UPDATE public.rotas SET status='aguardando_aprovacao';`, 'objetivo'));
   it('prestação liberada desde o início e conclusão ignora pernoite', () => expect(sql(`BEGIN; ${viagem()} INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo,dia,hotel_nome,valor_diaria_est) VALUES('20000000-0000-0000-0000-000000000009','${rota}','pernoite','Pernoite',${hojeBrt},'Hotel X',250); ${aprovar()} UPDATE public.rota_paradas SET visitada=true,resultado='ok' WHERE id='${parada}'; UPDATE public.rotas SET status='concluida'; SELECT status FROM public.rotas; ROLLBACK;`)).toContain('concluida'));
   it('nova viagem só é bloqueada quando a data de FIM da aprovada passou', () => {
     const outra = `INSERT INTO public.rotas(id,vendedor_id,data_rota) VALUES('10000000-0000-0000-0000-000000000002','${vendedor}',${hojeBrt}+3); INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo) VALUES('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','prospeccao','x'); UPDATE public.rotas SET status='aguardando_aprovacao' WHERE id='10000000-0000-0000-0000-000000000002';`;

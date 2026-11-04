@@ -67,3 +67,11 @@ describe("valor digitado", () => {
     expect(Number.isNaN(parseValorBR(""))).toBe(true);
   });
 });
+
+import { objetivoPernoite as _op } from './viagem';
+describe('objetivoPernoite', () => {
+  it('usa hotel ou cidade', () => {
+    expect(_op({ hotel_nome: 'Hotel X', cidade: 'Passo Fundo' })).toBe('Pernoite — Hotel X');
+    expect(_op({ hotel_nome: ' ', cidade: 'Passo Fundo' })).toBe('Pernoite em Passo Fundo');
+  });
+});

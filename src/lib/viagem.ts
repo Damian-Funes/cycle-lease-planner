@@ -103,3 +103,10 @@ export function parseValorBR(txt: string): number {
   const n = Number(norm);
   return Number.isFinite(n) ? n : NaN;
 }
+
+/** Objetivo automático de um pernoite (os triggers exigem objetivo em todas as paradas). */
+export function objetivoPernoite(p: { hotel_nome?: string | null; cidade?: string | null }): string {
+  const hotel = p.hotel_nome?.trim();
+  if (hotel) return `Pernoite — ${hotel}`;
+  return `Pernoite em ${p.cidade?.trim() || "hotel"}`;
+}

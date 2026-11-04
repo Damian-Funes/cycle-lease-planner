@@ -18,6 +18,7 @@ import { linksGoogleMaps, linkWaze, formatarDuracao, formatarKm, rotaLonga, coor
 import { AlertTriangle, Navigation, Loader2 } from "lucide-react";
 import { posicaoInsercaoMaisBarata, textoMotivo } from "@/lib/rotaNavegacao";
 import { buscarClientesMapa, medirClientes, filtrarNoCaminho, type ClienteMapa } from "@/lib/clientesNoCaminho";
+import { objetivoPernoite } from "@/lib/viagem";
 import { agruparPorGrade, categoriaMapa, CATEGORIAS_MAPA, objetivoSugerido, type CategoriaMapa } from "@/lib/rotaNavegacao";
 import { formatBRL } from "@/lib/smartcycle";
 import ClientesNoCaminho from "@/components/rotas/ClientesNoCaminho";
@@ -132,13 +133,14 @@ export default function RotaEditor() {
     finally { setBusy(false); }
   }
   async function salvarObjetivos() {
-    for (const p of paradas) if (objetivos[p.id] !== undefined && objetivos[p.id] !== (p.objetivo ?? '')) await atualizarParada(p.id, { objetivo: objetivos[p.id].trim() });
+    for (const p of paradas) if (p.tipo === "pernoite" && !p.objetivo?.trim()) await atualizarParada(p.id, { objetivo: objetivoPernoite(p) });
+    for (const p of paradas) if (p.tipo !== "pernoite" && objetivos[p.id] !== undefined && objetivos[p.id] !== (p.objetivo ?? '')) await atualizarParada(p.id, { objetivo: objetivos[p.id].trim() });
     setObjetivos({});
   }
   async function mudarStatus(status: StatusRota) {
     if (!id || !rota) return;
     if (status === 'aguardando_aprovacao') {
-      const erros = validarEnvio(data, paradas.map(p => ({ ...p, objetivo: objetivos[p.id] ?? p.objetivo })), pendentes.find(p => p.id !== id), hojeRota(), dataFim);
+      const erros = validarEnvio(data, paradas.map(p => ({ ...p, objetivo: p.tipo === "pernoite" ? (p.objetivo?.trim() || objetivoPernoite(p)) : (objetivos[p.id] ?? p.objetivo) })), pendentes.find(p => p.id !== id), hojeRota(), dataFim);
       setFaltas(erros);
       if (erros.length) return;
     }
@@ -587,7 +589,7 @@ export default function RotaEditor() {
         rota_id: id, ordem: paradas.length, organizacao_id: null, oportunidade_id: null,
         cidade: n.cidade, estado: n.estado || null, latitude: n.latitude, longitude: n.longitude,
         tipo: "pernoite", observacoes: null, atividade_id: null, concluida: false,
-        objetivo: `Pernoite — ${n.hotel_nome}`, dia: n.dia, hotel_nome: n.hotel_nome, valor_diaria_est: n.valor_diaria_est,
+        objetivo: objetivoPernoite(n), dia: n.dia, hotel_nome: n.hotel_nome, valor_diaria_est: n.valor_diaria_est,
       } as any);
       toast.success(`Pernoite em ${n.hotel_nome} adicionado`);
     });
