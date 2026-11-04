@@ -2927,7 +2927,9 @@ export type Database = {
           cidade: string | null
           concluida: boolean
           created_at: string
+          dia: string | null
           estado: string | null
+          hotel_nome: string | null
           id: string
           informada_em: string | null
           latitude: number | null
@@ -2941,6 +2943,7 @@ export type Database = {
           resultado: string | null
           rota_id: string
           tipo: string
+          valor_diaria_est: number | null
           visitada: boolean | null
         }
         Insert: {
@@ -2948,7 +2951,9 @@ export type Database = {
           cidade?: string | null
           concluida?: boolean
           created_at?: string
+          dia?: string | null
           estado?: string | null
+          hotel_nome?: string | null
           id?: string
           informada_em?: string | null
           latitude?: number | null
@@ -2962,6 +2967,7 @@ export type Database = {
           resultado?: string | null
           rota_id: string
           tipo?: string
+          valor_diaria_est?: number | null
           visitada?: boolean | null
         }
         Update: {
@@ -2969,7 +2975,9 @@ export type Database = {
           cidade?: string | null
           concluida?: boolean
           created_at?: string
+          dia?: string | null
           estado?: string | null
+          hotel_nome?: string | null
           id?: string
           informada_em?: string | null
           latitude?: number | null
@@ -2983,6 +2991,7 @@ export type Database = {
           resultado?: string | null
           rota_id?: string
           tipo?: string
+          valor_diaria_est?: number | null
           visitada?: boolean | null
         }
         Relationships: [
@@ -3039,51 +3048,97 @@ export type Database = {
       }
       rotas: {
         Row: {
+          alimentacao_dia_estimada: number | null
           aprovada_em: string | null
           aprovada_por: string | null
           created_at: string
+          custo_alimentacao_est: number | null
+          custo_combustivel_est: number | null
+          custo_hospedagem_est: number | null
+          custo_pedagio_est: number | null
+          custo_total_est: number | null
+          data_fim: string | null
+          data_inicio: string | null
           data_rota: string
           enviada_em: string | null
           id: string
           km_total_estimado: number | null
           motivo_reprovacao: string | null
           observacoes: string | null
+          pedagio_assinatura: string | null
+          pedagio_consultado_em: string | null
+          pedagio_detalhe: Json | null
           prestacao_concluida_em: string | null
           status: string
+          tempo_total_estimado_s: number | null
           updated_at: string
+          veiculo_id: string | null
           vendedor_id: string
         }
         Insert: {
+          alimentacao_dia_estimada?: number | null
           aprovada_em?: string | null
           aprovada_por?: string | null
           created_at?: string
+          custo_alimentacao_est?: number | null
+          custo_combustivel_est?: number | null
+          custo_hospedagem_est?: number | null
+          custo_pedagio_est?: number | null
+          custo_total_est?: number | null
+          data_fim?: string | null
+          data_inicio?: string | null
           data_rota: string
           enviada_em?: string | null
           id?: string
           km_total_estimado?: number | null
           motivo_reprovacao?: string | null
           observacoes?: string | null
+          pedagio_assinatura?: string | null
+          pedagio_consultado_em?: string | null
+          pedagio_detalhe?: Json | null
           prestacao_concluida_em?: string | null
           status?: string
+          tempo_total_estimado_s?: number | null
           updated_at?: string
+          veiculo_id?: string | null
           vendedor_id: string
         }
         Update: {
+          alimentacao_dia_estimada?: number | null
           aprovada_em?: string | null
           aprovada_por?: string | null
           created_at?: string
+          custo_alimentacao_est?: number | null
+          custo_combustivel_est?: number | null
+          custo_hospedagem_est?: number | null
+          custo_pedagio_est?: number | null
+          custo_total_est?: number | null
+          data_fim?: string | null
+          data_inicio?: string | null
           data_rota?: string
           enviada_em?: string | null
           id?: string
           km_total_estimado?: number | null
           motivo_reprovacao?: string | null
           observacoes?: string | null
+          pedagio_assinatura?: string | null
+          pedagio_consultado_em?: string | null
+          pedagio_detalhe?: Json | null
           prestacao_concluida_em?: string | null
           status?: string
+          tempo_total_estimado_s?: number | null
           updated_at?: string
+          veiculo_id?: string | null
           vendedor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rotas_veiculo_fk"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rotas_vendedor_id_fkey"
             columns: ["vendedor_id"]
@@ -3220,6 +3275,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      veiculos: {
+        Row: {
+          ativo: boolean
+          combustivel: string
+          consumo_km_l: number
+          created_at: string
+          id: string
+          modelo: string
+          placa: string | null
+          updated_at: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          combustivel: string
+          consumo_km_l: number
+          created_at?: string
+          id?: string
+          modelo: string
+          placa?: string | null
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          combustivel?: string
+          consumo_km_l?: number
+          created_at?: string
+          id?: string
+          modelo?: string
+          placa?: string | null
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Relationships: []
+      }
+      viagem_parametros: {
+        Row: {
+          id: string
+          preco_diesel: number
+          preco_gasolina: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          preco_diesel?: number
+          preco_gasolina?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          preco_diesel?: number
+          preco_gasolina?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       whatsapp_mensagens_recebidas: {
         Row: {
