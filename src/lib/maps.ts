@@ -71,18 +71,19 @@ export type RotaCalculada = {
   trechos: TrechoRota[]; // trechos[i] = chegada à parada i (na ordem final); último = volta à base
 };
 
-/** Rota pelas estradas (DRIVING): base → paradas → base. */
+/** Rota pelas estradas (DRIVING): origem → paradas → destino (padrão: volta à origem). */
 export async function calcularRota(
   origem: { lat: number; lng: number },
   paradas: { lat: number; lng: number }[],
-  otimizar: boolean
+  otimizar: boolean,
+  destino?: { lat: number; lng: number }
 ): Promise<RotaCalculada | null> {
-  if (paradas.length < 1) return null;
+  if (paradas.length < 1 && !destino) return null;
   const g = await loadGoogleMaps();
   const ds = new g.maps.DirectionsService();
   const res: any = await ds.route({
     origin: { lat: origem.lat, lng: origem.lng },
-    destination: { lat: origem.lat, lng: origem.lng },
+    destination: destino ? { lat: destino.lat, lng: destino.lng } : { lat: origem.lat, lng: origem.lng },
     waypoints: paradas.map((p) => ({ location: { lat: p.lat, lng: p.lng }, stopover: true })),
     optimizeWaypoints: otimizar,
     travelMode: g.maps.TravelMode.DRIVING,
