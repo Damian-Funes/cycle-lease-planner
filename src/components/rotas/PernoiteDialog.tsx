@@ -30,10 +30,11 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
   const [buscando, setBuscando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [falhaAuto, setFalhaAuto] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setDia(diaInicial); setHotel(""); setValor(""); setCoord(null); setSugs(null); setAviso(null);
+    setDia(diaInicial); setHotel(""); setValor(""); setCoord(null); setSugs(null); setAviso(null); setFalhaAuto(false);
     const ref = pontoReferencia(diaInicial);
     setCidade(ref?.cidade ?? ""); setUf(normalizarUf(ref?.estado));
     if (ref && !ref.cidade?.trim()) preencherPorCoordenada(ref);
@@ -46,11 +47,11 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
       const g = await loadGoogleMaps();
       const res: any = await new g.maps.Geocoder().geocode({ location: ref, language: "pt-BR" } as any);
       const x = cidadeDeResultados(res?.results);
-      if (!x) return;
+      if (!x) { setFalhaAuto(true); return; }
       setCidade((atual) => atual.trim() ? atual : x.cidade);
       setUf((atual) => atual ? atual : x.uf);
       setAviso((a) => a ?? `Cidade sugerida: ${x.cidade}${x.uf ? ` - ${x.uf}` : ""} (pode corrigir).`);
-    } catch (e) { console.warn("[pernoite] geocodificação reversa", e); }
+    } catch (e) { console.error("[pernoite] geocodificação reversa", e); setFalhaAuto(true); }
   }
 
   // Hotel digitado à mão: localizar pelo nome perto da última parada do dia
@@ -62,12 +63,14 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
     try {
       const { data, error } = await supabase.functions.invoke("hoteis-proximos", { body: { lat: ref.lat, lng: ref.lng, texto: nome } });
       const h: HotelSug | undefined = !error && !data?.indisponivel ? data?.hoteis?.[0] : undefined;
-      if (!h?.cidade) return;
+      if (error) console.error("[pernoite] localizar hotel", error);
+      if (!h?.cidade) { setFalhaAuto(true); return; }
+      setFalhaAuto(false);
       setCidade((a) => a.trim() ? a : h.cidade!);
       setUf((a) => a ? a : normalizarUf(h.uf));
       if (Number.isFinite(h.lat) && Number.isFinite(h.lng)) setCoord({ lat: h.lat, lng: h.lng });
       setAviso(`Encontrei "${h.nome}" em ${h.cidade}${h.uf ? ` - ${h.uf}` : ""}. Confira a cidade.`);
-    } catch (e) { console.warn("[pernoite] localizar hotel", e); }
+    } catch (e) { console.error("[pernoite] localizar hotel", e); setFalhaAuto(true); }
   }
 
   async function sugerir() {
@@ -133,9 +136,12 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
           <div><Label htmlFor="pernoite-hotel">Hotel *</Label><Input id="pernoite-hotel" value={hotel} onChange={(e) => { setHotel(e.target.value); setCoord(null); }} onBlur={localizarHotelDigitado} placeholder="Nome do hotel" /></div>
           <div className="grid grid-cols-[1fr_80px] gap-2">
             <div><Label htmlFor="pernoite-cidade">Cidade *</Label><CidadeAutocomplete id="pernoite-cidade" value={cidade} onChange={(v) => { setCidade(v); setCoord(null); }}
-              onEscolher={(c) => { setCidade(c.nome); if (c.estado) setUf(normalizarUf(c.estado)); setCoord({ lat: c.lat, lng: c.lng }); }} /></div>
+              ufPreferida={pontoReferencia(dia)?.estado ?? uf}
+              onEscolher={(c) => { setCidade(c.nome); setUf(normalizarUf(c.estado)); setCoord(null); setFalhaAuto(false); }}
+              onCoordenada={(c) => { if (c) setCoord({ lat: c.lat, lng: c.lng }); }} /></div>
             <div><Label htmlFor="pernoite-uf">UF</Label><Input id="pernoite-uf" maxLength={2} value={uf} placeholder="PR" onChange={(e) => { setUf(normalizarUf(e.target.value)); setCoord(null); }} /></div>
           </div>
+          {falhaAuto && !cidade.trim() && <p className="text-xs text-muted-foreground -mt-1">Não consegui localizar automaticamente — escolha a cidade na lista.</p>}
           <div><Label htmlFor="pernoite-valor">Valor estimado da diária (R$) *</Label><Input id="pernoite-valor" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ex.: 250,00" /></div>
         </div>
         <DialogFooter>

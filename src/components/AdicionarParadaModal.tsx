@@ -40,7 +40,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
       setLoadingOrgs(true);
       setQuery(s.descricao);
       encerrar();
-      const coords = await geocodeAddress(s.descricao);
+      const coords = await geocodeAddress(s.consulta);
       if (!coords) { toast.error("Não foi possível localizar a cidade"); return; }
       const cidade = { nome: s.cidade, estado: s.estado, ...coords };
       setCidadeSel(cidade);
