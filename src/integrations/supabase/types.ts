@@ -1861,6 +1861,83 @@ export type Database = {
           },
         ]
       }
+      ligacoes_viagem: {
+        Row: {
+          agendada_para: string
+          call_sid: string | null
+          conversation_id: string | null
+          created_at: string
+          data_ref: string
+          duracao_s: number | null
+          erro: string | null
+          escolha: string | null
+          id: string
+          origem: string
+          resumo: string | null
+          rota_id: string
+          solicitado_por: string | null
+          status: string
+          telefone: string | null
+          tentativa: number
+          teste: boolean
+          transcricao: Json | null
+          updated_at: string
+          vendedor_id: string
+        }
+        Insert: {
+          agendada_para: string
+          call_sid?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          data_ref: string
+          duracao_s?: number | null
+          erro?: string | null
+          escolha?: string | null
+          id?: string
+          origem: string
+          resumo?: string | null
+          rota_id: string
+          solicitado_por?: string | null
+          status?: string
+          telefone?: string | null
+          tentativa: number
+          teste?: boolean
+          transcricao?: Json | null
+          updated_at?: string
+          vendedor_id: string
+        }
+        Update: {
+          agendada_para?: string
+          call_sid?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          data_ref?: string
+          duracao_s?: number | null
+          erro?: string | null
+          escolha?: string | null
+          id?: string
+          origem?: string
+          resumo?: string | null
+          rota_id?: string
+          solicitado_por?: string | null
+          status?: string
+          telefone?: string | null
+          tentativa?: number
+          teste?: boolean
+          transcricao?: Json | null
+          updated_at?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_viagem_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mensagens_comercial: {
         Row: {
           conteudo_texto: string | null
@@ -1941,6 +2018,42 @@ export type Database = {
           id?: string
           migrado_em?: string
           organizacao_id?: string | null
+        }
+        Relationships: []
+      }
+      notificacoes: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+          lida_em: string | null
+          link: string | null
+          texto: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          id?: string
+          lida_em?: string | null
+          link?: string | null
+          texto?: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+          lida_em?: string | null
+          link?: string | null
+          texto?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2705,6 +2818,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          celular: string | null
           created_at: string
           email: string
           id: string
@@ -2716,6 +2830,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          celular?: string | null
           created_at?: string
           email: string
           id?: string
@@ -2727,6 +2842,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          celular?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -3051,6 +3167,7 @@ export type Database = {
           oportunidade_id: string | null
           ordem: number
           organizacao_id: string | null
+          relato: Json | null
           resultado: string | null
           rota_id: string
           tipo: string
@@ -3075,6 +3192,7 @@ export type Database = {
           oportunidade_id?: string | null
           ordem?: number
           organizacao_id?: string | null
+          relato?: Json | null
           resultado?: string | null
           rota_id: string
           tipo?: string
@@ -3099,6 +3217,7 @@ export type Database = {
           oportunidade_id?: string | null
           ordem?: number
           organizacao_id?: string | null
+          relato?: Json | null
           resultado?: string | null
           rota_id?: string
           tipo?: string
@@ -3500,19 +3619,25 @@ export type Database = {
       }
       viagem_parametros: {
         Row: {
+          contato_hora: string
           id: string
+          ligacao_ativa: boolean
           preco_diesel: number
           preco_gasolina: number
           updated_at: string
         }
         Insert: {
+          contato_hora?: string
           id?: string
+          ligacao_ativa?: boolean
           preco_diesel?: number
           preco_gasolina?: number
           updated_at?: string
         }
         Update: {
+          contato_hora?: string
           id?: string
+          ligacao_ativa?: boolean
           preco_diesel?: number
           preco_gasolina?: number
           updated_at?: string
@@ -4688,6 +4813,67 @@ export type Database = {
         }[]
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      julia_escolher_contato: {
+        Args: { p_escolha: string; p_ligacao: string }
+        Returns: undefined
+      }
+      julia_finalizar_ligacao: {
+        Args: {
+          p_conversa: string
+          p_duracao: number
+          p_falha: boolean
+          p_resumo: string
+          p_transcricao: Json
+        }
+        Returns: Json
+      }
+      julia_registrar_voz: {
+        Args: {
+          p_acao: string
+          p_dados: Json
+          p_ligacao: string
+          p_rota: string
+        }
+        Returns: Json
+      }
+      julia_reservar_ligacao: {
+        Args: {
+          p_admin?: string
+          p_origem: string
+          p_quando: string
+          p_rota: string
+          p_teste?: boolean
+        }
+        Returns: {
+          agendada_para: string
+          call_sid: string | null
+          conversation_id: string | null
+          created_at: string
+          data_ref: string
+          duracao_s: number | null
+          erro: string | null
+          escolha: string | null
+          id: string
+          origem: string
+          resumo: string | null
+          rota_id: string
+          solicitado_por: string | null
+          status: string
+          telefone: string | null
+          tentativa: number
+          teste: boolean
+          transcricao: Json | null
+          updated_at: string
+          vendedor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ligacoes_viagem"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      julia_validar_relato: { Args: { p_relato: Json }; Returns: Json }
       pode_inserir_planta: {
         Args: { _name: string; _user: string }
         Returns: boolean
