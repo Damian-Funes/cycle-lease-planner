@@ -1,6 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { horarioBRT, permitidoLigar } from './juliaViagemRegras.ts';
+import { canalContato, horarioBRT, permitidoLigar } from './juliaViagemRegras.ts';
 import { montarPendencias } from './pendenciasDia.ts';
 export const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 export function dbAdmin() {
@@ -38,6 +38,12 @@ export async function contexto(db: ReturnType<typeof dbAdmin>, rotaId: string, d
 }
 export async function notificar(db: ReturnType<typeof dbAdmin>, userId: string, chave: string, titulo: string, link: string, texto = '') {
   check(await db.from('notificacoes').upsert({ user_id: userId, chave, titulo, texto, link, tipo: 'julia_viagem' }, { onConflict: 'user_id,chave', ignoreDuplicates: true }));
+}
+/** Ponto de extensão: no futuro outro canal poderá reutilizar as mesmas escolhas; hoje só in-app. */
+export async function enviarContato(db: ReturnType<typeof dbAdmin>, userId: string, rotaId: string, data: string) {
+ switch(canalContato) {
+  case 'inapp': return notificar(db,userId,`contato:${rotaId}:${data}`,'Quando a Júlia pode te ligar?',`/viagens/${rotaId}/hoje`,'Escolha Agora, 18h, 19h, 20h ou preencher no app.');
+ }
 }
 export async function admins(db: ReturnType<typeof dbAdmin>) { return (check(await db.from('user_roles').select('user_id').eq('role', 'admin')) ?? []).map(p => p.user_id); }
 export function erro(e: unknown) { const msg = e instanceof Error ? e.message : 'Erro inesperado.'; return json({ error: msg }, msg.startsWith('401:') ? 401 : msg.startsWith('403:') ? 403 : 400); }

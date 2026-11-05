@@ -1,5 +1,5 @@
 import { z } from 'npm:zod@3';
-import { admins, check, contexto, corsHeaders, dbAdmin, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
+import { admins, check, contexto, corsHeaders, dbAdmin, enviarContato, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
 import { DAMIAN_ID, janelaCron } from '../_shared/juliaViagemRegras.ts';
 const Body = z.discriminatedUnion('modo', [
   z.object({ modo: z.literal('cron') }).strict(),
@@ -95,7 +95,7 @@ export async function handler(req: Request) {
           const horario = `${data}T${hora < '17:00' ? '17:00' : hora}:00-03:00`;
           const l = await reservar(r.id,'inicial',new Date(horario).toISOString());
           check(await db.from('ligacoes_viagem').update({ status: 'aguardando_escolha' }).eq('id',l.id).eq('status','agendada'));
-          await notificar(db,r.vendedor_id,`contato:${r.id}:${data}`,'Quando a Júlia pode te ligar?',`/viagens/${r.id}/hoje`,'Escolha Agora, 18h, 19h, 20h ou preencher no app.');
+          await enviarContato(db,r.vendedor_id,r.id,data);
         }
       } catch { falhas.push(r.id); }
     }
