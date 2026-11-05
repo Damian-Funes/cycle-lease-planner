@@ -13,7 +13,13 @@ const Schema = z.discriminatedUnion('acao', [
 Deno.serve(async req => {
  if (req.method === 'OPTIONS') return new Response('ok',{ headers: corsHeaders });
  if (req.method !== 'POST') return json({ error: 'Use POST.' },405);
- if (!await secretIgual(req.headers.get('x-julia-secret'),'JULIA_TOOL_SECRET')) return json({ error: 'Unauthorized' },401);
+ const recebido = req.headers.get('x-julia-secret') ?? req.headers.get('x-julia-token');
+ if (!await secretIgual(recebido,'JULIA_TOOL_SECRET')) {
+  // Diagnóstico sem expor valores: só nomes de headers e tamanhos.
+  const presentes = ['x-julia-secret','x-julia-token','authorization'].filter(h => req.headers.has(h));
+  console.warn('julia-viagem-ferramentas 401', JSON.stringify({ headers: presentes, recebido_len: recebido?.trim().length ?? 0, esperado_len: Deno.env.get('JULIA_TOOL_SECRET')?.trim().length ?? 0 }));
+  return json({ error: 'Unauthorized' },401);
+ }
  try {
   const body = Schema.parse(await req.json()); const db = dbAdmin(); const { data } = horarioBRT();
   const l = check(await db.from('ligacoes_viagem').select('*').eq('id',body.ligacao_id).eq('rota_id',body.rota_id).maybeSingle());
