@@ -31,7 +31,7 @@ function Mensagem({ r }: { r?: Resultado }) {
   if (!r) return null;
   if (r.ok) return <p className="text-sm text-primary mt-2">{r.texto}</p>;
   return (
-    <p className="text-sm text-destructive mt-2 whitespace-pre-line">{r.texto}{r.codigo ? ` (código ${r.codigo})` : ""}</p>
+    <p className="text-sm text-destructive mt-2 whitespace-pre-line">{r.texto}{(r as { codigo?: string }).codigo ? ` (código ${(r as { codigo?: string }).codigo})` : ""}</p>
   );
 }
 
