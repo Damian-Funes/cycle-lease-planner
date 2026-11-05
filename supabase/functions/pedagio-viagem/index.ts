@@ -19,10 +19,7 @@ const valida = (p: Parada) => p.latitude != null && p.longitude != null && !(Num
 
 // Igual a assinaturaTrajeto em src/lib/viagem.ts
 function pontosEAssinatura(base: { lat: number; lng: number }, paradas: Parada[], inicio: string) {
-  const ord = paradas.filter(valida).sort((a, b) =>
-    (a.dia ?? inicio).localeCompare(b.dia ?? inicio)
-    || Number(a.tipo === "pernoite") - Number(b.tipo === "pernoite")
-    || a.ordem - b.ordem);
+  const ord = paradas.filter((p) => valida(p) && p.tipo !== "pernoite").sort((a, b) => a.ordem - b.ordem);
   const pts = [base, ...ord.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), base];
   return { pts, assinatura: pts.map((p) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join("|") };
 }
