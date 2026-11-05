@@ -25,6 +25,12 @@ Deno.serve(async req => {
    const next = check(await db.rpc('julia_reservar_ligacao',{ p_rota: l.rota_id, p_origem: 'retorno', p_quando: quando }));
    return json({ ok: true, agendada_para: next.agendada_para });
   }
+  if(body.acao==='registrar_visita' && !(body.visitada?body.resultado:body.motivo)) return json({error:'Informe resultado da visita ou motivo da não visita.'},400);
+  if(body.acao==='registrar_pernoite') {
+   if(body.tipo!=='voltou_base' && (!body.cidade || !body.uf)) return json({error:'Informe cidade e UF.'},400);
+   if(body.tipo==='hotel' && (!body.hotel_nome || !body.valor)) return json({error:'Informe hotel e valor real.'},400);
+   if(body.tipo!=='hotel' && !body.observacao) return json({error:'Informe a justificativa.'},400);
+  }
   const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body }));
   return json({ ...result, pendencias: (await contexto(db,l.rota_id,data)).pendencias });
  } catch(e) { return erro(e); }

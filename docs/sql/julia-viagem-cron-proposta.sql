@@ -18,6 +18,6 @@ SELECT cron.schedule('julia-viagem-fechamento','*/10 0,1,12,18,19,20,21,22,23 * 
    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5Y3F0bHhvaWRzYnN2cnN2cWVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTEzOTAsImV4cCI6MjA4NjgyNzM5MH0.RQK4Y4uyvus2wxfZ6qI8j-4KUyrbLffpMGuAtF1crgU',
    'x-cron-secret',(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='JULIA_CRON_SECRET' LIMIT 1)),
   body:='{"modo":"cron"}'::jsonb)
- WHERE ((now() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN '15:50' AND '22:00')
-    OR ((now() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN '09:00' AND '09:10');
+ WHERE (date_trunc('minute',now() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN '15:50' AND '22:00')
+    OR (date_trunc('minute',now() AT TIME ZONE 'America/Sao_Paulo')::time BETWEEN '09:00' AND '09:10');
 $cron$);
