@@ -5,7 +5,7 @@ export function useJuliaDisponivel() {
  return useQuery({queryKey:['julia-disponivel'],queryFn:async()=>{
   const {data,error}=await supabase.from('viagem_parametros').select('*').eq('id','padrao').single();
   if(error) throw error;
-  return Object.hasOwn(data,'ligacao_ativa');
+  return Object.prototype.hasOwnProperty.call(data,'ligacao_ativa');
  },staleTime:60000});
 }
 export function useLigacoesViagem(rotaId?:string,dataRef?:string) {
