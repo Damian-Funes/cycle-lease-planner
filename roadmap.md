@@ -43,4 +43,5 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 
 # WhatsApp: status da conta (somente leitura)
 - [x] Função whatsapp-status (admin, Graph API v21.0).
-- [ ] Rodar uma vez — aguardando o secret WHATSAPP_TOKEN.
+- [ ] Rodar uma vez — usuário roda pelo console (sessão admin não acessível ao agente).
+- [x] Função whatsapp-ativar publicada (usuário chama pelo console).
