@@ -39,7 +39,7 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Testes.
 
 # Júlia só para vendedores (fechamento do dia por voz)
-- [ ] Corrigir cartão de configuração sempre visível, erros explícitos e seletor de viagens atuais; verificar sem ligações nem alterações no banco.
+- [x] Corrigir cartão de configuração sempre visível, erros explícitos e seletor de viagens atuais; 19 testes e navegador desktop/mobile com consultas simuladas passaram, sem ligações nem alterações no banco. Sessão real do Damian indisponível no Supabase externo.
 - [x] Código de voz, pendências, notificações, testes e documentação ElevenLabs.
 - [x] SQL completo preparado; migration aprovada aplicada, cron somente proposto.
 - [x] Incluir relato SPIN, atividade do próximo passo, visualização admin e novos testes.
