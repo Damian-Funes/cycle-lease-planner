@@ -1,15 +1,9 @@
 import { z } from 'npm:zod@3';
 import { check, contexto, corsHeaders, dbAdmin, erro, horarioBRT, json, secretIgual } from '../_shared/juliaViagem.ts';
 import { horarioRetorno } from '../_shared/juliaViagemRegras.ts';
-import { CAMPOS_TEXTO_RELATO, extrairRelato } from '../_shared/relatoVisita.ts';
-const relatoCampos = Object.fromEntries(CAMPOS_TEXTO_RELATO.map(c => [c, z.string().trim().min(1).max(500).optional()]));
-const comum = { ligacao_id: z.string().uuid(), rota_id: z.string().uuid() };
-const Schema = z.discriminatedUnion('acao', [
- z.object({ ...comum, acao: z.literal('listar_pendentes') }).strict(),
- z.object({ ...comum, ...relatoCampos, sacos_safra: z.number().finite().nonnegative().optional(), interesse: z.enum(['alto','medio','baixo']).optional(), objecoes: z.array(z.string().trim().min(1).max(500)).max(20).optional(), proximo_passo_data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), acao: z.literal('registrar_visita'), parada_id: z.string().uuid(), visitada: z.boolean(), resultado: z.string().trim().min(1).max(4500).optional(), motivo: z.string().trim().min(1).max(4500).optional() }).strict(),
- z.object({ ...comum, acao: z.literal('registrar_pernoite'), tipo: z.enum(['hotel','sem_custo','voltou_base']), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional(), hotel_nome: z.string().trim().min(1).max(200).optional(), valor: z.number().positive().lt(100000).optional(), observacao: z.string().trim().min(1).max(2000).optional() }).strict(),
- z.object({ ...comum, acao: z.literal('agendar_retorno'), horario: z.string().regex(/^\d{2}:\d{2}$/) }).strict(),
-]);
+import { extrairRelato } from '../_shared/relatoVisita.ts';
+import { Schema } from './schema.ts';
+import { normalizarBody, mensagensValidacao, fraseValidacao } from './entrada.ts';
 Deno.serve(async req => {
  if (req.method === 'OPTIONS') return new Response('ok',{ headers: corsHeaders });
  if (req.method !== 'POST') return json({ error: 'Use POST.' },405);
@@ -20,30 +14,41 @@ Deno.serve(async req => {
   console.warn('julia-viagem-ferramentas 401', JSON.stringify({ headers: presentes, recebido_len: recebido?.trim().length ?? 0, esperado_len: Deno.env.get('JULIA_TOOL_SECRET')?.trim().length ?? 0 }));
   return json({ error: 'Unauthorized' },401);
  }
+ let chaves: string[] = []; let acao = 'desconhecida';
+ const avisar400 = (issues: { path: (string | number)[]; code: string }[] = []) => console.warn('julia-viagem-ferramentas 400', JSON.stringify({ acao, chaves, mensagens_zod: mensagensValidacao(issues) }));
+ const recusar = (error: string) => { avisar400(); return json({ error },400); };
  try {
-  const body = Schema.parse(await req.json()); const db = dbAdmin(); const { data } = horarioBRT();
+  const original = await req.json();
+  if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
+  const normalizado = normalizarBody(original);
+  if (normalizado && typeof normalizado === 'object' && 'acao' in normalizado && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno'].includes(String(normalizado.acao))) acao = String(normalizado.acao);
+  const body = Schema.parse(normalizado); const db = dbAdmin(); const { data } = horarioBRT();
   const l = check(await db.from('ligacoes_viagem').select('*').eq('id',body.ligacao_id).eq('rota_id',body.rota_id).maybeSingle());
   if (!l || !['discando','em_andamento'].includes(l.status) || l.data_ref !== data) return json({ error: 'Ligação não está ativa nesta viagem.' },403);
   const c = await contexto(db,body.rota_id,data);
   if (c.rota.vendedor_id !== l.vendedor_id || c.rota.status !== 'aprovada') return json({ error: 'Viagem indisponível.' },403);
   if (body.acao === 'listar_pendentes') return json({ ok: true, pendencias: c.pendencias });
   if (body.acao === 'agendar_retorno') {
-   const quando = horarioRetorno(data,body.horario,new Date()); if (!quando) return json({ error: 'Escolha um horário futuro de hoje até 22h.' },400);
-   if (l.teste) return json({ error: 'Teste manual não agenda retorno automático.' },400);
+   const quando = horarioRetorno(data,body.horario,new Date()); if (!quando) return recusar('Confira o campo horário: escolha um horário futuro de hoje até 22h.');
+   if (l.teste) return recusar('Teste manual não agenda retorno automático.');
    const next = check(await db.rpc('julia_reservar_ligacao',{ p_rota: l.rota_id, p_origem: 'retorno', p_quando: quando }));
    return json({ ok: true, agendada_para: next.agendada_para });
   }
-  if(body.acao==='registrar_visita' && !(body.visitada?body.resultado:body.motivo)) return json({error:'Informe resultado da visita ou motivo da não visita.'},400);
+  if(body.acao==='registrar_visita' && !(body.visitada?body.resultado:body.motivo)) return recusar(body.visitada ? 'Informe o campo resultado da visita.' : 'Informe o campo motivo da não visita.');
   if(body.acao==='registrar_visita') {
    const relato = extrairRelato(body,data);
-   if(!body.visitada && Object.keys(relato).length) return json({error:'Relato detalhado somente para visita realizada.'},400);
+   if(!body.visitada && Object.keys(relato).length) return recusar('Confira o relato: permitido somente para visita realizada.');
   }
   if(body.acao==='registrar_pernoite') {
-   if(body.tipo!=='voltou_base' && (!body.cidade || !body.uf)) return json({error:'Informe cidade e UF.'},400);
-   if(body.tipo==='hotel' && (!body.hotel_nome || !body.valor)) return json({error:'Informe hotel e valor real.'},400);
-   if(body.tipo!=='hotel' && !body.observacao) return json({error:'Informe a justificativa.'},400);
+   if(body.tipo!=='voltou_base' && (!body.cidade || !body.uf)) return recusar('Informe os campos cidade e UF.');
+   if(body.tipo==='hotel' && (!body.hotel_nome || !body.valor)) return recusar('Informe os campos hotel e valor real.');
+   if(body.tipo!=='hotel' && !body.observacao) return recusar('Informe o campo observação com a justificativa.');
   }
   const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body }));
   return json({ ...result, pendencias: (await contexto(db,l.rota_id,data)).pendencias });
- } catch(e) { return erro(e); }
+ } catch(e) {
+  if (e instanceof z.ZodError) { avisar400(e.issues); return json({ error: fraseValidacao(e.issues) },400); }
+  if (e instanceof SyntaxError) return recusar('Confira os dados enviados: formato inválido.');
+  const response = erro(e); if (response.status === 400) avisar400(); return response;
+ }
 });
