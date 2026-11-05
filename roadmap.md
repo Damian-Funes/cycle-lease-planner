@@ -40,11 +40,11 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 
 # Júlia só para vendedores (fechamento do dia por voz)
 - [x] Código de voz, pendências, notificações, testes e documentação ElevenLabs.
-- [x] SQL completo de migration e cron preparado, sem execução no Supabase.
+- [x] SQL completo preparado; migration aprovada aplicada, cron somente proposto.
 - [x] Incluir relato SPIN, atividade do próximo passo, visualização admin e novos testes.
 - [x] Aplicar migration aprovada com relato e conferir celulares, RLS e status da viagem.
 - [ ] Cron — permanece sem aprovação; não criar nem ativar ligações.
-- [ ] Teste real de voz e telas — depende da migration e configuração do agente/secrets ElevenLabs; secret do cron deve ser sincronizado no Vault pelo dono.
+- [ ] Teste real de voz e telas — aguarda autorização para ligar, configuração do agente/secrets ElevenLabs e sessão autenticada indisponível no Supabase externo; cron depende de aprovação e secret sincronizado no Vault.
 
 # WhatsApp: status da conta (somente leitura)
 - [x] Função whatsapp-status (admin, Graph API v21.0).
