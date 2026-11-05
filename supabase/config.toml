@@ -50,3 +50,12 @@ verify_jwt = false
 
 [functions.whatsapp-ativar]
 verify_jwt = false
+
+[functions.julia-viagem-ligar]
+verify_jwt = false
+
+[functions.julia-viagem-ferramentas]
+verify_jwt = false
+
+[functions.julia-viagem-webhook]
+verify_jwt = false

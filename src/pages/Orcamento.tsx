@@ -16,7 +16,6 @@ import NovaPropostaButton from "@/components/NovaPropostaButton";
 import ItemAvulsoModal from "@/components/ItemAvulsoModal";
 import FreteCalculatorModal from "@/components/FreteCalculatorModal";
 import AppHeader from "@/components/AppHeader";
-import JuliaLigarButton from "@/components/JuliaLigarButton";
 import JuliaHistorico from "@/components/JuliaHistorico";
 import SeletorOrganizacao from "@/components/SeletorOrganizacao";
 import FormaPagamentoSelector from "@/components/FormaPagamentoSelector";
@@ -612,7 +611,6 @@ export default function Orcamento() {
               <FileDown className="w-4 h-4" /> Gerar PDF
             </Button>
             <AppHeader />
-            <JuliaLigarButton orcamentoId={savedId} status={params.status} />
           </div>
         </div>
       </header>

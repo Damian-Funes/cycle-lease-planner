@@ -1,0 +1,9 @@
+export async function assinaturaValida(raw: string, header: string | null, secret: string | undefined, now = Date.now()) {
+ if (!header || !secret) return false;
+ const t = header.match(/(?:^|,)\s*t=(\d+)/)?.[1];
+ const signatures = [...header.matchAll(/(?:^|,)\s*v0=([a-f0-9]{64})/g)].map(m => m[1]);
+ if (!t || !signatures.length || Math.abs(now / 1000 - Number(t)) > 1800) return false;
+ const key = await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{ name: 'HMAC', hash: 'SHA-256' },false,['sign']);
+ const expected = new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(`${t}.${raw}`)));
+ return signatures.some(sig => { let d=0; for(let i=0;i<32;i++) d |= expected[i] ^ parseInt(sig.slice(i*2,i*2+2),16); return d===0; });
+}

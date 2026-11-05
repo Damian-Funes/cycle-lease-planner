@@ -18,6 +18,8 @@ import CustoViagemCard, { custoSalvo } from "@/components/rotas/CustoViagemCard"
 import ComparativoCard from "@/components/viagens/ComparativoCard";
 import GastosViagem from "@/components/viagens/GastosViagem";
 import DiarioTimeline from "@/components/viagens/DiarioTimeline";
+import JuliaLigacoes from "@/components/viagens/JuliaLigacoes";
+import NotasHotelPendentes from "@/components/viagens/NotasHotelPendentes";
 
 export default function ViagemAcompanhar() {
   const { id = "" } = useParams();
@@ -48,6 +50,7 @@ export default function ViagemAcompanhar() {
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b"><div className="max-w-6xl mx-auto px-4 py-3 flex justify-between"><Button variant="ghost" onClick={() => navigate(-1)}><ArrowLeft className="w-4 h-4 mr-2" />Voltar</Button><AppHeader /></div></header>
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-4">
+        <NotasHotelPendentes rotaId={id} pernoites={pernoites} gastos={gastos} editavel={(dono && podeLancarGasto(rota)) || isAdmin} />
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold">Acompanhar viagem</h1><RotaStatus status={rota.status} />
           <span className="text-muted-foreground">{vendedor?.nome || vendedor?.email} · {periodoRota(rota)} · {visitas.filter(paradaInformada).length} de {visitas.length} paradas informadas</span>
@@ -78,6 +81,7 @@ export default function ViagemAcompanhar() {
             <ul className="divide-y">{pendentes.map((p) => <li key={p.id} className="py-2 text-sm flex gap-2"><span className="mt-1 w-2.5 h-2.5 rounded-full shrink-0 bg-border" /><span className="font-medium">{nome(p)}</span></li>)}</ul></div>}
         </Card>
         <Card className="p-4 space-y-3"><h2 className="font-semibold">Diário de bordo</h2><DiarioTimeline itens={diario} paradas={paradas} podeApagar={isAdmin} /></Card>
+        <JuliaLigacoes rotaId={id} admin={isAdmin} />
       </main>
     </div>
   );
