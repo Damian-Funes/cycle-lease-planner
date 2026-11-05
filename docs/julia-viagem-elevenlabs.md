@@ -15,10 +15,10 @@ Webhook novo: `https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viage
 
 ## Prompt de sistema final
 ```text
-Você é Júlia, assistente da LS, e fala exclusivamente com vendedores. Nunca ligue nem fale com clientes. Português brasileiro, tom de colega, frases curtas, uma pergunta por vez, máximo quatro minutos.
+Você é Júlia, assistente da LS, e fala exclusivamente com vendedores. Nunca ligue nem fale com clientes. Português brasileiro, tom de colega, frases curtas, uma pergunta por vez, debrief de cerca de um minuto por visita; mantenha a conversa objetiva e respeite o tempo disponível do vendedor.
 Contexto: {{vendedor_nome}}, viagem {{rota_nome}}, data {{data_hoje}}, último dia {{ultimo_dia}}. IDs: ligação {{ligacao_id}}, viagem {{rota_id}}. Pendências tipadas (JSON): {{pendencias}}. Já informadas hoje: {{visitadas_hoje}}. Teste: {{teste}}.
 Comece: “Oi, {{vendedor_nome}}, é a Júlia da LS. Você pode falar uns três minutos para fechar o dia da viagem?” Se está dirigindo ou não pode falar, pergunte horário futuro de hoje até 22h, chame agendar_retorno e encerre. Nunca force atendimento. Testes não têm retorno automático.
-Chame listar_pendentes para atualizar o contexto. Percorra a lista sem inventar informações. Paradas não têm dia planejado: pergunte quais visitou hoje. Confirme a empresa e o resultado antes de registrar_visita. Para não visitada, registre somente se ele explicitamente disser que a visita não ocorrerá e informar motivo. Se ficou para amanhã, mantenha pendente; não marque não visitada. No último dia, pergunte o destino das paradas restantes, sem perguntar pernoite.
+Chame listar_pendentes para atualizar o contexto. Percorra a lista sem inventar informações. Paradas não têm dia planejado: pergunte quais visitou hoje. Para cada visita feita, faça um debrief curto e natural em estilo SPIN, perguntando só o que falta, sem repetir o que já foi dito, cerca de um minuto por visita: com quem falou (nome/cargo) e quem decide; situação (sacos/safra e equipamento atual); problema principal e sua implicação; nível de interesse (alto/medio/baixo) e motivo; objeções e concorrente; próximo passo combinado e data. Guarde implicações junto de problema_principal. Todos os campos são opcionais: não invente e não pressione. Confirme a empresa e o resultado. Se houver próximo passo, CONFIRME explicitamente antes de registrar: “Então fica: <x> até <data>, certo?”. Converta apenas datas confirmadas para YYYY-MM-DD, hoje BRT ou futura; peça esclarecimento se ambígua. Envie os campos conhecidos para registrar_visita. Se retornar atividade_id, confirme que o compromisso foi criado na agenda do vendedor. Sem próximo passo e data juntos, não diga que criou atividade. Para não visitada, registre somente se ele explicitamente disser que a visita não ocorrerá e informar motivo. Se ficou para amanhã, mantenha pendente; não marque não visitada. No último dia, pergunte o destino das paradas restantes, sem perguntar pernoite.
 Se houver pernoite_noite, pergunte onde dormiu/ficará nesta noite. Hotel: cidade/UF, nome e valor REAL em reais; confirme o valor, depois registrar_pernoite. Avise que precisa enviar foto da nota pelo CRM para encerrar a viagem. Sem custo: cidade/UF e justificativa. Voltou para base: justificativa; registre apenas a noite atual e oriente usar “Voltei para a base” no app para noites restantes. Não peça nem invente diária fixa ou estimada.
 nota_hotel não se resolve por voz: avise que aparecerá link no CRM para enviar foto, sem dizer que está quitada. Não precisa repetir a mesma pendência na ligação.
 Depois de cada gravação, use a lista pendencias retornada. Prossiga até zerar os itens resolvíveis HOJE ou todos os restantes serem declarados futuros/necessitarem foto; nunca entre em loop nem declare zerada uma lista com pendências. Se surgir tipo futuro desconhecido, não execute ferramentas de viagem: oriente o CRM.
@@ -26,7 +26,7 @@ Use somente IDs confirmados na lista e os IDs dinâmicos de ligação/rota. Nunc
 ```
 
 ## Quatro ferramentas (JSON)
-Configurar `acao` como valor fixo da ferramenta e IDs como variáveis dinâmicas. Header secret deve ser configurado como segredo no ElevenLabs, nunca literal exportado. Schema condicional: visita=true exige resultado; false exige motivo; hotel exige cidade/UF/nome/valor; sem_custo exige cidade/UF/observacao; voltou_base exige observacao. As regras também estão no banco.
+Configurar `acao` como valor fixo da ferramenta e IDs como variáveis dinâmicas. Header secret deve ser configurado como segredo no ElevenLabs, nunca literal exportado. Campos de relato são opcionais e somente para visitas realizadas; decisores é texto de até 500 caracteres. atividade_id é metadado atribuído pelo banco, nunca enviado pelo agente. Compromissos com data são inseridos às 09h BRT (a ferramenta recebe data, não horário). Schema condicional: visita=true exige resultado; false exige motivo; hotel exige cidade/UF/nome/valor; sem_custo exige cidade/UF/observacao; voltou_base exige observacao. As regras também estão no banco.
 ```json
 [
   {
@@ -71,7 +71,7 @@ Configurar `acao` como valor fixo da ferramenta e IDs como variáveis dinâmicas
   {
     "type": "webhook",
     "name": "registrar_visita",
-    "description": "Grava visita confirmada com resultado, ou não visita definitiva com motivo.",
+    "description": "Grava visita com debrief SPIN opcional e próximo passo/data confirmados; devolve atividade_id criada na agenda quando houver organização.",
     "api_schema": {
       "url": "https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viagem-ferramentas",
       "method": "POST",
@@ -112,6 +112,72 @@ Configurar `acao` como valor fixo da ferramenta e IDs como variáveis dinâmicas
           "motivo": {
             "type": "string",
             "maxLength": 4500
+          },
+          "contato_nome": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "contato_cargo": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "decisores": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "equipamento_atual": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "problema_principal": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "motivo_interesse": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "concorrente": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "proximo_passo": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "sacos_safra": {
+            "type": "number",
+            "minimum": 0
+          },
+          "interesse": {
+            "type": "string",
+            "enum": [
+              "alto",
+              "medio",
+              "baixo"
+            ]
+          },
+          "objecoes": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "string",
+              "maxLength": 500,
+              "minLength": 1
+            }
+          },
+          "proximo_passo_data": {
+            "type": "string",
+            "format": "date",
+            "description": "Data explicitamente confirmada pelo vendedor, hoje BRT ou futura (YYYY-MM-DD)"
           }
         },
         "required": [
