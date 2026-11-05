@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { type StatusRota, hojeRota } from './rotasFluxo';
+import type { RelatoVisita } from '../../supabase/functions/_shared/relatoVisita';
 
 // UUID confirmado do tipo "Visita"
 export const TIPO_VISITA_ID = "54328293-d880-4b51-bf3a-167bfb773105";
@@ -51,6 +52,7 @@ export interface RotaParada {
   visitada: boolean | null;
   motivo_nao_visita: string | null;
   informada_em: string | null;
+  relato?: RelatoVisita | null;
   dia?: string | null;
   hotel_nome?: string | null;
   valor_diaria_est?: number | null;

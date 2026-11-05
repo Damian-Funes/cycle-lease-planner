@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppHeader from "@/components/AppHeader";
@@ -70,6 +70,8 @@ function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
 export default function Atividades() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const atividadeLink = searchParams.get('atividade');
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
 
   const [tipos, setTipos] = useState<Tipo[]>([]);
@@ -163,6 +165,13 @@ export default function Atividades() {
   };
 
   useEffect(() => { carregar(); }, [user?.id]);
+  useEffect(() => {
+    if (loading || !atividadeLink) return;
+    const atividade = atividades.find(a => a.id === atividadeLink);
+    if (atividade) setEditAtiv(atividade);
+    else toast.error('Atividade não encontrada ou sem acesso.');
+    setSearchParams(params => { const next = new URLSearchParams(params); next.delete('atividade'); return next; }, { replace: true });
+  }, [loading, atividadeLink, atividades, setSearchParams]);
 
   const filtradas = useMemo(() => {
     const now = new Date();

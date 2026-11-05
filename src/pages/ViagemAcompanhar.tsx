@@ -20,6 +20,7 @@ import GastosViagem from "@/components/viagens/GastosViagem";
 import DiarioTimeline from "@/components/viagens/DiarioTimeline";
 import JuliaLigacoes from "@/components/viagens/JuliaLigacoes";
 import NotasHotelPendentes from "@/components/viagens/NotasHotelPendentes";
+import RelatoVisitaResumo from "@/components/viagens/RelatoVisitaResumo";
 
 export default function ViagemAcompanhar() {
   const { id = "" } = useParams();
@@ -30,7 +31,10 @@ export default function ViagemAcompanhar() {
   const { data: diario = [] } = useQuery({ queryKey: ["rota-diario", id], queryFn: () => listDiario(id), enabled: !!id });
   const { data: gastos = [] } = useQuery({ queryKey: ["rota-gastos", id], queryFn: () => listGastos(id), enabled: !!id });
   const { data: pernoites = [] } = useQuery({ queryKey: ["rota-pernoites", id], queryFn: () => listPernoites(id), enabled: !!id });
-  const { data: vendedor } = useQuery({ queryKey: ["perfil", rota?.vendedor_id], enabled: !!rota, queryFn: async () => (await (await import("@/integrations/supabase/client")).supabase.from("profiles").select("nome,email").eq("user_id", rota!.vendedor_id).maybeSingle()).data });
+  const { data: vendedor } = useQuery({ queryKey: ["perfil", rota?.vendedor_id], enabled: !!rota, queryFn: async () => {
+    if (!rota) return null;
+    return (await (await import("@/integrations/supabase/client")).supabase.from("profiles").select("nome,email").eq("user_id", rota.vendedor_id).maybeSingle()).data;
+  } });
   const inicio = rota?.data_inicio ?? rota?.data_rota ?? hojeRota();
   const paradas = useMemo(() => ordenarParadasViagem(brutas), [brutas]);
 
@@ -73,9 +77,10 @@ export default function ViagemAcompanhar() {
                 <li key={p.id} className="py-2 text-sm flex gap-2">
                   <span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${p.visitada ? "bg-primary" : "bg-destructive"}`} />
                   <div><span className="font-medium">{nome(p)}</span>
-                    <span className="text-muted-foreground"> · {p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</span></div>
+                    <span className="text-muted-foreground"> · {p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</span>
+                    {isAdmin && <RelatoVisitaResumo relato={p.relato} />}</div>
                 </li>))}
-                {noites.includes(h.dia) && <li className="py-2 text-sm">🛏 {h.pernoite ? `${TIPOS_NOITE.find((t) => t.id === h.pernoite!.tipo)?.nome}${h.pernoite.cidade ? ` · ${h.pernoite.cidade}/${h.pernoite.estado}` : ""}${h.pernoite.hotel_nome ? ` · ${h.pernoite.hotel_nome}` : ""}${h.pernoite.observacao ? ` — ${h.pernoite.observacao}` : ""}` : <span className="text-muted-foreground">Noite ainda não registrada</span>}</li>}
+                {noites.includes(h.dia) && <li className="py-2 text-sm">🛏 {h.pernoite ? `${TIPOS_NOITE.find((t) => t.id === h.pernoite?.tipo)?.nome}${h.pernoite.cidade ? ` · ${h.pernoite.cidade}/${h.pernoite.estado}` : ""}${h.pernoite.hotel_nome ? ` · ${h.pernoite.hotel_nome}` : ""}${h.pernoite.observacao ? ` — ${h.pernoite.observacao}` : ""}` : <span className="text-muted-foreground">Noite ainda não registrada</span>}</li>}
               </ul></div>))}
           {pendentes.length > 0 && <div><p className="text-sm font-medium text-muted-foreground">Pendentes ({pendentes.length})</p>
             <ul className="divide-y">{pendentes.map((p) => <li key={p.id} className="py-2 text-sm flex gap-2"><span className="mt-1 w-2.5 h-2.5 rounded-full shrink-0 bg-border" /><span className="font-medium">{nome(p)}</span></li>)}</ul></div>}
