@@ -37,3 +37,10 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] ViagemHoje: pendentes, hoje, histórico, fechar o dia, voltei para a base, encerrar.
 - [x] Acompanhar/Andamento com dia real, pernoites e hotel real.
 - [x] Testes.
+
+# Júlia só para vendedores (fechamento do dia por voz)
+- [ ] Plano pronto, aguardando aprovação do usuário.
+
+# WhatsApp: status da conta (somente leitura)
+- [x] Função whatsapp-status (admin, Graph API v21.0).
+- [ ] Rodar uma vez — aguardando o secret WHATSAPP_TOKEN.
