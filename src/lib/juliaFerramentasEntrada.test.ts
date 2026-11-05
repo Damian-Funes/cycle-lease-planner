@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { normalizarBody, mensagensValidacao, fraseValidacao } from '../../supabase/functions/julia-viagem-ferramentas/entrada';
 
 describe('entrada das ferramentas Júlia', () => {
+ it('aceita o payload real sem transformar ausência de próximo passo em data', () => {
+  expect(normalizarBody({ sacos_safra: '500 mil sacos', proximo_passo_data: 'Sem próximo passo', motivo: 'Não se aplica, visita realizada', visitada: true, objecoes: ['Nenhuma citada'], concorrente: 'Nenhum' })).toEqual({ sacos_safra: 500000, visitada: true });
+ });
  it('remove opcionais nulos, vazios e arrays vazios sem perder zero ou false', () => {
   expect(normalizarBody({ contato_nome: '', contato_cargo: null, decisores: undefined, concorrente: '   ', objecoes: [], sacos_safra: 0, visitada: false, resultado: ' Visita feita ' })).toEqual({ sacos_safra: 0, visitada: false, resultado: 'Visita feita' });
  });
