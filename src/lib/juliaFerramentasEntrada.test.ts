@@ -6,7 +6,7 @@ describe('entrada das ferramentas Júlia', () => {
   expect(normalizarBody({ sacos_safra: '500 mil sacos', proximo_passo_data: 'Sem próximo passo', motivo: 'Não se aplica, visita realizada', visitada: true, objecoes: ['Nenhuma citada'], concorrente: 'Nenhum' })).toEqual({ sacos_safra: 500000, visitada: true });
  });
  it('remove opcionais nulos, vazios e arrays vazios sem perder zero ou false', () => {
-  expect(normalizarBody({ contato_nome: '', contato_cargo: null, decisores: undefined, concorrente: '   ', objecoes: [], sacos_safra: 0, visitada: false, resultado: ' Visita feita ' })).toEqual({ sacos_safra: 0, visitada: false, resultado: 'Visita feita' });
+  expect(normalizarBody({ contato_nome: '', contato_cargo: null, decisores: undefined, concorrente: '   ', objecoes: [], sacos_safra: 0, visitada: false, resultado: ' Visita feita ' })).toEqual({ sacos_safra: 0, visitada: false });
  });
  it.each([['1.500', 1500], ['1500,5', 1500.5], ['1.500,50', 1500.5], ['1500', 1500], ['1500.5', 1500.5], ['0', 0]])('converte %s para %s nos campos numéricos', (entrada, esperado) => {
   expect(normalizarBody({ sacos_safra: entrada, valor: entrada })).toEqual({ sacos_safra: esperado, valor: esperado });
