@@ -55,6 +55,7 @@ const ConfiguracoesFormasPagamento = lazy(() => import("./pages/ConfiguracoesFor
 const ConfiguracoesNotificacoes = lazy(() => import("./pages/ConfiguracoesNotificacoes"));
 const Diagnostico = lazy(() => import("./pages/Diagnostico"));
 const ConfiguracoesViagens = lazy(() => import("./pages/ConfiguracoesViagens"));
+const ConfiguracoesWhatsapp = lazy(() => import("./pages/ConfiguracoesWhatsapp"));
 const ConfiguracoesCapacidade = lazy(() => import("./pages/ConfiguracoesCapacidade"));
 
 const queryClient = new QueryClient();
@@ -90,6 +91,7 @@ const App = () => (
               <Route path="/orcamento" element={<ProtectedRoute><Orcamento /></ProtectedRoute>} />
               <Route path="/frete" element={<ProtectedRoute><Frete /></ProtectedRoute>} />
               <Route path="/diagnostico" element={<ProtectedRoute><Diagnostico /></ProtectedRoute>} />
+              <Route path="/configuracoes/whatsapp" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesWhatsapp /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/viagens" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesViagens /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/capacidade" element={<ProtectedRoute><RequireRole roles={["admin"]}><ConfiguracoesCapacidade /></RequireRole></ProtectedRoute>} />
               <Route path="/catalogo" element={<ProtectedRoute><Catalogo /></ProtectedRoute>} />
