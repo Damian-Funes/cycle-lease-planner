@@ -23,12 +23,9 @@ export function diasDaViagem(inicio: string, fim?: string | null): string[] {
   return out;
 }
 
-/** Ordem da viagem: dia, depois paradas comuns, pernoite por último no dia, depois ordem. */
-export function ordenarParadasViagem<T extends ParadaViagem>(paradas: T[], inicio: string): T[] {
-  return [...paradas].sort((a, b) =>
-    (a.dia ?? inicio).localeCompare(b.dia ?? inicio)
-    || Number(a.tipo === "pernoite") - Number(b.tipo === "pernoite")
-    || a.ordem - b.ordem);
+/** Ordem do trajeto: só a ordem das paradas (o dia não é planejado). Pernoites antigos ficam de fora. */
+export function ordenarParadasViagem<T extends ParadaViagem>(paradas: T[], _inicio?: string): T[] {
+  return paradas.filter((p) => p.tipo !== "pernoite").sort((a, b) => a.ordem - b.ordem);
 }
 
 export type PlanoDia = {
@@ -41,32 +38,42 @@ export type PlanoDia = {
   pernoiteId: string | null;
 };
 
-/**
- * Percurso de cada dia: começa na base (1º dia) ou no ponto final da véspera;
- * termina no pernoite do dia, na base (último dia) ou na última parada do dia.
- * Dias sem nenhuma parada com coordenada ficam de fora.
- */
-export function planoPorDia(base: Coord, paradas: ParadaViagem[], inicio: string, fim?: string | null): PlanoDia[] {
-  const dias = diasDaViagem(inicio, fim);
-  const ultimo = dias[dias.length - 1];
-  const ordenadas = ordenarParadasViagem(paradas.filter(valida), inicio);
-  const planos: PlanoDia[] = [];
-  let origem = base; let origemId: string | null = null;
-  for (const dia of dias) {
-    const doDia = ordenadas.filter((p) => (p.dia ?? inicio) === dia);
-    const pernoite = doDia.find((p) => p.tipo === "pernoite") ?? null;
-    const comuns = doDia.filter((p) => p.tipo !== "pernoite");
-    if (!doDia.length && dia !== ultimo) continue;
-    let destino: Coord; let destinoId: string | null; let waypoints = comuns;
-    if (pernoite) { destino = coord(pernoite); destinoId = pernoite.id; }
-    else if (dia === ultimo) { destino = base; destinoId = null; }
-    else { const u = comuns[comuns.length - 1]; destino = coord(u); destinoId = u.id; waypoints = comuns.slice(0, -1); }
-    if (!waypoints.length && destinoId === null && origemId === null) continue; // base → base sem nada
-    planos.push({ dia, origem, origemId, waypoints: waypoints.map((p) => ({ id: p.id, p: coord(p) })), destino, destinoId, pernoiteId: pernoite?.id ?? null });
-    origem = destino; origemId = destinoId;
-    if (destinoId === null) break;
-  }
-  return planos;
+/** Um único percurso: base → paradas na ordem → base. */
+export function planoPorDia(base: Coord, paradas: ParadaViagem[], inicio: string, _fim?: string | null): PlanoDia[] {
+  const ordenadas = ordenarParadasViagem(paradas.filter(valida));
+  if (!ordenadas.length) return [];
+  return [{ dia: inicio, origem: base, origemId: null, waypoints: ordenadas.map((p) => ({ id: p.id, p: coord(p) })), destino: base, destinoId: null, pernoiteId: null }];
+}
+
+/** Noites da viagem: de início até fim − 1. */
+export function noitesDaViagem(inicio: string, fim?: string | null): string[] {
+  return diasDaViagem(inicio, fim).slice(0, -1);
+}
+
+/** Noites ainda sem registro de "onde dormi" (espelha a regra de encerramento do banco). */
+export function noitesSemRegistro(inicio: string, fim: string | null | undefined, registradas: string[]): string[] {
+  const r = new Set(registradas);
+  return noitesDaViagem(inicio, fim).filter((n) => !r.has(n));
+}
+
+export type TipoNoite = "hotel" | "sem_custo" | "voltou_base";
+export const TIPOS_NOITE: { id: TipoNoite; nome: string; descricao: string }[] = [
+  { id: "hotel", nome: "Hotel", descricao: "Paguei hospedagem (com nota)" },
+  { id: "sem_custo", nome: "Sem custo", descricao: "Casa de cliente, parente ou alojamento" },
+  { id: "voltou_base", nome: "Voltei para a base", descricao: "Dormi em casa" },
+];
+
+/** Espelha fn_pernoites_validar para avisos na tela. Retorna a lista de problemas. */
+export function validarNoite(n: { tipo: TipoNoite; cidade?: string | null; estado?: string | null; hotel_nome?: string | null; valor?: number | null; temNota?: boolean; observacao?: string | null }): string[] {
+  const e: string[] = [];
+  const vazio = (t?: string | null) => !t || !t.trim();
+  if (n.tipo !== "voltou_base" && (vazio(n.cidade) || !/^[A-Z]{2}$/.test(n.estado ?? ""))) e.push("Informe cidade e UF de onde dormiu.");
+  if (n.tipo === "hotel") {
+    if (vazio(n.hotel_nome)) e.push("Informe o nome do hotel.");
+    if (!(n.valor != null && n.valor > 0)) e.push("Informe o valor pago.");
+    if (!n.temNota) e.push("Anexe a foto da nota.");
+  } else if (vazio(n.observacao)) e.push("Explique por que não houve hotel nesta noite.");
+  return e;
 }
 
 /** Texto que identifica o trajeto; muda só quando pontos ou ordem mudam. Igual ao da função de pedágio. */
@@ -82,12 +89,12 @@ export type CustoViagem = {
 
 export function custoViagem(i: {
   km: number | null; consumoKmL: number | null; precoLitro: number | null;
-  pedagio: number | null; diarias: (number | null | undefined)[];
+  pedagio: number | null; diarias?: (number | null | undefined)[];
   alimentacaoDia: number | null; dias: number;
 }): CustoViagem {
   const litros = i.km != null && i.consumoKmL && i.consumoKmL > 0 ? i.km / i.consumoKmL : null;
   const combustivel = litros != null && i.precoLitro != null ? round2(litros * i.precoLitro) : null;
-  const hospedagem = round2(i.diarias.reduce<number>((a, v) => a + Number(v ?? 0), 0));
+  const hospedagem = round2((i.diarias ?? []).reduce<number>((a, v) => a + Number(v ?? 0), 0));
   const alimentacao = i.alimentacaoDia != null && i.alimentacaoDia > 0 ? round2(i.alimentacaoDia * Math.max(1, i.dias)) : null;
   const total = round2((combustivel ?? 0) + (i.pedagio ?? 0) + hospedagem + (alimentacao ?? 0));
   return { combustivel, pedagio: i.pedagio, hospedagem, alimentacao, total, litros };
