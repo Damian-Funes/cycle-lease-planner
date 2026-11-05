@@ -22,8 +22,8 @@ export function erroElevenLabs(status: number, body: string, secrets: string[]) 
       detail = detail.split(encoded).join('[redigido]');
     }
   }
-  detail = detail.replace(/("?(?:xi-api-key|api[_-]?key|authorization|access_token|token|secret)"?\s*[:=]\s*)("[^"]*"|[^\s,;}]+)/gi, '$1[redigido]')
-    .replace(/Bearer\s+[A-Za-z0-9._~-]+/gi, 'Bearer [redigido]')
+  detail = detail.replace(/Bearer\s+[A-Za-z0-9._~-]+/gi, 'Bearer [redigido]')
+    .replace(/("?(?:xi-api-key|api[_-]?key|authorization|access_token|token|secret)"?\s*[:=]\s*)("[^"]*"|[^\s,;}]+)/gi, '$1[redigido]')
     .replace(/\+\d{10,15}\b/g, '[telefone redigido]')
     .replace(/[\x00-\x1f\x7f]/g, ' ').trim();
   return `ElevenLabs recusou a ligação (HTTP ${status})${detail ? `: ${detail}` : '.'}`.slice(0, 1000);
