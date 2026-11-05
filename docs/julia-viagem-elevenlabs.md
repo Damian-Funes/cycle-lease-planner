@@ -1,7 +1,7 @@
 # Júlia — fechamento do dia por voz
 
 ## Estado
-Código preparado; migration e cron NÃO aplicados. Não executar ligações antes da aprovação da SQL e configuração do agente. Começa `ligacao_ativa=false`. Nenhum WhatsApp é enviado. Funções legadas não são alteradas.
+Migration completa aprovada (incluindo relato de visita) aplicada em 05/11/2026. Cron NÃO aplicado; `ligacao_ativa=false`; nenhuma ligação ou WhatsApp enviado. Funções legadas não são alteradas. Configure o prompt e as ferramentas abaixo no agente novo antes de qualquer teste manual autorizado.
 
 ## Configuração
 Secrets necessários na função: `ELEVENLABS_API_KEY`, `ELEVENLABS_AGENT_ID_VIAGEM`, `ELEVENLABS_PHONE_NUMBER_ID`, `JULIA_TOOL_SECRET`, `JULIA_WEBHOOK_SECRET`, `JULIA_CRON_SECRET`, além do service role do Supabase (somente servidor). O segredo de ferramentas é compartilhado: definir valor forte no ElevenLabs e salvar o mesmo em Project Settings → Secrets. Webhook HMAC: usar o valor criado pela ElevenLabs no secret JULIA_WEBHOOK_SECRET. ID do número é o ID interno ElevenLabs (não o número +55 11 5039-3814 nem o ID Meta). Não mudar o agente antigo.
@@ -306,7 +306,7 @@ Configurar `acao` como valor fixo da ferramenta e IDs como variáveis dinâmicas
 ## SQL completa proposta
 - Migration: [julia-viagem-proposta.sql](sql/julia-viagem-proposta.sql)
 - Cron: [julia-viagem-cron-proposta.sql](sql/julia-viagem-cron-proposta.sql)
-Nenhum dos dois scripts foi aplicado. 54 verificações SQL/dia e 39 callbacks nas janelas; atraso até 10 min. Custa recursos mesmo sem trabalho. Alternativa menos frequente atrasaria Agora/retornos; mantida a cadência pedida.
+Migration aplicada; cron permanece somente proposto. 54 verificações SQL/dia e 39 callbacks nas janelas; atraso até 10 min. Custa recursos mesmo sem trabalho. Alternativa menos frequente atrasaria Agora/retornos; mantida a cadência pedida.
 
 ## Referências oficiais
 - https://elevenlabs.io/docs/eleven-agents/api-reference/integrations/twilio/outbound-call
@@ -314,8 +314,11 @@ Nenhum dos dois scripts foi aplicado. 54 verificações SQL/dia e 39 callbacks n
 Call initiation failure contém conversation_id e failure_reason (busy/no-answer/unknown). Não tratar silêncio na transcrição como não atendeu.
 
 ## Verificação desta entrega
-- 18 testes de SQL proposta em PostgreSQL descartável, aplicada duas vezes para idempotência.
+- 24 testes da migration em PostgreSQL descartável, aplicada duas vezes para idempotência; incluem relato sem prestação recusado, tarefa vinculada criada atomicamente e data passada recusada.
 - 28 regressões de triggers de rotas, 11 de diário/gastos/storage.
 - 8 testes puros (incluindo HMAC), 5 Deno de acesso, 34 regressões unitárias de viagens/municípios/Júlia/WhatsApp.
 - Três funções verificadas com Deno; compilação da tela limpa.
-- Não verificados: telas autenticadas, upload real, chamada ElevenLabs/Twilio, webhook real e cron/Vault. Sem migration no Supabase, sem cron criado, sem chamadas ou WhatsApp.
+- 5 testes unitários do contrato de relato; 72 testes de Júlia/relato/viagens/navegação passaram. Ferramenta de visitas publicada e verificada com Deno.
+- Consulta pós-migration: quatro celulares conferem, RLS ligada nas novas tabelas, viagem existente continua concluída, zero ligações, zero cron e ligacao_ativa=false.
+- Alerta 0029 revisado: julia_escolher_contato é intencionalmente executável por authenticated; valida identidade do dono, data atual, ausência de teste e estado anterior à discagem. As outras RPCs de voz permanecem exclusivas de service_role. Não ampliar permissões de escrita das tabelas para eliminar esse alerta.
+- Não verificados: telas autenticadas (Supabase externo sem sessão disponível), upload real, chamada ElevenLabs/Twilio, webhook real e cron/Vault. Nenhuma ligação ou WhatsApp enviado.
