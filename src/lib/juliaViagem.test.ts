@@ -1,0 +1,14 @@
+import { describe, expect, it } from "vitest";
+import { DAMIAN_ID, horarioBRT, horarioRetorno, janelaCron, permitidoLigar, podeTentar } from "./juliaViagem";
+import { normalizarCelularBR, validarE164BR } from "./telefone";
+import { montarPendencias } from "./pendenciasDia";
+describe("Júlia de viagens", () => {
+  it("whitelist comercial/rtv e somente Damian admin", () => { expect(permitidoLigar("v", ["comercial"])).toBe(true); expect(permitidoLigar("v", ["rtv"])).toBe(true); expect(permitidoLigar(DAMIAN_ID, ["admin"])).toBe(true); expect(permitidoLigar("outro", ["admin"])).toBe(false); expect(permitidoLigar("v", ["gerente_comercial"])).toBe(false); });
+  it("três tentativas e uma de cada motivo", () => { expect(podeTentar(3, "retorno", [], "20:00")).toBe(false); expect(podeTentar(1, "retentativa", ["retentativa"], "20:00")).toBe(false); expect(podeTentar(2, "retorno", ["inicial", "retentativa"], "21:00")).toBe(true); expect(podeTentar(0, "inicial", [], "22:00")).toBe(false); });
+  it("retorno no mesmo dia e até 22h BRT", () => { const agora = new Date("2026-11-05T20:00:00Z"); expect(horarioRetorno("2026-11-05", "22:00", agora)).toBe("2026-11-06T01:00:00.000Z"); expect(horarioRetorno("2026-11-05", "22:01", agora)).toBeNull(); expect(horarioRetorno("2026-11-05", "16:00", agora)).toBeNull(); expect(horarioRetorno("2026-11-06", "20:00", agora)).toBeNull(); });
+  it("janelas 15h50–22h e 9h–9h10 BRT", () => { expect(janelaCron("15:50")).toBe(true); expect(janelaCron("22:00")).toBe(true); expect(janelaCron("09:10")).toBe(true); expect(janelaCron("09:20")).toBe(false); expect(janelaCron("22:10")).toBe(false); expect(horarioBRT(new Date("2026-11-06T02:59:00Z")).data).toBe("2026-11-05"); });
+  it("normaliza celular BR e rejeita inválido", () => { expect(normalizarCelularBR("(44) 99149-8825")).toBe("+5544991498825"); expect(validarE164BR("+5544991498825")).toBe(true); expect(validarE164BR("123")).toBe(false); });
+  const ctx = { id: "r", data_inicio: "2026-11-05", data_fim: "2026-11-06", paradas: [{ id: "p", visitada: null, cidade: "Não-Me-Toque" }], pernoites: [], gastos: [] };
+  it("inclui pendentes e noite no meio, nunca noite no último dia", () => { expect(montarPendencias(ctx, "2026-11-05").map(p => p.tipo)).toEqual(["parada_pendente", "pernoite_noite"]); expect(montarPendencias(ctx, "2026-11-06").map(p => p.tipo)).toEqual(["parada_pendente"]); });
+  it("nota hotel pendente some após upload", () => { const c = { ...ctx, pernoites: [{ id: "n", noite: "2026-11-05", tipo: "hotel", gasto_id: "g" }], gastos: [{ id: "g", arquivo_path: null as string | null }] }; expect(montarPendencias(c, "2026-11-05").map(p => p.tipo)).toEqual(["parada_pendente", "nota_hotel"]); c.gastos[0].arquivo_path = "r/notas/a.jpg"; expect(montarPendencias(c, "2026-11-05").map(p => p.tipo)).toEqual(["parada_pendente"]); });
+});
