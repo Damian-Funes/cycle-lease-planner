@@ -35,6 +35,11 @@ export default function AppHeader() {
           <Phone className="w-4 h-4" /> Motivos de perda (Júlia)
         </DropdownMenuItem>
         {isAdmin && (
+          <DropdownMenuItem onClick={() => navigate("/configuracoes/whatsapp")} className="gap-2">
+            <Phone className="w-4 h-4" /> WhatsApp da LS
+          </DropdownMenuItem>
+        )}
+        {isAdmin && (
           <DropdownMenuItem onClick={() => navigate("/configuracoes/viagens")} className="gap-2">
             <Plug className="w-4 h-4" /> Viagens e veículos
           </DropdownMenuItem>
