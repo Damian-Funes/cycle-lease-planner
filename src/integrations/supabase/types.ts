@@ -3157,6 +3157,72 @@ export type Database = {
           },
         ]
       }
+      rota_pernoites: {
+        Row: {
+          autor_id: string
+          cidade: string | null
+          created_at: string
+          estado: string | null
+          gasto_id: string | null
+          hotel_nome: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          noite: string
+          observacao: string | null
+          rota_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string
+          cidade?: string | null
+          created_at?: string
+          estado?: string | null
+          gasto_id?: string | null
+          hotel_nome?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          noite: string
+          observacao?: string | null
+          rota_id: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string
+          cidade?: string | null
+          created_at?: string
+          estado?: string | null
+          gasto_id?: string | null
+          hotel_nome?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          noite?: string
+          observacao?: string | null
+          rota_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_pernoites_gasto_id_fkey"
+            columns: ["gasto_id"]
+            isOneToOne: false
+            referencedRelation: "rota_gastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_pernoites_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rotas: {
         Row: {
           alimentacao_dia_estimada: number | null
