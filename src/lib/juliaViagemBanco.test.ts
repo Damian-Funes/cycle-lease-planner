@@ -64,7 +64,10 @@ describe.skipIf(!url)('Júlia SQL proposta — banco descartável',()=>{
   const q=run(`${fixture()} ${orgOpp()} ${call()} DO $$ BEGIN PERFORM public.julia_registrar_voz((SELECT id FROM public.ligacoes_viagem LIMIT 1),'${r}','registrar_visita',jsonb_build_object('parada_id','${p}','visitada',true,'resultado','Reunião','proximo_passo','Enviar proposta','proximo_passo_data',(${d}-1)::text)); EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%não pode ser passada%' THEN RAISE; END IF; END $$; SELECT (visitada IS NULL AND relato IS NULL)::text FROM public.rota_paradas; SELECT count(*) FROM public.atividades;`);
   expect(q).toContain('true'); expect(q).toMatch(/\n0\n/);
  });
- it('data de hoje BRT é permitida e sem organização não cria atividade',()=>expect(error(`${fixture()} ${call()} SELECT public.julia_registrar_voz((SELECT id FROM public.ligacoes_viagem LIMIT 1),'${r}','registrar_visita',jsonb_build_object('parada_id','${p}','visitada',true,'resultado','Reunião','proximo_passo','Enviar proposta','proximo_passo_data',${d}::text));`)).toBe(''));
+ it('data de hoje BRT é permitida e sem organização não cria atividade',()=>{
+  const q=run(`${fixture()} ${call()} SELECT public.julia_registrar_voz((SELECT id FROM public.ligacoes_viagem LIMIT 1),'${r}','registrar_visita',jsonb_build_object('parada_id','${p}','visitada',true,'resultado','Reunião','proximo_passo','Enviar proposta','proximo_passo_data',${d}::text)); SELECT (relato->>'proximo_passo_data'=${d}::text)::text FROM public.rota_paradas; SELECT count(*) FROM public.atividades;`);
+  expect(q).toContain('true'); expect(q).toMatch(/\n0\n/);
+ });
  it('banco valida limites, interesse, sacos e chaves desconhecidas',()=>{
   for(const relato of [{contato_nome:'x'.repeat(501)},{interesse:'quente'},{sacos_safra:-1},{sacos_safra:'100'},{objecoes:['x'.repeat(501)]},{campo_desconhecido:'x'}]) expect(error(`${fixture()} UPDATE public.rota_paradas SET visitada=true,resultado='Reunião',relato='${JSON.stringify(relato)}';`)).not.toBe('');
  });
