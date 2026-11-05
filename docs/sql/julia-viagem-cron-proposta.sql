@@ -1,5 +1,6 @@
 -- PROPOSTA SOMENTE: NÃO EXECUTADA. Um job; UTC = BRT + 3h.
--- 39 execuções/dia: 15h50–22h (37) + 9h–9h10 (2). Até 10 minutos de atraso.
+-- 54 verificações SQL/dia; 39 callbacks nas janelas: 15h50–22h (37) + 9h–9h10 (2).
+-- Até 10 minutos de atraso; WHERE impede callbacks fora das janelas, não a verificação SQL.
 -- Requer JULIA_CRON_SECRET também configurado no Vault pelo proprietário,
 -- com o mesmo valor do secret da função. NÃO colar segredos neste arquivo.
 -- Nenhum secret é criado/salvo automaticamente pelo SQL abaixo.

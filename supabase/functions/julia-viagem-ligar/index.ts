@@ -44,6 +44,7 @@ export async function handler(req: Request) {
           if (!admin) throw new Error('Teste exige admin.');
           perfil = check(await db.from('profiles').select('user_id,nome,celular').eq('user_id', l.solicitado_por).single());
         }
+        if (!perfil) throw new Error('Perfil do destinatário não encontrado.');
         if (!/^\+55[1-9]\d{9,10}$/.test(perfil.celular ?? '')) throw new Error('Celular do destinatário ausente ou inválido.');
         const key = Deno.env.get('ELEVENLABS_API_KEY'); const agent = Deno.env.get('ELEVENLABS_AGENT_ID_VIAGEM'); const phone = Deno.env.get('ELEVENLABS_PHONE_NUMBER_ID');
         if (!key || !agent || !phone) throw new Error('Configure os secrets da ElevenLabs para viagens.');
@@ -73,7 +74,7 @@ export async function handler(req: Request) {
     if (hora >= '09:00' && hora <= '09:10') {
       const ontem = new Date(agora.getTime() - 86400000); const ref = horarioBRT(ontem).data;
       const rs = check(await db.from('rotas').select('id,vendedor_id,data_fim').eq('status','aprovada').lte('data_inicio',ref).gte('data_fim',ref));
-      for (const r of rs) {
+      for (const r of rs ?? []) {
         const c = await contexto(db,r.id,ref);
         const aberto = c.pendencias.some(p => p.tipo === 'pernoite_noite' || (r.data_fim === ref && p.tipo === 'parada_pendente'));
         if (aberto) for (const u of [r.vendedor_id,...await admins(db)]) await notificar(db,u,`dia_aberto:${r.id}:${ref}`,'Fechamento do dia pendente',`/viagens/${r.id}/hoje`,`Falta fechar o dia ${ref.split('-').reverse().join('/')}.`);
@@ -82,7 +83,7 @@ export async function handler(req: Request) {
     }
     const rotas = check(await db.from('rotas').select('id,vendedor_id').eq('status','aprovada').lte('data_inicio',data).gte('data_fim',data).order('id'));
     const falhas: string[] = [];
-    for (const r of rotas) {
+    for (const r of rotas ?? []) {
       try {
         const c = await contexto(db,r.id,data);
         const precisa = c.pendencias.some(p => p.tipo === 'pernoite_noite') || (data === c.rota.data_fim && c.pendencias.some(p => p.tipo === 'parada_pendente'));
@@ -97,7 +98,7 @@ export async function handler(req: Request) {
       } catch { falhas.push(r.id); }
     }
     const vencidas = check(await db.from('ligacoes_viagem').select('id').eq('data_ref',data).eq('teste',false).in('status',['agendada','aguardando_escolha']).lte('agendada_para',agora.toISOString()));
-    for (const l of vencidas) { try { await discar(l.id); } catch { falhas.push(l.id); } }
+    for (const l of vencidas ?? []) { try { await discar(l.id); } catch { falhas.push(l.id); } }
     return json({ ok: falhas.length === 0, falhas });
   } catch (e) { return erro(e); }
 }
