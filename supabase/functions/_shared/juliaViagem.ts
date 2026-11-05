@@ -19,7 +19,8 @@ export async function usuario(req: Request, admin = false) {
   return data.claims.sub as string;
 }
 export async function secretIgual(recebido: string | null, nome: string) {
-  const esperado = Deno.env.get(nome);
+  const esperado = Deno.env.get(nome)?.trim();
+  recebido = recebido?.trim() ?? null;
   if (!recebido || !esperado) return false;
   const encoder = new TextEncoder();
   const a = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(recebido)));

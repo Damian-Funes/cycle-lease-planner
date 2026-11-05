@@ -1,12 +1,13 @@
 import { z } from 'npm:zod@3';
 import { check, corsHeaders, dbAdmin, erro, json } from '../_shared/juliaViagem.ts';
-import { assinaturaValida } from '../_shared/juliaWebhook.ts';
+import { assinaturaValida, motivoAssinatura } from '../_shared/juliaWebhook.ts';
 const Event = z.object({ type: z.enum(['post_call_transcription','call_initiation_failure']), data: z.object({ conversation_id: z.string().min(1), failure_reason:z.string().optional(), transcript: z.array(z.object({ role:z.string(),message:z.string().nullable() }).passthrough()).optional(), analysis:z.object({ transcript_summary:z.string().optional() }).passthrough().optional(), metadata:z.object({ call_duration_secs:z.number().nonnegative().optional() }).passthrough().optional() }).passthrough() });
 Deno.serve(async req => {
  if(req.method==='OPTIONS') return new Response('ok',{headers:corsHeaders});
  if(req.method!=='POST') return json({error:'Use POST.'},405);
  const raw=await req.text();
- if(!await assinaturaValida(raw,req.headers.get('ElevenLabs-Signature'),Deno.env.get('JULIA_WEBHOOK_SECRET'))) return json({error:'Assinatura inválida.'},401);
+ const sig=req.headers.get('ElevenLabs-Signature');
+ if(!await assinaturaValida(raw,sig,Deno.env.get('JULIA_WEBHOOK_SECRET'))) { console.warn('julia-viagem-webhook 401',motivoAssinatura(sig,Deno.env.get('JULIA_WEBHOOK_SECRET'))); return json({error:'Assinatura inválida.'},401); }
  try {
   const event=Event.parse(JSON.parse(raw)); const db=dbAdmin();
   // Oficial: busy/no-answer/unknown vêm em call_initiation_failure. Silêncio não significa não atendeu.

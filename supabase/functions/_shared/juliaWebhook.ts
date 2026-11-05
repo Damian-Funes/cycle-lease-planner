@@ -1,4 +1,14 @@
+export function motivoAssinatura(header: string | null, secret: string | undefined, now = Date.now()) {
+ if (!secret?.trim()) return 'segredo_ausente';
+ if (!header) return 'header_ausente';
+ const t = header.match(/(?:^|,)\s*t=(\d+)/)?.[1];
+ if (!t) return 'timestamp_ausente';
+ if (!/(?:^|,)\s*v0=[a-f0-9]{64}/.test(header)) return 'v0_ausente';
+ if (Math.abs(now / 1000 - Number(t)) > 1800) return 'timestamp_expirado';
+ return 'hmac_diferente';
+}
 export async function assinaturaValida(raw: string, header: string | null, secret: string | undefined, now = Date.now()) {
+ secret = secret?.trim();
  if (!header || !secret) return false;
  const t = header.match(/(?:^|,)\s*t=(\d+)/)?.[1];
  const signatures = [...header.matchAll(/(?:^|,)\s*v0=([a-f0-9]{64})/g)].map(m => m[1]);

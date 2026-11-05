@@ -68,6 +68,11 @@ export async function handler(req: Request) {
       }
     };
     if (input.modo === 'manual') {
+      if (input.teste) {
+        // Teste preso (webhook não chegou) expira após 10 min para não bloquear novo teste.
+        const limite = new Date(agora.getTime() - 10 * 60000).toISOString();
+        check(await db.from('ligacoes_viagem').update({ status: 'falhou', erro: 'expirado', updated_at: agora.toISOString() }).eq('teste', true).eq('data_ref', data).in('status', ['discando','em_andamento']).lt('updated_at', limite));
+      }
       const l = await reservar(input.rota_id, input.teste ? 'teste' : 'inicial', agora.toISOString(), input.teste);
       await discar(l.id); return json({ ok: true, ligacao_id: l.id });
     }
