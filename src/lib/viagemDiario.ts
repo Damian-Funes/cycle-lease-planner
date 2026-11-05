@@ -31,11 +31,11 @@ export function emAndamento(r: RotaPeriodo, hoje: string) {
 export type Estimado = { combustivel: number | null; pedagio: number | null; hospedagem: number | null; alimentacao: number | null; total: number | null };
 export type LinhaComparativo = { categoria: CategoriaGasto; nome: string; estimado: number | null; real: number; diferenca: number | null };
 
-/** Estimado x real por categoria. "Hotel" compara com hospedagem; "Outros" não tem estimativa. */
+/** Estimado x real por categoria. Hotel e "Outros" só têm valor real (não há diária estimada). */
 export function comparativo(est: Estimado | null, gastos: { categoria: CategoriaGasto; valor: number }[]) {
   const real = (c: CategoriaGasto) => round2(gastos.filter((g) => g.categoria === c).reduce((s, g) => s + Number(g.valor), 0));
   const estDe: Record<CategoriaGasto, number | null> = {
-    combustivel: est?.combustivel ?? null, pedagio: est?.pedagio ?? null, hotel: est?.hospedagem ?? null,
+    combustivel: est?.combustivel ?? null, pedagio: est?.pedagio ?? null, hotel: est?.hospedagem ? est.hospedagem : null,
     alimentacao: est?.alimentacao ?? null, outros: null,
   };
   const linhas: LinhaComparativo[] = CATEGORIAS_GASTO.map(({ id, nome }) => {

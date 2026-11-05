@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.fn_pernoites_validar() FROM PUBLIC, anon, authenticated;

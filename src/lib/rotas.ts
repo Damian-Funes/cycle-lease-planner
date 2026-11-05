@@ -113,7 +113,7 @@ export async function deletarRota(id: string) {
   if (error) throw error;
 }
 
-export async function adicionarParada(parada: Omit<RotaParada, "id" | "objetivo" | "resultado" | "visitada" | "motivo_nao_visita" | "informada_em"> & Partial<Pick<RotaParada, "id" | "objetivo">>) {
+export async function adicionarParada(parada: Omit<RotaParada, "id" | "objetivo" | "resultado" | "visitada" | "motivo_nao_visita" | "informada_em" | "dia" | "hotel_nome" | "valor_diaria_est"> & Partial<Pick<RotaParada, "id" | "objetivo" | "dia" | "hotel_nome" | "valor_diaria_est">>) {
   const { data, error } = await (supabase as any).from("rota_paradas").insert(parada).select("*").single();
   if (error) throw error;
   return data as RotaParada;

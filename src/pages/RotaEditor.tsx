@@ -12,7 +12,6 @@ import { diasDaViagem, ordenarParadasViagem, custoViagem, assinaturaTrajeto, par
 import { listVeiculos, getViagemParametros, precoLitro } from "@/lib/rotas";
 import { supabase } from "@/integrations/supabase/client";
 import CustoViagemCard from "@/components/rotas/CustoViagemCard";
-import PernoiteDialog, { type NovoPernoite } from "@/components/rotas/PernoiteDialog";
 import { Hotel } from "lucide-react";
 import { linksGoogleMaps, linkWaze, formatarDuracao, formatarKm, rotaLonga, coordenadaValida } from "@/lib/rotaNavegacao";
 import { AlertTriangle, Navigation, Loader2 } from "lucide-react";
@@ -57,8 +56,6 @@ export default function RotaEditor() {
   const [dataFim, setDataFim] = useState("");
   const [veiculoId, setVeiculoId] = useState<string>("");
   const [alimentacao, setAlimentacao] = useState("");
-  const [pernoiteOpen, setPernoiteOpen] = useState(false);
-  const [diaNovas, setDiaNovas] = useState("");
   const [obs, setObs] = useState("");
   const [objetivos, setObjetivos] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -80,7 +77,7 @@ export default function RotaEditor() {
 
   const inicioRota = rota?.data_inicio ?? rota?.data_rota ?? "";
   const fimRotaSalvo = rota?.data_fim ?? inicioRota;
-  const paradas = useMemo(() => ordenarParadasViagem(paradasBrutas.map((p) => ({ ...p, dia: p.dia ?? inicioRota })), inicioRota), [paradasBrutas, inicioRota]);
+  const paradas = useMemo(() => ordenarParadasViagem(paradasBrutas), [paradasBrutas, inicioRota]);
   const dias = useMemo(() => diasDaViagem(inicioRota, fimRotaSalvo), [inicioRota, fimRotaSalvo]);
   const numeroDia = (d?: string | null) => Math.max(0, dias.indexOf(d ?? inicioRota)) + 1;
 
@@ -96,7 +93,6 @@ export default function RotaEditor() {
     if (!rota) return;
     setVeiculoId(rota.veiculo_id ?? veiculos.find((v) => v.vendedor_id === rota.vendedor_id && v.ativo)?.id ?? "");
   }, [rota?.id, rota?.veiculo_id, veiculos]);
-  useEffect(() => { if (dias.length && !dias.includes(diaNovas)) setDiaNovas(dias[0]); }, [dias, diaNovas]);
 
   const planejamento = Boolean(rota && (rota.status === 'rascunho' || rota.status === 'reprovada' || (rota.status === 'aprovada' && inicioRota > hojeRota())));
   const prestacao = rota?.status === 'aprovada' && inicioRota <= hojeRota();
@@ -111,7 +107,6 @@ export default function RotaEditor() {
     consumoKmL: veiculo ? Number(veiculo.consumo_km_l) : null,
     precoLitro: precoLitro(veiculo, parametros),
     pedagio: pedagioValido ? Number(rota!.custo_pedagio_est) : null,
-    diarias: paradas.filter((p) => p.tipo === "pernoite").map((p) => p.valor_diaria_est),
     alimentacaoDia: Number.isFinite(alimentacaoNum) ? alimentacaoNum : null,
     dias: diasDaViagem(data || inicioRota, dataFim || fimRotaSalvo).length,
   });
@@ -354,12 +349,12 @@ export default function RotaEditor() {
       const k = posicaoInsercaoMaisBarata({ lat: origem.lat, lng: origem.lng }, validas.map((p) => ({ lat: Number(p.latitude), lng: Number(p.longitude) })), { lat: s.lat, lng: s.lng });
       const antesDe = validas[k];
       const depoisDe = validas[k - 1];
-      // dia: o da parada seguinte; se a seguinte for o pernoite/fim, o da anterior
-      const diaNova = (antesDe?.dia ?? depoisDe?.dia ?? diaNovas) || inicioRota;
+      void antesDe; void depoisDe;
+      const diaNova = inicioRota;
       const atividadeId = await criarAtividadeVisita({
         organizacaoId: s.id, organizacaoNome: s.nome, responsavelId: rota.vendedor_id, dataAtividade: diaNova,
       });
-      const nova = await adicionarParada({ dia: diaNova,
+      const nova = await adicionarParada({
         rota_id: id, ordem: paradas.length, organizacao_id: s.id, oportunidade_id: s.oportunidadeId,
         cidade: s.cidade, estado: s.estado, latitude: s.lat, longitude: s.lng, tipo: "visita",
         observacoes: null, atividade_id: atividadeId, concluida: false, objetivo,
@@ -454,7 +449,7 @@ export default function RotaEditor() {
     }
   }
 
-  /** Grava período/veículo/alimentação e desloca o dia das paradas junto com o início. */
+  /** Grava período/veículo/alimentação (o dia das paradas é o dia realizado, gravado na prestação). */
   async function gravarPeriodo() {
     if (!id || !rota) return;
     if (!data) throw new Error("Informe a data de início.");
@@ -464,17 +459,6 @@ export default function RotaEditor() {
       data_inicio: data, data_fim: fim, observacoes: obs || null, veiculo_id: veiculoId || null,
       alimentacao_dia_estimada: Number.isFinite(ali) && ali > 0 ? ali : null,
     } as any);
-    const delta = Math.round((new Date(`${data}T12:00:00Z`).getTime() - new Date(`${inicioRota}T12:00:00Z`).getTime()) / 86400000);
-    const novos = diasDaViagem(data, fim);
-    for (const p of paradas) {
-      const idx = Math.max(0, dias.indexOf(p.dia ?? inicioRota));
-      const alvo = novos[Math.min(idx, novos.length - 1)];
-      if (delta === 0 && p.dia && p.dia >= data && p.dia <= fim) continue;
-      if (alvo !== p.dia) {
-        await atualizarParada(p.id, { dia: alvo });
-        if (p.atividade_id) await (supabase as any).from("atividades").update({ data_atividade: alvo, data_inicio: alvo }).eq("id", p.atividade_id);
-      }
-    }
   }
 
   async function salvarMeta() {
@@ -495,11 +479,10 @@ export default function RotaEditor() {
         organizacaoId: org.id,
         organizacaoNome: org.nome_fantasia || org.nome,
         responsavelId: rota.vendedor_id,
-        dataAtividade: diaNovas || inicioRota,
+        dataAtividade: inicioRota,
       });
       const nextOrdem = paradas.length;
       await adicionarParada({
-        dia: diaNovas || inicioRota,
         rota_id: id,
         ordem: nextOrdem,
         organizacao_id: org.id,
@@ -527,7 +510,6 @@ export default function RotaEditor() {
     if (!id) return;
     try {
       await adicionarParada({
-        dia: diaNovas || inicioRota,
         rota_id: id,
         ordem: paradas.length,
         organizacao_id: null,
@@ -576,42 +558,15 @@ export default function RotaEditor() {
       const updates = Object.entries(novaOrdem).filter(([pid, o]) => paradas.find((p) => p.id === pid)?.ordem !== o).map(([pid, o]) => ({ id: pid, ordem: o }));
       if (updates.length) await reordenarParadas(updates);
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
-      toast.success(updates.length ? "Ordem otimizada dentro de cada dia" : "A ordem atual já é a melhor");
+      toast.success(updates.length ? "Ordem otimizada" : "A ordem atual já é a melhor");
     } catch (e: any) {
       toast.error("Falha ao otimizar", { description: e?.message });
     }
   }
 
-  async function onAddPernoite(n: NovoPernoite) {
-    if (!id) return;
-    await executar(async () => {
-      await adicionarParada({
-        rota_id: id, ordem: paradas.length, organizacao_id: null, oportunidade_id: null,
-        cidade: n.cidade, estado: n.estado || null, latitude: n.latitude, longitude: n.longitude,
-        tipo: "pernoite", observacoes: null, atividade_id: null, concluida: false,
-        objetivo: objetivoPernoite(n), dia: n.dia, hotel_nome: n.hotel_nome, valor_diaria_est: n.valor_diaria_est,
-      } as any);
-      toast.success(`Pernoite em ${n.hotel_nome} adicionado`);
-    });
-  }
-
-  async function mudarDia(p: RotaParada, dia: string) {
-    await executar(async () => {
-      if (p.tipo === "pernoite" && paradas.some((x) => x.id !== p.id && x.tipo === "pernoite" && x.dia === dia)) throw new Error("Esse dia já tem um pernoite.");
-      await atualizarParada(p.id, { dia });
-      if (p.atividade_id) await (supabase as any).from("atividades").update({ data_atividade: dia, data_inicio: dia }).eq("id", p.atividade_id);
-    });
-  }
-
-  function pontoReferencia(dia: string) {
-    const doDia = paradas.filter((p) => p.dia === dia && p.tipo !== "pernoite" && coordenadaValida(p.latitude, p.longitude));
-    const u = doDia[doDia.length - 1];
-    return u ? { lat: Number(u.latitude), lng: Number(u.longitude), cidade: u.cidade, estado: u.estado } : null;
-  }
-
   const podeMover = (idx: number, dir: -1 | 1) => {
     const a = paradas[idx]; const b = paradas[idx + dir];
-    return Boolean(a && b && a.dia === b.dia && a.tipo !== "pernoite" && b.tipo !== "pernoite");
+    return Boolean(a && b);
   };
   async function mover(p: RotaParada, dir: -1 | 1) {
     const sorted = [...paradas];
@@ -702,7 +657,8 @@ export default function RotaEditor() {
                   {calculo.dias.map((d) => <li key={d.plano.dia}>Dia {numeroDia(d.plano.dia)} ({diaRota(d.plano.dia)}): {formatarKm(d.km * 1000)} · {formatarDuracao(d.segundos)}{rotaLonga(d.segundos) ? " ⚠" : ""}</li>)}
                 </ul>
               )}
-              {calculo && calculo.dias.filter((d) => rotaLonga(d.segundos)).map((d) => (
+              {calculo && dias.length > 1 && <p className="text-xs text-muted-foreground">≈ {formatarDuracao(calculo.totalSegundos / dias.length)} de direção por dia em {dias.length} dias</p>}
+              {calculo && dias.length === 1 && calculo.dias.filter((d) => rotaLonga(d.segundos)).map((d) => (
                 <p key={d.plano.dia} className="flex items-center gap-2 text-sm rounded-md border border-warning/40 bg-warning/10 text-warning-foreground p-2"><AlertTriangle className="w-4 h-4 text-warning" /> Rota longa para um dia{calculo.dias.length > 1 ? ` (dia ${numeroDia(d.plano.dia)})` : ""}</p>
               ))}
               {erroTrajeto && <p className="text-sm text-destructive">{erroTrajeto}</p>}
@@ -740,19 +696,10 @@ export default function RotaEditor() {
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-sm">Paradas ({paradas.length})</h2>
             {planejamento && <div className="flex gap-2">
-              {dias.length > 1 && <Button size="sm" variant="outline" disabled={busy} onClick={() => setPernoiteOpen(true)}><Hotel className="w-4 h-4 mr-1" /> Pernoite</Button>}
               <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>
             </div>}
           </div>
-          {planejamento && dias.length > 1 && (
-            <div className="flex items-center gap-2 text-sm">
-              <Label htmlFor="dia-novas" className="text-xs">Novas paradas no</Label>
-              <select id="dia-novas" className="h-8 rounded-md border border-input bg-background px-2 text-sm" value={diaNovas} onChange={(e) => setDiaNovas(e.target.value)}>
-                {dias.map((d, i) => <option key={d} value={d}>Dia {i + 1} — {diaRota(d)}</option>)}
-              </select>
-            </div>
-          )}
-          {planejamento && dias.length === 1 && <p className="text-xs text-muted-foreground">Para incluir pernoite, aumente a data de fim e salve.</p>}
+          {planejamento && <p className="text-xs text-muted-foreground">Monte a lista de paradas do período. O dia de cada visita e onde dormiu são registrados durante a viagem.</p>}
 
           <div className="space-y-2 overflow-y-auto pr-1">
             {paradas.length === 0 && (
@@ -763,11 +710,6 @@ export default function RotaEditor() {
             )}
             {paradas.map((p, idx) => (
               <div key={p.id} className="space-y-2">
-              {dias.length > 1 && (idx === 0 || paradas[idx - 1].dia !== p.dia) && (
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pt-1">
-                  Dia {numeroDia(p.dia)} — {diaRota(p.dia ?? inicioRota)}{resumoDia[p.dia ?? ""] ? ` · ${formatarKm(resumoDia[p.dia ?? ""].km * 1000)} · ${formatarDuracao(resumoDia[p.dia ?? ""].s)}` : ""}
-                </h3>
-              )}
               <Card className={`p-3 ${p.tipo === "pernoite" ? "border-dashed bg-muted/40" : ""}`}>
               <div className="flex items-center gap-2">
                 <div className="flex flex-col gap-0.5">
@@ -793,12 +735,7 @@ export default function RotaEditor() {
                       {p.tipo === "prospeccao" ? "Prospecção" : p.tipo === "pernoite" ? "Pernoite" : "Visita"}
                     </Badge>
                   </div>
-                  {planejamento && dias.length > 1 && (
-                    <select aria-label={`Dia da parada ${idx + 1}`} className="mt-1 h-7 rounded-md border border-input bg-background px-1 text-xs" value={p.dia ?? inicioRota} disabled={busy}
-                      onChange={(e) => mudarDia(p, e.target.value)}>
-                      {(p.tipo === "pernoite" ? dias.slice(0, -1) : dias).map((d, i) => <option key={d} value={d}>Dia {i + 1} — {diaRota(d)}</option>)}
-                    </select>
-                  )}
+                  {p.dia && p.visitada != null && <div className="text-xs text-muted-foreground">Informada em {diaRota(p.dia)}</div>}
                 </div>
                 {coordenadaValida(p.latitude, p.longitude) && (
                   <Button asChild variant="outline" size="sm" aria-label={`Abrir parada ${idx + 1} no Waze`}>
@@ -857,9 +794,6 @@ export default function RotaEditor() {
         onAddProspeccao={onAddProspeccao}
         onObjetivo={setNovoObjetivo}
       />
-      <PernoiteDialog open={pernoiteOpen} onOpenChange={setPernoiteOpen} dias={dias}
-        diaInicial={dias.find((d) => d !== dias[dias.length - 1] && !paradas.some((p) => p.tipo === "pernoite" && p.dia === d)) ?? dias[0]}
-        pontoReferencia={pontoReferencia} onSalvar={onAddPernoite} />
     </div>
   );
 }

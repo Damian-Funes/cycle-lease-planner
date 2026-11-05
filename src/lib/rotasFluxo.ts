@@ -26,7 +26,6 @@ export function validarEnvio(data: string, paradas: { objetivo?: string | null; 
   paradas.forEach((p, i) => {
     if (!p.objetivo?.trim()) erros.push(`Parada ${i + 1}: informe o objetivo.`);
     if (p.tipo === 'visita' && !p.organizacao_id) erros.push(`Parada ${i + 1}: selecione uma organização.`);
-    if (p.tipo === 'pernoite' && (!p.hotel_nome?.trim() || p.valor_diaria_est == null)) erros.push(`Parada ${i + 1}: informe hotel e valor da diária.`);
   });
   if (pendente) erros.push(`Preste contas da rota de ${diaRota(fimRota(pendente))} antes de pedir nova viagem.`);
   return erros;
