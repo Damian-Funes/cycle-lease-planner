@@ -11,3 +11,4 @@
 - Toll estimates are written only by the server function (trigger keeps client writes out); the seller-facing cost snapshot is frozen when sent for approval.
 - Trip logbook/expense access windows live in SQL helpers (`fn_pode_escrever_diario`, `fn_pode_lancar_gasto`, `fn_pode_ver_rota`); `src/lib/viagemDiario.ts` mirrors them only for UI hints. Storage policies on the `viagens` bucket wrap UUID casts in `CASE bucket_id` + `fn_uuid_seguro` so other buckets never hit a cast error.
 - Travel voice rules and extensible daily-pending contracts live under functions/_shared and are re-exported for frontend/tests; proposed SQL stays in docs/sql until explicit migration approval, and UI checks schema readiness before querying new tables.
+- Visit debrief validation is shared by voice and tests and enforced again by SQL; the service-only voice transaction creates any confirmed next-step activity and stores its ID in the debrief atomically, without changing planning fields.
