@@ -2,8 +2,8 @@ import { z } from 'npm:zod@3';
 import { check, contexto, corsHeaders, dbAdmin, erro, horarioBRT, json, secretIgual } from '../_shared/juliaViagem.ts';
 import { horarioRetorno } from '../_shared/juliaViagemRegras.ts';
 import { extrairRelato } from '../_shared/relatoVisita.ts';
-import { Schema } from './schema.ts';
-import { normalizarBody, mensagensValidacao, fraseValidacao } from './entrada.ts';
+import { prepararEntrada } from './schema.ts';
+import { mensagensValidacao, fraseValidacao } from './entrada.ts';
 Deno.serve(async req => {
  if (req.method === 'OPTIONS') return new Response('ok',{ headers: corsHeaders });
  if (req.method !== 'POST') return json({ error: 'Use POST.' },405);
@@ -20,19 +20,19 @@ Deno.serve(async req => {
  try {
   const original = await req.json();
   if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
-  const normalizado = normalizarBody(original);
-  if (normalizado && typeof normalizado === 'object' && 'acao' in normalizado && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno'].includes(String(normalizado.acao))) acao = String(normalizado.acao);
-  const body = Schema.parse(normalizado); const db = dbAdmin(); const { data } = horarioBRT();
+  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno'].includes(String(original.acao))) acao = String(original.acao);
+  const { data } = horarioBRT();
+  const { body, avisos } = prepararEntrada(original,data); const db = dbAdmin();
   const l = check(await db.from('ligacoes_viagem').select('*').eq('id',body.ligacao_id).eq('rota_id',body.rota_id).maybeSingle());
   if (!l || !['discando','em_andamento'].includes(l.status) || l.data_ref !== data) return json({ error: 'Ligação não está ativa nesta viagem.' },403);
   const c = await contexto(db,body.rota_id,data);
   if (c.rota.vendedor_id !== l.vendedor_id || c.rota.status !== 'aprovada') return json({ error: 'Viagem indisponível.' },403);
-  if (body.acao === 'listar_pendentes') return json({ ok: true, pendencias: c.pendencias });
+  if (body.acao === 'listar_pendentes') return json({ ok: true, avisos, pendencias: c.pendencias });
   if (body.acao === 'agendar_retorno') {
    const quando = horarioRetorno(data,body.horario,new Date()); if (!quando) return recusar('Confira o campo horário: escolha um horário futuro de hoje até 22h.');
    if (l.teste) return recusar('Teste manual não agenda retorno automático.');
    const next = check(await db.rpc('julia_reservar_ligacao',{ p_rota: l.rota_id, p_origem: 'retorno', p_quando: quando }));
-   return json({ ok: true, agendada_para: next.agendada_para });
+   return json({ ok: true, avisos, agendada_para: next.agendada_para });
   }
   if(body.acao==='registrar_visita' && !(body.visitada?body.resultado:body.motivo)) return recusar(body.visitada ? 'Informe o campo resultado da visita.' : 'Informe o campo motivo da não visita.');
   if(body.acao==='registrar_visita') {
@@ -45,7 +45,7 @@ Deno.serve(async req => {
    if(body.tipo!=='hotel' && !body.observacao) return recusar('Informe o campo observação com a justificativa.');
   }
   const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body }));
-  return json({ ...result, pendencias: (await contexto(db,l.rota_id,data)).pendencias });
+  return json({ ...result, avisos, pendencias: (await contexto(db,l.rota_id,data)).pendencias });
  } catch(e) {
   if (e instanceof z.ZodError) { avisar400(e.issues); return json({ error: fraseValidacao(e.issues) },400); }
   if (e instanceof SyntaxError) return recusar('Confira os dados enviados: formato inválido.');
