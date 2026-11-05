@@ -39,7 +39,7 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Testes.
 
 # Júlia só para vendedores (fechamento do dia por voz)
-- [ ] Aceitar quantidades por extenso, datas brasileiras e vazios semânticos; descartar opcionais com avisos, testar payload real e publicar sem ligar.
+- [x] Aceitar quantidades por extenso, datas brasileiras e vazios semânticos; payload real validado, 63 testes passaram e função verificada sem ligações nem migration.
 - [x] Normalizar campos opcionais/números e ignorar chaves extras nas ferramentas; 33 testes passaram, reprodução antes/depois validada e função publicada sem ligações nem migration.
 - [x] Corrigir secrets, endpoint e erro ElevenLabs; função publicada sem ligar, 39 testes unitários/SQL e 5 de autenticação passaram; SQL de repetição validado em banco descartável.
 - [ ] Aplicar docs/sql/julia-viagem-reteste-proposta.sql — aguarda aprovação explícita; reutiliza testes encerrados e exclui testes do limite de três tentativas reais, inclusive no webhook.
