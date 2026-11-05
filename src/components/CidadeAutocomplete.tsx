@@ -63,7 +63,7 @@ export default function CidadeAutocomplete({ id, value, onChange, onEscolher }: 
   async function escolher(s: CidadeSugestao) {
     setDigitando(false); encerrar(); onChange(s.cidade);
     const c = await resolverCidade(s);
-    if (c) onEscolher(c); else onEscolher({ nome: s.cidade, estado: s.estado, lat: NaN, lng: NaN });
+    if (c) onEscolher(c);
   }
 
   return (
