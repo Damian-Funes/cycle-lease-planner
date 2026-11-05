@@ -1,17 +1,27 @@
-import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, geocodeAddress } from "@/lib/maps";
-import { siglaDoTexto } from "@/lib/cidadeGeo";
+import { useEffect, useState } from "react";
+import { geocodeAddress } from "@/lib/maps";
+import { buscarMunicipios, indexarMunicipios, type MunicipioIndexado } from "@/lib/municipios";
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin } from "lucide-react";
 
-export interface CidadeSugestao { placeId: string; descricao: string; cidade: string; estado: string }
+export interface CidadeSugestao { placeId: string; descricao: string; consulta: string; cidade: string; estado: string }
 export type CidadeEscolhida = { nome: string; estado: string; lat: number; lng: number };
 
-/** Sugestões de cidades BR (Places AutocompleteSuggestion), debounce 250 ms, session token por interação. */
-export function useCidadeAutocomplete(query: string, ativo: boolean) {
+// Lista oficial IBGE carregada sob demanda (fica fora do bundle principal) e indexada uma vez.
+let indicePromise: Promise<MunicipioIndexado[]> | null = null;
+function carregarIndice() {
+  if (!indicePromise) {
+    indicePromise = import("@/data/municipios.json")
+      .then((m) => indexarMunicipios(m.default))
+      .catch((e) => { indicePromise = null; throw e; });
+  }
+  return indicePromise;
+}
+
+/** Sugestões de municípios (IBGE, busca local), debounce 150 ms, máx. 8. */
+export function useCidadeAutocomplete(query: string, ativo: boolean, ufPreferida?: string | null) {
   const [sugestoes, setSugestoes] = useState<CidadeSugestao[]>([]);
   const [carregando, setCarregando] = useState(false);
-  const tokenRef = useRef<any>(null);
 
   useEffect(() => {
     if (!ativo) { setSugestoes([]); return; }
@@ -21,49 +31,42 @@ export function useCidadeAutocomplete(query: string, ativo: boolean) {
     const t = setTimeout(async () => {
       try {
         setCarregando(true);
-        const g = await loadGoogleMaps();
-        const { AutocompleteSuggestion, AutocompleteSessionToken } = await g.maps.importLibrary("places");
-        if (!tokenRef.current) tokenRef.current = new AutocompleteSessionToken();
-        const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
-          input: q, sessionToken: tokenRef.current, language: "pt-BR", region: "br",
-          includedRegionCodes: ["br"], includedPrimaryTypes: ["locality", "administrative_area_level_2"],
-        });
+        const idx = await carregarIndice();
         if (cancelado) return;
-        setSugestoes((suggestions ?? []).map((s: any) => {
-          const p = s.placePrediction;
-          if (!p) return null;
-          const principal = p.mainText?.text ?? "";
-          const sec = p.secondaryText?.text ?? "";
-          return { placeId: p.placeId, descricao: `${principal}${sec ? `, ${sec}` : ""}`, cidade: principal, estado: siglaDoTexto(sec) };
-        }).filter(Boolean) as CidadeSugestao[]);
-      } catch (e) { console.warn(e); }
+        setSugestoes(buscarMunicipios(idx, q, ufPreferida).map((m) => ({
+          placeId: `${m.n}|${m.uf}`, descricao: `${m.n} - ${m.uf}`, consulta: `${m.n}, ${m.uf}, Brasil`, cidade: m.n, estado: m.uf,
+        })));
+      } catch (e) { console.error("[cidades] falha ao carregar lista de municípios", e); }
       finally { if (!cancelado) setCarregando(false); }
-    }, 250);
+    }, 150);
     return () => { cancelado = true; clearTimeout(t); };
-  }, [query, ativo]);
+  }, [query, ativo, ufPreferida]);
 
-  /** Encerra a sessão de autocomplete (após escolha ou ao fechar). */
-  function encerrar() { tokenRef.current = null; setSugestoes([]); }
+  function encerrar() { setSugestoes([]); }
   return { sugestoes, carregando, encerrar };
 }
 
-/** Coordenadas da sugestão escolhida. */
+/** Coordenadas da cidade escolhida (null se o geocoder falhar). */
 export async function resolverCidade(s: CidadeSugestao): Promise<CidadeEscolhida | null> {
-  const c = await geocodeAddress(s.descricao);
+  const c = await geocodeAddress(s.consulta);
   return c ? { nome: s.cidade, estado: s.estado, ...c } : null;
 }
 
-/** Campo de cidade com autocompletar; texto livre continua permitido. */
-export default function CidadeAutocomplete({ id, value, onChange, onEscolher }: {
-  id?: string; value: string; onChange: (v: string) => void; onEscolher: (c: CidadeEscolhida) => void;
+/** Campo de cidade com autocompletar; texto livre continua permitido. Cidade/UF saem na hora; coordenada depois. */
+export default function CidadeAutocomplete({ id, value, onChange, onEscolher, onCoordenada, ufPreferida }: {
+  id?: string; value: string; onChange: (v: string) => void;
+  onEscolher: (c: { nome: string; estado: string }) => void;
+  onCoordenada?: (c: CidadeEscolhida | null) => void;
+  ufPreferida?: string | null;
 }) {
   const [digitando, setDigitando] = useState(false);
-  const { sugestoes, carregando, encerrar } = useCidadeAutocomplete(value, digitando);
+  const { sugestoes, carregando, encerrar } = useCidadeAutocomplete(value, digitando, ufPreferida);
 
   async function escolher(s: CidadeSugestao) {
-    setDigitando(false); encerrar(); onChange(s.cidade);
+    setDigitando(false); encerrar();
+    onEscolher({ nome: s.cidade, estado: s.estado });
     const c = await resolverCidade(s);
-    if (c) onEscolher(c);
+    onCoordenada?.(c);
   }
 
   return (
