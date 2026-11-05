@@ -106,9 +106,9 @@ describe.skipIf(!ativo)('triggers reais de autorização em Postgres descartáve
   it('RLS de pernoites: dono e admin veem, outro vendedor não', () => {
     const outro = '00000000-0000-0000-0000-000000000003';
     const base = `${viagem()} ${aprovar()} ${noite(hojeBrt)}`;
-    expect(sql(`BEGIN; ${base} SET LOCAL ROLE authenticated; ${actor(outro)} SELECT count(*) FROM public.rota_pernoites; ROLLBACK;`)).toMatch(/\n0\s*$/);
-    expect(sql(`BEGIN; ${base} SET LOCAL ROLE authenticated; ${actor(admin)} SELECT count(*) FROM public.rota_pernoites; ROLLBACK;`)).toMatch(/\n1\s*$/);
-    expect(sql(`BEGIN; ${base} SET LOCAL ROLE authenticated; ${actor()} SELECT count(*) FROM public.rota_pernoites; ROLLBACK;`)).toMatch(/\n1\s*$/);
+    expect(sql(`BEGIN; ${base} SET LOCAL ROLE authenticated; ${actor(outro)} SELECT count(*) FROM public.rota_pernoites; ROLLBACK;`)).toMatch(/\n0\nROLLBACK/);
+    expect(sql(`BEGIN; ${base} SET LOCAL ROLE authenticated; ${actor(admin)} SELECT count(*) FROM public.rota_pernoites; ROLLBACK;`)).toMatch(/\n1\nROLLBACK/g);
+    expect(sql(`BEGIN; ${base} SET LOCAL ROLE authenticated; ${actor()} SELECT count(*) FROM public.rota_pernoites; ROLLBACK;`)).toMatch(/\n1\nROLLBACK/g);
   });
   it('rota antiga (só data_rota) vira viagem de 1 dia', () => expect(sql(`BEGIN; ${fixture()} SELECT (data_inicio=data_rota AND data_fim=data_rota)::text FROM public.rotas; SELECT (dia IS NULL)::text FROM public.rota_paradas; ROLLBACK;`)).toContain('true\ntrue'));
   it('data_rota acompanha o início e fim antes do início é recusado', () => {
