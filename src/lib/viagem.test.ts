@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assinaturaTrajeto, custoViagem, diasDaViagem, planoPorDia } from "./viagem";
+import { assinaturaTrajeto, custoViagem, diasDaViagem, noitesDaViagem, noitesSemRegistro, planoPorDia, validarNoite } from "./viagem";
 
 const base = { lat: -23.4253, lng: -51.9386 };
 const p = (id: string, dia: string, ordem: number, lat: number, lng: number, tipo = "visita", valor_diaria_est: number | null = null) =>
@@ -18,24 +18,30 @@ describe("viagem de vários dias", () => {
     expect(pl[0].destinoId).toBeNull();
   });
 
-  it("pernoite fecha o dia e é a partida do dia seguinte", () => {
+  it("dia não é planejado: um só percurso pela ordem, pernoites antigos ignorados", () => {
     const pl = planoPorDia(base, [
-      p("a", "2026-11-10", 0, -24, -52),
+      p("b", "2026-11-11", 1, -25, -53),
       p("h", "2026-11-10", 5, -24.5, -52.5, "pernoite", 250),
-      p("b", "2026-11-11", 0, -25, -53),
-    ], "2026-11-10", "2026-11-11");
-    expect(pl).toHaveLength(2);
-    expect(pl[0].destinoId).toBe("h");
-    expect(pl[0].waypoints.map((w) => w.id)).toEqual(["a"]);
-    expect(pl[1].origemId).toBe("h");
-    expect(pl[1].origem).toEqual({ lat: -24.5, lng: -52.5 });
-    expect(pl[1].destinoId).toBeNull();
+      p("a", "2026-11-12", 0, -24, -52),
+    ], "2026-11-10", "2026-11-12");
+    expect(pl).toHaveLength(1);
+    expect(pl[0].waypoints.map((w) => w.id)).toEqual(["a", "b"]);
+    expect(pl[0].origemId).toBeNull();
+    expect(pl[0].destinoId).toBeNull();
   });
 
-  it("pernoite cadastrado antes das visitas continua sendo o fim do dia", () => {
-    const pl = planoPorDia(base, [p("h", "2026-11-10", 0, -24.5, -52.5, "pernoite", 200), p("a", "2026-11-10", 1, -24, -52)], "2026-11-10", "2026-11-11");
-    expect(pl[0].waypoints.map((w) => w.id)).toEqual(["a"]);
-    expect(pl[0].destinoId).toBe("h");
+  it("noites: de início até fim − 1, e faltantes", () => {
+    expect(noitesDaViagem("2026-11-10", "2026-11-12")).toEqual(["2026-11-10", "2026-11-11"]);
+    expect(noitesDaViagem("2026-11-10", "2026-11-10")).toEqual([]);
+    expect(noitesSemRegistro("2026-11-10", "2026-11-13", ["2026-11-11"])).toEqual(["2026-11-10", "2026-11-12"]);
+  });
+
+  it("validação da noite espelha o banco", () => {
+    expect(validarNoite({ tipo: "hotel", cidade: "Passo Fundo", estado: "RS", hotel_nome: "Hotel X", valor: 250, temNota: true })).toEqual([]);
+    expect(validarNoite({ tipo: "hotel", cidade: "Passo Fundo", estado: "RS", hotel_nome: "Hotel X", valor: 250, temNota: false })).toContain("Anexe a foto da nota.");
+    expect(validarNoite({ tipo: "sem_custo", cidade: "Passo Fundo", estado: "RS", observacao: " " })).toContain("Explique por que não houve hotel nesta noite.");
+    expect(validarNoite({ tipo: "voltou_base", observacao: "Voltei para Maringá" })).toEqual([]);
+    expect(validarNoite({ tipo: "sem_custo", cidade: "Passo Fundo", estado: "rs", observacao: "casa do cliente" })).toContain("Informe cidade e UF de onde dormiu.");
   });
 
   it("custo: combustível S10 diesel, hospedagem e alimentação opcional", () => {
@@ -45,7 +51,8 @@ describe("viagem de vários dias", () => {
     expect(c.hospedagem).toBe(430);
     expect(c.alimentacao).toBeNull();
     expect(c.total).toBe(1137.4);
-    const com = custoViagem({ km: 1000, consumoKmL: 10, precoLitro: 6.3, pedagio: null, diarias: [], alimentacaoDia: 80, dias: 3 });
+    const com = custoViagem({ km: 1000, consumoKmL: 10, precoLitro: 6.3, pedagio: null, alimentacaoDia: 80, dias: 3 });
+    expect(com.hospedagem).toBe(0);
     expect(com.combustivel).toBe(630);
     expect(com.alimentacao).toBe(240);
     expect(com.total).toBe(870);
