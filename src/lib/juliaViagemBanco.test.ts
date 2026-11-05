@@ -1,0 +1,50 @@
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { beforeAll, describe, expect, it } from 'vitest';
+// Only a freshly initialized local disposable database; never a hosted connection.
+const url=process.env.JULIA_TEST_DATABASE_URL;
+const sql=(q:string)=>execFileSync('psql',[url??'','-X','-v','ON_ERROR_STOP=1','-At','-c',q],{encoding:'utf8',stdio:['pipe','pipe','pipe']});
+const v='0488a4f9-5a4a-4cac-a564-beec5fb21757',a='660c2932-4404-48ca-ad2d-c76862bb9d74',o='00000000-0000-0000-0000-000000000003';
+const r='10000000-0000-0000-0000-000000000001',p='20000000-0000-0000-0000-000000000001';
+const d="(now() AT TIME ZONE 'America/Sao_Paulo')::date";
+const actor=(id=v)=>`SELECT set_config('request.jwt.claim.sub','${id}',true);`;
+const run=(q:string)=>sql(`BEGIN; ${q} ROLLBACK;`);
+const error=(q:string)=>{try{run(q);return '';}catch(e){return String((e as {stderr:string}).stderr);}};
+const fixture=()=>`${actor()} INSERT INTO public.rotas(id,vendedor_id,data_rota,data_inicio,data_fim) VALUES('${r}','${v}',${d},${d},${d}+1); INSERT INTO public.rota_paradas(id,rota_id,tipo,objetivo) VALUES('${p}','${r}','prospeccao','Apresentar LS'); UPDATE public.rotas SET status='aguardando_aprovacao'; ${actor(a)} UPDATE public.rotas SET status='aprovada'; ${actor()}`;
+const call=()=>`SELECT (public.julia_reservar_ligacao('${r}','inicial',(${d}::text||' 20:00:00-03')::timestamptz)).id; UPDATE public.ligacoes_viagem SET status='em_andamento';`;
+const voice=(action:string,body:object)=>`SELECT public.julia_registrar_voz((SELECT id FROM public.ligacoes_viagem LIMIT 1),'${r}','${action}','${JSON.stringify(body)}'::jsonb);`;
+describe.skipIf(!url)('Júlia SQL proposta — banco descartável',()=>{
+ beforeAll(()=>{
+  if(!url?.startsWith('postgresql://lovable@localhost:55439/'))throw new Error('Use somente o PostgreSQL descartável local na porta 55439.');
+  // Existing suite bootstraps the actual route migrations and validates 28 invariants first.
+  execFileSync('bunx',['vitest','run','src/lib/rotasBanco.test.ts'],{env:{...process.env,ROTAS_TEST_DATABASE_URL:url},stdio:'pipe'});
+  sql(`ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'rtv';`);
+  sql(`GRANT USAGE ON SCHEMA public,auth TO authenticated,anon,service_role;
+   CREATE TABLE public.profiles(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid UNIQUE,nome text);
+   INSERT INTO public.profiles(user_id,nome) VALUES('${v}','Flávio'),('${a}','Damian');
+   INSERT INTO public.user_roles VALUES('${v}','comercial'),('${a}','admin');
+   GRANT SELECT,UPDATE,INSERT ON public.profiles TO authenticated;
+   CREATE TABLE public.atividades(id uuid PRIMARY KEY,concluida boolean,data_conclusao timestamptz,resultado text);
+   ALTER TABLE public.rota_gastos ADD COLUMN descricao text;
+   CREATE TABLE public.rota_diario(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),rota_id uuid,parada_id uuid,organizacao_id uuid,autor_id uuid,texto text,registrado_em timestamptz DEFAULT now());
+   CREATE FUNCTION public.fn_pode_escrever_diario(_user uuid,_rota uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS(SELECT 1 FROM public.rotas WHERE id=_rota AND vendedor_id=_user AND status='aprovada' AND ${d} BETWEEN data_inicio AND data_fim+1) $$;`);
+  sql(readFileSync('docs/sql/julia-viagem-proposta.sql','utf8'));
+  sql(readFileSync('docs/sql/julia-viagem-proposta.sql','utf8'));
+ },60000);
+ it('celulares seed e início desativado às 16h',()=>{expect(sql(`SELECT celular FROM public.profiles WHERE user_id='${v}'; SELECT ligacao_ativa,contato_hora FROM public.viagem_parametros;`)).toContain('+5544991498825');expect(sql('SELECT ligacao_ativa,contato_hora FROM public.viagem_parametros;')).toContain('f|16:00:00');});
+ it('celular inválido recusado',()=>expect(error(`UPDATE public.profiles SET celular='123';`)).toContain('profiles_celular_e164'));
+ it('não admin não altera celular',()=>expect(error(`${actor()} SET LOCAL ROLE authenticated; UPDATE public.profiles SET celular='+5544999999999' WHERE user_id='${v}';`)).toContain('Só o administrador'));
+ it('admin altera celular',()=>expect(error(`${actor(a)} SET LOCAL ROLE authenticated; UPDATE public.profiles SET celular='+5544999999999' WHERE user_id='${v}';`)).toBe(''));
+ it('reserva inicial repetida não duplica',()=>expect(run(`${fixture()} ${call()} SELECT public.julia_reservar_ligacao('${r}','inicial',(${d}::text||' 20:00:00-03')::timestamptz); SELECT count(*) FROM public.ligacoes_viagem;`)).toMatch(/\n1\n/));
+ it('máximo 3 tentativas recusando quarta',()=>expect(error(`${fixture()} ${call()} SELECT public.julia_reservar_ligacao('${r}','retentativa',(${d}::text||' 20:00:00-03')::timestamptz); SELECT public.julia_reservar_ligacao('${r}','retorno',(${d}::text||' 21:00:00-03')::timestamptz); SELECT public.julia_reservar_ligacao('${r}','teste',(${d}::text||' 21:00:00-03')::timestamptz,'${a}',true);`)).toContain('3 tentativas'));
+ it('agendamento depois 22h recusado',()=>expect(error(`${fixture()} SELECT public.julia_reservar_ligacao('${r}','inicial',(${d}::text||' 22:01:00-03')::timestamptz);`)).toContain('até 22h'));
+ it('outro admin não pode usar teste Damian',()=>expect(error(`${fixture()} SELECT public.julia_reservar_ligacao('${r}','teste',(${d}::text||' 20:00:00-03')::timestamptz,'${o}',true);`)).toContain('Damian'));
+ it('RLS de ligação: dono e admin sim, outro não',()=>{for(const[id,n]of[[v,1],[a,1],[o,0]]as const)expect(run(`${fixture()} ${call()} ${actor(id)} SET LOCAL ROLE authenticated; SELECT count(*) FROM public.ligacoes_viagem;`)).toMatch(new RegExp(`\\n${n}\\n`));});
+ it('app cancela sem apagar, só dono escolhe',()=>{expect(run(`${fixture()} ${call()} UPDATE public.ligacoes_viagem SET status='aguardando_escolha'; ${actor()} SET LOCAL ROLE authenticated; SELECT public.julia_escolher_contato((SELECT id FROM public.ligacoes_viagem),'app'); RESET ROLE; SELECT status FROM public.ligacoes_viagem;`)).toContain('cancelada');expect(error(`${fixture()} ${call()} ${actor(o)} SELECT public.julia_escolher_contato((SELECT id FROM public.ligacoes_viagem),'app');`)).toContain('sua viagem');});
+ it('voz mantém dia BRT, atividade e diário atomicamente sem reaprovação',()=>{const q=run(`${fixture()} INSERT INTO public.atividades VALUES('${p}',false,NULL,NULL); ALTER TABLE public.rota_paradas DISABLE TRIGGER USER; UPDATE public.rota_paradas SET atividade_id='${p}'; ALTER TABLE public.rota_paradas ENABLE TRIGGER USER; ${call()} ${voice('registrar_visita',{parada_id:p,visitada:true,resultado:'Pediu proposta LSB150'})} SELECT (dia=${d})::text FROM public.rota_paradas; SELECT status FROM public.rotas; SELECT concluida,resultado FROM public.atividades; SELECT texto FROM public.rota_diario;`);expect(q).toContain('true');expect(q).toContain('aprovada');expect(q).toContain('t|Pediu proposta LSB150');expect(q).toContain('Júlia — Pediu proposta LSB150');});
+ it('ferramenta recusa outra rota e RPC não é público',()=>{expect(error(`${fixture()} ${call()} SELECT public.julia_registrar_voz((SELECT id FROM public.ligacoes_viagem),'10000000-0000-0000-0000-000000000099','registrar_visita','{}');`)).toContain('Ligação não está ativa');expect(error(`${fixture()} ${call()} SET LOCAL ROLE authenticated; ${voice('registrar_visita',{parada_id:p,visitada:true,resultado:'X'})}`)).toContain('permission denied'));});
+ it('hotel sem foto aceito, mas concluir exige foto',()=>{expect(error(`${fixture()} ${call()} ${voice('registrar_pernoite',{tipo:'hotel',cidade:'Não-Me-Toque',uf:'RS',hotel_nome:'Hotel LS',valor:200})}`)).toBe('');expect(error(`${fixture()} ${call()} ${voice('registrar_pernoite',{tipo:'hotel',cidade:'Não-Me-Toque',uf:'RS',hotel_nome:'Hotel LS',valor:200})} ${voice('registrar_visita',{parada_id:p,visitada:false,motivo:'Não houve tempo'})} UPDATE public.rotas SET status='concluida';`)).toContain('foto da nota'));});
+ it('após foto pode concluir, sem perder noites obrigatórias',()=>{expect(error(`${fixture()} ${call()} ${voice('registrar_pernoite',{tipo:'hotel',cidade:'Não-Me-Toque',uf:'RS',hotel_nome:'Hotel LS',valor:200})} ${voice('registrar_visita',{parada_id:p,visitada:true,resultado:'Reunião realizada'})} UPDATE public.rota_gastos SET arquivo_path='${r}/notas/nota.jpg'; UPDATE public.rotas SET status='concluida';`)).toBe('');expect(error(`${fixture()} ${call()} ${voice('registrar_visita',{parada_id:p,visitada:true,resultado:'Reunião realizada'})} UPDATE public.rotas SET status='concluida';`)).toContain('Registre onde dormiu'));});
+ it('hotel sem gasto e sem custo sem justificativa recusados',()=>{expect(error(`${fixture()} INSERT INTO public.rota_pernoites(rota_id,noite,tipo,cidade,estado,hotel_nome,autor_id) VALUES('${r}',${d},'hotel','Maringá','PR','Hotel','${v}');`)).toContain('gasto de hotel');expect(error(`${fixture()} ${call()} ${voice('registrar_pernoite',{tipo:'sem_custo',cidade:'Maringá',uf:'PR'})}`)).toContain('Explique por que'));});
+ it('último dia não aceita pernoite por voz',()=>expect(error(`${fixture()} ALTER TABLE public.rotas DISABLE TRIGGER USER; UPDATE public.rotas SET data_fim=${d}; ALTER TABLE public.rotas ENABLE TRIGGER USER; ${call()} ${voice('registrar_pernoite',{tipo:'voltou_base',observacao:'Voltei para casa'})}`)).toContain('Último dia'));
+});
