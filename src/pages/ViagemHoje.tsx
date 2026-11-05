@@ -22,6 +22,9 @@ import InformativoDialog from "@/components/viagens/InformativoDialog";
 import DiarioTimeline from "@/components/viagens/DiarioTimeline";
 import GastosViagem from "@/components/viagens/GastosViagem";
 import RelatorioDiaDialog from "@/components/viagens/RelatorioDiaDialog";
+import JuliaContatoCard from "@/components/viagens/JuliaContatoCard";
+import NotasHotelPendentes from "@/components/viagens/NotasHotelPendentes";
+import NotificacoesSino from "@/components/NotificacoesSino";
 
 const nomeParada = (p: RotaParada) => p.organizacao?.nome_fantasia || p.organizacao?.nome || p.cidade || "Parada";
 
@@ -126,9 +129,12 @@ export default function ViagemHoje() {
           <h1 className="font-semibold leading-tight">Viagem de hoje</h1>
           <p className="text-xs text-muted-foreground">{paradas.length - pendentes.length} de {paradas.length} paradas informadas{noites.length ? ` · ${noites.length - faltam.length} de ${noites.length} noites` : ""}</p>
         </div>
+        <NotificacoesSino />
         <Button variant="outline" size="sm" onClick={() => navigate(`/viagens/${id}/acompanhar`)}><Map className="w-4 h-4 mr-1" />Acompanhar</Button>
       </header>
       <main className="max-w-xl mx-auto p-3 space-y-3">
+        {dono && rota.status === "aprovada" && <JuliaContatoCard rotaId={id} />}
+        <NotasHotelPendentes rotaId={id} pernoites={pernoites} gastos={gastos} editavel={(dono && podeLancarGasto(rota)) || isAdmin} />
         {rota.status !== "aprovada" && <Card className="p-3 text-sm">Esta viagem não está aprovada — a prestação e o diário ficam disponíveis só em viagens aprovadas.</Card>}
         {registraNoite && faltam.some((n) => n < hoje) && (
           <Card className="p-3 text-sm border-warning/50 bg-warning/10">Falta registrar onde dormiu em {faltam.filter((n) => n < hoje).map(diaRota).join(", ")}. <Button variant="link" className="p-0 h-auto" onClick={() => abrirNoite(faltam[0])}>Registrar agora</Button></Card>

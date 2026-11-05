@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Save } from "lucide-react";
 import { toast } from "sonner";
+import JuliaConfiguracao from "@/components/viagens/JuliaConfiguracao";
 
 type Linha = Omit<Veiculo, "consumo_km_l" | "base_lat" | "base_lng"> & { consumo: string; lat: string; lng: string; novo?: boolean };
 const coord = (s: string) => (s.trim() === "" ? null : Number(s.trim().replace(",", ".")));
@@ -100,6 +101,7 @@ export default function ConfiguracoesViagens() {
             </table>
           </div>
         </Card>
+        <JuliaConfiguracao />
       </main>
     </div>
   );

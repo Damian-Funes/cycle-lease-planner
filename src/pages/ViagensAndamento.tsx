@@ -9,6 +9,7 @@ import { viagensEmAndamento } from "@/lib/viagemDados";
 import { haQuantoTempo } from "@/lib/viagemDiario";
 import { noitesDaViagem, TIPOS_NOITE } from "@/lib/viagem";
 import { formatBRL } from "@/lib/smartcycle";
+import JuliaLigacoes from "@/components/viagens/JuliaLigacoes";
 
 export default function ViagensAndamento() {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ export default function ViagensAndamento() {
               <div className="flex-1 min-w-56 text-sm">
                 {r.ultimo ? <><p className="line-clamp-2">{r.ultimo.texto}</p><p className="text-xs text-muted-foreground">Último informativo {haQuantoTempo(r.ultimo.registrado_em)}</p></> : <p className="text-muted-foreground">Sem informativos ainda</p>}
               </div>
+              <JuliaLigacoes rotaId={r.id} admin compacto />
             </Card>
           );
         })}

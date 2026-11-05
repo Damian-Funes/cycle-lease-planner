@@ -3,10 +3,11 @@
 - Budget deep links apply a Typical and client/deal links independently, including when starting a new budget, to preserve diagnostic handoffs.
 - Travel authorization uses database triggers as the authority; shared route validation helpers only provide early UI feedback.
 - Route accounting reuses the activity completion dialog through optional callbacks and required-result props; existing callers retain their behavior.
-- Júlia integration is client-only: read existing Supabase call records and invoke the existing initiation function; never duplicate backend analysis or write call records from the browser.
+- Legacy Júlia history stays read-only; never modify externally deployed julia-* functions. Travel voice uses distinct julia-viagem-* functions and transactional service-only RPCs to preserve route triggers and seller identity.
 - Share Júlia labels, transcript parsing and call queries across budget, deal and reporting views to keep their interpretation consistent.- Multi-day trips keep `rotas.data_rota` equal to `data_inicio` via trigger so legacy readers keep working; "past trip" rules use `data_fim`, stop accounting opens at `data_inicio`.
 - Seller departure base is data on `veiculos` (trip vehicle → seller vehicle → Maringá fallback), shared by frontend and toll function; never hardcode per-user bases.
 - Trip routing (single path by stop order) and cost are pure functions in `src/lib/viagem.ts`; the toll edge function duplicates `assinaturaTrajeto` so an unchanged route never re-spends QualP credits.
 - `rota_paradas.dia` is the realized day, written by the trigger in BRT when the stop is accounted (never planned); nights live in `rota_pernoites`, validated by trigger and required per night to conclude, so the DB stays the authority.
 - Toll estimates are written only by the server function (trigger keeps client writes out); the seller-facing cost snapshot is frozen when sent for approval.
 - Trip logbook/expense access windows live in SQL helpers (`fn_pode_escrever_diario`, `fn_pode_lancar_gasto`, `fn_pode_ver_rota`); `src/lib/viagemDiario.ts` mirrors them only for UI hints. Storage policies on the `viagens` bucket wrap UUID casts in `CASE bucket_id` + `fn_uuid_seguro` so other buckets never hit a cast error.
+- Travel voice rules and extensible daily-pending contracts live under functions/_shared and are re-exported for frontend/tests; proposed SQL stays in docs/sql until explicit migration approval, and UI checks schema readiness before querying new tables.

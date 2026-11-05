@@ -3,13 +3,14 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LogOut, User as UserIcon, Users, Home, Plug, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import NotificacoesSino from "@/components/NotificacoesSino";
 
 export default function AppHeader() {
   const { profile, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
 
   return (
-    <DropdownMenu>
+    <div className="flex items-center gap-1"><NotificacoesSino /><DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2">
           <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
@@ -59,6 +60,6 @@ export default function AppHeader() {
           <LogOut className="w-4 h-4" /> Sair
         </DropdownMenuItem>
       </DropdownMenuContent>
-    </DropdownMenu>
+    </DropdownMenu></div>
   );
 }
