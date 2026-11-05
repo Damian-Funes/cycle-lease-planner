@@ -39,7 +39,8 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Testes.
 
 # Júlia só para vendedores (fechamento do dia por voz)
-- [ ] Plano pronto, aguardando aprovação do usuário.
+- [ ] Código de voz, pendências, notificações, testes e documentação ElevenLabs.
+- [ ] Migration e cron — preparar SQL completo; aplicação bloqueada até aprovação explícita.
 
 # WhatsApp: status da conta (somente leitura)
 - [x] Função whatsapp-status (admin, Graph API v21.0).
