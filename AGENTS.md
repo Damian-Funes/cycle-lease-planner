@@ -13,3 +13,4 @@
 - Travel voice rules and extensible daily-pending contracts live under functions/_shared and are re-exported for frontend/tests; proposed SQL stays in docs/sql until explicit migration approval, and UI checks schema readiness before querying new tables.
 - Visit debrief validation is shared by voice and tests and enforced again by SQL; the service-only voice transaction creates any confirmed next-step activity and stores its ID in the debrief atomically, without changing planning fields.
 - Julia configuration queries fail independently and keep the card visible; the test trip selector queries only approved current-period routes without diary/expense joins to avoid unrelated access failures.
+- Travel ElevenLabs configuration and provider-error sanitization live in a pure function-local helper so URL normalization, telephony selection, and credential redaction can be tested without making calls.
