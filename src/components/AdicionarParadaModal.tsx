@@ -1,20 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Search, Plus } from "lucide-react";
-import { loadGoogleMaps, geocodeAddress } from "@/lib/maps";
+import { geocodeAddress } from "@/lib/maps";
 import { buscarOrganizacoesProximas, semaforoVisita, type OrganizacaoProxima } from "@/lib/rotas";
 import { toast } from "sonner";
+import { useCidadeAutocomplete, type CidadeSugestao } from "@/components/CidadeAutocomplete";
 import { Label } from '@/components/ui/label';
-
-interface CidadeSugestao {
-  placeId: string;
-  descricao: string;
-  cidade: string;
-  estado: string;
-}
 
 interface Props {
   open: boolean;
@@ -24,76 +18,28 @@ interface Props {
   onObjetivo?: (objetivo: string) => void;
 }
 
-const SIGLA_RE = /\b([A-Z]{2})\b/;
 
 export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrganizacao, onAddProspeccao, onObjetivo }: Props) {
   const [objetivo, setObjetivo] = useState('');
   const [query, setQuery] = useState("");
-  const [sugestoes, setSugestoes] = useState<CidadeSugestao[]>([]);
-  const [loadingSugest, setLoadingSugest] = useState(false);
   const [cidadeSel, setCidadeSel] = useState<{ nome: string; estado: string; lat: number; lng: number } | null>(null);
   const [orgs, setOrgs] = useState<OrganizacaoProxima[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(false);
-  const sessionTokenRef = useRef<any>(null);
+  const { sugestoes, carregando: loadingSugest, encerrar } = useCidadeAutocomplete(query, open && !cidadeSel);
 
   useEffect(() => {
     if (!open) {
       setObjetivo('');
-      setQuery(""); setSugestoes([]); setCidadeSel(null); setOrgs([]);
-      sessionTokenRef.current = null;
+      setQuery(""); setCidadeSel(null); setOrgs([]);
+      encerrar();
     }
   }, [open]);
-
-  useEffect(() => {
-    if (cidadeSel) return;
-    const q = query.trim();
-    if (q.length < 2) { setSugestoes([]); return; }
-    let cancelled = false;
-    const t = setTimeout(async () => {
-      try {
-        setLoadingSugest(true);
-        const g = await loadGoogleMaps();
-        const { AutocompleteSuggestion, AutocompleteSessionToken } = await g.maps.importLibrary("places");
-        if (!sessionTokenRef.current) sessionTokenRef.current = new AutocompleteSessionToken();
-        const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
-          input: q,
-          sessionToken: sessionTokenRef.current,
-          language: "pt-BR",
-          region: "br",
-          includedRegionCodes: ["br"],
-          includedPrimaryTypes: ["locality", "administrative_area_level_2"],
-        });
-        if (cancelled) return;
-        const mapped: CidadeSugestao[] = (suggestions ?? [])
-          .map((s: any) => {
-            const p = s.placePrediction;
-            if (!p) return null;
-            const principal = p.mainText?.text ?? "";
-            const sec = p.secondaryText?.text ?? "";
-            const m = sec.match(SIGLA_RE);
-            return {
-              placeId: p.placeId,
-              descricao: `${principal}${sec ? `, ${sec}` : ""}`,
-              cidade: principal,
-              estado: m?.[1] ?? "",
-            };
-          })
-          .filter(Boolean) as CidadeSugestao[];
-        setSugestoes(mapped);
-      } catch (e) {
-        console.warn(e);
-      } finally {
-        if (!cancelled) setLoadingSugest(false);
-      }
-    }, 250);
-    return () => { cancelled = true; clearTimeout(t); };
-  }, [query, cidadeSel]);
 
   async function selecionarCidade(s: CidadeSugestao) {
     try {
       setLoadingOrgs(true);
       setQuery(s.descricao);
-      setSugestoes([]);
+      encerrar();
       const coords = await geocodeAddress(s.descricao);
       if (!coords) { toast.error("Não foi possível localizar a cidade"); return; }
       const cidade = { nome: s.cidade, estado: s.estado, ...coords };

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { geocodeAddress } from "@/lib/maps";
+import { geocodeAddress, loadGoogleMaps } from "@/lib/maps";
+import { cidadeDeResultados, normalizarUf } from "@/lib/cidadeGeo";
+import CidadeAutocomplete from "@/components/CidadeAutocomplete";
 import { diaRota } from "@/lib/rotasFluxo";
 import { parseValorBR as parseBRL } from "@/lib/viagem";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -33,9 +35,40 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
     if (!open) return;
     setDia(diaInicial); setHotel(""); setValor(""); setCoord(null); setSugs(null); setAviso(null);
     const ref = pontoReferencia(diaInicial);
-    setCidade(ref?.cidade ?? ""); setUf(ref?.estado ?? "");
+    setCidade(ref?.cidade ?? ""); setUf(normalizarUf(ref?.estado));
+    if (ref && !ref.cidade?.trim()) preencherPorCoordenada(ref);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, diaInicial]);
+
+  // Geocodificação reversa da última parada do dia (cidade = locality, UF = sigla)
+  async function preencherPorCoordenada(ref: { lat: number; lng: number }) {
+    try {
+      const g = await loadGoogleMaps();
+      const res: any = await new g.maps.Geocoder().geocode({ location: ref, language: "pt-BR" } as any);
+      const x = cidadeDeResultados(res?.results);
+      if (!x) return;
+      setCidade((atual) => atual.trim() ? atual : x.cidade);
+      setUf((atual) => atual ? atual : x.uf);
+      setAviso((a) => a ?? `Cidade sugerida: ${x.cidade}${x.uf ? ` - ${x.uf}` : ""} (pode corrigir).`);
+    } catch (e) { console.warn("[pernoite] geocodificação reversa", e); }
+  }
+
+  // Hotel digitado à mão: localizar pelo nome perto da última parada do dia
+  async function localizarHotelDigitado() {
+    const nome = hotel.trim();
+    if (nome.length < 2 || cidade.trim() || coord) return;
+    const ref = pontoReferencia(dia);
+    if (!ref) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("hoteis-proximos", { body: { lat: ref.lat, lng: ref.lng, texto: nome } });
+      const h: HotelSug | undefined = !error && !data?.indisponivel ? data?.hoteis?.[0] : undefined;
+      if (!h?.cidade) return;
+      setCidade((a) => a.trim() ? a : h.cidade!);
+      setUf((a) => a ? a : normalizarUf(h.uf));
+      if (Number.isFinite(h.lat) && Number.isFinite(h.lng)) setCoord({ lat: h.lat, lng: h.lng });
+      setAviso(`Encontrei "${h.nome}" em ${h.cidade}${h.uf ? ` - ${h.uf}` : ""}. Confira a cidade.`);
+    } catch (e) { console.warn("[pernoite] localizar hotel", e); }
+  }
 
   async function sugerir() {
     const ref = pontoReferencia(dia);
@@ -52,13 +85,14 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
   function escolher(h: HotelSug) {
     setHotel(h.nome); setCoord({ lat: h.lat, lng: h.lng });
     if (h.cidade) setCidade(h.cidade);
-    if (h.uf) setUf(h.uf);
+    if (h.uf) setUf(normalizarUf(h.uf));
   }
 
   async function salvar() {
     const v = parseBRL(valor);
     if (!hotel.trim()) { toast.error("Informe o hotel"); return; }
     if (!cidade.trim()) { toast.error("Informe a cidade"); return; }
+    if (uf && !/^[A-Z]{2}$/.test(uf)) { toast.error("UF deve ser a sigla com 2 letras (ex.: RS)"); return; }
     if (!(v >= 0) || !valor.trim()) { toast.error("Informe o valor estimado da diária"); return; }
     setSalvando(true);
     try {
@@ -96,10 +130,11 @@ export default function PernoiteDialog({ open, onOpenChange, dias, diaInicial, p
               ))}
             </ul>
           )}
-          <div><Label htmlFor="pernoite-hotel">Hotel *</Label><Input id="pernoite-hotel" value={hotel} onChange={(e) => { setHotel(e.target.value); setCoord(null); }} placeholder="Nome do hotel" /></div>
+          <div><Label htmlFor="pernoite-hotel">Hotel *</Label><Input id="pernoite-hotel" value={hotel} onChange={(e) => { setHotel(e.target.value); setCoord(null); }} onBlur={localizarHotelDigitado} placeholder="Nome do hotel" /></div>
           <div className="grid grid-cols-[1fr_80px] gap-2">
-            <div><Label htmlFor="pernoite-cidade">Cidade *</Label><Input id="pernoite-cidade" value={cidade} onChange={(e) => { setCidade(e.target.value); setCoord(null); }} /></div>
-            <div><Label htmlFor="pernoite-uf">UF</Label><Input id="pernoite-uf" maxLength={2} value={uf} onChange={(e) => { setUf(e.target.value); setCoord(null); }} /></div>
+            <div><Label htmlFor="pernoite-cidade">Cidade *</Label><CidadeAutocomplete id="pernoite-cidade" value={cidade} onChange={(v) => { setCidade(v); setCoord(null); }}
+              onEscolher={(c) => { setCidade(c.nome); if (c.estado) setUf(normalizarUf(c.estado)); setCoord({ lat: c.lat, lng: c.lng }); }} /></div>
+            <div><Label htmlFor="pernoite-uf">UF</Label><Input id="pernoite-uf" maxLength={2} value={uf} placeholder="PR" onChange={(e) => { setUf(normalizarUf(e.target.value)); setCoord(null); }} /></div>
           </div>
           <div><Label htmlFor="pernoite-valor">Valor estimado da diária (R$) *</Label><Input id="pernoite-valor" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ex.: 250,00" /></div>
         </div>
