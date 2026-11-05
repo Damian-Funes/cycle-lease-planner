@@ -2,7 +2,7 @@
 
 export type Coord = { lat: number; lng: number };
 export type ParadaViagem = {
-  id: string; dia: string | null; ordem: number; tipo: string;
+  id: string; dia?: string | null; ordem: number; tipo: string;
   latitude: number | null; longitude: number | null;
   valor_diaria_est?: number | null;
 };
@@ -125,7 +125,7 @@ export function diaBRT(iso: string): string {
 
 /** Histórico por dia real: paradas informadas (dia gravado pelo banco), informativos, gastos e pernoite da noite. */
 export function agruparPorDiaRealizado<
-  P extends { dia: string | null; visitada: boolean | null; tipo: string },
+  P extends { dia?: string | null; visitada?: boolean | null; tipo: string },
   I extends { registrado_em: string },
   G extends { data: string },
   N extends { noite: string },
