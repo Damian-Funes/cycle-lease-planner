@@ -32,8 +32,8 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [ ] Coluna `coordenada_aproximada` — aguardando aprovação da SQL pelo usuário.
 
 # Viagens sem dia planejado
-- [ ] Migration: rota_pernoites (hotel/sem_custo/voltou_base), dia realizado, pernoite obrigatório por noite, dados existentes.
-- [ ] Planejamento sem dia/pernoite/diária (editor, aprovação, mapa, pedágio).
-- [ ] ViagemHoje: pendentes, hoje, histórico, fechar o dia, voltei para a base, encerrar.
-- [ ] Acompanhar/Andamento com dia real, pernoites e hotel real.
-- [ ] Testes.
+- [x] Migration: rota_pernoites (hotel/sem_custo/voltou_base), dia realizado, pernoite obrigatório por noite, dados existentes.
+- [x] Planejamento sem dia/pernoite/diária (editor, aprovação, mapa, pedágio).
+- [x] ViagemHoje: pendentes, hoje, histórico, fechar o dia, voltei para a base, encerrar.
+- [x] Acompanhar/Andamento com dia real, pernoites e hotel real.
+- [x] Testes.
