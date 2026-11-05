@@ -246,3 +246,10 @@ Nenhum dos dois scripts foi aplicado. 54 verificações SQL/dia e 39 callbacks n
 - https://elevenlabs.io/docs/eleven-agents/api-reference/integrations/twilio/outbound-call
 - https://elevenlabs.io/docs/eleven-agents/workflows/post-call-webhooks
 Call initiation failure contém conversation_id e failure_reason (busy/no-answer/unknown). Não tratar silêncio na transcrição como não atendeu.
+
+## Verificação desta entrega
+- 18 testes de SQL proposta em PostgreSQL descartável, aplicada duas vezes para idempotência.
+- 28 regressões de triggers de rotas, 11 de diário/gastos/storage.
+- 8 testes puros (incluindo HMAC), 5 Deno de acesso, 34 regressões unitárias de viagens/municípios/Júlia/WhatsApp.
+- Três funções verificadas com Deno; compilação da tela limpa.
+- Não verificados: telas autenticadas, upload real, chamada ElevenLabs/Twilio, webhook real e cron/Vault. Sem migration no Supabase, sem cron criado, sem chamadas ou WhatsApp.
