@@ -32,6 +32,11 @@ DO $$ DECLARE p record; BEGIN
 END $$;
 ALTER TABLE public.viagem_parametros ADD COLUMN IF NOT EXISTS ligacao_ativa boolean NOT NULL DEFAULT false;
 ALTER TABLE public.viagem_parametros ADD COLUMN IF NOT EXISTS contato_hora time NOT NULL DEFAULT '16:00';
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='public.viagem_parametros'::regclass AND conname='julia_contato_janela') THEN
+  ALTER TABLE public.viagem_parametros ADD CONSTRAINT julia_contato_janela CHECK(contato_hora>='15:50' AND contato_hora<'22:00');
+ END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.ligacoes_viagem (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), rota_id uuid NOT NULL REFERENCES public.rotas(id) ON DELETE CASCADE,
@@ -106,6 +111,7 @@ BEGIN
  IF p_teste AND (p_admin IS DISTINCT FROM '660c2932-4404-48ca-ad2d-c76862bb9d74'::uuid OR NOT public.has_role(p_admin,'admin')) THEN RAISE EXCEPTION 'Teste permitido somente ao Damian administrador.'; END IF;
  IF p_admin IS NOT NULL AND NOT public.has_role(p_admin,'admin') THEN RAISE EXCEPTION 'Somente admin.'; END IF;
  IF p_origem NOT IN ('inicial','retentativa','retorno','teste') OR p_teste<>(p_origem='teste') THEN RAISE EXCEPTION 'Origem inválida.'; END IF;
+ IF p_origem IN ('retorno','retentativa') AND NOT EXISTS(SELECT 1 FROM public.ligacoes_viagem WHERE vendedor_id=r.vendedor_id AND data_ref=d AND origem='inicial') THEN RAISE EXCEPTION 'Retorno exige tentativa inicial.'; END IF;
  IF (p_quando AT TIME ZONE 'America/Sao_Paulo')::date<>d OR (p_quando AT TIME ZONE 'America/Sao_Paulo')::time>'22:00' THEN RAISE EXCEPTION 'Agende hoje até 22h.'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(r.vendedor_id::text||d::text,0));
  SELECT * INTO l FROM public.ligacoes_viagem WHERE vendedor_id=r.vendedor_id AND data_ref=d AND origem=p_origem;
@@ -171,4 +177,33 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.julia_registrar_voz(uuid,uuid,text,jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.julia_registrar_voz(uuid,uuid,text,jsonb) TO service_role;
+
+-- Webhook inteiro em transação: uma entrega repetida não duplica diário/notificações/retry.
+CREATE OR REPLACE FUNCTION public.julia_finalizar_ligacao(p_conversa text,p_falha boolean,p_resumo text,p_transcricao jsonb,p_duracao integer)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE l public.ligacoes_viagem; n record; d date:=(now() AT TIME ZONE 'America/Sao_Paulo')::date; prox timestamptz:=now()+interval '30 minutes'; total integer;
+BEGIN
+ SELECT * INTO l FROM public.ligacoes_viagem WHERE conversation_id=p_conversa FOR UPDATE;
+ IF NOT FOUND THEN RETURN jsonb_build_object('ok',true,'ignorada',true); END IF;
+ IF l.status NOT IN ('discando','em_andamento') THEN RETURN jsonb_build_object('ok',true,'duplicada',true); END IF;
+ UPDATE public.ligacoes_viagem SET status=CASE WHEN p_falha THEN 'nao_atendeu' ELSE 'concluida' END,resumo=left(p_resumo,4500),transcricao=p_transcricao,duracao_s=p_duracao,updated_at=now() WHERE id=l.id;
+ IF NOT p_falha THEN
+  INSERT INTO public.rota_diario(rota_id,autor_id,texto) VALUES(l.rota_id,l.vendedor_id,'Ligação da Júlia: '||left(p_resumo,4500));
+ ELSIF NOT l.teste AND l.data_ref=d AND (prox AT TIME ZONE 'America/Sao_Paulo')::date=d AND (prox AT TIME ZONE 'America/Sao_Paulo')::time<'22:00' THEN
+  SELECT count(*) INTO total FROM public.ligacoes_viagem WHERE vendedor_id=l.vendedor_id AND data_ref=d;
+  IF total<3 AND NOT EXISTS(SELECT 1 FROM public.ligacoes_viagem WHERE vendedor_id=l.vendedor_id AND data_ref=d AND origem IN ('retentativa','retorno'))
+     AND EXISTS(SELECT 1 FROM public.rotas WHERE id=l.rota_id AND status='aprovada' AND d BETWEEN data_inicio AND data_fim) THEN
+   PERFORM public.julia_reservar_ligacao(l.rota_id,'retentativa',prox);
+  END IF;
+ END IF;
+ FOR n IN SELECT p.noite,p.gasto_id FROM public.rota_pernoites p JOIN public.rota_gastos g ON g.id=p.gasto_id WHERE p.rota_id=l.rota_id AND p.tipo='hotel' AND nullif(btrim(g.arquivo_path),'') IS NULL
+ LOOP
+  INSERT INTO public.notificacoes(user_id,tipo,titulo,texto,link,chave)
+   VALUES(l.vendedor_id,'julia_viagem','Envie a nota do hotel','Noite de '||to_char(n.noite,'DD/MM'),'/viagens/'||l.rota_id||'/hoje?nota='||n.gasto_id,'nota:'||n.gasto_id)
+   ON CONFLICT(user_id,chave) DO NOTHING;
+ END LOOP;
+ RETURN jsonb_build_object('ok',true);
+END $$;
+REVOKE ALL ON FUNCTION public.julia_finalizar_ligacao(text,boolean,text,jsonb,integer) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.julia_finalizar_ligacao(text,boolean,text,jsonb,integer) TO service_role;
 COMMIT;
