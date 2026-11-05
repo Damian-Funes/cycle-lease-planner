@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, MapPin, Search, Plus } from "lucide-react";
-import { loadGoogleMaps, geocodeAddress } from "@/lib/maps";
+import { geocodeAddress } from "@/lib/maps";
 import { buscarOrganizacoesProximas, semaforoVisita, type OrganizacaoProxima } from "@/lib/rotas";
 import { toast } from "sonner";
 import { useCidadeAutocomplete, type CidadeSugestao } from "@/components/CidadeAutocomplete";
@@ -22,14 +22,13 @@ interface Props {
 export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrganizacao, onAddProspeccao, onObjetivo }: Props) {
   const [objetivo, setObjetivo] = useState('');
   const [query, setQuery] = useState("");
-  const [sugestoes, setSugestoes] = useState<CidadeSugestao[]>([]);
-  const [loadingSugest, setLoadingSugest] = useState(false);
   const [cidadeSel, setCidadeSel] = useState<{ nome: string; estado: string; lat: number; lng: number } | null>(null);
   const [orgs, setOrgs] = useState<OrganizacaoProxima[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(false);
   const { sugestoes, carregando: loadingSugest, encerrar } = useCidadeAutocomplete(query, open && !cidadeSel);
 
   useEffect(() => {
+    if (!open) {
       setObjetivo('');
       setQuery(""); setCidadeSel(null); setOrgs([]);
       encerrar();
