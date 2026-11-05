@@ -42,7 +42,9 @@ export async function handler(req: Request) {
           if (l.solicitado_por !== DAMIAN_ID) throw new Error('Teste fora da whitelist.');
           const admin = check(await db.from('user_roles').select('role').eq('user_id', l.solicitado_por).eq('role','admin').maybeSingle());
           if (!admin) throw new Error('Teste exige admin.');
-          perfil = check(await db.from('profiles').select('user_id,nome,celular').eq('user_id', l.solicitado_por).single());
+          const perfilAdmin = check(await db.from('profiles').select('user_id,nome,celular').eq('user_id', l.solicitado_por).single());
+          if (!perfilAdmin) throw new Error('Perfil do admin não encontrado.');
+          perfil = perfilAdmin;
         }
         if (!perfil) throw new Error('Perfil do destinatário não encontrado.');
         if (!/^\+55[1-9]\d{9,10}$/.test(perfil.celular ?? '')) throw new Error('Celular do destinatário ausente ou inválido.');
