@@ -1,5 +1,65 @@
--- PROPOSTA: NÃO APLICADA. Executar somente após aprovação explícita do Damian.
+-- Aprovada pelo Damian: proposta original + relato de visita. Não inclui cron nem ativação.
 BEGIN;
+ALTER TABLE public.rota_paradas ADD COLUMN IF NOT EXISTS relato jsonb;
+
+-- Valida o mesmo contrato no banco, inclusive quando a gravação vem diretamente do CRM.
+CREATE OR REPLACE FUNCTION public.julia_validar_relato(p_relato jsonb) RETURNS jsonb
+LANGUAGE plpgsql SET search_path=public AS $$
+DECLARE k text; v jsonb; item jsonb; data_passo date;
+BEGIN
+ IF p_relato IS NULL THEN RETURN NULL; END IF;
+ IF jsonb_typeof(p_relato)<>'object' THEN RAISE EXCEPTION 'Relato precisa ser um objeto.'; END IF;
+ FOR k,v IN SELECT * FROM jsonb_each(p_relato) LOOP
+  IF k IN ('contato_nome','contato_cargo','decisores','equipamento_atual','problema_principal','motivo_interesse','concorrente','proximo_passo') THEN
+   IF jsonb_typeof(v)<>'string' OR length(btrim(v#>>'{}')) NOT BETWEEN 1 AND 500 THEN RAISE EXCEPTION 'Relato %: texto de até 500 caracteres.',k; END IF;
+  ELSIF k='sacos_safra' THEN
+   IF jsonb_typeof(v)<>'number' THEN RAISE EXCEPTION 'sacos_safra deve ser numérico.'; END IF;
+   IF (v#>>'{}')::numeric<0 THEN RAISE EXCEPTION 'sacos_safra deve ser maior ou igual a zero.'; END IF;
+  ELSIF k='interesse' THEN
+   IF jsonb_typeof(v)<>'string' OR v#>>'{}' NOT IN ('alto','medio','baixo') THEN RAISE EXCEPTION 'Interesse inválido.'; END IF;
+  ELSIF k='objecoes' THEN
+   IF jsonb_typeof(v)<>'array' THEN RAISE EXCEPTION 'Objeções precisam ser uma lista.'; END IF;
+   IF jsonb_array_length(v)>20 THEN RAISE EXCEPTION 'Máximo 20 objeções.'; END IF;
+   FOR item IN SELECT * FROM jsonb_array_elements(v) LOOP
+    IF jsonb_typeof(item)<>'string' OR length(btrim(item#>>'{}')) NOT BETWEEN 1 AND 500 THEN RAISE EXCEPTION 'Objeção: texto de até 500 caracteres.'; END IF;
+   END LOOP;
+  ELSIF k='proximo_passo_data' THEN
+   IF jsonb_typeof(v)<>'string' OR (v#>>'{}') !~ '^\d{4}-\d{2}-\d{2}$' THEN RAISE EXCEPTION 'Data do próximo passo inválida.'; END IF;
+   data_passo:=(v#>>'{}')::date;
+   IF data_passo<(now() AT TIME ZONE 'America/Sao_Paulo')::date THEN RAISE EXCEPTION 'Data do próximo passo não pode ser passada em BRT.'; END IF;
+  ELSIF k='atividade_id' THEN
+   PERFORM (v#>>'{}')::uuid; -- metadado atribuído pelo servidor, não aceito pela ferramenta
+  ELSE RAISE EXCEPTION 'Campo desconhecido no relato: %.',k;
+  END IF;
+ END LOOP;
+ RETURN p_relato;
+END $$;
+REVOKE ALL ON FUNCTION public.julia_validar_relato(jsonb) FROM PUBLIC,anon,authenticated;
+
+-- Guarda adicional: preserva integralmente as funções de proteção/reaprovação existentes.
+-- relato não entra nas comparações de planejamento; este trigger só protege o novo campo.
+CREATE OR REPLACE FUNCTION public.fn_paradas_relato_protecao() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE admin boolean:=coalesce(public.has_role(auth.uid(),'admin'),false); mudou boolean;
+BEGIN
+ mudou:=CASE WHEN TG_OP='INSERT' THEN NEW.relato IS NOT NULL ELSE NEW.relato IS DISTINCT FROM OLD.relato END;
+ IF NOT mudou THEN RETURN NEW; END IF;
+ IF NOT admin THEN
+  IF TG_OP='UPDATE' THEN
+   IF ROW(NEW.visitada,NEW.resultado,NEW.motivo_nao_visita) IS NOT DISTINCT FROM ROW(OLD.visitada,OLD.resultado,OLD.motivo_nao_visita) THEN RAISE EXCEPTION 'Relato só pode ser gravado junto com a prestação da visita.'; END IF;
+  END IF;
+  IF NEW.visitada IS DISTINCT FROM true OR nullif(btrim(NEW.resultado),'') IS NULL THEN RAISE EXCEPTION 'Relato exige visita realizada com resultado.'; END IF;
+ END IF;
+ -- Datas antigas permanecem válidas em correções admin que não alterem o compromisso.
+ IF TG_OP='UPDATE' AND admin AND NEW.relato->>'proximo_passo_data' IS NOT DISTINCT FROM OLD.relato->>'proximo_passo_data' THEN
+  PERFORM public.julia_validar_relato(NEW.relato-'proximo_passo_data');
+ ELSE PERFORM public.julia_validar_relato(NEW.relato); END IF;
+ IF NEW.relato ? 'atividade_id' AND NOT EXISTS(SELECT 1 FROM public.atividades a JOIN public.rotas r ON r.id=NEW.rota_id WHERE a.id=(NEW.relato->>'atividade_id')::uuid AND a.responsavel_id=r.vendedor_id AND a.organizacao_id=NEW.organizacao_id AND a.oportunidade_id IS NOT DISTINCT FROM NEW.oportunidade_id AND a.titulo='Próximo passo: '||(NEW.relato->>'proximo_passo')) THEN RAISE EXCEPTION 'Atividade do relato não corresponde à visita.'; END IF;
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.fn_paradas_relato_protecao() FROM PUBLIC,anon,authenticated;
+DROP TRIGGER IF EXISTS trg_paradas_relato_protecao ON public.rota_paradas;
+CREATE TRIGGER trg_paradas_relato_protecao BEFORE INSERT OR UPDATE ON public.rota_paradas FOR EACH ROW EXECUTE FUNCTION public.fn_paradas_relato_protecao();
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS celular text;
 DO $$ BEGIN
  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='public.profiles'::regclass AND conname='profiles_celular_e164') THEN
@@ -144,7 +204,7 @@ GRANT EXECUTE ON FUNCTION public.julia_escolher_contato(uuid,text) TO authentica
 -- Único ponto de gravação das ferramentas de voz: transação + identidade do dono para os triggers.
 CREATE OR REPLACE FUNCTION public.julia_registrar_voz(p_ligacao uuid,p_rota uuid,p_acao text,p_dados jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE l public.ligacoes_viagem; r public.rotas; p public.rota_paradas; g uuid; texto text; anterior text:=current_setting('request.jwt.claim.sub',true); n date;
+DECLARE l public.ligacoes_viagem; r public.rotas; p public.rota_paradas; g uuid; texto text; anterior text:=current_setting('request.jwt.claim.sub',true); n date; relato jsonb; atividade uuid; tipo_tarefa uuid; quando timestamptz;
 BEGIN
  SELECT * INTO l FROM public.ligacoes_viagem WHERE id=p_ligacao AND rota_id=p_rota FOR UPDATE;
  IF NOT FOUND OR l.status NOT IN ('discando','em_andamento') OR l.data_ref<>(now() AT TIME ZONE 'America/Sao_Paulo')::date THEN RAISE EXCEPTION 'Ligação não está ativa nesta viagem e data.'; END IF;
@@ -157,7 +217,18 @@ BEGIN
   IF p.visitada IS NOT NULL THEN RAISE EXCEPTION 'Parada já informada; corrija pelo CRM.'; END IF;
   texto:=nullif(btrim(CASE WHEN (p_dados->>'visitada')::boolean THEN p_dados->>'resultado' ELSE p_dados->>'motivo' END),'');
   IF texto IS NULL OR length(texto)>4500 THEN RAISE EXCEPTION 'Informe resultado ou motivo válido.'; END IF;
-  UPDATE public.rota_paradas SET visitada=(p_dados->>'visitada')::boolean,resultado=CASE WHEN (p_dados->>'visitada')::boolean THEN texto END,motivo_nao_visita=CASE WHEN NOT (p_dados->>'visitada')::boolean THEN texto END WHERE id=p.id;
+  SELECT coalesce(jsonb_object_agg(key,value),'{}'::jsonb) INTO relato FROM jsonb_each(p_dados) WHERE key IN ('contato_nome','contato_cargo','decisores','sacos_safra','equipamento_atual','problema_principal','interesse','motivo_interesse','objecoes','concorrente','proximo_passo','proximo_passo_data');
+  PERFORM public.julia_validar_relato(relato);
+  IF NOT (p_dados->>'visitada')::boolean AND relato<>'{}'::jsonb THEN RAISE EXCEPTION 'Relato detalhado somente para visita realizada.'; END IF;
+  IF (p_dados->>'visitada')::boolean AND relato ? 'proximo_passo' AND relato ? 'proximo_passo_data' AND p.organizacao_id IS NOT NULL THEN
+   SELECT id INTO tipo_tarefa FROM public.tipos_atividade WHERE ativo AND lower(nome)='tarefa' ORDER BY ordem,id LIMIT 1;
+   IF tipo_tarefa IS NULL THEN RAISE EXCEPTION 'Tipo Tarefa não está disponível na agenda.'; END IF;
+   quando:=((relato->>'proximo_passo_data')::date+time '09:00') AT TIME ZONE 'America/Sao_Paulo';
+   INSERT INTO public.atividades(tipo,tipo_id,titulo,descricao,conteudo,data_atividade,data_inicio,responsavel_id,organizacao_id,oportunidade_id,concluida,evento_automatico)
+    VALUES('tarefa',tipo_tarefa,'Próximo passo: '||(relato->>'proximo_passo'),'Combinado na visita — '||texto,'Combinado na visita — '||texto,quando,quando,l.vendedor_id,p.organizacao_id,p.oportunidade_id,false,false) RETURNING id INTO atividade;
+   relato:=relato||jsonb_build_object('atividade_id',atividade);
+  END IF;
+  UPDATE public.rota_paradas SET visitada=(p_dados->>'visitada')::boolean,resultado=CASE WHEN (p_dados->>'visitada')::boolean THEN texto END,motivo_nao_visita=CASE WHEN NOT (p_dados->>'visitada')::boolean THEN texto END,relato=nullif(relato,'{}'::jsonb) WHERE id=p.id;
   IF (p_dados->>'visitada')::boolean AND p.atividade_id IS NOT NULL THEN
    UPDATE public.atividades SET concluida=true,data_conclusao=now(),resultado=texto WHERE id=p.atividade_id;
   END IF;
@@ -173,7 +244,7 @@ BEGIN
  ELSE RAISE EXCEPTION 'Ferramenta desconhecida.';
  END IF;
  PERFORM set_config('request.jwt.claim.sub',coalesce(anterior,''),true);
- RETURN jsonb_build_object('ok',true,'gasto_id',g);
+ RETURN jsonb_build_object('ok',true,'gasto_id',g,'atividade_id',atividade);
 END $$;
 REVOKE ALL ON FUNCTION public.julia_registrar_voz(uuid,uuid,text,jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.julia_registrar_voz(uuid,uuid,text,jsonb) TO service_role;
