@@ -29,9 +29,8 @@ async function chamar(body: Record<string, unknown>): Promise<{ res: Resultado; 
 
 function Mensagem({ r }: { r?: Resultado }) {
   if (!r) return null;
-  return r.ok ? (
-    <p className="text-sm text-primary mt-2">{r.texto}</p>
-  ) : (
+  if (r.ok) return <p className="text-sm text-primary mt-2">{r.texto}</p>;
+  return (
     <p className="text-sm text-destructive mt-2 whitespace-pre-line">{r.texto}{r.codigo ? ` (código ${r.codigo})` : ""}</p>
   );
 }
