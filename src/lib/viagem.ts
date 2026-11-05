@@ -117,3 +117,24 @@ export function objetivoPernoite(p: { hotel_nome?: string | null; cidade?: strin
   if (hotel) return `Pernoite — ${hotel}`;
   return `Pernoite em ${p.cidade?.trim() || "hotel"}`;
 }
+
+/** Data (YYYY-MM-DD) em America/Sao_Paulo de um instante ISO. */
+export function diaBRT(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+}
+
+/** Histórico por dia real: paradas informadas (dia gravado pelo banco), informativos, gastos e pernoite da noite. */
+export function agruparPorDiaRealizado<
+  P extends { dia: string | null; visitada: boolean | null; tipo: string },
+  I extends { registrado_em: string },
+  G extends { data: string },
+  N extends { noite: string },
+>(dias: string[], paradas: P[], diario: I[], gastos: G[], pernoites: N[]) {
+  return dias.map((dia) => ({
+    dia,
+    paradas: paradas.filter((p) => p.tipo !== "pernoite" && p.visitada != null && p.dia === dia),
+    informativos: diario.filter((i) => diaBRT(i.registrado_em) === dia),
+    gastos: gastos.filter((g) => g.data === dia),
+    pernoite: pernoites.find((n) => n.noite === dia) ?? null,
+  }));
+}

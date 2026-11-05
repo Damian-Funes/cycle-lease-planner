@@ -82,3 +82,19 @@ describe('objetivoPernoite', () => {
     expect(_op({ hotel_nome: ' ', cidade: 'Passo Fundo' })).toBe('Pernoite em Passo Fundo');
   });
 });
+
+import { agruparPorDiaRealizado, diaBRT } from "./viagem";
+describe("histórico por dia real", () => {
+  it("00h30 BRT cai no dia seguinte; pendentes ficam fora", () => {
+    expect(diaBRT("2026-11-11T02:30:00Z")).toBe("2026-11-10"); // 23h30 BRT
+    expect(diaBRT("2026-11-11T03:30:00Z")).toBe("2026-11-11"); // 00h30 BRT
+    const g = agruparPorDiaRealizado(["2026-11-10", "2026-11-11"],
+      [{ dia: "2026-11-11", visitada: true, tipo: "visita" }, { dia: null, visitada: null, tipo: "visita" }],
+      [{ registrado_em: "2026-11-11T03:30:00Z" }], [{ data: "2026-11-10" }], [{ noite: "2026-11-10" }]);
+    expect(g[0].paradas).toHaveLength(0);
+    expect(g[0].gastos).toHaveLength(1);
+    expect(g[0].pernoite).not.toBeNull();
+    expect(g[1].paradas).toHaveLength(1);
+    expect(g[1].informativos).toHaveLength(1);
+  });
+});
