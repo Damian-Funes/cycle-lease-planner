@@ -1,253 +1,267 @@
-# Viagens sem dia planejado: paradas livres, pernoite real e relatório diário
+# Júlia só para vendedores — fechamento do dia por voz
 
-## Situação atual no banco
-- 1 viagem existente (aprovada, vários dias): 3 paradas, todas no Dia 1, nenhuma prestada, 0 pernoites. Não há viagens em rascunho/concluídas.
-- `rota_paradas.dia` é usado hoje em:
-  - `fn_paradas_protecao`: preenche `dia = data_inicio` quando vazio e exige dia dentro do período; inclui `dia`, `hotel_nome`, `valor_diaria_est` na lista de campos de "planejamento".
-  - `fn_paradas_reaprovacao`: mesma lista. Mudar o dia de uma parada aprovada manda a viagem de volta para aprovação.
-  - `pedagio-viagem` (função do servidor): ordena por dia e quebra o trajeto nos pernoites.
-- `fn_rotas_autorizacao`: no envio, exige hotel e diária em todo pernoite. No encerramento, exige que toda parada que não seja pernoite tenha "Visitei + resultado" ou "Não visitei + motivo". Isso já cobre o item 4.
-- Datas BRT: `fn_rota_hoje_brt()` e `now() AT TIME ZONE 'America/Sao_Paulo'`. A prestação é aceita entre o início da viagem aprovada e o encerramento. Diário e gastos usam `fn_pode_escrever_diario` (início até fim + 1 dia) e `fn_pode_lancar_gasto`. Essas regras ficam como estão.
+## Estado atual verificado
+- Único ponto que chama `julia-iniciar-ligacao`: `src/components/JuliaLigarButton.tsx`, usado só em `src/pages/Orcamento.tsx:615`.
+- `profiles` não tem celular. `viagem_parametros` tem só preços de combustível.
+- Não existe tabela de notificação in-app (só `email_notification_*`).
+- `fn_pernoites_validar` exige hoje gasto de hotel **com** `arquivo_path` para tipo `hotel`.
+- Extensões `pg_cron` e `pg_net` já instaladas. `supabase/functions/` não contém as funções `julia-*` (e continuará sem elas).
 
-## Decisões propostas
-1. **Reaproveitar `rota_paradas.dia` como "dia realizado"**, sem criar coluna nova. Ele fica vazio enquanto a parada está pendente. O banco grava a data BRT no momento em que o vendedor marca Visitei/Não visitei e limpa a data se a marcação for desfeita. O vendedor não escolhe esse valor; só o admin pode corrigi-lo, dentro do período da viagem. Assim telas e relatórios que já agrupam por `dia` passam a mostrar o dia real.
-2. **`dia`, `hotel_nome` e `valor_diaria_est` deixam de contar como planejamento.** Sem isso, marcar uma visita gravaria o dia e mandaria a viagem de volta para aprovação.
-3. **Hospedagem estimada = noites × diária média.** Noites = `data_fim − data_inicio`. A diária média fica em `rotas.diaria_media_est`, com valor padrão em `viagem_parametros.diaria_padrao`. Mudar a diária de uma viagem aprovada volta para aprovação, como acontece hoje com período e veículo.
-4. **Pernoite deixa de ser parada.** Passa a ser um registro real numa tabela nova, `rota_pernoites`: noite, cidade/UF IBGE, coordenada, hotel e ligação opcional ao gasto de hotel em `rota_gastos`, onde ficam o valor e a foto da nota. O banco recusa pernoites novos como parada. Pernoites antigos, se existirem, continuam guardados e não aparecem no planejamento (hoje são 0).
-5. **Trajeto e custo:** base → paradas na ordem atual → base, em um só percurso, com combustível e pedágio calculados como hoje. O aviso de "rota longa para um dia" é trocado por "≈ X h de direção por dia".
+## 1. Fim das ligações para clientes (só frontend)
+- `src/pages/Orcamento.tsx`: remover `<JuliaLigarButton>` e import.
+- `src/components/JuliaLigarButton.tsx`: apagar.
+- Histórico (`useLigacoesJulia`, aba de ligações no orçamento/deal, "Motivos de perda (Júlia)") fica só leitura, sem mudança.
+- A função `julia-iniciar-ligacao` publicada fora daqui não é tocada; recomendo você despublicá-la na origem (o CRM deixa de chamar).
 
-## Plano por arquivo
-- `src/lib/viagem.ts`: tirar a divisão por dia do cálculo do trajeto, que passa a ignorar pernoites. Em `custoEstimado`, receber `noites` e `diariaMedia` no lugar da lista de diárias. Nova `noitesDaViagem(inicio, fim)` e `agruparPorDiaRealizado(paradas, diario, gastos, pernoites)` para o histórico.
-- `src/lib/viagemRota.ts`: um único cálculo de rota na ordem das paradas.
-- `supabase/functions/pedagio-viagem/index.ts`: mesma ordenação de `assinaturaTrajeto`, sem dia nem pernoite, mantendo a duplicação descrita em AGENTS.md. A viagem aprovada mantém o valor de pedágio congelado e só consulta de novo se for reenviada.
-- `src/pages/RotaEditor.tsx`: remover as abas e o seletor de dia, o botão de pernoite e o `PernoiteDialog`. Ficam período, lista única ordenável, campo "Diária média estimada" pré-preenchido com o padrão e o card de investimento com "N noites × R$ X".
-- `src/components/rotas/PernoiteDialog.tsx`: deixa de ser usado no planejamento. O preenchimento de cidade pelo IBGE vai para o novo `src/components/viagens/RelatorioDiaDialog.tsx`.
-- `src/pages/RotasAprovacoes.tsx` e `src/components/rotas/RotaMapa.tsx`: lista de paradas sem dia, período, noites × diária e um único traçado.
-- `src/pages/ViagemHoje.tsx`:
-  - Aba **Pendentes**: lista única com Visitei / Não visitei / Waze / + Informativo, em qualquer ordem.
-  - Aba **Hoje**: paradas feitas hoje, informativos e gastos do dia, mais o botão **"Fechar o dia: onde dormi"**. Ele abre `RelatorioDiaDialog`: cidade IBGE, hotel, valor e foto da nota. Grava `rota_pernoites` e, se houver valor, um gasto de hotel em `rota_gastos`.
-  - **Histórico**: um bloco por dia real.
-  - **"Encerrar viagem"**: lista as pendentes, pede o motivo de cada uma (com opção de usar o mesmo motivo para todas), grava como "Não visitei" e depois encerra a viagem. Mantém o aviso de viagem sem gastos.
-- `src/pages/ViagemAcompanhar.tsx`: linha do tempo por dia real, com paradas feitas, informativos, pernoite real e gastos. Mapa com o trajeto planejado e marcadores de pernoites reais. Comparativo estimado x real, em que hotel compara com noites × diária.
-- `src/pages/ViagensAndamento.tsx`: progresso x de y (mantido), pendentes, onde dormiu ontem e último informativo.
-- `src/lib/viagemDados.ts` e `src/lib/viagemDiario.ts`: carregar `rota_pernoites` e espelhar as regras para avisos na tela.
-- `src/pages/configuracoes/Viagens`: campo "Diária média padrão".
-- Testes:
-  - `viagem.test.ts`: noites × diária e trajeto único.
-  - `rotasBanco.test.ts`: dia gravado em BRT ao prestar; editar dia não volta para aprovação; pernoite novo como parada é recusado; envio sem diária em viagem de vários dias é recusado; encerrar com pendente é recusado.
-  - `viagemDiarioBanco.test.ts`: acesso a `rota_pernoites` (dono e admin sim, outro vendedor não).
+## 2. Celular dos vendedores
+- Nova coluna `profiles.celular` (E.164 `^\+55\d{10,11}$`, validada no banco).
+- `src/pages/ConfiguracoesViagens.tsx`: seção "Celulares dos vendedores" (lista de vendedores com veículo/rotas, campo com máscara, salva em E.164) + horário da ligação + botão "Ligar agora" (por vendedor e todos).
+- `src/lib/telefone.ts` (puro, testado): `normalizarCelularBR`, `validarE164BR`.
+- Só admin edita `celular` (policy + trigger que bloqueia mudança de `celular` por não-admin no próprio perfil).
 
-## SQL proposta (idempotente)
-Executa nesta ordem: funções primeiro, dados por último. Assim limpar o `dia` das paradas pendentes não dispara reaprovação.
+## 3. Funções novas (este repositório)
+`supabase/functions/_shared/juliaViagem.ts` — contexto do vendedor (rota de hoje, pendentes, visitadas hoje), data BRT, whitelist.
 
+### `julia-viagem-ligar`
+- Entrada: `{ modo: "cron" }` (header `x-cron-secret` = `JULIA_CRON_SECRET`) ou `{ modo: "manual", vendedor_id? }` (JWT de admin).
+- Cron processa: (a) primeira ligação quando hora BRT ≥ `ligacao_hora`; (b) `ligacoes_viagem` com `status='agendada'` e `agendada_para <= now()`; (c) às 9h BRT, notificações de dia não fechado.
+- Seleciona rotas `aprovada` com `hoje BRT` entre `data_inicio` e `data_fim`, sem `rota_pernoites` da noite de hoje (noite só existe se hoje < `data_fim`; no último dia o critério é "nenhuma parada informada hoje e ainda há pendentes").
+- **Whitelist**: o número discado sai só de `profiles.celular` do `vendedor_id` da rota, que precisa ter papel `comercial`/`rtv`; qualquer outro número é recusado com erro gravado. Nunca recebe número no corpo.
+- Uma ligação por vendedor por dia, no máximo 3 tentativas totais (inicial + 1 de não atendeu + retornos pedidos), bloqueio por índice único `(vendedor_id, data_ref, tentativa)`.
+- Chama ElevenLabs `POST /v1/convai/twilio/outbound-call` com `ELEVENLABS_AGENT_ID_VIAGEM`, `ELEVENLABS_PHONE_NUMBER_ID` e `conversation_initiation_client_data.dynamic_variables`: `vendedor_nome`, `vendedor_id`, `rota_id`, `rota_nome`, `data_hoje` (DD/MM), `noite` (AAAA-MM-DD), `ultimo_dia` (sim/não), `paradas_pendentes` (texto "id | nome | cidade-UF" por linha), `visitadas_hoje`, `ligacao_id`.
+
+### `julia-viagem-ferramentas`
+- Header `x-julia-secret` = `JULIA_TOOL_SECRET` (comparação em tempo constante). Valida `ligacao_id` + `rota_id` pertencendo à mesma ligação ativa (impede a ferramenta mexer em outra viagem).
+- Grava com service role mas **reproduz o usuário**: `autor_id` = vendedor; datas BRT; os triggers existentes (`fn_paradas_protecao`, `fn_pernoites_validar`) continuam como autoridade. Erros do banco voltam em texto para a Júlia ler ao vendedor.
+- Ferramentas: `listar_pendentes`, `registrar_visita`, `registrar_pernoite`, `agendar_retorno` (schemas abaixo).
+- `registrar_visita` cria o informativo no `rota_diario` com o resultado/motivo (equivalente ao fluxo do ConcluirAtividadeDialog: status da parada + resultado; atividade vinculada concluída como hoje).
+
+### `julia-viagem-webhook`
+- Verifica `ElevenLabs-Signature` (`t=...,v0=...`, HMAC-SHA256 de `t.body` com `JULIA_WEBHOOK_SECRET`, tolerância 30 min) — mesmo padrão ElevenLabs.
+- `post_call_transcription`: grava `resumo`, `transcricao`, `duracao_s`, `status='concluida'`; insere `rota_diario` "Ligação da Júlia: <resumo>". Se houver pernoite `aguardando_nota`, cria notificação ao vendedor com link `/viagens/:id/hoje?nota=<gasto_id>`.
+- `call_initiation_failure` / não atendeu: `status='nao_atendeu'` e agenda 1 retentativa +30 min (se ainda < 22h BRT).
+
+`supabase/config.toml`: `verify_jwt = false` nas três (validação no código).
+
+## 4. Hotel por voz — estado "aguardando nota"
+- `rota_gastos.arquivo_path` continua opcional; o gasto de hotel criado por voz nasce sem foto.
+- `fn_pernoites_validar` passa a aceitar gasto de hotel **sem** foto (exige gasto de hotel da mesma rota). Pendência = gasto hotel vinculado a pernoite com `arquivo_path IS NULL`.
+- Novo trigger em `rotas` (separado, não reescreve `fn_rotas_autorizacao`): ao passar para `concluida`, recusa se existir pernoite hotel com nota faltando: "Envie a foto da nota do hotel da noite de DD/MM."
+- UI: `ViagemHoje`/`RelatorioDiaDialog` mostram "Nota pendente" com botão "Enviar foto" (reaproveita upload/compressão atual); `ViagemAcompanhar` sinaliza pendência ao admin.
+
+## 5. Notificações in-app
+- Tabela `notificacoes` (usuário, título, texto, link, lida_em).
+- `src/components/NotificacoesSino.tsx` no cabeçalho (`AppLayout`): contador + lista, marca como lida.
+- Geradas pelas funções: dia não fechado às 9h (vendedor + todos admins), nota de hotel pendente, falha de ligação (admin).
+
+## 6. Admin
+- `src/pages/ViagensAndamento.tsx`: coluna "Ligação de hoje" (status/tentativas) e "Ligar agora".
+- `src/pages/ViagemAcompanhar.tsx`: lista de ligações da viagem com resumo e transcrição.
+- `src/lib/juliaViagem.ts` + `src/hooks/useLigacoesViagem.ts` (leitura).
+
+## 7. Agendamento (cron)
+- Recomendação: um único job a cada 10 min só nas janelas 18h–22h e 9h BRT (~30 execuções/dia). Necessário porque o horário é configurável, há retentativa de 30 min e retorno no horário pedido. Atraso máximo de 10 min; fora das janelas não roda. Alternativa mais barata: a cada 30 min (atraso até 30 min).
+- Como o backend é seu Supabase, o job é criado por SQL direto (não migration) com `net.http_post` para `julia-viagem-ligar`, header `x-cron-secret` lido do Vault. Mostro antes de rodar.
+
+## Testes
+- `src/lib/telefone.test.ts`; `src/lib/juliaViagem.test.ts` (seleção de vendedores, texto das variáveis, janela de horário/limite 22h, regra de retentativa).
+- DB (Postgres descartável, como os anteriores): celular inválido recusado; não-admin não altera celular; hotel sem foto aceito no pernoite; concluir com nota pendente recusado; após foto, conclui; vendedor não lê ligações de outro.
+- Deno: assinatura do webhook válida/inválida; ferramentas sem secret → 401; `ligacao_id` de outra rota → 403; número fora da whitelist recusado.
+
+## SQL da migration (não aplicar sem aprovação)
 ```sql
--- 1. Colunas
-ALTER TABLE public.rotas ADD COLUMN IF NOT EXISTS diaria_media_est numeric;
-ALTER TABLE public.viagem_parametros ADD COLUMN IF NOT EXISTS diaria_padrao numeric NOT NULL DEFAULT 200;
+-- 1. Celular
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS celular text;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='profiles_celular_e164') THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_celular_e164 CHECK (celular IS NULL OR celular ~ '^\+55[1-9][0-9]{9,10}$');
+  END IF; END $$;
 
--- 2. Pernoites reais
-CREATE TABLE IF NOT EXISTS public.rota_pernoites (
+CREATE OR REPLACE FUNCTION public.fn_profiles_celular_admin() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+BEGIN
+  IF NEW.celular IS DISTINCT FROM OLD.celular
+     AND auth.uid() IS NOT NULL
+     AND NOT public.has_role(auth.uid(),'admin') THEN
+    RAISE EXCEPTION 'Só o administrador altera o celular do vendedor.';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS trg_profiles_celular_admin ON public.profiles;
+CREATE TRIGGER trg_profiles_celular_admin BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.fn_profiles_celular_admin();
+
+-- 2. Parâmetros
+ALTER TABLE public.viagem_parametros ADD COLUMN IF NOT EXISTS ligacao_ativa boolean NOT NULL DEFAULT false;
+ALTER TABLE public.viagem_parametros ADD COLUMN IF NOT EXISTS ligacao_hora time NOT NULL DEFAULT '19:00';
+ALTER TABLE public.viagem_parametros ADD COLUMN IF NOT EXISTS ligacao_hora_limite time NOT NULL DEFAULT '22:00';
+
+-- 3. Ligações de viagem
+CREATE TABLE IF NOT EXISTS public.ligacoes_viagem (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   rota_id uuid NOT NULL REFERENCES public.rotas(id) ON DELETE CASCADE,
-  noite date NOT NULL,
-  cidade text NOT NULL,
-  estado text NOT NULL,
-  latitude numeric, longitude numeric,
-  hotel_nome text,
-  gasto_id uuid REFERENCES public.rota_gastos(id) ON DELETE SET NULL,
-  observacao text,
-  autor_id uuid NOT NULL DEFAULT auth.uid(),
+  vendedor_id uuid NOT NULL,
+  data_ref date NOT NULL,
+  tentativa integer NOT NULL DEFAULT 1,
+  origem text NOT NULL DEFAULT 'cron',          -- cron | manual | retentativa | retorno
+  status text NOT NULL DEFAULT 'agendada',      -- agendada | discando | em_andamento | concluida | nao_atendeu | falhou | cancelada
+  agendada_para timestamptz NOT NULL DEFAULT now(),
+  telefone text,
+  conversation_id text,
+  call_sid text,
+  resumo text,
+  transcricao jsonb,
+  duracao_s integer,
+  erro text,
+  solicitado_por uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (rota_id, noite)
+  CONSTRAINT ligacoes_viagem_status_chk CHECK (status IN ('agendada','discando','em_andamento','concluida','nao_atendeu','falhou','cancelada')),
+  CONSTRAINT ligacoes_viagem_origem_chk CHECK (origem IN ('cron','manual','retentativa','retorno')),
+  CONSTRAINT ligacoes_viagem_tentativa_chk CHECK (tentativa BETWEEN 1 AND 5),
+  CONSTRAINT ligacoes_viagem_uniq UNIQUE (vendedor_id, data_ref, tentativa)
 );
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.rota_pernoites TO authenticated;
-GRANT ALL ON public.rota_pernoites TO service_role;
-ALTER TABLE public.rota_pernoites ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS pernoites_ver ON public.rota_pernoites;
-CREATE POLICY pernoites_ver ON public.rota_pernoites FOR SELECT TO authenticated
-  USING (public.fn_pode_ver_rota(auth.uid(), rota_id));
-DROP POLICY IF EXISTS pernoites_inserir ON public.rota_pernoites;
-CREATE POLICY pernoites_inserir ON public.rota_pernoites FOR INSERT TO authenticated
-  WITH CHECK (public.has_role(auth.uid(),'admin') OR (autor_id = auth.uid() AND public.fn_pode_escrever_diario(auth.uid(), rota_id)));
-DROP POLICY IF EXISTS pernoites_alterar ON public.rota_pernoites;
-CREATE POLICY pernoites_alterar ON public.rota_pernoites FOR UPDATE TO authenticated
-  USING (public.has_role(auth.uid(),'admin') OR (autor_id = auth.uid() AND public.fn_pode_escrever_diario(auth.uid(), rota_id)))
-  WITH CHECK (public.has_role(auth.uid(),'admin') OR (autor_id = auth.uid() AND public.fn_pode_escrever_diario(auth.uid(), rota_id)));
-DROP POLICY IF EXISTS pernoites_apagar ON public.rota_pernoites;
-CREATE POLICY pernoites_apagar ON public.rota_pernoites FOR DELETE TO authenticated
-  USING (public.has_role(auth.uid(),'admin') OR (autor_id = auth.uid() AND public.fn_pode_escrever_diario(auth.uid(), rota_id)));
+GRANT SELECT ON public.ligacoes_viagem TO authenticated;
+GRANT ALL ON public.ligacoes_viagem TO service_role;
+ALTER TABLE public.ligacoes_viagem ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS ligacoes_viagem_ler ON public.ligacoes_viagem;
+CREATE POLICY ligacoes_viagem_ler ON public.ligacoes_viagem FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR vendedor_id = auth.uid());
+CREATE INDEX IF NOT EXISTS ligacoes_viagem_agenda_idx ON public.ligacoes_viagem (status, agendada_para);
+CREATE UNIQUE INDEX IF NOT EXISTS ligacoes_viagem_conv_idx ON public.ligacoes_viagem (conversation_id) WHERE conversation_id IS NOT NULL;
+DROP TRIGGER IF EXISTS trg_ligacoes_viagem_upd ON public.ligacoes_viagem;
+CREATE TRIGGER trg_ligacoes_viagem_upd BEFORE UPDATE ON public.ligacoes_viagem
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+-- 4. Notificações in-app
+CREATE TABLE IF NOT EXISTS public.notificacoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  tipo text NOT NULL,
+  titulo text NOT NULL,
+  texto text,
+  link text,
+  chave text,                 -- evita duplicar (ex.: 'dia_aberto:<rota>:<data>')
+  lida_em timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT notificacoes_chave_uniq UNIQUE (user_id, chave)
+);
+GRANT SELECT, UPDATE ON public.notificacoes TO authenticated;
+GRANT ALL ON public.notificacoes TO service_role;
+ALTER TABLE public.notificacoes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS notificacoes_ler ON public.notificacoes;
+CREATE POLICY notificacoes_ler ON public.notificacoes FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS notificacoes_marcar ON public.notificacoes;
+CREATE POLICY notificacoes_marcar ON public.notificacoes FOR UPDATE TO authenticated
+  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE INDEX IF NOT EXISTS notificacoes_user_idx ON public.notificacoes (user_id, lida_em, created_at DESC);
+
+-- 5. Hotel aguardando nota: pernoite aceita gasto sem foto
 CREATE OR REPLACE FUNCTION public.fn_pernoites_validar() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE r public.rotas;
 BEGIN
-  SELECT * INTO r FROM public.rotas WHERE id = NEW.rota_id;
-  IF NEW.noite < r.data_inicio OR NEW.noite > r.data_fim THEN RAISE EXCEPTION 'A noite precisa estar dentro do período da viagem.'; END IF;
-  IF nullif(btrim(NEW.cidade),'') IS NULL OR NEW.estado !~ '^[A-Z]{2}$' THEN RAISE EXCEPTION 'Informe cidade e UF do pernoite.'; END IF;
-  IF NEW.gasto_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.rota_gastos g WHERE g.id = NEW.gasto_id AND g.rota_id = NEW.rota_id AND g.categoria = 'hotel') THEN
-    RAISE EXCEPTION 'O gasto ligado ao pernoite deve ser um gasto de hotel desta viagem.'; END IF;
   IF TG_OP = 'UPDATE' THEN NEW.rota_id := OLD.rota_id; NEW.autor_id := OLD.autor_id; END IF;
+  SELECT * INTO r FROM public.rotas WHERE id = NEW.rota_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Viagem não encontrada.'; END IF;
+  IF NEW.noite < r.data_inicio OR NEW.noite >= r.data_fim THEN RAISE EXCEPTION 'A noite precisa estar dentro do período da viagem.'; END IF;
+  NEW.estado := upper(nullif(btrim(NEW.estado),''));
+  IF NEW.tipo IN ('hotel','sem_custo') AND (nullif(btrim(NEW.cidade),'') IS NULL OR coalesce(NEW.estado,'') !~ '^[A-Z]{2}$') THEN
+    RAISE EXCEPTION 'Informe cidade e UF de onde dormiu.'; END IF;
+  IF NEW.tipo = 'hotel' THEN
+    IF nullif(btrim(NEW.hotel_nome),'') IS NULL THEN RAISE EXCEPTION 'Informe o nome do hotel.'; END IF;
+    IF NEW.gasto_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.rota_gastos g WHERE g.id = NEW.gasto_id AND g.rota_id = NEW.rota_id AND g.categoria = 'hotel') THEN
+      RAISE EXCEPTION 'Pernoite em hotel precisa do gasto de hotel.'; END IF;
+  ELSIF nullif(btrim(NEW.observacao),'') IS NULL THEN
+    RAISE EXCEPTION 'Explique por que não houve hotel nesta noite.';
+  END IF;
   NEW.updated_at := now();
   RETURN NEW;
 END $$;
-DROP TRIGGER IF EXISTS trg_pernoites_validar ON public.rota_pernoites;
-CREATE TRIGGER trg_pernoites_validar BEFORE INSERT OR UPDATE ON public.rota_pernoites
-  FOR EACH ROW EXECUTE FUNCTION public.fn_pernoites_validar();
+REVOKE EXECUTE ON FUNCTION public.fn_pernoites_validar() FROM PUBLIC, anon, authenticated;
 
--- 3. Paradas: dia = dia realizado (BRT), sai da lista de planejamento; pernoite novo como parada é recusado
-CREATE OR REPLACE FUNCTION public.fn_paradas_protecao() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
-DECLARE r public.rotas; planejamento boolean; admin boolean:=coalesce(public.has_role(auth.uid(),'admin'),false); hoje date:=(now() AT TIME ZONE 'America/Sao_Paulo')::date; prestou boolean:=false;
+-- 6. Encerrar exige foto de todas as notas de hotel dos pernoites
+CREATE OR REPLACE FUNCTION public.fn_rotas_exigir_notas_hotel() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
+DECLARE n date;
 BEGIN
- IF TG_OP='UPDATE' AND NEW.rota_id IS DISTINCT FROM OLD.rota_id THEN RAISE EXCEPTION 'Não é permitido transferir paradas entre rotas.'; END IF;
- SELECT * INTO r FROM public.rotas WHERE id=CASE WHEN TG_OP='DELETE' THEN OLD.rota_id ELSE NEW.rota_id END FOR UPDATE;
- IF NOT FOUND THEN IF TG_OP='DELETE' THEN RETURN OLD; END IF; RAISE EXCEPTION 'Rota não encontrada.'; END IF;
- IF NOT admin AND r.status IN ('concluida','cancelada') THEN RAISE EXCEPTION 'Paradas de uma rota encerrada não podem ser alteradas.'; END IF;
- IF TG_OP='INSERT' AND NEW.tipo='pernoite' THEN RAISE EXCEPTION 'Pernoites são registrados durante a viagem, não no planejamento.'; END IF;
- planejamento:=TG_OP IN ('INSERT','DELETE');
- IF TG_OP='UPDATE' THEN planejamento:=ROW(NEW.organizacao_id,NEW.oportunidade_id,NEW.cidade,NEW.estado,NEW.ordem,NEW.objetivo,NEW.tipo,NEW.latitude,NEW.longitude,NEW.atividade_id) IS DISTINCT FROM ROW(OLD.organizacao_id,OLD.oportunidade_id,OLD.cidade,OLD.estado,OLD.ordem,OLD.objetivo,OLD.tipo,OLD.latitude,OLD.longitude,OLD.atividade_id); END IF;
- IF planejamento AND NOT admin AND r.status='aprovada' AND coalesce(r.data_fim,r.data_rota)<hoje THEN RAISE EXCEPTION 'O plano de uma viagem passada não pode ser alterado. Preste contas.'; END IF;
- IF TG_OP='DELETE' THEN RETURN OLD; END IF;
- IF (TG_OP='INSERT' AND (NEW.visitada IS NOT NULL OR NEW.resultado IS NOT NULL OR NEW.motivo_nao_visita IS NOT NULL)) OR (TG_OP='UPDATE' AND ROW(NEW.visitada,NEW.resultado,NEW.motivo_nao_visita) IS DISTINCT FROM ROW(OLD.visitada,OLD.resultado,OLD.motivo_nao_visita)) THEN
-   IF NOT admin AND (r.status<>'aprovada' OR coalesce(r.data_inicio,r.data_rota)>hoje) THEN RAISE EXCEPTION 'Preste contas somente na data de uma viagem aprovada.'; END IF;
-   prestou:=true;
-   NEW.informada_em:=CASE WHEN NEW.visitada IS NULL THEN NULL ELSE now() END;
- ELSIF TG_OP='UPDATE' THEN NEW.informada_em:=OLD.informada_em; ELSE NEW.informada_em:=NULL; END IF;
- -- dia realizado: o banco grava; admin pode corrigir
- IF admin AND TG_OP='UPDATE' AND NEW.dia IS DISTINCT FROM OLD.dia AND NOT prestou THEN
-   NULL; -- correção manual do admin
- ELSIF prestou THEN
-   NEW.dia := CASE WHEN NEW.visitada IS NULL THEN NULL
-                   ELSE least(greatest(hoje, coalesce(r.data_inicio,r.data_rota)), coalesce(r.data_fim,r.data_rota)) END;
- ELSIF TG_OP='UPDATE' THEN NEW.dia := OLD.dia;
- ELSE NEW.dia := NULL; END IF;
- IF NEW.dia IS NOT NULL AND (NEW.dia < coalesce(r.data_inicio,r.data_rota) OR NEW.dia > coalesce(r.data_fim,r.data_rota)) THEN RAISE EXCEPTION 'O dia da parada precisa estar dentro do período da viagem.'; END IF;
- IF NEW.valor_diaria_est IS NOT NULL AND NEW.valor_diaria_est < 0 THEN RAISE EXCEPTION 'Valor da diária inválido.'; END IF;
- RETURN NEW;
-END $function$;
-
-CREATE OR REPLACE FUNCTION public.fn_paradas_reaprovacao() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
-DECLARE rid uuid; planejamento boolean;
-BEGIN
- rid:=CASE WHEN TG_OP='DELETE' THEN OLD.rota_id ELSE NEW.rota_id END;
- planejamento:=TG_OP IN ('INSERT','DELETE');
- IF TG_OP='UPDATE' THEN planejamento:=ROW(NEW.organizacao_id,NEW.oportunidade_id,NEW.cidade,NEW.estado,NEW.ordem,NEW.objetivo,NEW.tipo,NEW.latitude,NEW.longitude,NEW.atividade_id) IS DISTINCT FROM ROW(OLD.organizacao_id,OLD.oportunidade_id,OLD.cidade,OLD.estado,OLD.ordem,OLD.objetivo,OLD.tipo,OLD.latitude,OLD.longitude,OLD.atividade_id); END IF;
- IF planejamento THEN UPDATE public.rotas SET status='aguardando_aprovacao' WHERE id=rid AND status='aprovada' AND coalesce(data_fim,data_rota)>=(now() AT TIME ZONE 'America/Sao_Paulo')::date; END IF;
- RETURN NULL;
-END $function$;
-
--- 4. Período: validar diária média
-CREATE OR REPLACE FUNCTION public.fn_rotas_periodo() RETURNS trigger LANGUAGE plpgsql SET search_path TO 'public' AS $function$
-DECLARE servico boolean := coalesce(current_setting('request.jwt.claim.role', true),'') = 'service_role'
-  OR coalesce((nullif(current_setting('request.jwt.claims', true),'')::jsonb)->>'role','') = 'service_role';
-BEGIN
-  IF TG_OP='INSERT' THEN
-    NEW.data_inicio := coalesce(NEW.data_inicio, NEW.data_rota);
-  ELSIF NEW.data_inicio IS NOT DISTINCT FROM OLD.data_inicio AND NEW.data_rota IS DISTINCT FROM OLD.data_rota THEN
-    NEW.data_fim := coalesce(NEW.data_fim, OLD.data_fim) + (NEW.data_rota - OLD.data_rota);
-    NEW.data_inicio := NEW.data_rota;
-  END IF;
-  IF NEW.data_inicio IS NULL THEN RAISE EXCEPTION 'Informe a data de início da viagem.'; END IF;
-  NEW.data_rota := NEW.data_inicio;
-  NEW.data_fim := coalesce(NEW.data_fim, NEW.data_inicio);
-  IF NEW.data_fim < NEW.data_inicio THEN RAISE EXCEPTION 'A data de fim não pode ser antes do início.'; END IF;
-  IF NEW.data_fim - NEW.data_inicio > 14 THEN RAISE EXCEPTION 'Uma viagem pode ter no máximo 15 dias.'; END IF;
-  IF NEW.alimentacao_dia_estimada IS NOT NULL AND NEW.alimentacao_dia_estimada < 0 THEN RAISE EXCEPTION 'Alimentação estimada inválida.'; END IF;
-  IF NEW.diaria_media_est IS NOT NULL AND NEW.diaria_media_est < 0 THEN RAISE EXCEPTION 'Diária média inválida.'; END IF;
-  IF NOT servico THEN
-    IF TG_OP='INSERT' THEN
-      NEW.custo_pedagio_est:=NULL; NEW.pedagio_consultado_em:=NULL; NEW.pedagio_assinatura:=NULL; NEW.pedagio_detalhe:=NULL;
-    ELSE
-      NEW.custo_pedagio_est:=OLD.custo_pedagio_est; NEW.pedagio_consultado_em:=OLD.pedagio_consultado_em;
-      NEW.pedagio_assinatura:=OLD.pedagio_assinatura; NEW.pedagio_detalhe:=OLD.pedagio_detalhe;
+  IF NEW.status = 'concluida' AND OLD.status IS DISTINCT FROM 'concluida' THEN
+    SELECT p.noite INTO n FROM public.rota_pernoites p
+      JOIN public.rota_gastos g ON g.id = p.gasto_id
+     WHERE p.rota_id = NEW.id AND p.tipo = 'hotel' AND g.arquivo_path IS NULL
+     ORDER BY p.noite LIMIT 1;
+    IF n IS NOT NULL THEN
+      RAISE EXCEPTION 'Envie a foto da nota do hotel da noite de %.', to_char(n,'DD/MM');
     END IF;
   END IF;
   RETURN NEW;
-END $function$;
-
--- 5. Autorização: diária média entra em "período mudou"; envio exige diária em viagem com noites;
---    regra antiga de hotel por pernoite sai; encerramento continua exigindo todas as paradas informadas.
-CREATE OR REPLACE FUNCTION public.fn_rotas_autorizacao() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
-DECLARE admin boolean:=coalesce(public.has_role(auth.uid(),'admin'),false); pendente date; hoje date:=(now() AT TIME ZONE 'America/Sao_Paulo')::date; periodo_mudou boolean;
-BEGIN
- IF TG_OP='DELETE' THEN
-  IF NOT admin AND OLD.status NOT IN ('rascunho','reprovada','cancelada') THEN RAISE EXCEPTION 'Esta rota não pode ser apagada. Preste contas da viagem.'; END IF;
-  RETURN OLD;
- END IF;
- IF NEW.status NOT IN ('rascunho','aguardando_aprovacao','aprovada','reprovada','concluida','cancelada') THEN RAISE EXCEPTION 'Status de rota inválido.'; END IF;
- IF TG_OP='INSERT' THEN
-  IF NEW.status<>'rascunho' THEN RAISE EXCEPTION 'Novas rotas devem nascer como rascunho.'; END IF;
-  NEW.enviada_em:=NULL; NEW.aprovada_em:=NULL; NEW.aprovada_por:=NULL; NEW.motivo_reprovacao:=NULL; NEW.prestacao_concluida_em:=NULL;
-  RETURN NEW;
- END IF;
- IF NEW.vendedor_id IS DISTINCT FROM OLD.vendedor_id THEN RAISE EXCEPTION 'O vendedor da rota não pode ser alterado.'; END IF;
- PERFORM pg_advisory_xact_lock(hashtextextended(NEW.vendedor_id::text,731));
- IF NOT admin AND OLD.status IN ('concluida','cancelada') THEN RAISE EXCEPTION 'Esta rota está encerrada e não pode ser alterada.'; END IF;
- NEW.enviada_em:=OLD.enviada_em; NEW.aprovada_em:=OLD.aprovada_em; NEW.aprovada_por:=OLD.aprovada_por; NEW.prestacao_concluida_em:=OLD.prestacao_concluida_em;
- IF NOT admin THEN NEW.motivo_reprovacao:=OLD.motivo_reprovacao; END IF;
- periodo_mudou := NEW.data_inicio IS DISTINCT FROM OLD.data_inicio OR NEW.data_fim IS DISTINCT FROM OLD.data_fim
-   OR NEW.veiculo_id IS DISTINCT FROM OLD.veiculo_id OR NEW.diaria_media_est IS DISTINCT FROM OLD.diaria_media_est;
- IF OLD.status='aprovada' AND periodo_mudou THEN
-  IF coalesce(OLD.data_fim,OLD.data_rota)<hoje THEN RAISE EXCEPTION 'Preste contas antes de alterar uma viagem passada.'; END IF;
-  NEW.status:='aguardando_aprovacao';
- END IF;
- IF NOT admin AND OLD.status='aguardando_aprovacao' AND periodo_mudou AND NEW.status<>'rascunho' THEN RAISE EXCEPTION 'Volte para rascunho antes de editar a data.'; END IF;
- IF NEW.status IS DISTINCT FROM OLD.status THEN
-  IF NEW.status IN ('aprovada','reprovada') THEN
-   IF NOT admin THEN RAISE EXCEPTION 'Somente admin pode aprovar ou reprovar uma rota.'; END IF;
-   IF OLD.status<>'aguardando_aprovacao' THEN RAISE EXCEPTION 'A rota precisa estar aguardando aprovação.'; END IF;
-   IF NEW.status='aprovada' THEN
-    IF NEW.data_fim<hoje THEN RAISE EXCEPTION 'Não é possível aprovar uma viagem com data passada.'; END IF;
-    IF NOT EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo<>'pernoite') OR EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo<>'pernoite' AND (nullif(btrim(objetivo),'') IS NULL OR (tipo='visita' AND organizacao_id IS NULL))) THEN RAISE EXCEPTION 'Complete o plano antes de aprovar.'; END IF;
-    NEW.aprovada_em:=now(); NEW.aprovada_por:=auth.uid(); NEW.motivo_reprovacao:=NULL;
-   ELSIF nullif(btrim(NEW.motivo_reprovacao),'') IS NULL THEN RAISE EXCEPTION 'Informe o motivo da reprovação.';
-   END IF;
-  ELSIF NEW.status='aguardando_aprovacao' THEN
-   IF OLD.status NOT IN ('rascunho','reprovada','aprovada') THEN RAISE EXCEPTION 'Esta rota não pode ser enviada para aprovação.'; END IF;
-   IF NEW.data_fim<hoje THEN RAISE EXCEPTION 'A data da rota deve ser hoje ou uma data futura.'; END IF;
-   IF NOT EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo<>'pernoite') THEN RAISE EXCEPTION 'Adicione ao menos uma parada.'; END IF;
-   IF EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo<>'pernoite' AND nullif(btrim(objetivo),'') IS NULL) THEN RAISE EXCEPTION 'Preencha o objetivo de todas as paradas.'; END IF;
-   IF EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo='visita' AND organizacao_id IS NULL) THEN RAISE EXCEPTION 'Toda visita deve ter uma organização.'; END IF;
-   IF NEW.data_fim > NEW.data_inicio AND NEW.diaria_media_est IS NULL THEN RAISE EXCEPTION 'Informe a diária média estimada da hospedagem.'; END IF;
-   SELECT min(coalesce(data_fim,data_rota)) INTO pendente FROM public.rotas WHERE vendedor_id=NEW.vendedor_id AND id<>NEW.id AND status='aprovada' AND coalesce(data_fim,data_rota)<hoje;
-   IF pendente IS NOT NULL THEN RAISE EXCEPTION 'Preste contas da rota de % antes de pedir nova viagem.',to_char(pendente,'DD/MM'); END IF;
-   NEW.enviada_em:=now(); NEW.aprovada_em:=NULL; NEW.aprovada_por:=NULL; NEW.motivo_reprovacao:=NULL;
-  ELSIF NEW.status='concluida' THEN
-   IF OLD.status<>'aprovada' OR NEW.data_inicio>hoje THEN RAISE EXCEPTION 'Só é possível prestar contas de uma rota aprovada cuja data chegou.'; END IF;
-   IF NOT EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo<>'pernoite') OR EXISTS(SELECT 1 FROM public.rota_paradas WHERE rota_id=NEW.id AND tipo<>'pernoite' AND (visitada IS NULL OR (visitada AND nullif(btrim(resultado),'') IS NULL) OR (NOT visitada AND nullif(btrim(motivo_nao_visita),'') IS NULL))) THEN RAISE EXCEPTION 'Informe todas as paradas: resultado da visita ou motivo de não visita.'; END IF;
-   NEW.prestacao_concluida_em:=now();
-  ELSIF NEW.status='rascunho' THEN
-   IF OLD.status NOT IN ('aguardando_aprovacao','reprovada') THEN RAISE EXCEPTION 'Uma viagem aprovada não pode voltar para rascunho. Preste contas.'; END IF;
-  ELSIF NEW.status='cancelada' THEN
-   IF OLD.status='concluida' OR (OLD.status='aprovada' AND NOT admin) THEN RAISE EXCEPTION 'Somente admin pode cancelar uma viagem aprovada.'; END IF;
-  END IF;
- END IF;
- NEW.updated_at:=now(); RETURN NEW;
-END $function$;
-
--- 6. Dados existentes (depois das funções, para não disparar reaprovação)
--- 6a. Paradas pendentes perdem o dia planejado
-UPDATE public.rota_paradas SET dia = NULL WHERE visitada IS NULL AND dia IS NOT NULL;
--- 6b. Paradas já prestadas recebem o dia real (data BRT da prestação)
-UPDATE public.rota_paradas p SET dia = (p.informada_em AT TIME ZONE 'America/Sao_Paulo')::date
-  WHERE p.visitada IS NOT NULL AND p.informada_em IS NOT NULL
-    AND p.dia IS DISTINCT FROM (p.informada_em AT TIME ZONE 'America/Sao_Paulo')::date;
--- 6c. Pernoites planejados viram diária média da viagem (não apaga as paradas)
-UPDATE public.rotas r SET diaria_media_est = s.media
-  FROM (SELECT rota_id, round(avg(valor_diaria_est),2) media FROM public.rota_paradas
-        WHERE tipo='pernoite' AND valor_diaria_est IS NOT NULL GROUP BY rota_id) s
-  WHERE r.id = s.rota_id AND r.diaria_media_est IS NULL;
+END $$;
+REVOKE EXECUTE ON FUNCTION public.fn_rotas_exigir_notas_hotel() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_rotas_exigir_notas_hotel ON public.rotas;
+CREATE TRIGGER trg_rotas_exigir_notas_hotel BEFORE UPDATE OF status ON public.rotas
+  FOR EACH ROW EXECUTE FUNCTION public.fn_rotas_exigir_notas_hotel();
 ```
 
-Observação: os passos 6a e 6b alteram só `dia` e `informada_em` não muda, então os gatilhos não mandam nada de volta para aprovação. A proteção mantém `dia` porque o comando roda sem usuário admin. Por isso esses dois passos precisam rodar dentro da migration, que dispensa os gatilhos de usuário. Antes de aplicar, vou confirmar isso com um teste de banco. Se a proteção barrar o passo, uso `SET LOCAL session_replication_role = replica` apenas nesses dois UPDATEs.
+## Ferramentas para configurar na ElevenLabs (webhook, POST)
+Header em todas: `x-julia-secret: <JULIA_TOOL_SECRET>`. URL: `https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viagem-ferramentas/<nome>`. `ligacao_id` e `rota_id` vêm de variáveis dinâmicas (`{{ligacao_id}}`, `{{rota_id}}`).
 
-## Impacto nos dados existentes
-- A viagem aprovada (3 paradas, nenhuma prestada) fica com as 3 paradas pendentes e sem dia. Ela continua aprovada, porque `dia` deixou de ser planejamento. O custo e o pedágio guardados no envio continuam congelados. Como a viagem não tem diária média, a hospedagem real é comparada com a estimativa gravada (R$ 0, sem pernoites).
-- Não há pernoites planejados hoje, então o passo 6c não altera nenhuma viagem. Ele fica na migration por segurança.
-- Nenhuma linha é apagada. `hotel_nome` e `valor_diaria_est` continuam guardados como dado antigo.
+```json
+[
+ {"name":"listar_pendentes","description":"Lista as paradas da viagem que ainda não foram informadas.",
+  "parameters":{"type":"object","required":["ligacao_id","rota_id"],"properties":{
+   "ligacao_id":{"type":"string"},"rota_id":{"type":"string"}}}},
+ {"name":"registrar_visita","description":"Registra se o vendedor visitou ou não uma parada. Visitada exige resultado; não visitada exige motivo.",
+  "parameters":{"type":"object","required":["ligacao_id","rota_id","parada_id","visitada"],"properties":{
+   "ligacao_id":{"type":"string"},"rota_id":{"type":"string"},
+   "parada_id":{"type":"string","description":"id da lista de pendentes"},
+   "visitada":{"type":"boolean"},
+   "resultado":{"type":"string","description":"O que aconteceu na visita"},
+   "motivo":{"type":"string","description":"Por que não visitou"}}}},
+ {"name":"registrar_pernoite","description":"Registra onde o vendedor vai dormir hoje.",
+  "parameters":{"type":"object","required":["ligacao_id","rota_id","tipo"],"properties":{
+   "ligacao_id":{"type":"string"},"rota_id":{"type":"string"},
+   "tipo":{"type":"string","enum":["hotel","sem_custo","voltou_base"]},
+   "cidade":{"type":"string"},"uf":{"type":"string","pattern":"^[A-Z]{2}$"},
+   "hotel_nome":{"type":"string"},"valor":{"type":"number","description":"Valor da diária em reais"},
+   "observacao":{"type":"string","description":"Justificativa, obrigatória para sem_custo e voltou_base"}}}},
+ {"name":"agendar_retorno","description":"Agenda nova ligação hoje no horário pedido (até 22h).",
+  "parameters":{"type":"object","required":["ligacao_id","rota_id","horario"],"properties":{
+   "ligacao_id":{"type":"string"},"rota_id":{"type":"string"},
+   "horario":{"type":"string","pattern":"^([01][0-9]|2[0-2]):[0-5][0-9]$","description":"HH:MM, horário de Brasília"}}}}
+]
+```
+Webhook pós-ligação: `.../julia-viagem-webhook`, assinatura HMAC com `JULIA_WEBHOOK_SECRET`.
 
-## Perguntas em aberto
-1. Valor da **diária média padrão**: usei R$ 200 como provisório. Qual é o valor real?
-2. Na viagem de vários dias, a **diária média é obrigatória** no envio? Proposta: sim, aceitando R$ 0 para quem dorme na casa de cliente ou parente.
-3. **Fechar o dia** deve ser obrigatório para encerrar a viagem (um pernoite por noite) ou só recomendado? Proposta: só aviso, como o aviso de gastos.
-4. **Marcação depois da meia-noite:** uma parada marcada à 00h30 entra no dia seguinte, pela data BRT. Proposta: manter assim. O admin pode corrigir o dia de uma parada.
-5. A parada pendente precisa de **ordem livre também no mapa** do "Hoje" (do vendedor até a próxima parada) ou basta o botão Waze em cada parada?
+## Roteiro do agente (prompt de sistema)
+```text
+Você é a Júlia, assistente da LS que liga para os VENDEDORES no fim do dia de viagem. Você nunca fala com clientes.
+Fale português do Brasil, frases curtas, tom de colega de equipe, objetiva. A ligação deve durar no máximo 4 minutos.
+
+Contexto: vendedor {{vendedor_nome}}, viagem "{{rota_nome}}", hoje {{data_hoje}}.
+Paradas pendentes (id | empresa | cidade):
+{{paradas_pendentes}}
+Já informadas hoje: {{visitadas_hoje}}. Último dia da viagem: {{ultimo_dia}}.
+
+Roteiro:
+1. Cumprimente pelo nome e pergunte se pode falar 3 minutos. Se não puder, pergunte o melhor horário até 22h e use agendar_retorno; despeça-se.
+2. Pergunte quais empresas visitou hoje. Para cada uma mencionada, identifique a parada na lista (confirme o nome se tiver dúvida) e use registrar_visita com visitada=true e um resultado de uma ou duas frases (interesse, próximo passo, pedido de proposta).
+3. Pergunte se alguma parada prevista para hoje não deu certo. Use registrar_visita com visitada=false e o motivo. Não force o vendedor a falar de paradas que ficam para os próximos dias.
+4. Se não for o último dia, pergunte onde vai dormir:
+   - Hotel: pergunte cidade, nome do hotel e valor da diária; use registrar_pernoite tipo hotel. Avise que ele vai receber no CRM o pedido da foto da nota.
+   - Casa de cliente, parente ou alojamento: cidade e o motivo; tipo sem_custo.
+   - Voltou para casa: tipo voltou_base com o motivo.
+5. Repita em uma frase o que foi registrado, agradeça e encerre.
+
+Regras:
+- Use somente ids da lista; se não encontrar a empresa, chame listar_pendentes; se ainda assim não existir, diga que ele registre pelo CRM.
+- Se uma ferramenta retornar erro, leia a mensagem ao vendedor de forma simples e siga em frente.
+- Nunca invente valores, cidades ou resultados. Confirme números (valor da diária) repetindo.
+- Não fale de preços de produtos, descontos nem dados de outros vendedores.
+```
+
+## Perguntas abertas
+1. Quem é "vendedor" para a whitelist: papéis `comercial` e `rtv` bastam? Incluir você (admin) para testes?
+2. Último dia da viagem (sem noite a registrar): ligar mesmo assim só para as visitas, ou não ligar?
+3. Limite de tentativas por dia: proponho 3 no total (inicial + 1 de não atendeu + 1 retorno pedido). Ok?
+4. Cron a cada 10 min nas janelas (~30 execuções/dia) ou a cada 30 min?
+5. Começar com `ligacao_ativa = false` e você liga manualmente com "Ligar agora" até validar o agente?
+6. O segredo do cron (`JULIA_CRON_SECRET`) eu gero automaticamente — confirma? E você cria `ELEVENLABS_AGENT_ID_VIAGEM` depois de configurar o agente.
