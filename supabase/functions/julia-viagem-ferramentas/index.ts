@@ -7,6 +7,7 @@ import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
+import { avisosContatos, contatosParadas } from '../_shared/contatosOrg.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
@@ -69,7 +70,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    const oi = await orgIncompleta();
    const ja = jaRegistradasHoje(c.rota.paradas, data);
    const frase = fraseJaRegistradas(ja);
-   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja });
+   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja, contatos_paradas: contatosParadas(c.rota.paradas) });
   }
   if (body.acao === 'listar_organizacoes_incompletas') {
    const oi = await orgIncompleta();
@@ -118,6 +119,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
     return json({ ok: true, salvo: true, empresa, mensagem: 'Essa visita já estava salva — tudo certo.', avisos: novos.length ? [...avisos, `Campos novos não gravados: ${novos.join(', ')}; complete pelo CRM.`] : avisos, pendencias: pendencias(c.rota) });
    }
    if (estado === 'conflito') return recusar(p.dia === data ? `A ${empresa} já foi informada hoje de outro jeito; corrija pelo CRM.` : `A ${empresa} já foi informada em outro dia; corrija pelo CRM.`);
+   if (body.visitada) avisos.push(...avisosContatos(body as Record<string, unknown>, p.organizacao?.pessoas ?? []));
    const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body })); t.marcar('rpc_registrar');
    if (body.visitada && (body as Record<string, unknown>).proximo_passo && body.proximo_passo_data && !result?.atividade_id) avisos.push(p.organizacao_id ? 'Próximo passo salvo, mas a atividade não foi criada; confira no CRM.' : 'Próximo passo salvo sem atividade: a parada não tem empresa vinculada.');
    return json({ ...result, salvo: true, empresa, mensagem: mensagemVisita(empresa,body.visitada,result?.atividade_id,relato.proximo_passo_data as string), avisos, pendencias: pendencias(await recarregar()) });
