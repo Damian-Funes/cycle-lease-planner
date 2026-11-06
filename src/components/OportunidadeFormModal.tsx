@@ -1,3 +1,4 @@
+import { filtroCmdkOrganizacao } from "@/lib/buscaOrganizacao";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -160,12 +161,13 @@ export default function OportunidadeFormModal({ open, onOpenChange, oportunidade
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
+                  <Command filter={filtroCmdkOrganizacao}>
                     <CommandInput placeholder="Buscar organização..." />
                     <CommandList>
                       <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
                       <CommandGroup>
                         <CommandItem
+                          value="__criar__"
                           onSelect={() => {
                             setOrgOpen(false);
                             setNovaOrgOpen(true);

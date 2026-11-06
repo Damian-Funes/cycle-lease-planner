@@ -105,3 +105,15 @@ export function filtrarOrganizacoes<T extends OrgBuscavel>(lista: T[], termo: st
     .sort((a, b) => b.s - a.s || a.i - b.i)
     .map((x) => x.o);
 }
+
+/**
+ * Filtro para o <Command filter> (cmdk) dos seletores de organização.
+ * O value do item é o texto buscável (nome, fantasia, cidade...). Itens com value
+ * iniciado por "__" (ex.: "Nenhuma", "Criar nova") ficam sempre visíveis.
+ */
+export function filtroCmdkOrganizacao(value: string, search: string): number {
+  if (value.startsWith("__")) return 0.0001;
+  if (!search.trim()) return 1;
+  const s = pontuarOrganizacao({ nome: value }, search);
+  return s > 0 ? Math.min(1, s / 400) : 0;
+}
