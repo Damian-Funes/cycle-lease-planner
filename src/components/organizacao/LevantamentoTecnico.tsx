@@ -47,7 +47,7 @@ export default function LevantamentoTecnico({ organizacaoId }: { organizacaoId: 
           <div>
             <p className="text-xs text-muted-foreground">Última visita</p>
             <p className="text-sm font-medium">{atual?.ultima_visita ? dataCurta(atual.ultima_visita.data) : "—"}</p>
-            {atual?.ultima_visita?.rota_id && <Link className="text-[11px] text-primary underline" to={`/rotas/${atual.ultima_visita.rota_id}/acompanhar`}>ver viagem</Link>}
+            {atual?.ultima_visita?.rota_id && <Link className="text-[11px] text-primary underline" to={`/viagens/${atual.ultima_visita.rota_id}/acompanhar`}>ver viagem</Link>}
           </div>
         </div>
       </Card>
@@ -62,7 +62,7 @@ export default function LevantamentoTecnico({ organizacaoId }: { organizacaoId: 
                 <span>{h.autor_id ? nomes[h.autor_id] ?? "vendedor" : "sistema"}</span>
                 <Badge variant="outline">{h.origem === "manual" ? "Correção" : h.origem === "whatsapp" ? "WhatsApp" : "Visita"}</Badge>
                 {h.interesse && <Badge variant="secondary">Interesse {INTERESSE[h.interesse] ?? h.interesse}</Badge>}
-                {h.rota_id && <Link className="text-primary underline" to={`/rotas/${h.rota_id}/acompanhar`}>viagem</Link>}
+                {h.rota_id && <Link className="text-primary underline" to={`/viagens/${h.rota_id}/acompanhar`}>viagem</Link>}
               </div>
               {h.resultado && <p className="text-sm">{h.resultado}</p>}
               <ul className="text-xs text-muted-foreground space-y-0.5">
