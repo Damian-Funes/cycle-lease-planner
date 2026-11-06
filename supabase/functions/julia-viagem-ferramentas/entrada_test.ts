@@ -35,7 +35,7 @@ Deno.test('payload real é aceito com quantidade extraída e sem data nem ativid
  const { body, avisos } = prepararEntrada({ ...ids, acao: 'registrar_visita', resultado: 'Visita feita', sacos_safra: '500 mil sacos', proximo_passo_data: 'Sem próximo passo', motivo: 'Não se aplica, visita realizada', visitada: true, objecoes: ['Nenhuma citada'], concorrente: 'Nenhum' }, '2026-11-05');
  assert(body.acao === 'registrar_visita' && body.sacos_safra === 500000);
  assert(!('motivo' in body) && !('objecoes' in body) && !('concorrente' in body) && !('proximo_passo_data' in body) && !('atividade_id' in body));
- assert(avisos.length === 1);
+ assert(avisos.length === 2 && avisos.some(a => a.includes('concorrente')));
 });
 Deno.test('data passada é removida com aviso mesmo com próximo passo informado', () => {
  const { body, avisos } = prepararEntrada({ ...ids, acao: 'registrar_visita', visitada: true, resultado: 'Feita', proximo_passo: 'Retornar', proximo_passo_data: '04/11/2026' }, '2026-11-05');
