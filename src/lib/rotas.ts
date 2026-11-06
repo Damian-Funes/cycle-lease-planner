@@ -173,31 +173,6 @@ export async function rotasAprovacoes(aba: 'aguardando' | 'pendentes' | 'conclui
   return rows.map(r => ({ ...r, paradas: r.paradas.sort((a,b) => a.ordem-b.ordem) }));
 }
 
-export async function criarAtividadeVisita(opts: {
-  organizacaoId: string;
-  organizacaoNome: string;
-  responsavelId: string;
-  dataAtividade: string;
-}) {
-  const { data, error } = await (supabase as any)
-    .from("atividades")
-    .insert({
-      tipo_id: TIPO_VISITA_ID,
-      organizacao_id: opts.organizacaoId,
-      responsavel_id: opts.responsavelId,
-      titulo: `Visita planejada — ${opts.organizacaoNome}`,
-      data_atividade: opts.dataAtividade,
-      data_inicio: opts.dataAtividade,
-      evento_automatico: true,
-      concluida: false,
-      tipo: "evento_automatico",
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return data.id as string;
-}
-
 export interface OrganizacaoProxima {
   id: string;
   nome: string;
