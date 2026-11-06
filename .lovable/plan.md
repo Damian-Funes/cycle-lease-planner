@@ -22,7 +22,7 @@ Completa = tem pelo menos 1 pessoa de contato com telefone ou celular, cidade + 
 - Na lista de incompletas, cada organização mostra só o que falta, com campos para preencher ali mesmo (pessoa: nome, cargo e telefone; cidade/UF) e o botão "Descartar", que pede o motivo.
 
 ## 3. Júlia na ligação da viagem
-Depois de fechar o dia, a Júlia pergunta de 2 ou 3 organizações incompletas do vendedor, nesta ordem de prioridade:
+Depois de fechar o dia, a Júlia pergunta de **uma única** organização incompleta do vendedor por ligação: a mais prioritária, nesta ordem:
 1. mesma cidade e UF de uma parada ainda pendente da viagem ("mesma cidade da parada Coopatrigo – São Luiz Gonzaga");
 2. até 60 km de uma parada pendente ou do pernoite de hoje, quando os dois lados têm coordenadas ("a 40 km do pernoite");
 3. tem negócio aberto ou orçamento;
@@ -38,14 +38,14 @@ Tudo fica registrado em `organizacao_levantamentos` com origem `julia` e os dado
 
 ## 4. Ferramentas novas da Júlia
 Ficam em `julia-viagem-ferramentas`, no mesmo padrão das atuais (`mensagem`/`salvo`, segredo e ligação ativa).
-- `listar_organizacoes_incompletas {ligacao_id, rota_id}`: devolve até 3 organizações com `{organizacao_id, nome, cidade, uf, falta[], motivo_prioridade, data_passagem?}`.
+- `listar_organizacoes_incompletas {ligacao_id, rota_id}`: devolve **só 1** organização (a mais prioritária) com `{organizacao_id, nome, cidade, uf, falta[], motivo_prioridade, distancia_km}`. A mesma organização não volta em menos de 7 dias.
 - `completar_organizacao {ligacao_id, organizacao_id, pessoa_nome?, pessoa_cargo?, pessoa_telefone?, cidade?, uf?, descobrir_ate?, sugerir_visita?, descartar_motivo?, descartar_obs?}`. Todas as gravações acontecem juntas, de uma vez. Repetir o mesmo pedido não grava duas vezes e devolve "já estava salvo".
 - `montarPendencias` ganha o item opcional `organizacoes_incompletas`, que não bloqueia o fechamento do dia e não gera notificação.
 - Documentação em `docs/julia-viagem-elevenlabs.md`: tabela de campos das 2 ferramentas para a ElevenLabs e um trecho de prompt para colar só depois da sua aprovação.
 
 ## 5. Ligação semanal de faxina (só preparada, desligada)
 - `ligacoes_viagem.origem` passa a aceitar `faxina`, com `rota_id` vazio.
-- Nova configuração `faxina_config` (dia da semana, hora, até 5 organizações, ativo=false). Só admin edita.
+- Nova configuração `faxina_config` (dia da semana, hora, **1 organização por ligação**, ativo=false). Só admin edita.
 - `listar_organizacoes_incompletas` funciona sem viagem, pela prioridade 3 e depois 4.
 - Nada é agendado: nenhum agendamento automático, nenhuma ligação, e a ligação ativa continua desligada.
 
