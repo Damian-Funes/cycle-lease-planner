@@ -55,3 +55,7 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Função whatsapp-status (admin, Graph API v21.0).
 - [ ] Rodar uma vez — usuário roda pelo console (sessão admin não acessível ao agente).
 - [x] Função whatsapp-ativar publicada (usuário chama pelo console).
+
+# Visitas alimentam a Organização
+- [x] Histórico de levantamentos, situação atual, gatilho não bloqueante, contato/decisor, atividade sem duplicata, backfill (aplicado).
+- [x] Aba "Levantamento técnico" na Organização e sacos/safra pré-preenchido no Diagnóstico.
