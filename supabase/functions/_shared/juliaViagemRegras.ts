@@ -18,4 +18,12 @@ export function podeTentar(tentativas: number, origem: "inicial" | "retentativa"
 }
 export function janelaCron(hora: string) {
   return (hora >= "15:50" && hora <= "22:00") || (hora >= "09:00" && hora <= "09:10");
+}/**
+ * Decide se a ligação pode discar. Ligação manual do admin disca com qualquer pendência
+ * (inclusive organizacao_incompleta); cron/automática ignora nota_hotel e organizacao_incompleta (opcionais).
+ */
+export const MOTIVO_NADA_PENDENTE = "Nada pendente nesta viagem hoje.";
+export function motivoNaoDiscar(pendencias: { tipo: string }[], manualAdmin: boolean): string | null {
+  const relevantes = manualAdmin ? pendencias : pendencias.filter(p => p.tipo !== "nota_hotel" && p.tipo !== "organizacao_incompleta");
+  return relevantes.length ? null : MOTIVO_NADA_PENDENTE;
 }

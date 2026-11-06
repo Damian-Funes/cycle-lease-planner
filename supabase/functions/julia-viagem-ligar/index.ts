@@ -1,6 +1,7 @@
 import { z } from 'npm:zod@3';
+import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { admins, check, contexto, corsHeaders, dbAdmin, enviarContato, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
-import { DAMIAN_ID, janelaCron } from '../_shared/juliaViagemRegras.ts';
+import { DAMIAN_ID, janelaCron, motivoNaoDiscar } from '../_shared/juliaViagemRegras.ts';
 import { configurarElevenLabs, erroElevenLabs } from './elevenlabs.ts';
 const Body = z.discriminatedUnion('modo', [
   z.object({ modo: z.literal('cron') }).strict(),
@@ -28,16 +29,24 @@ export async function handler(req: Request) {
     }
     if (input.modo === 'cron' && (!parametros.ligacao_ativa || !janelaCron(hora))) return json({ ok: true, desativada: !parametros.ligacao_ativa });
     const reservar = async (rotaId: string, origem: string, quando: string, teste = false) => check(await db.rpc('julia_reservar_ligacao', { p_rota: rotaId, p_origem: origem, p_quando: quando, p_admin: actor, p_teste: teste }));
-    const discar = async (id: string) => {
+    // Retorna null quando discou; senão o motivo exato para o botão.
+    const discar = async (id: string, manualAdmin = false): Promise<string | null> => {
       // Claim atômico: só um executor chega à ElevenLabs, mesmo com cron e Agora simultâneos.
       const l = check(await db.from('ligacoes_viagem').update({ status: 'discando', updated_at: agora.toISOString() }).eq('id', id).in('status', ['agendada','aguardando_escolha']).lte('agendada_para', agora.toISOString()).select('*').maybeSingle());
-      if (!l) return false;
+      if (!l) return 'Ligação já encerrada.';
       try {
         if (l.data_ref !== data || hora >= '22:00') throw new Error('Janela de ligação encerrada.');
         const c = await contexto(db, l.rota_id, data);
         if (c.rota.status !== 'aprovada' || data < c.rota.data_inicio || data > c.rota.data_fim) throw new Error('Viagem fora do período.');
-        const relevantes = c.pendencias.filter(p => p.tipo !== 'nota_hotel');
-        if (!relevantes.length) { check(await db.from('ligacoes_viagem').update({ status: 'cancelada' }).eq('id', l.id)); return false; }
+        let pendencias = c.pendencias;
+        if (manualAdmin) {
+          // Admin religa: considera também o debrief e a organização incompleta (falha na org não derruba).
+          const org = await db.rpc('fn_organizacoes_incompletas_priorizadas', { p_vendedor: l.vendedor_id, p_rota: l.rota_id, p_limite: 1 });
+          const oi = org.error ? null : ((org.data ?? [])[0] ?? null);
+          pendencias = montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi });
+        }
+        const motivo = motivoNaoDiscar(pendencias, manualAdmin);
+        if (motivo) { check(await db.from('ligacoes_viagem').update({ status: 'cancelada', erro: motivo }).eq('id', l.id)); return motivo; }
         let perfil = c.perfil;
         if (l.teste) {
           if (l.solicitado_por !== DAMIAN_ID) throw new Error('Teste fora da whitelist.');
@@ -60,7 +69,7 @@ export async function handler(req: Request) {
         const result = await res.json();
         if (!result.conversation_id || result.success === false) throw new Error('ElevenLabs não confirmou a conversa.');
         check(await db.from('ligacoes_viagem').update({ status: 'em_andamento', conversation_id: result.conversation_id, call_sid: result.callSid ?? result.call_sid ?? null }).eq('id', l.id));
-        return true;
+        return null;
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Falha ao ligar.';
         check(await db.from('ligacoes_viagem').update({ status: 'falhou', erro: message }).eq('id', l.id));
@@ -83,7 +92,8 @@ export async function handler(req: Request) {
       }
       const l = await reservar(input.rota_id, origem, agora.toISOString(), input.teste);
       // Nunca responder ok sem discar (antes, a inicial já concluída voltava "ok" em silêncio).
-      if (!await discar(l.id)) return json({ error: 'Não foi possível discar: ligação já encerrada ou nada pendente nesta viagem hoje.' }, 409);
+      const motivo = await discar(l.id, true);
+      if (motivo) return json({ error: `Não foi possível discar: ${motivo}` }, 409);
       return json({ ok: true, ligacao_id: l.id });
     }
     if (input.modo === 'escolha') { await discar(input.ligacao_id); return json({ ok: true }); }
