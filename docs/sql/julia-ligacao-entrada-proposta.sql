@@ -31,5 +31,8 @@ END $$;
 REVOKE ALL ON FUNCTION public.julia_reservar_entrada(uuid,text,text,boolean,uuid) FROM public, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.julia_reservar_entrada(uuid,text,text,boolean,uuid) TO service_role;
 
--- Observação: se existir índice único (vendedor_id, data_ref, origem) que barre duas 'entrada' no mesmo dia,
--- trocar por índice parcial excluindo 'manual' e 'entrada' (verificar no momento da aplicação).
+-- O vendedor pode ligar várias vezes no dia: o índice único por origem passa a excluir 'entrada'.
+-- "Uma ativa por vendedor" (ligacoes_viagem_uma_ativa) continua valendo.
+DROP INDEX IF EXISTS public.ligacoes_viagem_vendedor_id_data_ref_origem_key;
+CREATE UNIQUE INDEX ligacoes_viagem_vendedor_id_data_ref_origem_key ON public.ligacoes_viagem (vendedor_id, data_ref, origem)
+  WHERE origem NOT IN ('manual','entrada');
