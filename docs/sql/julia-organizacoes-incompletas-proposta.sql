@@ -249,24 +249,24 @@ BEGIN
 
   IF v_dig IS NOT NULL AND EXISTS (SELECT 1 FROM pessoas p WHERE p.organizacao_id = p_org
        AND (regexp_replace(coalesce(p.telefone,''),'\D','','g') = v_dig OR regexp_replace(coalesce(p.celular,''),'\D','','g') = v_dig)) THEN
-    acoes := acoes || 'telefone_ja_existia';
+    acoes := array_append(acoes, 'telefone_ja_existia'::text);
   ELSIF v_nome IS NOT NULL THEN
     SELECT * INTO pe FROM pessoas p WHERE p.organizacao_id = p_org
       AND lower(unaccent_simple(btrim(p.nome))) = lower(unaccent_simple(v_nome)) ORDER BY p.created_at LIMIT 1;
     IF pe.id IS NULL THEN
       INSERT INTO pessoas(nome, cargo, telefone, organizacao_id, responsavel_id, observacoes)
       VALUES (v_nome, v_cargo, v_tel, p_org, l.vendedor_id, 'Informado pela Júlia em '||to_char(fn_rota_hoje_brt(),'DD/MM/YYYY'));
-      acoes := acoes || 'pessoa_criada';
+      acoes := array_append(acoes, 'pessoa_criada'::text);
     ELSE
-      IF v_cargo IS NOT NULL AND nullif(btrim(pe.cargo),'') IS NULL THEN UPDATE pessoas SET cargo = v_cargo WHERE id = pe.id; acoes := acoes || 'cargo_completado'; END IF;
+      IF v_cargo IS NOT NULL AND nullif(btrim(pe.cargo),'') IS NULL THEN UPDATE pessoas SET cargo = v_cargo WHERE id = pe.id; acoes := array_append(acoes, 'cargo_completado'::text); END IF;
       IF v_tel IS NOT NULL THEN
-        IF nullif(btrim(pe.telefone),'') IS NULL THEN UPDATE pessoas SET telefone = v_tel WHERE id = pe.id; acoes := acoes || 'telefone_completado';
-        ELSIF nullif(btrim(pe.celular),'') IS NULL THEN UPDATE pessoas SET celular = v_tel WHERE id = pe.id; acoes := acoes || 'telefone_adicional';
+        IF nullif(btrim(pe.telefone),'') IS NULL THEN UPDATE pessoas SET telefone = v_tel WHERE id = pe.id; acoes := array_append(acoes, 'telefone_completado'::text);
+        ELSIF nullif(btrim(pe.celular),'') IS NULL THEN UPDATE pessoas SET celular = v_tel WHERE id = pe.id; acoes := array_append(acoes, 'telefone_adicional'::text);
           avisos := avisos || ('O telefone de '||pe.nome||' era outro; guardei o novo como adicional.');
         ELSE
           INSERT INTO pessoas(nome, cargo, telefone, organizacao_id, responsavel_id, observacoes)
           VALUES (pe.nome, coalesce(v_cargo, pe.cargo), v_tel, p_org, l.vendedor_id, 'Contato adicional informado pela Júlia (telefone diferente do cadastrado)');
-          acoes := acoes || 'telefone_adicional';
+          acoes := array_append(acoes, 'telefone_adicional'::text);
           avisos := avisos || ('O telefone de '||pe.nome||' era outro; guardei o novo como contato adicional.');
         END IF;
       END IF;
@@ -280,13 +280,13 @@ BEGIN
   IF v_uf IS NOT NULL THEN SELECT id INTO v_estado FROM estados WHERE sigla = v_uf;
     IF v_estado IS NULL THEN RAISE EXCEPTION 'UF inválida.'; END IF; END IF;
   IF v_cidade IS NOT NULL THEN
-    IF nullif(btrim(o.cidade),'') IS NULL THEN UPDATE organizacoes SET cidade = v_cidade WHERE id = p_org; acoes := acoes || 'cidade_completada';
+    IF nullif(btrim(o.cidade),'') IS NULL THEN UPDATE organizacoes SET cidade = v_cidade WHERE id = p_org; acoes := array_append(acoes, 'cidade_completada'::text);
     ELSIF lower(unaccent_simple(btrim(o.cidade))) <> lower(unaccent_simple(v_cidade)) THEN
       avisos := avisos || ('A cidade cadastrada é '||o.cidade||'; não alterei. Corrija pelo CRM se for o caso.'); END IF;
   END IF;
   IF v_estado IS NOT NULL THEN
-    IF o.estado_id IS NULL THEN UPDATE organizacoes SET estado_id = v_estado, estado = v_uf WHERE id = p_org; acoes := acoes || 'uf_completada';
-    ELSIF o.estado_id <> v_estado THEN avisos := avisos || 'A UF cadastrada é outra; não alterei.'; END IF;
+    IF o.estado_id IS NULL THEN UPDATE organizacoes SET estado_id = v_estado, estado = v_uf WHERE id = p_org; acoes := array_append(acoes, 'uf_completada'::text);
+    ELSIF o.estado_id <> v_estado THEN avisos := array_append(avisos, 'A UF cadastrada é outra; não alterei.'::text); END IF;
   END IF;
 
   -- "vou descobrir" e "dá pra passar lá": atividades (entram na cobrança). Nunca altera a viagem.
@@ -301,7 +301,7 @@ BEGIN
               false, false, 'Combinado com a Júlia: descobrir '||array_to_string(fn_organizacao_faltas(p_org), ', '))
       RETURNING id INTO v_ativ;
     END IF;
-    acoes := acoes || 'descobrir';
+    acoes := array_append(acoes, 'descobrir'::text);
   END IF;
   IF coalesce((p_dados->>'sugerir_visita')::boolean, false) THEN
     v_data := coalesce(fn_data_segura(p_dados->>'visita_em'), fn_rota_hoje_brt() + 1);
@@ -313,7 +313,7 @@ BEGIN
               (v_data + time '09:00') AT TIME ZONE 'America/Sao_Paulo', (v_data + time '09:00') AT TIME ZONE 'America/Sao_Paulo',
               false, false, 'Sugerida na ligação com a Júlia. Se quiser, adicione como parada da viagem pelo app.');
     END IF;
-    acoes := acoes || 'sugerir_visita';
+    acoes := array_append(acoes, 'sugerir_visita'::text);
   END IF;
 
   IF cardinality(acoes) = 0 THEN RAISE EXCEPTION 'Nada para salvar: informe contato, cidade/UF, data para descobrir, sugestão de visita ou descarte.'; END IF;
