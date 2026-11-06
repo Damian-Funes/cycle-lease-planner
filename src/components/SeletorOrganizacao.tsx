@@ -10,6 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Plus, Lock, ExternalLink } from "lucide-react";
+import { pontuarOrganizacao } from "@/lib/buscaOrganizacao";
 import OrganizacaoFormModal from "./OrganizacaoFormModal";
 import PessoaFormModal from "./PessoaFormModal";
 import { toast } from "sonner";
@@ -123,8 +124,9 @@ export default function SeletorOrganizacao({
               filter={(val, search) => {
                 const o = organizacoes.find((x) => x.id === val);
                 if (!o) return 0;
-                const hay = `${o.nome} ${o.nome_fantasia ?? ""} ${o.cnpj ?? ""}`.toLowerCase();
-                return hay.includes(search.toLowerCase()) ? 1 : 0;
+                if (!search.trim()) return 1;
+                const sc = pontuarOrganizacao(o, search);
+                return sc > 0 ? Math.min(1, sc / 400) : 0;
               }}
             >
               <CommandInput placeholder="Buscar por nome ou CNPJ…" />

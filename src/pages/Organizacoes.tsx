@@ -1,3 +1,4 @@
+import { filtrarOrganizacoes } from "@/lib/buscaOrganizacao";
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -107,8 +108,7 @@ export default function Organizacoes() {
   }, [orgs]);
 
   const filtered = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return orgs.filter((o) => {
+    const base = orgs.filter((o) => {
       if (statusFiltro === "incompletas") {
         if (!incompletasMap?.has(o.id)) return false;
       } else if (statusFiltro === "sem_responsavel") {
@@ -116,10 +116,16 @@ export default function Organizacoes() {
       } else if (statusFiltro !== "todos" && o.status !== statusFiltro) return false;
       if (respFiltro !== "todos" && o.responsavel_id !== respFiltro) return false;
       if (segFiltro !== "todos" && o.segmento !== segFiltro) return false;
-      if (!q) return true;
-      return o.nome.toLowerCase().includes(q) || (o.cnpj ?? "").toLowerCase().includes(q);
+      return true;
     });
+    return filtrarOrganizacoes(base as any[], busca) as OrganizacaoRow[];
   }, [orgs, busca, statusFiltro, respFiltro, segFiltro, incompletasMap]);
+
+  const filtrosAtivos = statusFiltro !== "todos" || respFiltro !== "todos" || segFiltro !== "todos";
+  function limparFiltros() {
+    setStatusFiltro("todos"); setRespFiltro("todos"); setSegFiltro("todos"); setPage(0);
+    setSearchParams({}, { replace: true });
+  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageData = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -161,7 +167,7 @@ export default function Organizacoes() {
         <div className="flex flex-col lg:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome ou CNPJ..." className="pl-9" />
+            <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome, cidade ou CNPJ..." className="pl-9" />
           </div>
           <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); if (v !== "incompletas" && v !== "sem_responsavel") setSearchParams({}, { replace: true }); }}>
             <SelectTrigger className="w-full lg:w-[200px]"><SelectValue placeholder="Status" /></SelectTrigger>
@@ -208,7 +214,12 @@ export default function Organizacoes() {
               {isLoading ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-12"><Loader2 className="w-5 h-5 animate-spin inline text-primary" /></TableCell></TableRow>
               ) : pageData.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">Nenhuma organização encontrada</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                  {busca.trim() ? (filtrosAtivos ? "Nenhuma organização com esse nome. Limpe os filtros" : "Nenhuma organização com esse nome.") : "Nenhuma organização encontrada"}
+                  {filtrosAtivos && (
+                    <div className="mt-3"><Button variant="outline" size="sm" onClick={limparFiltros}>Limpar filtros</Button></div>
+                  )}
+                </TableCell></TableRow>
               ) : (
                 pageData.map((o) => {
                   const resp = o.responsavel_id ? profileMap.get(o.responsavel_id) : null;

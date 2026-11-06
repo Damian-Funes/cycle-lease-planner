@@ -1,3 +1,4 @@
+import { filtroCmdkOrganizacao } from "@/lib/buscaOrganizacao";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -159,7 +160,7 @@ export default function PessoaFormModal({ open, onOpenChange, pessoa, defaultOrg
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
-                  <Command>
+                  <Command filter={filtroCmdkOrganizacao}>
                     <CommandInput placeholder="Buscar organização..." />
                     <CommandList>
                       <CommandEmpty>Nenhuma encontrada</CommandEmpty>
