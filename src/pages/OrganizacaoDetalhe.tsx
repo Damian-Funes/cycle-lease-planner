@@ -27,6 +27,8 @@ import {
   ArrowLeft, Trash2, Loader2, Building2, ChevronDown, Plus, Star, Mail, Phone, Pencil, ChevronsUpDown, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { reabrirOrganizacao, rotuloDescarte } from "@/lib/organizacaoDescarte";
+import { useAuth } from "@/hooks/useAuth";
 import type { OrganizacaoRow } from "@/components/OrganizacaoFormModal";
 import ActivityFeed from "@/components/ActivityFeed";
 import InteracoesCampo from "@/components/InteracoesCampo";
@@ -62,6 +64,7 @@ export default function OrganizacaoDetalhe() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { isAdmin: isAdminDescarte } = useAuth();
   const [pessoaModalOpen, setPessoaModalOpen] = useState(false);
   const [editingPessoa, setEditingPessoa] = useState<PessoaRow | null>(null);
   const [vincularOpen, setVincularOpen] = useState(false);
@@ -197,7 +200,7 @@ export default function OrganizacaoDetalhe() {
           <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm flex items-center gap-3">
             <span>Organização descartada em {new Date((org as any).descartada_em).toLocaleDateString("pt-BR")}: <b>{rotuloDescarte((org as any).descarte_motivo)}</b>{(org as any).descarte_obs ? ` — ${(org as any).descarte_obs}` : ""}</span>
             {isAdminDescarte && <Button size="sm" variant="outline" className="ml-auto h-7" onClick={async () => {
-              try { await reabrirOrganizacao(id!); toast.success("Organização reaberta"); qc.invalidateQueries({ queryKey: ["organizacao", id] }); qc.invalidateQueries({ queryKey: ["organizacoes"] }); }
+              try { await reabrirOrganizacao(id); toast.success("Organização reaberta"); qc.invalidateQueries({ queryKey: ["organizacao", id] }); qc.invalidateQueries({ queryKey: ["organizacoes"] }); }
               catch (e: any) { toast.error(e?.message); }
             }}>Reabrir</Button>}
           </div>
