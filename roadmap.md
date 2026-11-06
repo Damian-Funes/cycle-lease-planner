@@ -75,3 +75,10 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Migração de cobrança aplicada (trava desligada).
 - [ ] Ligar trava_orcamento_ativa — depois do publish do frontend novo.
 - [x] Limpeza aplicada: 25 zeradas.
+
+# Júlia completa organizações incompletas
+- [x] Regra única de completa (sem e-mail), descarte com motivo, preenchimento na lista.
+- [x] Ferramentas listar_organizacoes_incompletas (1 por ligação) e completar_organizacao + item opcional nas pendências.
+- [x] Faxina semanal preparada (desligada); placar com orgs completadas/descartadas; docs ElevenLabs.
+- [ ] Aplicar SQL — aguardando aprovação.
+- [ ] Localizar no mapa as ~45 orgs sem coordenadas (botão "Localizar organizações") — depois do SQL.

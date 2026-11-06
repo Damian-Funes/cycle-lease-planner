@@ -418,3 +418,53 @@ Resposta: `{ itens: [{ atividade_id, titulo, empresa, venceu_em, reagendamentos 
 }
 ```
 Mapeamento: `fn_atividade_concluir(p_id, p_resultado, p_autor, 'julia')`, `fn_atividade_reagendar(p_id, p_data, p_motivo, p_autor, 'julia')`, `fn_atividade_nao_fiz(p_id, p_data, p_motivo, p_autor, 'julia')`, `fn_atividade_cancelar(p_id, p_motivo, p_autor, 'julia')`.
+
+---
+
+## Organizações incompletas (1 por ligação) — criar na ElevenLabs só após aplicar o SQL
+
+Mesmo webhook, headers e padrão das outras ferramentas (`POST julia-viagem-ferramentas`, `x-julia-secret`). Respostas sempre com `salvo` e `mensagem` curta para ler.
+
+### Ferramenta `listar_organizacoes_incompletas`
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| acao | string (constante `listar_organizacoes_incompletas`) | sim | — |
+| ligacao_id | string | sim | `{{ligacao_id}}` |
+| rota_id | string | sim | `{{rota_id}}` |
+
+Resposta: `organizacoes` com **no máximo 1** item `{organizacao_id, nome, cidade, uf, falta[], prioridade, motivo, distancia_km}`. Prioridade: 1 mesma cidade de parada pendente · 2 até 60 km de parada pendente ou do pernoite de hoje · 3 tem negócio/orçamento · 4 incompleta há mais tempo. A mesma organização não volta em menos de 7 dias.
+
+### Ferramenta `completar_organizacao`
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| acao | string (constante `completar_organizacao`) | sim | — |
+| ligacao_id | string | sim | `{{ligacao_id}}` |
+| rota_id | string | sim | `{{rota_id}}` |
+| organizacao_id | string | sim | vindo de `listar_organizacoes_incompletas` |
+| pessoa_nome | string | não | nome do contato |
+| pessoa_cargo | string | não | cargo do contato |
+| pessoa_telefone | string | não | telefone com DDD (só dígitos são guardados); exige `pessoa_nome` |
+| cidade | string | não | só completa se estiver vazia |
+| uf | string | não | sigla de 2 letras; só completa se estiver vazia |
+| descobrir_ate | string | não | AAAA-MM-DD — cria a tarefa "Pegar contato da …" para essa data |
+| sugerir_visita | boolean | não | cria "Sugestão de visita: …" (a viagem **não** muda) |
+| visita_em | string | não | AAAA-MM-DD para a sugestão de visita (padrão: amanhã) |
+| descartar_motivo | string | não | `fechou` · `nao_trata_semente` · `duplicada` · `outro` |
+| descartar_obs | string | não | obrigatório quando `descartar_motivo = outro` |
+
+Nunca sobrescreve: telefone diferente vira contato adicional (aviso em `avisos`); cidade/UF diferentes não são alteradas (aviso).
+
+### Trecho de prompt (colar só após sua aprovação)
+```
+ORGANIZAÇÃO INCOMPLETA (depois de fechar o dia, opcional, no máximo 1 por ligação):
+- Chame listar_organizacoes_incompletas. Se vier vazia, encerre normalmente.
+- Leia a "mensagem" e pergunte de forma curta pelo que falta. Ex.: "Você vai passar perto da Coopatrigo, em São Luiz Gonzaga. Tem o nome e o telefone de alguém de lá?"
+- Se ele souber: pegue nome, cargo e telefone. REPITA o telefone em voz alta, dígito por dígito, e só chame completar_organizacao depois que ele confirmar.
+- Se ele disser "vou descobrir": pergunte até quando (se ele não souber, proponha o dia em que passa na cidade) e envie descobrir_ate.
+- Se ele disser "dá para passar lá": envie sugerir_visita=true. Diga que a viagem não muda e que ele adiciona a parada no app se quiser.
+- Se ele disser que fechou, não trabalha com semente ou é duplicada: envie descartar_motivo (e descartar_obs se for outro motivo).
+- Leia os "avisos" quando houver (ex.: telefone diferente guardado como adicional). Não insista mais de uma vez; se ele não quiser falar disso, encerre.
+```
+
+### Faxina semanal (preparada, DESLIGADA)
+Estrutura pronta: `ligacoes_viagem.origem = 'faxina'` (sem viagem) e `faxina_config` (dia, hora, 1 organização por ligação, `ativo = false`). As ferramentas acima já gravam com origem `faxina` quando a ligação for desse tipo. Não há agendamento nem disparo; ativar exige aprovação e uma função de ligação própria.
