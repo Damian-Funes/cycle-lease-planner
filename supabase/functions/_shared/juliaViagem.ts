@@ -3,13 +3,14 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { canalContato, horarioBRT, permitidoLigar } from './juliaViagemRegras.ts';
 import { montarPendencias } from './pendenciasDia.ts';
 export const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-let clienteAdmin: ReturnType<typeof createClient> | null = null;
+const criarAdmin = (url: string, key: string) => createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+let clienteAdmin: ReturnType<typeof criarAdmin> | null = null;
 /** Reaproveitado entre requisições do mesmo worker (evita recriar client a cada chamada). */
 export function dbAdmin() {
   if (clienteAdmin) return clienteAdmin;
   const url = Deno.env.get('SUPABASE_URL'); const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) throw new Error('Configuração Supabase indisponível.');
-  clienteAdmin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  clienteAdmin = criarAdmin(url, key);
   return clienteAdmin;
 }
 export async function usuario(req: Request, admin = false) {
