@@ -41,21 +41,22 @@ DROP POLICY IF EXISTS "Ver reagendamentos de atividade visível" ON public.ativi
 CREATE POLICY "Ver reagendamentos de atividade visível" ON public.atividade_reagendamentos
   FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.atividades a WHERE a.id = atividade_id));
 
+-- A data efetiva é coalesce(data_inicio, data_atividade) (a agenda usa data_inicio).
 -- Data mudou numa atividade aberta fora das funções: registra mesmo assim (nada some em silêncio).
 CREATE OR REPLACE FUNCTION public.fn_atividade_data_guarda() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF NOT OLD.concluida AND NOT NEW.concluida
-     AND NEW.data_atividade IS DISTINCT FROM OLD.data_atividade
+     AND coalesce(NEW.data_inicio, NEW.data_atividade) IS DISTINCT FROM coalesce(OLD.data_inicio, OLD.data_atividade)
      AND coalesce(current_setting('app.reagendando', true), '') <> 'on' THEN
     INSERT INTO atividade_reagendamentos(atividade_id, data_anterior, data_nova, motivo, autor_id, origem)
-    VALUES (NEW.id, OLD.data_atividade, NEW.data_atividade, 'Alterado na edição (sem motivo)', auth.uid(), 'edicao');
+    VALUES (NEW.id, coalesce(OLD.data_inicio, OLD.data_atividade), coalesce(NEW.data_inicio, NEW.data_atividade), 'Alterado na edição (sem motivo)', auth.uid(), 'edicao');
     NEW.reagendamentos := OLD.reagendamentos + 1;
   END IF;
   RETURN NEW;
 END $$;
 DROP TRIGGER IF EXISTS trg_atividade_data_guarda ON public.atividades;
-CREATE TRIGGER trg_atividade_data_guarda BEFORE UPDATE OF data_atividade ON public.atividades
+CREATE TRIGGER trg_atividade_data_guarda BEFORE UPDATE OF data_inicio, data_atividade ON public.atividades
   FOR EACH ROW EXECUTE FUNCTION public.fn_atividade_data_guarda();
 
 -- Quem pode agir: responsável, admin ou gerente; service_role (Júlia) informa o autor.
@@ -104,7 +105,7 @@ BEGIN
   IF p_origem NOT IN ('app','julia') THEN RAISE EXCEPTION 'Origem inválida.'; END IF;
   a := fn_atividade_autorizar(p_id, p_autor);
   INSERT INTO atividade_reagendamentos(atividade_id, data_anterior, data_nova, motivo, autor_id, origem)
-  VALUES (p_id, a.data_atividade, p_data, trim(p_motivo), coalesce(auth.uid(), p_autor), p_origem);
+  VALUES (p_id, coalesce(a.data_inicio, a.data_atividade), p_data, trim(p_motivo), coalesce(auth.uid(), p_autor), p_origem);
   PERFORM set_config('app.reagendando', 'on', true);
   UPDATE atividades SET data_atividade = p_data, data_inicio = p_data, reagendamentos = reagendamentos + 1
   WHERE id = p_id RETURNING reagendamentos INTO n;
@@ -134,14 +135,14 @@ DECLARE hoje date := fn_rota_hoje_brt(); n_ins int := 0; n_res int := 0; c int;
 BEGIN
   WITH v AS (
     SELECT a.id, a.responsavel_id, a.titulo, a.reagendamentos,
-           (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date AS dia,
+           (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date AS dia,
            coalesce(p.nome, 'Vendedor') AS vendedor,
            coalesce(o.nome_fantasia, o.nome) AS org
     FROM atividades a
     LEFT JOIN profiles p ON p.user_id = a.responsavel_id
     LEFT JOIN organizacoes o ON o.id = a.organizacao_id
-    WHERE NOT a.concluida AND a.responsavel_id IS NOT NULL AND a.data_atividade IS NOT NULL
-      AND (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date <= hoje
+    WHERE NOT a.concluida AND a.responsavel_id IS NOT NULL AND coalesce(a.data_inicio, a.data_atividade) IS NOT NULL
+      AND (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date <= hoje
   ), alvo AS (
     SELECT v.responsavel_id AS user_id, 'atividade:'||v.id||':vencida' AS chave, 'atividade_vencida' AS tipo,
            'Atividade vencida: '||v.titulo AS titulo,
@@ -175,8 +176,8 @@ BEGIN
       WHERE a.id = fn_uuid_seguro(split_part(n.chave, ':', 2)) AND NOT a.concluida
         AND CASE split_part(n.chave, ':', 3)
               WHEN 'empurrando' THEN a.reagendamentos >= 3
-              WHEN 'escalada' THEN fn_dias_uteis_entre((a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date, hoje) > 3
-              ELSE (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date <= hoje END);
+              WHEN 'escalada' THEN fn_dias_uteis_entre((coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date, hoje) > 3
+              ELSE (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date <= hoje END);
   GET DIAGNOSTICS c = ROW_COUNT; n_res := c;
   RETURN jsonb_build_object('inseridas', n_ins, 'resolvidas', n_res);
 END $$;
@@ -190,8 +191,8 @@ BEGIN
   IF NEW.concluida THEN
     UPDATE notificacoes SET resolvida_em = now()
     WHERE resolvida_em IS NULL AND chave LIKE 'atividade:'||NEW.id||':%';
-  ELSIF NEW.data_atividade IS DISTINCT FROM OLD.data_atividade
-        AND (NEW.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date > fn_rota_hoje_brt() THEN
+  ELSIF coalesce(NEW.data_inicio, NEW.data_atividade) IS DISTINCT FROM coalesce(OLD.data_inicio, OLD.data_atividade)
+        AND (coalesce(NEW.data_inicio, NEW.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date > fn_rota_hoje_brt() THEN
     UPDATE notificacoes SET resolvida_em = now()
     WHERE resolvida_em IS NULL AND chave IN ('atividade:'||NEW.id||':vencida', 'atividade:'||NEW.id||':escalada');
   END IF;
@@ -207,13 +208,13 @@ WITH semana AS (
   SELECT date_trunc('week', (now() AT TIME ZONE 'America/Sao_Paulo'))::date AS ini
 )
 SELECT a.responsavel_id,
-  count(*) FILTER (WHERE (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN s.ini AND s.ini + 6
-                     AND (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date <= fn_rota_hoje_brt()) AS vencendo_semana,
-  count(*) FILTER (WHERE (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN s.ini AND s.ini + 6
+  count(*) FILTER (WHERE (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN s.ini AND s.ini + 6
+                     AND (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date <= fn_rota_hoje_brt()) AS vencendo_semana,
+  count(*) FILTER (WHERE (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN s.ini AND s.ini + 6
                      AND a.situacao = 'concluida'
-                     AND (a.data_conclusao AT TIME ZONE 'America/Sao_Paulo')::date <= (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date) AS no_prazo_semana,
-  count(*) FILTER (WHERE NOT a.concluida AND a.data_atividade < now()) AS vencidas_abertas,
-  min(a.data_atividade) FILTER (WHERE NOT a.concluida AND a.data_atividade < now()) AS mais_antiga,
+                     AND (a.data_conclusao AT TIME ZONE 'America/Sao_Paulo')::date <= (coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date) AS no_prazo_semana,
+  count(*) FILTER (WHERE NOT a.concluida AND coalesce(a.data_inicio, a.data_atividade) < now()) AS vencidas_abertas,
+  min(coalesce(a.data_inicio, a.data_atividade)) FILTER (WHERE NOT a.concluida AND coalesce(a.data_inicio, a.data_atividade) < now()) AS mais_antiga,
   count(*) FILTER (WHERE NOT a.concluida AND a.reagendamentos >= 3) AS empurrando,
   (SELECT count(*) FROM atividade_reagendamentos r JOIN atividades x ON x.id = r.atividade_id
     WHERE x.responsavel_id = a.responsavel_id AND (r.created_at AT TIME ZONE 'America/Sao_Paulo')::date >= s.ini) AS reagendamentos_semana
