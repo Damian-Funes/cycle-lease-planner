@@ -22,7 +22,8 @@ import FormaPagamentoSelector from "@/components/FormaPagamentoSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTravaOrcamento } from "@/components/atividade/useTravaOrcamento";
 import { ArrowLeft, Plus, Trash2, Save, FolderOpen, FileDown, Loader2, ChevronsUpDown, Check, FileText, User, Wrench, Receipt, AlertTriangle, HardHat, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -47,6 +48,8 @@ export default function Orcamento() {
   const clientNameRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const trava = useTravaOrcamento();
+  const navigateTrava = useNavigate();
   const { loading: authLoading, profile, isAdmin, user } = useAuth();
 
   // Taxas de montagem (config global)
@@ -82,7 +85,9 @@ export default function Orcamento() {
         setParams((p) => ({ ...p, pessoa_contato_id: list[0].id }));
       }
     })();
-    return () => { cancel = true; };
+    return (
+    <>
+    {trava.dialogo}) => { cancel = true; };
   }, [params.organizacao_id, params.dados_congelados]);
 
 
@@ -394,11 +399,12 @@ export default function Orcamento() {
     }
   }, [params, savedId, subtotal, total, toast, user?.id]);
 
-  function handleNovo() {
+  async function handleNovo() {
     if (params.clientName || savedId) {
       const ok = window.confirm("Iniciar um novo orçamento? Alterações não salvas serão perdidas.");
       if (!ok) return;
     }
+    if (!(await trava.checar())) return;
     setParams(DEFAULT_ORCAMENTO);
     setSavedId(null);
     toast({ title: "Novo orçamento iniciado" });
@@ -475,6 +481,11 @@ export default function Orcamento() {
     if (loadId) {
       void loadOrcamentoById(loadId);
       return;
+    }
+
+    // Entrada de novo orçamento (botão, negócio, organização, típico, diagnóstico): checa a trava de atividades.
+    if (novo || tipicoId || oppId || orgId) {
+      void trava.checar().then((ok) => { if (!ok) navigateTrava(-1); });
     }
 
     if (novo) {
@@ -1190,5 +1201,6 @@ export default function Orcamento() {
         onConfirm={(v) => update("frete", v)}
       />
     </div>
+    </>
   );
 }
