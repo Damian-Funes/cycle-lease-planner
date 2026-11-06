@@ -2056,6 +2056,8 @@ export type Database = {
           id: string
           lida_em: string | null
           link: string | null
+          resolvida_em: string | null
+          rota_id: string | null
           texto: string | null
           tipo: string
           titulo: string
@@ -2067,6 +2069,8 @@ export type Database = {
           id?: string
           lida_em?: string | null
           link?: string | null
+          resolvida_em?: string | null
+          rota_id?: string | null
           texto?: string | null
           tipo: string
           titulo: string
@@ -2078,12 +2082,22 @@ export type Database = {
           id?: string
           lida_em?: string | null
           link?: string | null
+          resolvida_em?: string | null
+          rota_id?: string | null
           texto?: string | null
           tipo?: string
           titulo?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       oportunidade_pessoas: {
         Row: {
@@ -2710,6 +2724,7 @@ export type Database = {
           informacoes_importantes: string | null
           latitude: number | null
           longitude: number | null
+          matriz_id: string | null
           nome: string
           nome_fantasia: string | null
           observacoes: string | null
@@ -2736,6 +2751,7 @@ export type Database = {
           informacoes_importantes?: string | null
           latitude?: number | null
           longitude?: number | null
+          matriz_id?: string | null
           nome: string
           nome_fantasia?: string | null
           observacoes?: string | null
@@ -2762,6 +2778,7 @@ export type Database = {
           informacoes_importantes?: string | null
           latitude?: number | null
           longitude?: number | null
+          matriz_id?: string | null
           nome?: string
           nome_fantasia?: string | null
           observacoes?: string | null
@@ -2781,6 +2798,20 @@ export type Database = {
             columns: ["estado_id"]
             isOneToOne: false
             referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizacoes_matriz_id_fkey"
+            columns: ["matriz_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_situacao_atual"
+            referencedColumns: ["organizacao_id"]
+          },
+          {
+            foreignKeyName: "organizacoes_matriz_id_fkey"
+            columns: ["matriz_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
             referencedColumns: ["id"]
           },
           {
@@ -5059,6 +5090,10 @@ export type Database = {
         Args: { _estado_id: string }
         Returns: string
       }
+      fn_registrar_decisores: {
+        Args: { _org: string; _resp: string; _texto: string }
+        Returns: undefined
+      }
       fn_registrar_levantamento_parada: {
         Args: { _autor?: string; _origem?: string; _parada: string }
         Returns: string
@@ -5094,6 +5129,23 @@ export type Database = {
         }[]
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      julia_buscar_organizacao: {
+        Args: {
+          p_cidade?: string
+          p_ligacao: string
+          p_texto: string
+          p_uf?: string
+        }
+        Returns: {
+          cidade: string
+          id: string
+          matriz_id: string
+          matriz_nome: string
+          nome: string
+          similaridade: number
+          uf: string
+        }[]
+      }
       julia_escolher_contato: {
         Args: { p_escolha: string; p_ligacao: string }
         Returns: undefined
@@ -5155,6 +5207,15 @@ export type Database = {
         }
       }
       julia_validar_relato: { Args: { p_relato: Json }; Returns: Json }
+      julia_vincular_organizacao: {
+        Args: {
+          p_criar?: Json
+          p_ligacao: string
+          p_organizacao?: string
+          p_parada: string
+        }
+        Returns: Json
+      }
       pode_inserir_planta: {
         Args: { _name: string; _user: string }
         Returns: boolean
