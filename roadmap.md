@@ -71,5 +71,6 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Aviso "Você tem N vencidas" ao abrir o CRM (1x por sessão/dia).
 - [x] Aba Atrasadas + placar semanal (admin).
 - [x] Ferramentas da Júlia documentadas como "Futuro — não colar".
+- [x] Adendo: ação "Não fiz", Feito com 10+ caracteres, trava do Novo orçamento (tela + banco), liberação do admin, placar com Não fiz/liberações.
 - [ ] Aplicar migração de cobrança — aguardando aprovação do SQL.
 - [ ] Aplicar limpeza (17 atividades) — aguardando aprovação do SQL.
