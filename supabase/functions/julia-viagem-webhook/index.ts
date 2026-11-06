@@ -11,6 +11,10 @@ Deno.serve(async req => {
  if(!await assinaturaValida(raw,sig,Deno.env.get('JULIA_WEBHOOK_SECRET'))) { console.warn('julia-viagem-webhook 401',motivoAssinatura(sig,Deno.env.get('JULIA_WEBHOOK_SECRET'))); return json({error:'Assinatura inválida.'},401); }
  try {
   const event=Event.parse(JSON.parse(raw)); const db=dbAdmin();
+  // Ligação recebida: não há conversation_id antes de começar; vincula pelo ligacao_id das variáveis.
+  const dv=((event.data as Record<string,unknown>).conversation_initiation_client_data as {dynamic_variables?:Record<string,unknown>}|undefined)?.dynamic_variables;
+  if(dv?.origem==='entrada' && typeof dv.ligacao_id==='string' && /^[0-9a-f-]{36}$/i.test(dv.ligacao_id))
+   check(await db.from('ligacoes_viagem').update({conversation_id:event.data.conversation_id}).eq('id',dv.ligacao_id).eq('origem','entrada').is('conversation_id',null));
   // Oficial: busy/no-answer/unknown vêm em call_initiation_failure. Silêncio não significa não atendeu.
   const naoAtendeu=event.type==='call_initiation_failure';
   const resumo=event.data.analysis?.transcript_summary?.slice(0,4500) ?? 'Ligação sem resumo.';
