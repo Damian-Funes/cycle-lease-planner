@@ -39,6 +39,27 @@ export function segmentoBR(valor: unknown): typeof SEGMENTOS[number] | undefined
  const s = simplificar(valor).toUpperCase().replace(/S$/, '');
  return SEGMENTOS.find(x => x.replace(/S$/, '') === s || (s.includes('SEMENTEIRA') && x === 'SEMENTEIRA PRIVADA') || (s.includes('COOPERATIVA') && x === 'COOPERATIVAS') || (s.includes('PRODUTOR') && x === 'PRODUTOR RURAL') || (s.includes('MULTINACIONA') && x === 'MULTINACIONAIS'));
 }
+export const MOTIVOS_DESCARTE = ['fechou','nao_trata_semente','duplicada','outro'] as const;
+/** Aceita o que a Júlia falar ("fechou", "não trabalha com semente", "duplicada"...) e mapeia para o código. */
+export function motivoDescarteBR(valor: unknown): typeof MOTIVOS_DESCARTE[number] | undefined {
+ const s = String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+ if (!s) return undefined;
+ if ((MOTIVOS_DESCARTE as readonly string[]).includes(s)) return s as typeof MOTIVOS_DESCARTE[number];
+ if (/fech|faliu|encerr/.test(s)) return 'fechou';
+ if (/semente/.test(s)) return 'nao_trata_semente';
+ if (/duplic|repetid|mesma empresa/.test(s)) return 'duplicada';
+ return 'outro';
+}
+/** Telefone falado: mantém só dígitos (com DDD). Menos de 10 dígitos é inválido. */
+export function telefoneBR(valor: unknown): string | undefined {
+ const d = String(valor ?? '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+ return d.length >= 10 && d.length <= 11 ? d : undefined;
+}
+function booleanoBR(valor: unknown): boolean | undefined {
+ if (typeof valor === 'boolean') return valor;
+ const b = String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+ return ['true','sim'].includes(b) ? true : ['false','nao'].includes(b) ? false : undefined;
+}
 function normalizarCriar(criar: unknown, avisos: string[]): unknown {
  if (!criar || typeof criar !== 'object' || Array.isArray(criar)) return undefined;
  const r: Record<string, unknown> = {};
@@ -60,7 +81,10 @@ export function normalizarBody(body: unknown, hojeBRT = new Date().toLocaleDateS
   if (valor === null || valor === undefined || (campo !== 'visitada' && vazioSemantico(valor)) || valor === '' || (Array.isArray(valor) && valor.length === 0)) continue;
   if (campo === 'objecoes' && Array.isArray(valor)) { valor = valor.filter(item => item != null && !vazioSemantico(item)); if (valor.length === 0) continue; }
   if (campo === 'sacos_safra') valor = sacosBR(valor);
-  if (campo === 'proximo_passo_data') valor = dataProximoPasso(valor, hojeBRT);
+  if (campo === 'proximo_passo_data' || campo === 'descobrir_ate' || campo === 'visita_em') valor = dataProximoPasso(valor, hojeBRT);
+  if (campo === 'pessoa_telefone') valor = telefoneBR(valor);
+  if (campo === 'descartar_motivo') valor = motivoDescarteBR(valor);
+  if (campo === 'sugerir_visita') valor = booleanoBR(valor);
   if (valor === undefined) { avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: valor inválido ou data passada.`); continue; }
   if (campo === 'valor' && typeof valor === 'string') valor = numeroBR(valor) ?? valor;
   if (campo === 'interesse' && typeof valor === 'string') valor = valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

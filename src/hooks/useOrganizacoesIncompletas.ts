@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
+/**
+ * Regra única de "completa" (espelha a visão `organizacao_completude` do banco, que é a autoridade):
+ * ao menos 1 pessoa de contato com telefone/celular + cidade + UF + responsável. E-mail não conta.
+ * Telefone da empresa sem pessoa NÃO conta. Organizações descartadas ficam de fora.
+ */
 export interface OrgIncompletaFlags {
   semContato: boolean;
-  semTelefone: boolean;
-  semEmail: boolean;
   semCidadeEstado: boolean;
   semResponsavel: boolean;
 }
@@ -20,18 +23,23 @@ function isVazio(v: any) {
   return v === null || v === undefined || String(v).trim() === "";
 }
 
-export function avaliarIncompletude(o: any, contatosCount: number): OrgIncompletaFlags {
+export const telefoneValido = (t?: string | null) => (t ?? "").replace(/\D/g, "").length >= 10;
+
+/** Usado só como plano B (antes da migração) e nos testes. */
+export function avaliarIncompletude(o: any, contatosComTelefone: number): OrgIncompletaFlags {
   return {
-    semContato: contatosCount === 0,
-    semTelefone: isVazio(o.telefone_principal),
-    semEmail: isVazio(o.email_principal),
+    semContato: contatosComTelefone === 0,
     semCidadeEstado: isVazio(o.cidade) || (isVazio(o.estado) && isVazio(o.estado_id)),
     semResponsavel: isVazio(o.responsavel_id),
   };
 }
 
 export function temAlgumProblema(f: OrgIncompletaFlags) {
-  return f.semContato || f.semTelefone || f.semEmail || f.semCidadeEstado || f.semResponsavel;
+  return f.semContato || f.semCidadeEstado || f.semResponsavel;
+}
+
+export function faltasTexto(f: OrgIncompletaFlags): string[] {
+  return [f.semContato && "contato com telefone", f.semCidadeEstado && "cidade/UF", f.semResponsavel && "responsável"].filter(Boolean) as string[];
 }
 
 export function useOrganizacoesIncompletas() {
@@ -42,26 +50,30 @@ export function useOrganizacoesIncompletas() {
     queryKey: ["organizacoes-incompletas", user?.id],
     enabled,
     queryFn: async () => {
-      const [orgsRes, pessoasRes] = await Promise.all([
-        (supabase as any).from("organizacoes").select("id, nome, telefone_principal, email_principal, cidade, estado, estado_id, responsavel_id"),
-        supabase.from("pessoas").select("organizacao_id"),
-      ]);
-      const orgs = (orgsRes.data ?? []) as any[];
-      const pessoas = (pessoasRes.data ?? []) as any[];
-      const countByOrg = new Map<string, number>();
-      pessoas.forEach((p) => {
-        if (p.organizacao_id) countByOrg.set(p.organizacao_id, (countByOrg.get(p.organizacao_id) ?? 0) + 1);
-      });
       const map = new Map<string, OrgIncompletaFlags>();
-      let total = 0;
-      orgs.forEach((o) => {
-        const f = avaliarIncompletude(o, countByOrg.get(o.id) ?? 0);
-        if (temAlgumProblema(f)) {
-          map.set(o.id, f);
-          total += 1;
+      const view = await (supabase as any).from("organizacao_completude")
+        .select("id, falta_contato, falta_cidade, falta_uf, falta_responsavel").limit(5000);
+      if (!view.error) {
+        for (const r of (view.data ?? []) as any[]) {
+          const f = { semContato: !!r.falta_contato, semCidadeEstado: !!(r.falta_cidade || r.falta_uf), semResponsavel: !!r.falta_responsavel };
+          if (temAlgumProblema(f)) map.set(r.id, f);
         }
+        return { map, total: map.size };
+      }
+      // Plano B enquanto a migração não foi aplicada: mesma regra, calculada aqui.
+      const [orgsRes, pessoasRes] = await Promise.all([
+        (supabase as any).from("organizacoes").select("id, cidade, estado, estado_id, responsavel_id"),
+        supabase.from("pessoas").select("organizacao_id, telefone, celular"),
+      ]);
+      const comTel = new Map<string, number>();
+      ((pessoasRes.data ?? []) as any[]).forEach((p) => {
+        if (p.organizacao_id && (telefoneValido(p.telefone) || telefoneValido(p.celular))) comTel.set(p.organizacao_id, (comTel.get(p.organizacao_id) ?? 0) + 1);
       });
-      return { map, total };
+      ((orgsRes.data ?? []) as any[]).forEach((o) => {
+        const f = avaliarIncompletude(o, comTel.get(o.id) ?? 0);
+        if (temAlgumProblema(f)) map.set(o.id, f);
+      });
+      return { map, total: map.size };
     },
     staleTime: 30_000,
   });

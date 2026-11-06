@@ -55,4 +55,17 @@ Deno.test('parada_id, visitada e resultado ou motivo continuam obrigatórios', (
 Deno.test('não visita descarta debrief sem bloquear motivo obrigatório', () => {
  const { body, avisos } = prepararEntrada({ ...ids, acao: 'registrar_visita', visitada: 'não', motivo: 'Cliente ausente', resultado: 'Ignorar', interesse: 'alto' }, '2026-11-05');
  assert(body.acao === 'registrar_visita' && body.visitada === false && body.motivo === 'Cliente ausente' && !('resultado' in body) && !('interesse' in body) && avisos.length === 1);
+});Deno.test('completar_organizacao normaliza telefone, motivo, datas e booleano', () => {
+ const body = Schema.parse(normalizarBody({ ...ids, acao: 'completar_organizacao', organizacao_id: ids.parada_id, pessoa_nome: 'Arno', pessoa_telefone: '+55 (55) 99999-1111', uf: 'rs', sugerir_visita: 'sim', descobrir_ate: '2099-01-10', extra: 1 }, '2026-11-06'));
+ assert(body.acao === 'completar_organizacao' && body.pessoa_telefone === '55999991111' && body.uf === 'RS' && body.sugerir_visita === true && body.descobrir_ate === '2099-01-10' && !('extra' in body));
+ const d = Schema.parse(normalizarBody({ ...ids, acao: 'completar_organizacao', organizacao_id: ids.parada_id, descartar_motivo: 'não trabalha com semente' }));
+ assert(d.acao === 'completar_organizacao' && d.descartar_motivo === 'nao_trata_semente');
+});
+Deno.test('completar_organizacao descarta telefone curto e data passada', () => {
+ const body = Schema.parse(normalizarBody({ ...ids, acao: 'completar_organizacao', organizacao_id: ids.parada_id, pessoa_telefone: '9999-1111', descobrir_ate: '2020-01-01', cidade: 'Ijuí' }, '2026-11-06'));
+ assert(body.acao === 'completar_organizacao' && !('pessoa_telefone' in body) && !('descobrir_ate' in body) && body.cidade === 'Ijuí');
+});
+Deno.test('listar_organizacoes_incompletas só exige ligação e viagem', () => {
+ const body = Schema.parse(normalizarBody({ ...ids, acao: 'listar_organizacoes_incompletas', extra: 'x' }));
+ assert(body.acao === 'listar_organizacoes_incompletas' && !('extra' in body));
 });

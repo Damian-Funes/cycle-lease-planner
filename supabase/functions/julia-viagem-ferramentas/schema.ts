@@ -1,6 +1,6 @@
 import { z } from 'npm:zod@3';
 import { CAMPOS_TEXTO_RELATO } from '../_shared/relatoVisita.ts';
-import { normalizarBody, SEGMENTOS } from './entrada.ts';
+import { MOTIVOS_DESCARTE, normalizarBody, SEGMENTOS } from './entrada.ts';
 const relatoCampos = Object.fromEntries(CAMPOS_TEXTO_RELATO.map(c => [c, z.string().trim().min(1).max(500).optional()]));
 const comum = { ligacao_id: z.string().uuid(), rota_id: z.string().uuid() };
 export const Schema = z.discriminatedUnion('acao', [
@@ -11,6 +11,14 @@ export const Schema = z.discriminatedUnion('acao', [
  z.object({ ...comum, acao: z.literal('buscar_organizacao'), texto: z.string().trim().min(3).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional() }).strip(),
  z.object({ ...comum, acao: z.literal('vincular_organizacao'), parada_id: z.string().uuid(), organizacao_id: z.string().uuid().optional(),
   criar: z.object({ nome: z.string().trim().min(2).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/), matriz_id: z.string().uuid().optional(), segmento: z.enum(SEGMENTOS).optional() }).strip().optional() }).strip(),
+ z.object({ ...comum, acao: z.literal('listar_organizacoes_incompletas') }).strip(),
+ z.object({ ...comum, acao: z.literal('completar_organizacao'), organizacao_id: z.string().uuid(),
+  pessoa_nome: z.string().trim().min(2).max(200).optional(), pessoa_cargo: z.string().trim().min(1).max(200).optional(),
+  pessoa_telefone: z.string().regex(/^\d{10,11}$/).optional(),
+  cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional(),
+  descobrir_ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  sugerir_visita: z.boolean().optional(), visita_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  descartar_motivo: z.enum(MOTIVOS_DESCARTE).optional(), descartar_obs: z.string().trim().min(1).max(1000).optional() }).strip(),
 ]);
 
 /** Optional debrief failures never block a valid visit; identity stays mandatory. */
