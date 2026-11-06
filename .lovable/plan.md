@@ -355,3 +355,5 @@ Gravação e resolução, feitas pelo servidor:
 2. **Decisores citados que não são o contato** (como o Bonilio): cadastro só nesta correção ou passo a regra a valer sempre? Proposta: sempre que `decisores` trouxer um nome claro com cargo; caso contrário, nada.
 3. **Responsável pela filial nova:** o vendedor da ligação, ou o mesmo responsável da matriz? Proposta: o vendedor.
 4. **Quem define a matriz pela tela:** só admin e gerente, ou também o responsável pela organização? Proposta: admin e gerente.
+5. **Resumo para o admin:** vai só para o Damian ou para todos os admins? Proposta: todos os admins.
+6. **Levantamento incompleto:** avisar sempre que faltar qualquer um dos 6 pontos, ou só quando faltarem 2 ou mais? Proposta: sempre que faltar algum, numa única notificação por visita.
