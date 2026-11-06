@@ -4,12 +4,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, CalendarClock, X, Loader2 } from "lucide-react";
+import { Check, CalendarClock, X, Loader2, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { cancelarAtividade, concluirAtividade, reagendarAtividade, textoValido } from "@/lib/atividadesAcoes";
+import { MIN_RESULTADO, cancelarAtividade, concluirAtividade, naoFizAtividade, reagendarAtividade, resultadoValido, textoValido } from "@/lib/atividadesAcoes";
 
-export type AcaoAtividade = "feito" | "reagendar" | "cancelar";
+export type AcaoAtividade = "feito" | "nao_fiz" | "reagendar" | "cancelar";
 
 export interface AtividadeAcao { id: string; titulo: string; data_inicio?: string | null }
 
@@ -34,17 +34,20 @@ export function AcaoAtividadeDialog({ atividade, acao, dataSugerida, onClose, on
 
   const salvar = async () => {
     if (!atividade || !acao) return;
-    if (!textoValido(texto)) return toast.error(acao === "feito" ? "Escreva o resultado." : "Escreva o motivo.");
+    if (acao === "feito" ? !resultadoValido(texto) : !textoValido(texto)) {
+      return toast.error(acao === "feito" ? `Descreva o resultado (mínimo ${MIN_RESULTADO} caracteres).` : "Escreva o motivo.");
+    }
     setSalvando(true);
     try {
       if (acao === "feito") await concluirAtividade(atividade.id, texto);
       if (acao === "cancelar") await cancelarAtividade(atividade.id, texto);
-      if (acao === "reagendar") {
+      if (acao === "reagendar" || acao === "nao_fiz") {
         if (!valorData) throw new Error("Escolha a nova data.");
-        const n = await reagendarAtividade(atividade.id, new Date(valorData), texto);
+        const fn = acao === "reagendar" ? reagendarAtividade : naoFizAtividade;
+        const n = await fn(atividade.id, new Date(valorData), texto);
         if (n >= 3) toast.warning(`Esta atividade já foi reagendada ${n} vezes — o gestor será avisado.`);
       }
-      toast.success(acao === "feito" ? "Atividade concluída" : acao === "cancelar" ? "Atividade cancelada" : "Atividade reagendada");
+      toast.success(acao === "feito" ? "Atividade concluída" : acao === "cancelar" ? "Atividade cancelada" : acao === "nao_fiz" ? "Registrado: não fiz, nova data marcada" : "Atividade reagendada");
       setTexto(""); setData("");
       onDone();
     } catch (e: any) {
@@ -52,7 +55,7 @@ export function AcaoAtividadeDialog({ atividade, acao, dataSugerida, onClose, on
     } finally { setSalvando(false); }
   };
 
-  const titulo = acao === "feito" ? "Marcar como feita" : acao === "reagendar" ? "Reagendar" : "Cancelar atividade";
+  const titulo = acao === "feito" ? "Marcar como feita" : acao === "nao_fiz" ? "Não fiz" : acao === "reagendar" ? "Reagendar (pedido do cliente)" : "Cancelar atividade";
   return (
     <Dialog open={aberto} onOpenChange={abrir}>
       <DialogContent className="max-w-md">
@@ -61,14 +64,14 @@ export function AcaoAtividadeDialog({ atividade, acao, dataSugerida, onClose, on
           <DialogDescription className="truncate">{atividade?.titulo}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          {acao === "reagendar" && (
+          {(acao === "reagendar" || acao === "nao_fiz") && (
             <div className="space-y-1">
               <Label>Nova data *</Label>
               <Input type="datetime-local" value={valorData} min={format(new Date(), "yyyy-MM-dd'T'00:00")} onChange={(e) => setData(e.target.value)} />
             </div>
           )}
           <div className="space-y-1">
-            <Label>{acao === "feito" ? "Resultado *" : acao === "reagendar" ? "Por que vai mudar a data? *" : "Por que não vai acontecer? *"}</Label>
+            <Label>{acao === "feito" ? `O que aconteceu? * (mín. ${MIN_RESULTADO} caracteres)` : acao === "nao_fiz" ? "Por que não fez? *" : acao === "reagendar" ? "O que o cliente pediu? *" : "Por que não vai acontecer? *"}</Label>
             <Textarea autoFocus rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} />
           </div>
         </div>
@@ -89,7 +92,8 @@ export function BotoesAcaoAtividade({ onAcao, compacto }: { onAcao: (a: AcaoAtiv
   return (
     <div className="flex items-center gap-1 shrink-0">
       <Button size="sm" variant="outline" className={cls} onClick={(e) => { e.stopPropagation(); onAcao("feito"); }}><Check className="h-3 w-3 mr-1" />Feito</Button>
-      <Button size="sm" variant="outline" className={cls} onClick={(e) => { e.stopPropagation(); onAcao("reagendar"); }}><CalendarClock className="h-3 w-3 mr-1" />Reagendar</Button>
+      <Button size="sm" variant="outline" className={cls} title="Não fiz por falta de tempo/esquecimento" onClick={(e) => { e.stopPropagation(); onAcao("nao_fiz"); }}><Undo2 className="h-3 w-3 mr-1" />Não fiz</Button>
+      <Button size="sm" variant="outline" className={cls} title="O cliente pediu outra data" onClick={(e) => { e.stopPropagation(); onAcao("reagendar"); }}><CalendarClock className="h-3 w-3 mr-1" />Reagendar</Button>
       <Button size="sm" variant="ghost" className={`${cls} text-destructive`} onClick={(e) => { e.stopPropagation(); onAcao("cancelar"); }}><X className="h-3 w-3 mr-1" />Cancelar</Button>
     </div>
   );
