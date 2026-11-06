@@ -27,3 +27,16 @@ Deno.test("resposta sempre tem first_message", () => {
   assert(r.conversation_config_override.agent.first_message.length > 0);
   assertEquals(r.type, "conversation_initiation_client_data");
 });
+
+import { secretIgualAlgum as _sia } from '../_shared/juliaViagem.ts';
+Deno.test('segredo: aceita JULIA_TOOL_SECRET ou JULIA_ENTRADA_SECRET, com trim', async () => {
+  Deno.env.set('JULIA_TOOL_SECRET', ' ferramenta ');
+  Deno.env.delete('JULIA_ENTRADA_SECRET');
+  const nomes = ['JULIA_ENTRADA_SECRET', 'JULIA_TOOL_SECRET'];
+  if (!await _sia('ferramenta', nomes)) throw new Error('tool sem entrada');
+  if (await _sia('entrada', nomes)) throw new Error('entrada inexistente aceita');
+  Deno.env.set('JULIA_ENTRADA_SECRET', 'entrada');
+  if (!await _sia(' entrada ', nomes)) throw new Error('entrada');
+  if (!await _sia('ferramenta', nomes)) throw new Error('tool com entrada');
+  if (await _sia('errado', nomes) || await _sia(null, nomes) || await _sia('', nomes)) throw new Error('errado aceito');
+});

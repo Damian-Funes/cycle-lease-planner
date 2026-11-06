@@ -17,8 +17,8 @@ Em qualquer caso de vendedor, retornos agendados ainda não discados são cancel
 
 ## Passo a passo na ElevenLabs
 1. Aplicar o SQL.
-2. Criar `JULIA_ENTRADA_SECRET` (Supabase → Edge Functions → Secrets) com um valor forte gerado por você.
-3. Agents Platform → Settings → **Conversation initiation client data webhook**: URL `https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viagem-entrada`, header `x-julia-secret` = mesmo valor.
+2. (Opcional) Criar `JULIA_ENTRADA_SECRET` (Supabase → Edge Functions → Secrets) só se quiser um segredo exclusivo da entrada. A função aceita esse **ou** o `JULIA_TOOL_SECRET`; sem ele, vale só o `JULIA_TOOL_SECRET`.
+3. Agents Platform → Settings → **Conversation initiation client data webhook**: URL `https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viagem-entrada`, header `x-julia-secret` = selecionar o segredo de workspace **julia_tool_secret** (o mesmo das ferramentas).
 4. Agente **Júlia - Comercial** → Security: ligar **Fetch conversation initiation data for inbound Twilio calls** e permitir override de **First message**.
 5. Agente → declarar as variáveis `permitido` e `origem` (padrão vazio).
 6. Phone Numbers → +55 11 5039-3814 → agente de entrada = **Júlia - Comercial** (a saída não muda).

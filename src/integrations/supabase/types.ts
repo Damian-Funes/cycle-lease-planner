@@ -5653,6 +5653,10 @@ export type Database = {
         Args: { p_dados: Json; p_ligacao: string; p_org: string }
         Returns: Json
       }
+      julia_criar_compromisso: {
+        Args: { p_dados: Json; p_ligacao: string }
+        Returns: Json
+      }
       julia_escolher_contato: {
         Args: { p_escolha: string; p_ligacao: string }
         Returns: undefined
@@ -5667,6 +5671,53 @@ export type Database = {
         }
         Returns: Json
       }
+      julia_ligacao_ativa: {
+        Args: { p_ligacao: string }
+        Returns: {
+          agendada_para: string
+          call_sid: string | null
+          conversation_id: string | null
+          created_at: string
+          data_ref: string
+          duracao_s: number | null
+          erro: string | null
+          escolha: string | null
+          id: string
+          origem: string
+          resumo: string | null
+          rota_id: string | null
+          solicitado_por: string | null
+          status: string
+          telefone: string | null
+          tentativa: number
+          teste: boolean
+          transcricao: Json | null
+          updated_at: string
+          vendedor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ligacoes_viagem"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      julia_listar_atividades: {
+        Args: { p_ligacao: string; p_limite?: number }
+        Returns: {
+          atividade_id: string
+          data: string
+          empresa: string
+          hora: string
+          tipo: string
+          titulo: string
+          vencida: boolean
+        }[]
+      }
+      julia_registrar_contato: {
+        Args: { p_dados: Json; p_ligacao: string; p_org: string }
+        Returns: Json
+      }
       julia_registrar_voz: {
         Args: {
           p_acao: string
@@ -5675,6 +5726,44 @@ export type Database = {
           p_rota: string
         }
         Returns: Json
+      }
+      julia_reservar_entrada: {
+        Args: {
+          p_call_sid: string
+          p_rota: string
+          p_solicitante: string
+          p_telefone: string
+          p_teste: boolean
+          p_vendedor: string
+        }
+        Returns: {
+          agendada_para: string
+          call_sid: string | null
+          conversation_id: string | null
+          created_at: string
+          data_ref: string
+          duracao_s: number | null
+          erro: string | null
+          escolha: string | null
+          id: string
+          origem: string
+          resumo: string | null
+          rota_id: string | null
+          solicitado_por: string | null
+          status: string
+          telefone: string | null
+          tentativa: number
+          teste: boolean
+          transcricao: Json | null
+          updated_at: string
+          vendedor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ligacoes_viagem"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       julia_reservar_ligacao: {
         Args: {
@@ -5712,6 +5801,17 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      julia_resolver_atividade: {
+        Args: {
+          p_acao: string
+          p_atividade: string
+          p_ligacao: string
+          p_motivo: string
+          p_nova_data: string
+          p_resultado: string
+        }
+        Returns: Json
       }
       julia_validar_relato: { Args: { p_relato: Json }; Returns: Json }
       julia_vincular_organizacao: {
