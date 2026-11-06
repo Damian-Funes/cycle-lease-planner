@@ -3,10 +3,15 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { canalContato, horarioBRT, permitidoLigar } from './juliaViagemRegras.ts';
 import { montarPendencias } from './pendenciasDia.ts';
 export const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+const criarAdmin = (url: string, key: string) => createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+let clienteAdmin: ReturnType<typeof criarAdmin> | null = null;
+/** Reaproveitado entre requisições do mesmo worker (evita recriar client a cada chamada). */
 export function dbAdmin() {
+  if (clienteAdmin) return clienteAdmin;
   const url = Deno.env.get('SUPABASE_URL'); const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) throw new Error('Configuração Supabase indisponível.');
-  return createClient(url, key, { auth: { persistSession: false } });
+  clienteAdmin = criarAdmin(url, key);
+  return clienteAdmin;
 }
 export async function usuario(req: Request, admin = false) {
   const header = req.headers.get('Authorization');
@@ -29,8 +34,12 @@ export async function secretIgual(recebido: string | null, nome: string) {
   return diferenca === 0;
 }
 export function check<T>(r: { data: T; error: { message: string } | null }): T { if (r.error) throw new Error(r.error.message); return r.data; }
+export const SELECT_ROTA = '*,paradas:rota_paradas(*,organizacao:organizacoes(nome,nome_fantasia)),pernoites:rota_pernoites(*),gastos:rota_gastos(*)';
+export async function carregarRota(db: ReturnType<typeof dbAdmin>, rotaId: string) {
+  return check(await db.from('rotas').select(SELECT_ROTA).eq('id', rotaId).single());
+}
 export async function contexto(db: ReturnType<typeof dbAdmin>, rotaId: string, data: string) {
-  const r = check(await db.from('rotas').select('*,paradas:rota_paradas(*,organizacao:organizacoes(nome,nome_fantasia)),pernoites:rota_pernoites(*),gastos:rota_gastos(*)').eq('id', rotaId).single());
+  const r = await carregarRota(db, rotaId);
   const p = check(await db.from('profiles').select('user_id,nome,celular').eq('user_id', r.vendedor_id).single());
   if (!p) throw new Error('Perfil do vendedor não encontrado.');
   const roles = check(await db.from('user_roles').select('role').eq('user_id', r.vendedor_id));
