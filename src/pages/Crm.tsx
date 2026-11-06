@@ -214,8 +214,6 @@ function ProximaAtividadeLine({ opId, proxima }: { opId: string; proxima: string
 
 /* ---------- Column ---------- */
 function Column({ etapa, ops, hideValor }: { etapa: Etapa; ops: Oportunidade[]; hideValor?: boolean }) {
-  const total = ops.reduce((s, o) => s + (Number(o.valor_estimado) || 0), 0);
-  const cor = etapa.cor ?? "#94a3b8";
   const ids = ops.map((o) => o.id);
 
   // droppable for empty column case
@@ -225,7 +223,31 @@ function Column({ etapa, ops, hideValor }: { etapa: Etapa; ops: Oportunidade[]; 
   });
 
   return (
-    <div className="w-72 shrink-0 flex flex-col bg-muted/30 rounded-lg">
+    <div className="w-72 shrink-0 flex flex-col bg-muted/30 rounded-b-lg">
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <div
+          ref={setNodeRef}
+          data-column-id={etapa.id}
+          className={`flex-1 p-2 space-y-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/5" : ""}`}
+        >
+          {ops.map((op) => (
+            <OpCard key={op.id} op={op} etapa={etapa} hideValor={hideValor} />
+          ))}
+          {ops.length === 0 && (
+            <div className="text-center text-xs text-muted-foreground py-6">Solte aqui</div>
+          )}
+        </div>
+      </SortableContext>
+    </div>
+  );
+}
+
+/* ---------- Column header (fica fixo no topo, alinhado à coluna) ---------- */
+function ColumnHeader({ etapa, ops, hideValor }: { etapa: Etapa; ops: Oportunidade[]; hideValor?: boolean }) {
+  const total = ops.reduce((s, o) => s + (Number(o.valor_estimado) || 0), 0);
+  const cor = etapa.cor ?? "#94a3b8";
+  return (
+    <div className="w-72 shrink-0 bg-background rounded-t-lg">
       <div
         className="p-3 rounded-t-lg border-b"
         style={{ backgroundColor: cor + "26", borderTop: `3px solid ${cor}` }}
@@ -252,20 +274,6 @@ function Column({ etapa, ops, hideValor }: { etapa: Etapa; ops: Oportunidade[]; 
           <span className="text-muted-foreground">{etapa.probabilidade_default}% prob.</span>
         </div>
       </div>
-      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <div
-          ref={setNodeRef}
-          data-column-id={etapa.id}
-          className={`flex-1 p-2 space-y-2 min-h-[200px] transition-colors ${isOver ? "bg-primary/5" : ""}`}
-        >
-          {ops.map((op) => (
-            <OpCard key={op.id} op={op} etapa={etapa} hideValor={hideValor} />
-          ))}
-          {ops.length === 0 && (
-            <div className="text-center text-xs text-muted-foreground py-6">Solte aqui</div>
-          )}
-        </div>
-      </SortableContext>
     </div>
   );
 }
@@ -603,9 +611,29 @@ export default function Crm() {
     setNeedsDate(null);
   };
 
+  /* Layout fixo: mede o cabeçalho e sincroniza a rolagem horizontal títulos ↔ cards */
+  const topoRef = useRef<HTMLDivElement>(null);
+  const titulosRef = useRef<HTMLDivElement>(null);
+  const quadroRef = useRef<HTMLDivElement>(null);
+  const [topoAltura, setTopoAltura] = useState(0);
+  useEffect(() => {
+    const el = topoRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setTopoAltura(el.offsetHeight));
+    ro.observe(el);
+    setTopoAltura(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
+  const sincronizarScroll = (origem: "titulos" | "quadro") => {
+    const a = origem === "titulos" ? titulosRef.current : quadroRef.current;
+    const b = origem === "titulos" ? quadroRef.current : titulosRef.current;
+    if (a && b && b.scrollLeft !== a.scrollLeft) b.scrollLeft = a.scrollLeft;
+  };
+
   /* Render */
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col">
+      <div ref={topoRef} className="sticky top-0 z-30 bg-background">
       <header className="bg-background border-b">
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -621,9 +649,9 @@ export default function Crm() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-4 max-w-[1600px] mx-auto w-full flex flex-col min-h-0">
-        {/* Pipeline tabs + actions */}
-        <div className="flex flex-wrap items-center gap-3 mb-4">
+      {/* Pipeline tabs + actions (fixos junto do cabeçalho) */}
+      <div className="border-b bg-muted/20">
+        <div className="max-w-[1600px] mx-auto px-4 py-2 flex flex-wrap items-center gap-3">
           {pipelines.length > 0 && pipelineId && (
             <Tabs value={pipelineId} onValueChange={handlePipelineChange}>
               <TabsList className="h-10">
@@ -646,6 +674,10 @@ export default function Crm() {
             </Button>
           </div>
         </div>
+      </div>
+      </div>
+
+      <main className="flex-1 px-4 py-4 max-w-[1600px] mx-auto w-full flex flex-col min-h-0">
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -681,8 +713,12 @@ export default function Crm() {
           </Card>
         </div>
 
-        {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        {/* Filtros + títulos das colunas: grudam abaixo do cabeçalho */}
+        <div
+          className="sticky z-20 bg-muted/95 backdrop-blur -mx-4 px-4 pt-2"
+          style={{ top: topoAltura }}
+        >
+        <div className={`flex flex-wrap items-center gap-2 mb-2 ${etapasPipeline.length > 0 ? "hidden md:flex" : ""}`}>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
             <Input
@@ -724,6 +760,20 @@ export default function Crm() {
             Apenas minhas
           </label>
         </div>
+        {etapasPipeline.length > 0 && (
+          <div
+            ref={titulosRef}
+            onScroll={() => sincronizarScroll("titulos")}
+            className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div className="flex gap-3 w-max">
+              {etapasPipeline.map((etapa) => (
+                <ColumnHeader key={etapa.id} etapa={etapa} ops={opsByEtapa[etapa.id] ?? []} hideValor={isMarketing} />
+              ))}
+            </div>
+          </div>
+        )}
+        </div>
 
         {/* Kanban */}
         {etapasPipeline.length === 0 ? (
@@ -738,8 +788,8 @@ export default function Crm() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex-1 overflow-x-auto">
-              <div className="flex gap-3 pb-4 min-h-full">
+            <div ref={quadroRef} onScroll={() => sincronizarScroll("quadro")} className="flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="flex gap-3 pb-4 min-h-full w-max">
                 {etapasPipeline.map((etapa) => (
                   <Column key={etapa.id} etapa={etapa} ops={opsByEtapa[etapa.id] ?? []} hideValor={isMarketing} />
                 ))}
