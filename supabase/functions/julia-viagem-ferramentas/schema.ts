@@ -1,6 +1,7 @@
 import { z } from 'npm:zod@3';
 import { CAMPOS_TEXTO_RELATO } from '../_shared/relatoVisita.ts';
 import { MOTIVOS_DESCARTE, normalizarBody, SEGMENTOS } from './entrada.ts';
+export const PROXIMO_PASSO_SEM_DESCRICAO = '(sem descrição)';
 const relatoCampos = Object.fromEntries(CAMPOS_TEXTO_RELATO.map(c => [c, z.string().trim().min(1).max(500).optional()]));
 const comum = { ligacao_id: z.string().uuid(), rota_id: z.string().uuid() };
 export const Schema = z.discriminatedUnion('acao', [
@@ -31,6 +32,11 @@ export function prepararEntrada(original: unknown, hojeBRT: string) {
   if (registro.acao === 'registrar_visita') {
    if (registro.visitada === false) {
     for (const campo of opcionais) if (campo in registro) { delete registro[campo]; avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: visita não realizada.`); }
+   }
+   // Data sem texto: cria a atividade mesmo assim, com título genérico e aviso.
+   if (registro.visitada === true && registro.proximo_passo_data && !registro.proximo_passo) {
+    registro.proximo_passo = PROXIMO_PASSO_SEM_DESCRICAO;
+    avisos.push('Próximo passo veio só com a data: atividade criada como "Próximo passo (sem descrição)"; confirme o que foi combinado.');
    }
    const validacao = Schema.safeParse(registro);
    if (!validacao.success) for (const issue of validacao.error.issues) {

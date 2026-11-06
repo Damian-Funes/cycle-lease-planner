@@ -35,7 +35,7 @@ Deno.test('payload real é aceito com quantidade extraída e sem data nem ativid
  const { body, avisos } = prepararEntrada({ ...ids, acao: 'registrar_visita', resultado: 'Visita feita', sacos_safra: '500 mil sacos', proximo_passo_data: 'Sem próximo passo', motivo: 'Não se aplica, visita realizada', visitada: true, objecoes: ['Nenhuma citada'], concorrente: 'Nenhum' }, '2026-11-05');
  assert(body.acao === 'registrar_visita' && body.sacos_safra === 500000);
  assert(!('motivo' in body) && !('objecoes' in body) && !('concorrente' in body) && !('proximo_passo_data' in body) && !('atividade_id' in body));
- assert(avisos.length === 1);
+ assert(avisos.length === 2 && avisos.some(a => a.includes('concorrente')));
 });
 Deno.test('data passada é removida com aviso mesmo com próximo passo informado', () => {
  const { body, avisos } = prepararEntrada({ ...ids, acao: 'registrar_visita', visitada: true, resultado: 'Feita', proximo_passo: 'Retornar', proximo_passo_data: '04/11/2026' }, '2026-11-05');
@@ -68,4 +68,20 @@ Deno.test('completar_organizacao descarta telefone curto e data passada', () => 
 Deno.test('listar_organizacoes_incompletas só exige ligação e viagem', () => {
  const body = Schema.parse(normalizarBody({ ...ids, acao: 'listar_organizacoes_incompletas', extra: 'x' }));
  assert(body.acao === 'listar_organizacoes_incompletas' && !('extra' in body));
+});
+
+import { pareceCompletar } from './entrada.ts';
+Deno.test('ligação Flávio: data sem texto cria próximo passo genérico com aviso', () => {
+ const { body, avisos } = prepararEntrada({ ...ids, acao: 'registrar_visita', visitada: true, resultado: 'ok', motivo: 'N/A', concorrente: 'Nenhum', proximo_passo_data: '2026-12-04' }, '2026-11-06');
+ assert(body.acao === 'registrar_visita' && (body as Record<string, unknown>).proximo_passo === '(sem descrição)' && !('concorrente' in body));
+ assert(avisos.some(a => a.includes('sem descrição')) && avisos.some(a => a.includes('concorrente')));
+});
+Deno.test('data com texto mantém o próximo passo', () => {
+ const { body } = prepararEntrada({ ...ids, acao: 'registrar_visita', visitada: true, resultado: 'ok', proximo_passo: 'Montar apresentação', proximo_passo_data: '04/12' }, '2026-11-06');
+ assert(body.acao === 'registrar_visita' && (body as Record<string, unknown>).proximo_passo === 'Montar apresentação' && body.proximo_passo_data === '2026-12-04');
+});
+Deno.test('acao listar com dados de completar é reconhecida como completar', () => {
+ assert(pareceCompletar({ ...ids, acao: 'listar_organizacoes_incompletas', organizacao_id: '44444444-4444-4444-8444-444444444444', pessoa_nome: 'Alexandre' }));
+ assert(!pareceCompletar({ ...ids, acao: 'listar_organizacoes_incompletas' }));
+ assert(!pareceCompletar({ ...ids, acao: 'listar_organizacoes_incompletas', organizacao_id: '44444444-4444-4444-8444-444444444444' }));
 });
