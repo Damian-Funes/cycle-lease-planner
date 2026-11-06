@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { sincronizarPendencias } from "@/lib/sincronizarPendencias";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -60,7 +61,7 @@ export default function ViagemHoje() {
   const faltam = noitesSemRegistro(inicio, fim, pernoites.map((p) => p.noite));
   const historico = useMemo(() => agruparPorDiaRealizado(dias.filter((d) => d <= hoje), paradas, diario, gastos, pernoites).reverse(), [dias.join(), hoje, paradas, diario, gastos, pernoites]);
   const doDia = historico.find((h) => h.dia === hoje);
-  const recarregar = () => ["rota", "rota-paradas", "rota-pernoites", "rota-gastos"].forEach((k) => qc.invalidateQueries({ queryKey: [k, id] }));
+  const recarregar = () => { ["rota", "rota-paradas", "rota-pernoites", "rota-gastos"].forEach((k) => qc.invalidateQueries({ queryKey: [k, id] })); if (id) sincronizarPendencias(id); };
 
   if (isLoading) return <p className="p-6 text-muted-foreground">Carregando...</p>;
   if (!rota) return <p className="p-6">Viagem não encontrada.</p>;
