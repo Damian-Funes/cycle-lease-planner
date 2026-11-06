@@ -12,7 +12,7 @@ export type SituacaoAtual = {
   ultima_visita: { data: string; autor_id: string | null; rota_id: string | null } | null;
 };
 export type Levantamento = {
-  id: string; origem: string; rota_id: string | null; autor_id: string | null; data_visita: string;
+  id: string; organizacao_id: string; origem: string; rota_id: string | null; autor_id: string | null; data_visita: string;
   resultado: string | null; contato_nome: string | null; contato_cargo: string | null; decisores: string | null;
   sacos_safra: number | null; equipamento_atual: string | null; problema_principal: string | null;
   interesse: string | null; motivo_interesse: string | null; objecoes: string[] | null; concorrente: string | null;
@@ -53,4 +53,24 @@ export async function nomesAutores(ids: string[]): Promise<Record<string, string
   if (!unicos.length) return {};
   const { data } = await supabase.from("profiles").select("user_id,nome").in("user_id", unicos);
   return Object.fromEntries((data ?? []).map((p: { user_id: string; nome: string | null }) => [p.user_id, p.nome ?? "vendedor"]));
+}
+
+export type Unidade = { id: string; nome: string };
+/** A própria organização e, se for matriz, suas filiais. */
+export async function unidadesOrganizacao(organizacaoId: string): Promise<Unidade[]> {
+  const { data, error } = await db.from("organizacoes").select("id,nome,nome_fantasia,matriz_id").or(`id.eq.${organizacaoId},matriz_id.eq.${organizacaoId}`);
+  if (error) throw error;
+  const lista = ((data ?? []) as { id: string; nome: string; nome_fantasia: string | null }[]).map(o => ({ id: o.id, nome: o.nome_fantasia || o.nome }));
+  return [...lista.filter(u => u.id === organizacaoId), ...lista.filter(u => u.id !== organizacaoId)];
+}
+export async function situacoesAtuais(ids: string[]): Promise<SituacaoAtual[]> {
+  const { data, error } = await db.from("organizacao_situacao_atual").select("*").in("organizacao_id", ids);
+  if (error) throw error;
+  return (data ?? []) as SituacaoAtual[];
+}
+export async function historicoUnidades(ids: string[]): Promise<Levantamento[]> {
+  const { data, error } = await db.from("organizacao_levantamentos").select("*").in("organizacao_id", ids)
+    .order("data_visita", { ascending: false }).order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Levantamento[];
 }
