@@ -1,5 +1,6 @@
 import { z } from 'npm:zod@3';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
+import { jaRegistradasHoje, fraseJaRegistradas } from '../julia-viagem-ferramentas/respostas.ts';
 import { admins, check, contexto, corsHeaders, dbAdmin, enviarContato, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
 import { DAMIAN_ID, janelaCron, motivoNaoDiscar } from '../_shared/juliaViagemRegras.ts';
 import { configurarElevenLabs, erroElevenLabs } from './elevenlabs.ts';
@@ -63,7 +64,7 @@ export async function handler(req: Request) {
         check(await db.from('ligacoes_viagem').update({ telefone: perfil.celular }).eq('id', l.id));
         const res = await fetch(config.endpoint, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify({
           agent_id: agent, agent_phone_number_id: phone, to_number: perfil.celular,
-          conversation_initiation_client_data: { dynamic_variables: { vendedor_nome: c.perfil.nome, vendedor_id: l.vendedor_id, rota_id: l.rota_id, rota_nome: c.rota.nome || 'Viagem comercial', data_hoje: data.split('-').reverse().join('/'), noite: data, ultimo_dia: data === c.rota.data_fim ? 'sim' : 'não', ligacao_id: l.id, pendencias: JSON.stringify(c.pendencias), visitadas_hoje: c.rota.paradas.filter((p: { dia: string; visitada: boolean | null }) => p.dia === data && p.visitada != null).length, teste: l.teste ? 'sim' : 'não' } },
+          conversation_initiation_client_data: { dynamic_variables: { vendedor_nome: c.perfil.nome, vendedor_id: l.vendedor_id, rota_id: l.rota_id, rota_nome: c.rota.nome || 'Viagem comercial', data_hoje: data.split('-').reverse().join('/'), noite: data, ultimo_dia: data === c.rota.data_fim ? 'sim' : 'não', ligacao_id: l.id, pendencias: JSON.stringify(c.pendencias), visitadas_hoje: c.rota.paradas.filter((p: { dia: string; visitada: boolean | null }) => p.dia === data && p.visitada != null).length, ja_registradas_hoje: JSON.stringify(jaRegistradasHoje(c.rota.paradas, data)), ja_registradas_hoje_frase: fraseJaRegistradas(jaRegistradasHoje(c.rota.paradas, data)) || 'Nada registrado hoje ainda.', teste: l.teste ? 'sim' : 'não' } },
         }) });
         if (!res.ok) throw new Error(erroElevenLabs(res.status, await res.text(), [key, agent, phone, perfil.celular ?? '', Deno.env.get('ELEVENLABS_AGENT_ID_VIAGEM') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', Deno.env.get('JULIA_TOOL_SECRET') ?? '', Deno.env.get('JULIA_WEBHOOK_SECRET') ?? '', Deno.env.get('JULIA_CRON_SECRET') ?? '']));
         const result = await res.json();

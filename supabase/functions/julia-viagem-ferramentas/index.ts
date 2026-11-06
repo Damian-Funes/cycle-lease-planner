@@ -8,6 +8,7 @@ import { prepararEntrada } from './schema.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
+import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
 const falha = (error: unknown, status = 400) => json({ salvo: false, error: fraseErro(error) }, status);
 Deno.serve(async req => {
@@ -66,7 +67,9 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   const orgIncompleta = async (): Promise<OrgIncompleta | null> => (!orgPri || orgPri.error) ? null : ((orgPri.data ?? [])[0] as OrgIncompleta | undefined) ?? null;
   if (body.acao === 'listar_pendentes') {
    const oi = await orgIncompleta();
-   return json({ ok: true, salvo: true, mensagem: 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }) });
+   const ja = jaRegistradasHoje(c.rota.paradas, data);
+   const frase = fraseJaRegistradas(ja);
+   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja });
   }
   if (body.acao === 'listar_organizacoes_incompletas') {
    const oi = await orgIncompleta();
