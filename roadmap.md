@@ -72,6 +72,6 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Aba Atrasadas + placar semanal (admin).
 - [x] Ferramentas da Júlia documentadas como "Futuro — não colar".
 - [x] Adendo: ação "Não fiz", Feito com 10+ caracteres, trava do Novo orçamento (tela + banco), liberação do admin, placar com Não fiz/liberações.
-- [ ] Aplicar migração de cobrança — aguardando aprovação do SQL.
+- [x] Migração de cobrança aplicada (trava desligada).
 - [ ] Ligar trava_orcamento_ativa — depois do publish do frontend novo.
-- [ ] Aplicar limpeza (zerar todas as vencidas, hoje 25) — aguardando aprovação do SQL.
+- [x] Limpeza aplicada: 25 zeradas.
