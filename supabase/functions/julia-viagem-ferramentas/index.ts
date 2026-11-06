@@ -92,7 +92,7 @@ Deno.serve(async req => {
    }
    if (estado === 'conflito') return recusar(p.dia === data ? `A ${empresa} já foi informada hoje de outro jeito; corrija pelo CRM.` : `A ${empresa} já foi informada em outro dia; corrija pelo CRM.`);
    const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body }));
-   if (body.visitada && body.proximo_passo && body.proximo_passo_data && !result?.atividade_id) avisos.push(p.organizacao_id ? 'Próximo passo salvo, mas a atividade não foi criada; confira no CRM.' : 'Próximo passo salvo sem atividade: a parada não tem empresa vinculada.');
+   if (body.visitada && (body as Record<string, unknown>).proximo_passo && body.proximo_passo_data && !result?.atividade_id) avisos.push(p.organizacao_id ? 'Próximo passo salvo, mas a atividade não foi criada; confira no CRM.' : 'Próximo passo salvo sem atividade: a parada não tem empresa vinculada.');
    return json({ ...result, salvo: true, empresa, mensagem: mensagemVisita(empresa,body.visitada,result?.atividade_id,relato.proximo_passo_data as string), avisos, pendencias: pendencias((await contexto(db,l.rota_id,data)).rota) });
   }
   if(body.acao==='registrar_pernoite') {
