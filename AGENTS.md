@@ -16,3 +16,5 @@
 - Travel ElevenLabs configuration and provider-error sanitization live in a pure function-local helper so URL normalization, telephony selection, and credential redaction can be tested without making calls.
 - Travel tool input normalization and schemas stay function-local and are tested without calls; validation logs include keys and sanitized issues only, never submitted values.
 - Visit data feeds organizations through the immutable `organizacao_levantamentos` history, written only by a non-blocking `rota_paradas` trigger (later relato corrections append 'manual' rows); "current situation" is always derived by the `organizacao_situacao_atual` view, so no prior data is ever overwritten.
+- Organizations have one-level `matriz_id` (validated by trigger; only admin/manager set it); attaching a company to a stop that had none is not replanning, so active trips stay approved.
+- Trip pending rules have one source (`montarPendencias`, `completo` adds debrief gaps); Júlia's list and in-app notifications both use it, and notifications are synced (insert missing, mark vanished as resolved, never delete) by the server only.

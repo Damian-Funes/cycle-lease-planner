@@ -61,6 +61,6 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Aba "Levantamento técnico" na Organização e sacos/safra pré-preenchido no Diagnóstico.
 
 # Júlia vincula empresa + Matriz/Filial + notificações "o que faltou"
-- [ ] SQL (matriz, vínculo sem reaprovação, busca/vínculo, decisores, notificações, correção Patos de Minas) testado e aplicado.
-- [ ] Ferramentas buscar/vincular, pendências únicas, sincronização de notificações (webhook, fechar dia, sino), resumo admin.
-- [ ] Telas: Filial/Filiais, levantamento por unidade; roteiro completo + 6 schemas no doc.
+- [x] SQL (matriz, vínculo sem reaprovação, busca/vínculo, decisores, notificações, correção Patos de Minas) testado e aplicado.
+- [x] Ferramentas buscar/vincular, pendências únicas, sincronização de notificações (webhook, fechar dia, sino), resumo admin.
+- [x] Telas: Filial/Filiais, levantamento por unidade; roteiro completo + 6 schemas no doc.
