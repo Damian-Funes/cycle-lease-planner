@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.faxina_config (
   ativo boolean NOT NULL DEFAULT false,
   dia_semana integer NOT NULL DEFAULT 5 CHECK (dia_semana BETWEEN 1 AND 7), -- 1=seg … 7=dom
   hora time NOT NULL DEFAULT '17:00',
-  orgs_por_ligacao integer NOT NULL DEFAULT 1 CHECK (orgs_por_ligacao BETWEEN 1 AND 5),
+  orgs_por_ligacao integer NOT NULL DEFAULT 1 CHECK (orgs_por_ligacao = 1),
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid
 );
@@ -213,7 +213,7 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
     round(a.perto_km, 1)
   FROM aval a
   ORDER BY 6, a.perto_km NULLS LAST, a.created_at
-  LIMIT greatest(1, least(coalesce(p_limite, 1), 5));
+  LIMIT 1; -- regra: uma organização por ligação (p_limite mantido só por compatibilidade)
 $$;
 REVOKE ALL ON FUNCTION public.fn_organizacoes_incompletas_priorizadas(uuid, uuid, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.fn_organizacoes_incompletas_priorizadas(uuid, uuid, integer) TO service_role;
