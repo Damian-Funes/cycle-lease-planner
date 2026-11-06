@@ -31,3 +31,5 @@ export function fraseErro(msg: unknown) {
   const t = typeof msg === 'string' ? msg.replace(/^\d{3}:\s*/, '').trim() : '';
   return !t || /^[[{]/.test(t) ? 'Não consegui salvar agora; tente de novo em instantes.' : t;
 }
+
+export { jaRegistradasHoje, fraseJaRegistradas, type JaRegistrada } from '../_shared/jaRegistradas.ts';
