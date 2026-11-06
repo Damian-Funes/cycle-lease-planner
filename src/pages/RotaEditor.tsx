@@ -472,12 +472,14 @@ export default function RotaEditor() {
     });
   }
 
-  async function onAddOrg(org: any, cidade: any) {
-    if (!id || !rota || !user) return;
+  const proxOrdemRef = useRef(0);
+  const proxOrdem = () => { const o = Math.max(paradas.length, proxOrdemRef.current); proxOrdemRef.current = o + 1; return o; };
+  async function onAddOrg(org: any, cidade: any): Promise<boolean> {
+    if (!id || !rota || !user) return false;
     try {
       // Sem "Visita planejada": a agenda só tem compromissos reais.
       const atividadeId = null;
-      const nextOrdem = paradas.length;
+      const nextOrdem = proxOrdem();
       await adicionarParada({
         rota_id: id,
         ordem: nextOrdem,
@@ -494,20 +496,21 @@ export default function RotaEditor() {
         objetivo: novoObjetivo.trim(),
       } as any);
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
-      toast.success(`${org.nome_fantasia || org.nome} adicionada`);
+      toast.success(`${org.nome_fantasia || org.nome} adicionada à rota`);
       recarregar();
-      setAddOpen(false);
+      return true;
     } catch (e: any) {
       toast.error("Erro ao adicionar", { description: e?.message });
+      return false;
     }
   }
 
-  async function onAddProspeccao(cidade: any) {
-    if (!id) return;
+  async function onAddProspeccao(cidade: any): Promise<boolean> {
+    if (!id) return false;
     try {
       await adicionarParada({
         rota_id: id,
-        ordem: paradas.length,
+        ordem: proxOrdem(),
         organizacao_id: null,
         oportunidade_id: null,
         cidade: cidade.nome,
@@ -521,11 +524,12 @@ export default function RotaEditor() {
         objetivo: novoObjetivo.trim(),
       } as any);
       qc.invalidateQueries({ queryKey: ["rota-paradas", id] });
-      toast.success(`Prospecção em ${cidade.nome} adicionada`);
+      toast.success(`Prospecção em ${cidade.nome} adicionada à rota`);
       recarregar();
-      setAddOpen(false);
+      return true;
     } catch (e: any) {
       toast.error("Erro", { description: e?.message });
+      return false;
     }
   }
 
@@ -789,6 +793,7 @@ export default function RotaEditor() {
         onSelectOrganizacao={onAddOrg}
         onAddProspeccao={onAddProspeccao}
         onObjetivo={setNovoObjetivo}
+        orgIdsNaRota={paradas.map((p: any) => p.organizacao_id).filter(Boolean)}
       />
     </div>
   );
