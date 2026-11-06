@@ -408,13 +408,13 @@ Resposta: `{ itens: [{ atividade_id, titulo, empresa, venceu_em, reagendamentos 
     "type": "object",
     "properties": {
       "atividade_id": { "type": "string", "description": "ID vindo de listar_atividades_vencidas" },
-      "acao": { "type": "string", "enum": ["feito", "reagendar", "cancelar"] },
-      "resultado": { "type": "string", "description": "Obrigatório se acao=feito" },
-      "nova_data": { "type": "string", "description": "AAAA-MM-DD, obrigatório se acao=reagendar; não pode ser no passado" },
-      "motivo": { "type": "string", "description": "Obrigatório se acao=reagendar ou cancelar" }
+      "acao": { "type": "string", "enum": ["feito", "nao_fiz", "reagendar", "cancelar"] },
+      "resultado": { "type": "string", "description": "Obrigatório se acao=feito (mín. 10 caracteres)" },
+      "nova_data": { "type": "string", "description": "AAAA-MM-DD, obrigatório se acao=reagendar ou nao_fiz; não pode ser no passado" },
+      "motivo": { "type": "string", "description": "Obrigatório se acao=nao_fiz, reagendar ou cancelar" }
     },
     "required": ["atividade_id", "acao"]
   }
 }
 ```
-Mapeamento: `fn_atividade_concluir(p_id, p_resultado, p_autor, 'julia')`, `fn_atividade_reagendar(p_id, p_data, p_motivo, p_autor, 'julia')`, `fn_atividade_cancelar(p_id, p_motivo, p_autor, 'julia')`.
+Mapeamento: `fn_atividade_concluir(p_id, p_resultado, p_autor, 'julia')`, `fn_atividade_reagendar(p_id, p_data, p_motivo, p_autor, 'julia')`, `fn_atividade_nao_fiz(p_id, p_data, p_motivo, p_autor, 'julia')`, `fn_atividade_cancelar(p_id, p_motivo, p_autor, 'julia')`.

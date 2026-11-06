@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasUteisEntre, empurrando, escalada, percentualNoPrazo, textoValido, vencidaAntesDeHoje } from "./atividadesAcoes";
+import { resultadoValido, diasUteisEntre, empurrando, escalada, percentualNoPrazo, textoValido, vencidaAntesDeHoje } from "./atividadesAcoes";
 
 describe("cobrança de atividades", () => {
   it("conta só segunda a sexta", () => {
@@ -23,6 +23,10 @@ describe("cobrança de atividades", () => {
     const agora = new Date(2026, 10, 6, 15);
     expect(vencidaAntesDeHoje(new Date(2026, 10, 6, 9).toISOString(), agora)).toBe(false);
     expect(vencidaAntesDeHoje(new Date(2026, 10, 5, 18).toISOString(), agora)).toBe(true);
+  });
+  it("resultado do Feito exige 10 caracteres", () => {
+    expect(resultadoValido("ok feito")).toBe(false);
+    expect(resultadoValido("cliente pediu proposta")).toBe(true);
   });
   it("% no prazo", () => {
     expect(percentualNoPrazo(3, 4)).toBe(75);
