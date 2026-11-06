@@ -219,6 +219,24 @@ CREATE TRIGGER trg_atividade_resolver_notificacoes AFTER UPDATE ON public.ativid
   FOR EACH ROW EXECUTE FUNCTION public.fn_atividade_resolver_notificacoes();
 
 -- ===== Trava do Novo orçamento =====
+-- Flag: nasce DESLIGADA. Ligar só depois do publish do frontend novo:
+--   UPDATE public.app_flags SET ativo = true WHERE chave = 'trava_orcamento_ativa';
+CREATE TABLE IF NOT EXISTS public.app_flags (
+  chave text PRIMARY KEY,
+  ativo boolean NOT NULL DEFAULT false,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  updated_by uuid
+);
+GRANT SELECT, UPDATE ON public.app_flags TO authenticated;
+GRANT ALL ON public.app_flags TO service_role;
+ALTER TABLE public.app_flags ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Ler flags" ON public.app_flags;
+CREATE POLICY "Ler flags" ON public.app_flags FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Admin altera flags" ON public.app_flags;
+CREATE POLICY "Admin altera flags" ON public.app_flags FOR UPDATE TO authenticated
+  USING (has_role(auth.uid(), 'admin')) WITH CHECK (has_role(auth.uid(), 'admin'));
+INSERT INTO public.app_flags(chave, ativo) VALUES ('trava_orcamento_ativa', false) ON CONFLICT (chave) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS public.orcamento_liberacoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -251,6 +269,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.fn_orcamento_travado(_user uuid) RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT _user IS NOT NULL
+     AND coalesce((SELECT ativo FROM app_flags WHERE chave = 'trava_orcamento_ativa'), false)
      AND NOT has_role(_user, 'admin')
      AND NOT EXISTS (SELECT 1 FROM orcamento_liberacoes WHERE user_id = _user AND dia = fn_rota_hoje_brt())
      AND EXISTS (SELECT 1 FROM fn_atividades_travando_orcamento(_user));
@@ -277,10 +296,16 @@ BEGIN
   ON CONFLICT (user_id, dia) DO UPDATE SET liberado_por = EXCLUDED.liberado_por, motivo = EXCLUDED.motivo, created_at = now();
 END $$;
 
--- Autoridade no banco: nenhum orçamento novo é gravado por vendedor travado (qualquer ponto de entrada).
+-- Autoridade no banco: nenhum orçamento NOVO é gravado por vendedor travado (qualquer ponto de entrada).
+-- Revisão (número "<base>-Vn" de um orçamento existente) fica fora da trava.
 CREATE OR REPLACE FUNCTION public.fn_orcamentos_trava_atividades() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE base text;
 BEGIN
+  IF NEW.numero_orcamento ~* '-V[0-9]+$' THEN
+    base := regexp_replace(NEW.numero_orcamento, '-V[0-9]+$', '', 'i');
+    IF EXISTS (SELECT 1 FROM orcamentos WHERE numero_orcamento = base) THEN RETURN NEW; END IF;
+  END IF;
   IF auth.uid() IS NOT NULL AND fn_orcamento_travado(auth.uid()) THEN
     RAISE EXCEPTION 'Antes de criar o orçamento, resolva suas atividades vencidas (ou peça liberação ao admin).'
       USING ERRCODE = 'P0001', HINT = 'atividades_vencidas';
