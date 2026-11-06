@@ -10,8 +10,9 @@ Deno.test("telefone: com/sem 55 e com/sem 9º dígito batem", () => {
 });
 Deno.test("decisão da entrada", () => {
   assertEquals(decidirEntrada({ vendedor: false, temViagem: true, ocupado: false }), "nao");
-  assertEquals(decidirEntrada({ vendedor: true, temViagem: false, ocupado: false }), "sem_viagem");
+  assertEquals(decidirEntrada({ vendedor: true, temViagem: false, ocupado: false }), "livre");
   assertEquals(decidirEntrada({ vendedor: true, temViagem: true, ocupado: true }), "ocupado");
+  assertEquals(decidirEntrada({ vendedor: true, temViagem: false, ocupado: true }), "ocupado");
   assertEquals(decidirEntrada({ vendedor: true, temViagem: true, ocupado: false }), "sim");
 });
 Deno.test("mesmas chaves na saída, na entrada e nas vazias", () => {

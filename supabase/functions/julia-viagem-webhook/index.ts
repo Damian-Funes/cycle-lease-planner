@@ -22,7 +22,7 @@ Deno.serve(async req => {
   // "O que faltou": nunca derruba o webhook.
   try {
    const l=check(await db.from('ligacoes_viagem').select('id,rota_id,vendedor_id,data_ref,status,teste,created_at').eq('conversation_id',event.data.conversation_id).maybeSingle());
-   if(l && !l.teste){
+   if(l && !l.teste && l.rota_id){
     const s=await sincronizarNotificacoes(db,l.rota_id,l.data_ref);
     let status=l.status;
     if(status==='concluida'){
