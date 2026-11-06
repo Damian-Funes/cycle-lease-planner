@@ -4,7 +4,7 @@ import { horarioRetorno } from '../_shared/juliaViagemRegras.ts';
 import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
 import { mensagensValidacao, fraseValidacao } from './entrada.ts';
-import { mensagemBusca, mensagemVinculo } from './organizacao.ts';
+import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
 const falha = (error: unknown, status = 400) => json({ salvo: false, error: fraseErro(error) }, status);
@@ -24,7 +24,7 @@ Deno.serve(async req => {
  try {
   const original = await req.json();
   if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
-  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno','buscar_organizacao','vincular_organizacao'].includes(String(original.acao))) acao = String(original.acao);
+  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao'].includes(String(original.acao))) acao = String(original.acao);
   const { data } = horarioBRT();
   const { body, avisos } = prepararEntrada(original,data); const db = dbAdmin();
   const l = check(await db.from('ligacoes_viagem').select('*').eq('id',body.ligacao_id).eq('rota_id',body.rota_id).maybeSingle());
@@ -33,7 +33,27 @@ Deno.serve(async req => {
   if (c.rota.vendedor_id !== l.vendedor_id || c.rota.status !== 'aprovada') return falha('Viagem indisponível.',403);
   // Fonte única: a Júlia cobra o mesmo que vira notificação depois.
   const pendencias = (rota: typeof c.rota) => montarPendencias(rota, data, { completo: true });
-  if (body.acao === 'listar_pendentes') return json({ ok: true, salvo: true, mensagem: 'Pendências atualizadas.', avisos, pendencias: pendencias(c.rota) });
+  // Uma organização incompleta por ligação, priorizada pela proximidade da viagem (falha aqui nunca derruba a ligação).
+  const orgIncompleta = async (): Promise<OrgIncompleta | null> => {
+   const r = await db.rpc('fn_organizacoes_incompletas_priorizadas', { p_vendedor: l.vendedor_id, p_rota: l.rota_id, p_limite: 1 });
+   return r.error ? null : ((r.data ?? [])[0] as OrgIncompleta | undefined) ?? null;
+  };
+  if (body.acao === 'listar_pendentes') {
+   const oi = await orgIncompleta();
+   return json({ ok: true, salvo: true, mensagem: 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }) });
+  }
+  if (body.acao === 'listar_organizacoes_incompletas') {
+   const oi = await orgIncompleta();
+   return json({ ok: true, salvo: true, mensagem: mensagemIncompleta(oi), avisos, organizacoes: oi ? [oi] : [] });
+  }
+  if (body.acao === 'completar_organizacao') {
+   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
+   if (!Object.keys(dados).length) return recusar('Informe o contato, a cidade/UF, a data para descobrir, a sugestão de visita ou o motivo do descarte.');
+   const r = check(await db.rpc('julia_completar_organizacao', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados }));
+   const o = check(await db.from('organizacoes').select('nome,nome_fantasia').eq('id', organizacao_id).maybeSingle());
+   const nome = o?.nome_fantasia || o?.nome || 'A organização';
+   return json({ ok: true, salvo: true, empresa: nome, mensagem: mensagemCompletar(r, nome), avisos: [...avisos, ...(r?.avisos ?? [])], faltas: r?.faltas ?? [] });
+  }
   if (body.acao === 'buscar_organizacao') {
    const opcoes = check(await db.rpc('julia_buscar_organizacao',{ p_ligacao: l.id, p_texto: body.texto, p_cidade: body.cidade ?? null, p_uf: body.uf ?? null })) ?? [];
    const lista = (opcoes as { id: string; nome: string; cidade: string | null; uf: string | null; matriz_id: string | null; matriz_nome: string | null }[]).map(o => ({ id: o.id, nome: o.nome, cidade: o.cidade, uf: o.uf, matriz: o.matriz_nome, matriz_id: o.matriz_id }));
