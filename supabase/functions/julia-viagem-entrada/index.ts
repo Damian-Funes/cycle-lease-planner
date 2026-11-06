@@ -1,8 +1,8 @@
 // Ligação recebida: webhook de iniciação da ElevenLabs (Twilio inbound). Só o comercial é atendido.
-import { check, dbAdmin, horarioBRT, json, secretIgual } from '../_shared/juliaViagem.ts';
+// Com viagem hoje: mesmo contexto da ligação feita. Sem viagem: modo livre (rota_id vazio).
+import { carregarRota, check, dbAdmin, horarioBRT, json, secretIgual } from '../_shared/juliaViagem.ts';
 import { permitidoLigar } from '../_shared/juliaViagemRegras.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
-import { carregarRota } from '../_shared/juliaViagem.ts';
 import { primeiroNome } from '../_shared/contatosOrg.ts';
 import { chaveTelefone, decidirEntrada, montarVariaveis, MSG_ENTRADA, respostaEntrada, variaveisVazias } from '../_shared/variaveisLigacao.ts';
 
@@ -23,9 +23,10 @@ export async function handler(req: Request) {
     const perfil = perfis.find(p => chaveTelefone(p.celular) === chave) ?? null;
     let papeis: string[] = [];
     if (perfil) papeis = (check(await db.from('user_roles').select('role').eq('user_id', perfil.user_id)) ?? []).map(r => r.role as string);
-    const vendedor = !!perfil && (papeis.some(p => PAPEIS.includes(p)) || permitidoLigar(perfil.user_id, papeis));
+    const comercial = papeis.some(p => PAPEIS.includes(p));
+    const vendedor = !!perfil && (comercial || permitidoLigar(perfil.user_id, papeis));
     nome = perfil ? primeiroNome(perfil.nome) : '';
-    const teste = !!perfil && vendedor && !papeis.some(p => PAPEIS.includes(p)); // Damian admin
+    const teste = vendedor && !comercial; // Damian admin
     let rota: { id: string; vendedor_id: string } | null = null;
     if (vendedor && perfil) {
       let q = db.from('rotas').select('id,vendedor_id').eq('status', 'aprovada').lte('data_inicio', data).gte('data_fim', data).order('data_inicio').limit(1);
@@ -33,17 +34,20 @@ export async function handler(req: Request) {
       rota = (check(await q) ?? [])[0] ?? null;
     }
     const alvo = rota?.vendedor_id ?? perfil?.user_id;
-    const ativa = rota ? check(await db.from('ligacoes_viagem').select('id').eq('vendedor_id', alvo).eq('data_ref', data).eq('teste', teste).in('status', ['discando', 'em_andamento']).limit(1)) ?? [] : [];
+    const ativa = vendedor ? check(await db.from('ligacoes_viagem').select('id').eq('vendedor_id', alvo).eq('data_ref', data).eq('teste', teste).in('status', ['discando', 'em_andamento']).limit(1)) ?? [] : [];
     const decisao = decidirEntrada({ vendedor, temViagem: !!rota, ocupado: ativa.length > 0 });
     console.log('julia-viagem-entrada', JSON.stringify({ caller: mascarar(caller), decisao, teste, ms: Date.now() - t0 }));
     if (decisao === 'nao') return json(respostaEntrada(variaveisVazias('nao'), MSG_ENTRADA.nao));
-    if (decisao === 'sem_viagem') return json(respostaEntrada(variaveisVazias('sem_viagem', nome), MSG_ENTRADA.sem_viagem(nome)));
     if (decisao === 'ocupado') return json(respostaEntrada(variaveisVazias('ocupado', nome), MSG_ENTRADA.ocupado(nome)));
     // Reserva atômica (cancela agendadas não discadas, uma ativa por vendedor) — só existe após a SQL.
-    const [l, r] = await Promise.all([
-      db.rpc('julia_reservar_entrada', { p_rota: rota!.id, p_telefone: caller, p_call_sid: String(body.call_sid ?? '') || null, p_teste: teste, p_solicitante: perfil!.user_id }),
-      carregarRota(db, rota!.id),
-    ]);
+    const reserva = (rotaId: string | null, vend: string) => db.rpc('julia_reservar_entrada', { p_vendedor: vend, p_rota: rotaId, p_telefone: caller, p_call_sid: String(body.call_sid ?? '') || null, p_teste: teste, p_solicitante: perfil!.user_id });
+    if (decisao === 'livre') {
+      const lig = check(await reserva(null, perfil!.user_id)) as { id: string };
+      const vars = { ...variaveisVazias('livre', nome), vendedor_id: perfil!.user_id, ligacao_id: lig.id, data_hoje: data.split('-').reverse().join('/'), teste: teste ? 'sim' : 'não' };
+      console.log('julia-viagem-entrada livre', JSON.stringify({ ligacao: lig.id, ms: Date.now() - t0 }));
+      return json(respostaEntrada(vars, MSG_ENTRADA.livre(nome)));
+    }
+    const [l, r] = await Promise.all([reserva(rota!.id, rota!.vendedor_id), carregarRota(db, rota!.id)]);
     const lig = check(l) as { id: string; vendedor_id: string };
     const org = await db.rpc('fn_organizacoes_incompletas_priorizadas', { p_vendedor: lig.vendedor_id, p_rota: rota!.id, p_limite: 1 });
     const pendencias = montarPendencias(r, data, { completo: true, organizacaoIncompleta: org.error ? null : ((org.data ?? [])[0] ?? null) });
