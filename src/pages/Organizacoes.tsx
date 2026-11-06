@@ -1,3 +1,4 @@
+import { filtrarOrganizacoes } from "@/lib/buscaOrganizacao";
 import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -166,7 +167,7 @@ export default function Organizacoes() {
         <div className="flex flex-col lg:flex-row gap-2">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome ou CNPJ..." className="pl-9" />
+            <Input value={busca} onChange={(e) => { setBusca(e.target.value); setPage(0); }} placeholder="Buscar por nome, cidade ou CNPJ..." className="pl-9" />
           </div>
           <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPage(0); if (v !== "incompletas" && v !== "sem_responsavel") setSearchParams({}, { replace: true }); }}>
             <SelectTrigger className="w-full lg:w-[200px]"><SelectValue placeholder="Status" /></SelectTrigger>
