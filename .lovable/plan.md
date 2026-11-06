@@ -269,6 +269,87 @@ END $$;
 - A busca e o vínculo usam a visibilidade do vendedor da ligação, então a Júlia nunca revela empresa de outro território.
 - O CNPJ continua vazio. A tag `incompleto` permite filtrar as empresas para completar depois.
 
+## Item 5: "O que faltou" vira notificações
+
+### Estado atual verificado
+- A tabela `notificacoes` já tem a chave única (usuário, chave) e as regras de acesso de leitura e de marcar como lida. Não existe regra para o próprio usuário criar notificações. Hoje só aparece o tipo `julia_viagem`.
+- As regras de pendência ficam em uma função única, `montarPendencias`, que hoje cobre 3 tipos: parada pendente, onde dormiu e nota do hotel. A Júlia já usa essa função em `listar_pendentes`.
+- O sino só lê e marca como lida. A gravação de notificações hoje acontece no servidor, ignorando duplicadas.
+
+### Proposta (simples e robusta)
+- **Uma única fonte de regras:** `montarPendencias` ganha 4 tipos novos, e tanto a Júlia quanto as notificações usam esta função. Os tipos novos são:
+  - `proximo_passo_sem_data`
+  - `levantamento_incompleto`, que lista quais dos 6 pontos faltaram
+  - `parada_sem_empresa`
+  - `paradas_restantes`, só no último dia
+
+  `nota_hotel` continua como está.
+- **Sincronizar em vez de só criar:** uma função `sincronizarNotificacoes(db, rota)` em `_shared` calcula as pendências da viagem e então:
+  - grava as que faltam (cada item tem uma chave fixa, ex.: `pend:<rota>:<tipo>:<id>`);
+  - **marca como resolvidas** as notificações daquela viagem cujo item não aparece mais.
+  
+  Nada é apagado: a notificação fica com "resolvida em" e some da contagem do sino.
+- **Quando sincroniza:**
+  1. no fim da ligação (`julia-viagem-webhook`, depois de `julia_finalizar_ligacao`);
+  2. ao fechar o dia pela tela (`ViagemHoje`/Encerrar);
+  3. ao abrir o sino, no máximo 1 vez a cada 5 minutos, só para as viagens do próprio vendedor no período.
+  
+  Assim, depois que o vendedor resolve algo, a notificação some no próximo fechamento do dia ou na próxima abertura do sino, sem gatilhos espalhados pelo banco.
+  - Os itens 2 e 3 usam uma função nova, `viagem-sincronizar-pendencias`. Ela confere o login, aceita só o vendedor da viagem ou o admin, e grava com acesso de servidor.
+- **Resumo para o admin:** só no webhook e só em ligação concluída (fora testes). A chave é `resumo:<ligacao>`, para não duplicar. O texto é "<Vendedor> fechou o dia: X visitas, Y pendências", com link para `/viagens/<rota>/acompanhar`.
+- **Mensagens e links do vendedor:**
+  - **a)** "Defina a data do próximo passo com <empresa>", com link para a parada na viagem.
+  - **b)** "Complete o levantamento de <empresa>: faltou sacos/safra e concorrente", com link para a parada. Os 6 pontos são: contato/decisor, sacos/safra, equipamento, problema, interesse e concorrente/objeções.
+  - **c)** "Vincule a visita de <cidade> a uma empresa", com link para a parada.
+  - **d)** A nota do hotel continua como hoje.
+  - **e)** "Informe as paradas que faltam antes de encerrar", com link para `/viagens/<rota>/hoje`.
+
+  Ficam fora: viagens de teste e paradas não visitadas. Os itens b) e c) valem só para paradas visitadas.
+
+### Arquivos (acréscimo)
+- `supabase/functions/_shared/pendenciasDia.ts`: tipos novos, função pura `faltasLevantamento(relato)`, `montarPendencias(contexto, data, { posLigacao })`, e `chavePendencia()` / `mensagemPendencia()` puras. O contexto passa a incluir `tipo`, `relato` e `organizacao_id` da parada.
+- `supabase/functions/_shared/notificacoesViagem.ts` (novo): `sincronizarNotificacoes()` e `resumoAdmin()`.
+- `supabase/functions/julia-viagem-webhook/index.ts`: chama a sincronização e o resumo depois de finalizar.
+- `supabase/functions/julia-viagem-ferramentas/index.ts`: `listar_pendentes` usa os mesmos tipos novos, para a Júlia cobrar na ligação o mesmo que vira notificação.
+- `supabase/functions/viagem-sincronizar-pendencias/index.ts` (novo): confere o login, aceita só o dono da viagem ou o admin.
+- `src/lib/pendenciasDia.ts`: reexporta. Testes em `src/lib/pendenciasDia.test.ts`:
+  - cada um dos tipos de a) a e);
+  - chave estável;
+  - item resolvido sai da lista.
+- `src/lib/notificacoesViagemBanco.test.ts` (banco descartável):
+  - gravar a mesma notificação duas vezes não duplica;
+  - item resolvido fica marcado;
+  - vendedor não lê a notificação de outro.
+- `src/components/NotificacoesSino.tsx`: esconde as resolvidas da contagem e mostra "Resolvida" em cinza, além de chamar a sincronização com limite de frequência.
+- `src/components/viagens/ViagemHoje.tsx` (fechar o dia): chama a sincronização depois de salvar.
+
+### SQL (acréscimo ao mesmo arquivo)
+```sql
+-- 7. Notificações: vínculo com viagem e resolução automática
+ALTER TABLE public.notificacoes ADD COLUMN IF NOT EXISTS rota_id uuid REFERENCES public.rotas(id) ON DELETE CASCADE;
+ALTER TABLE public.notificacoes ADD COLUMN IF NOT EXISTS resolvida_em timestamptz;
+CREATE INDEX IF NOT EXISTS notificacoes_rota_abertas_idx
+  ON public.notificacoes(rota_id, user_id) WHERE resolvida_em IS NULL;
+-- Gravação continua só pelo servidor (service_role); usuário segue só lendo/marcando lida.
+GRANT ALL ON public.notificacoes TO service_role;
+-- Usuário não pode "desresolver" nem trocar vínculo: UPDATE do usuário limitado a lida_em
+CREATE OR REPLACE FUNCTION public.fn_notificacoes_usuario_so_lida() RETURNS trigger
+LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF auth.role() = 'authenticated' AND ROW(NEW.user_id, NEW.chave, NEW.rota_id, NEW.resolvida_em, NEW.titulo, NEW.texto, NEW.link)
+     IS DISTINCT FROM ROW(OLD.user_id, OLD.chave, OLD.rota_id, OLD.resolvida_em, OLD.titulo, OLD.texto, OLD.link) THEN
+    RAISE EXCEPTION 'Só é possível marcar a notificação como lida.';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS trg_notificacoes_so_lida ON public.notificacoes;
+CREATE TRIGGER trg_notificacoes_so_lida BEFORE UPDATE ON public.notificacoes
+FOR EACH ROW EXECUTE FUNCTION public.fn_notificacoes_usuario_so_lida();
+```
+Gravação e resolução, feitas pelo servidor:
+- **gravar o que falta:** grava com a chave e, se a notificação já existir, reabre (`resolvida_em = null`) só quando o item voltou a faltar;
+- **resolver o que sumiu:** `update notificacoes set resolvida_em = now() where rota_id = $1 and resolvida_em is null and chave like 'pend:%' and chave <> all($2)`.
+
 ## Perguntas
 1. **Segmento da filial criada por voz:** herdar o segmento da matriz quando o vendedor não disser? Proposta: sim. Na correção de hoje, já herda.
 2. **Decisores citados que não são o contato** (como o Bonilio): cadastro só nesta correção ou passo a regra a valer sempre? Proposta: sempre que `decisores` trouxer um nome claro com cargo; caso contrário, nada.
