@@ -39,17 +39,17 @@ export function chaveTelefone(tel: string | null | undefined): string | null {
 
 export const MSG_ENTRADA = {
   nao: 'Oi! Esse número é exclusivo da equipe comercial da LS. Até mais!',
-  sem_viagem: (n: string) => `Oi, ${n}! Não achei viagem em andamento hoje para você. Qualquer coisa, me chama pelo app. Até mais!`,
+  livre: (n: string) => `Oi, ${n}! Aqui é a Júlia. Hoje você não tem viagem; posso registrar um contato com cliente, resolver suas atividades, completar uma empresa ou marcar um compromisso. O que vai ser?`,
   ocupado: (n: string) => `Oi, ${n}! Já tem uma ligação minha em andamento com você. Vamos terminar por ela. Até já!`,
   erro: 'Tive um problema aqui, tenta de novo em instantes. Até já!',
   sim: (n: string) => `Oi, ${n}! Aqui é a Júlia. Em que posso ajudar? Quer fechar o dia agora?`,
 };
 
-export type DecisaoEntrada = 'nao' | 'sem_viagem' | 'ocupado' | 'sim';
+export type DecisaoEntrada = 'nao' | 'livre' | 'ocupado' | 'sim';
 export function decidirEntrada(a: { vendedor: boolean; temViagem: boolean; ocupado: boolean }): DecisaoEntrada {
   if (!a.vendedor) return 'nao';
-  if (!a.temViagem) return 'sem_viagem';
-  return a.ocupado ? 'ocupado' : 'sim';
+  if (a.ocupado) return 'ocupado';
+  return a.temViagem ? 'sim' : 'livre';
 }
 
 export function respostaEntrada(dynamic_variables: Variaveis, first_message: string) {
