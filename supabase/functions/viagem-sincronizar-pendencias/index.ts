@@ -22,6 +22,9 @@ Deno.serve(async req => {
   }
   let abertas = 0, resolvidas = 0;
   for (const r of rotas.slice(0, 10)) { const s = await sincronizarNotificacoes(db, r.id, data); abertas += s.abertas; resolvidas += s.resolvidas; }
-  return json({ ok: true, viagens: rotas.length, abertas, resolvidas });
+  // Cobrança de atividades vencidas (sininho do responsável + escalonamento para admins). Falha não bloqueia a sync da viagem.
+  let atividades: unknown = null;
+  try { const r = await db.rpc('fn_sincronizar_cobranca_atividades'); atividades = r.error ? { erro: 'indisponivel' } : r.data; } catch { atividades = { erro: 'indisponivel' }; }
+  return json({ ok: true, viagens: rotas.length, abertas, resolvidas, atividades });
  } catch (e) { return erro(e); }
 });

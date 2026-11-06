@@ -9,6 +9,7 @@ import { SMARTCYCLE_ATIVO } from "@/config/features";
 import { Loader2 } from "lucide-react";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AvisoAtividadesVencidas from "@/components/atividade/AvisoAtividadesVencidas";
 import RequireRole from "@/components/RequireRole";
 import GlobalShortcuts from "@/components/GlobalShortcuts";
 import ChunkErrorBoundary from "@/components/ChunkErrorBoundary";
@@ -81,6 +82,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <GlobalShortcuts />
+          <AvisoAtividadesVencidas />
           <ChunkErrorBoundary>
           <Suspense fallback={<RouteLoader />}>
             <Routes>

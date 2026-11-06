@@ -27,6 +27,9 @@ import { toast } from "sonner";
 import AtividadesCalendar from "@/components/AtividadesCalendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
+import { AcaoAtividadeDialog, BotoesAcaoAtividade, type AcaoAtividade } from "@/components/atividade/AcoesAtividade";
+import PlacarAtividades from "@/components/atividade/PlacarAtividades";
+import { empurrando } from "@/lib/atividadesAcoes";
 
 interface Tipo { id: string; nome: string; icone: string | null; cor: string | null; ativo: boolean; }
 interface Profile { user_id: string; nome: string | null; email: string; }
@@ -34,7 +37,7 @@ interface Atividade {
   id: string; titulo: string; descricao: string | null; data_inicio: string;
   concluida: boolean; evento_automatico: boolean; tipo_id: string | null;
   responsavel_id: string | null; oportunidade_id: string | null; organizacao_id: string | null; pessoa_id: string | null;
-  google_meet_link?: string | null; erro_sincronizacao?: string | null;
+  google_meet_link?: string | null; erro_sincronizacao?: string | null; reagendamentos?: number | null;
 }
 
 type Periodo = "hoje" | "semana" | "proxima" | "atrasadas" | "tudo";
@@ -85,15 +88,16 @@ export default function Atividades() {
   // Filtros
   const [tiposSel, setTiposSel] = useState<string[]>([]);
   const [respSel, setRespSel] = useState<string>("all");
-  const [periodo, setPeriodo] = useState<Periodo>("tudo");
+  const [periodo, setPeriodo] = useState<Periodo>(() => (new URLSearchParams(window.location.search).get("atrasadas") ? "atrasadas" : "tudo"));
   const [showConcluidas, setShowConcluidas] = useState(false);
-  const [view, setView] = useState<"lista" | "calendario">("lista");
+  const [view, setView] = useState<"lista" | "calendario" | "placar">("lista");
 
   // Modais
   const [novoModal, setNovoModal] = useState(false);
   const [editAtiv, setEditAtiv] = useState<Atividade | null>(null);
   const [concluirAtiv, setConcluirAtiv] = useState<Atividade | null>(null);
   const [testando, setTestando] = useState(false);
+  const [acao, setAcao] = useState<{ a: Atividade; tipo: AcaoAtividade; data?: Date } | null>(null);
 
   const carregar = async () => {
     if (!user?.id) return;
@@ -219,19 +223,10 @@ export default function Atividades() {
   const toggleTipo = (id: string) => setTiposSel(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
 
   const marcarConcluida = async (a: Atividade) => {
-    if (!a.concluida) { setConcluirAtiv(a); return; }
+    if (!a.concluida) { setAcao({ a, tipo: "feito" }); return; }
     const { error } = await (supabase as any).from("atividades").update({ concluida: false, data_conclusao: null }).eq("id", a.id);
     if (error) return toast.error(error.message);
     carregar();
-  };
-
-  const adiar = async (a: Atividade, dias?: number, dataCustom?: string) => {
-    let nova: Date;
-    if (dataCustom) nova = new Date(dataCustom);
-    else nova = addDays(new Date(a.data_inicio), dias || 1);
-    const { error } = await (supabase as any).from("atividades").update({ data_inicio: nova.toISOString() }).eq("id", a.id);
-    if (error) return toast.error(error.message);
-    toast.success("Adiada"); carregar();
   };
 
   const excluir = async (id: string) => {
@@ -283,6 +278,11 @@ export default function Atividades() {
               </Link>
             ) : a.titulo}
             <SyncIndicator id={a.id} erro={a.erro_sincronizacao} />
+            {!a.concluida && empurrando(a.reagendamentos) && (
+              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-destructive/10 text-destructive align-middle">
+                empurrando · {a.reagendamentos}x
+              </span>
+            )}
             {a.evento_automatico && (
               <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary align-middle">
                 IA
@@ -305,17 +305,7 @@ export default function Atividades() {
           </div>
         </div>
         <Avatar className="h-7 w-7"><AvatarFallback className="text-[10px]">{initials(prof?.nome || prof?.email)}</AvatarFallback></Avatar>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><Button size="sm" variant="ghost" className="h-7 px-2 text-xs"><Clock className="h-3 w-3 mr-1" />Adiar</Button></DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => adiar(a, 1)}>1 dia</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => adiar(a, 7)}>1 semana</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              const v = prompt("Data (YYYY-MM-DD HH:mm):", format(new Date(a.data_inicio), "yyyy-MM-dd HH:mm"));
-              if (v) adiar(a, undefined, v);
-            }}>Escolher data…</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {!a.concluida && <BotoesAcaoAtividade compacto onAcao={(tipo) => setAcao({ a, tipo })} />}
         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditAtiv(a)}><Pencil className="h-3.5 w-3.5" /></Button>
         <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => excluir(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
       </div>
@@ -353,6 +343,7 @@ export default function Atividades() {
               <TabsList className="h-8">
                 <TabsTrigger value="lista" className="text-xs gap-1 px-2"><List className="h-3.5 w-3.5" />Lista</TabsTrigger>
                 <TabsTrigger value="calendario" className="text-xs gap-1 px-2"><CalendarDays className="h-3.5 w-3.5" />Calendário</TabsTrigger>
+                {isAdmin && <TabsTrigger value="placar" className="text-xs gap-1 px-2"><AlertTriangle className="h-3.5 w-3.5" />Atrasadas</TabsTrigger>}
               </TabsList>
             </Tabs>
             <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
@@ -403,6 +394,11 @@ export default function Atividades() {
         <main className="space-y-2">
           {loading ? (
             <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : view === "placar" ? (
+            <PlacarAtividades
+              nomes={Object.fromEntries(profiles.map((p) => [p.user_id, p.nome || p.email]))}
+              onVerVendedor={(uid) => { setRespSel(uid); setPeriodo("atrasadas"); setView("lista"); }}
+            />
           ) : view === "calendario" ? (
             <AtividadesCalendar
               atividades={filtradas}
@@ -446,10 +442,15 @@ export default function Atividades() {
               <DialogFooter>
                 <Button variant="ghost" onClick={() => setEditAtiv(null)}>Cancelar</Button>
                 <Button onClick={async () => {
+                  const original = atividades.find((x) => x.id === editAtiv.id);
+                  const mudouData = !!original && !original.concluida && new Date(original.data_inicio).getTime() !== new Date(editAtiv.data_inicio).getTime();
+                  // Mudança de data em atividade aberta só pelo reagendamento (motivo obrigatório).
                   const { error } = await (supabase as any).from("atividades").update({
-                    titulo: editAtiv.titulo, descricao: editAtiv.descricao, data_inicio: editAtiv.data_inicio,
+                    titulo: editAtiv.titulo, descricao: editAtiv.descricao,
+                    ...(original?.concluida ? { data_inicio: editAtiv.data_inicio } : {}),
                   }).eq("id", editAtiv.id);
                   if (error) return toast.error(error.message);
+                  if (mudouData && original) setAcao({ a: { ...original, titulo: editAtiv.titulo }, tipo: "reagendar", data: new Date(editAtiv.data_inicio) });
                   setEditAtiv(null); carregar();
                 }}>Salvar</Button>
               </DialogFooter>
@@ -459,6 +460,11 @@ export default function Atividades() {
       </Dialog>
 
       {/* Concluir atividade + próximo passo */}
+      <AcaoAtividadeDialog
+        atividade={acao?.a ?? null} acao={acao?.tipo ?? null} dataSugerida={acao?.data}
+        onClose={() => setAcao(null)}
+        onDone={() => { setAcao(null); carregar(); }}
+      />
       <ConcluirAtividadeDialog atividade={concluirAtiv} onClose={() => setConcluirAtiv(null)} onDone={() => { setConcluirAtiv(null); carregar(); }} />
     </div>
   );

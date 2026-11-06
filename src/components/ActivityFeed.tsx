@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import NovaAtividadeQuickForm from "./NovaAtividadeQuickForm";
 import ConcluirAtividadeDialog from "./ConcluirAtividadeDialog";
+import AcoesAtividade from "./atividade/AcoesAtividade";
 
 type EntityType = "oportunidade" | "organizacao" | "pessoa";
 
@@ -204,9 +205,13 @@ export default function ActivityFeed({ entityType, entityId }: Props) {
             <p className="text-xs text-destructive mt-0.5">⚠ Sync Google: {a.erro_sincronizacao}</p>
           )}
           <div className="flex gap-1 mt-1.5">
-            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => concluir(a)}>
-              <Check className="h-3 w-3 mr-1" />{a.concluida ? "Reabrir" : "Concluir"}
-            </Button>
+            {a.concluida ? (
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => concluir(a)}>
+                <Check className="h-3 w-3 mr-1" />Reabrir
+              </Button>
+            ) : (
+              <AcoesAtividade compacto atividade={a} onDone={carregar} />
+            )}
             <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => { setEditing(a.id); setEditTitulo(a.titulo); }}>
               <Pencil className="h-3 w-3 mr-1" />Editar
             </Button>

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getRota, getParadas, atualizarRota, adicionarParada, removerParada,
-  reordenarParadas, criarAtividadeVisita, atualizarParada, type RotaParada,
+  reordenarParadas, atualizarParada, type RotaParada,
 } from "@/lib/rotas";
 import { loadGoogleMaps, getOrigemVendedor, calcularRota, erroRotaMensagem } from "@/lib/maps";
 import { calcularViagem, type ViagemCalculada } from "@/lib/viagemRota";
@@ -351,9 +351,9 @@ export default function RotaEditor() {
       const depoisDe = validas[k - 1];
       void antesDe; void depoisDe;
       const diaNova = inicioRota;
-      const atividadeId = await criarAtividadeVisita({
-        organizacaoId: s.id, organizacaoNome: s.nome, responsavelId: rota.vendedor_id, dataAtividade: diaNova,
-      });
+      void diaNova;
+      // Sem "Visita planejada": a agenda só tem compromissos reais.
+      const atividadeId = null;
       const nova = await adicionarParada({
         rota_id: id, ordem: paradas.length, organizacao_id: s.id, oportunidade_id: s.oportunidadeId,
         cidade: s.cidade, estado: s.estado, latitude: s.lat, longitude: s.lng, tipo: "visita",
@@ -475,12 +475,8 @@ export default function RotaEditor() {
   async function onAddOrg(org: any, cidade: any) {
     if (!id || !rota || !user) return;
     try {
-      const atividadeId = await criarAtividadeVisita({
-        organizacaoId: org.id,
-        organizacaoNome: org.nome_fantasia || org.nome,
-        responsavelId: rota.vendedor_id,
-        dataAtividade: inicioRota,
-      });
+      // Sem "Visita planejada": a agenda só tem compromissos reais.
+      const atividadeId = null;
       const nextOrdem = paradas.length;
       await adicionarParada({
         rota_id: id,
