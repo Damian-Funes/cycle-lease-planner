@@ -10,8 +10,7 @@ export const Schema = z.discriminatedUnion('acao', [
  z.object({ ...comum, acao: z.literal('agendar_retorno'), horario: z.string().regex(/^\d{2}:\d{2}$/) }).strip(),
  z.object({ ...comum, acao: z.literal('buscar_organizacao'), texto: z.string().trim().min(3).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional() }).strip(),
  z.object({ ...comum, acao: z.literal('vincular_organizacao'), parada_id: z.string().uuid(), organizacao_id: z.string().uuid().optional(),
-  criar: z.object({ nome: z.string().trim().min(2).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/), matriz_id: z.string().uuid().optional(), segmento: z.enum(SEGMENTOS).optional() }).strip().optional() }).strip()
-  .refine(v => !!v.organizacao_id !== !!v.criar, { path: ['organizacao_id'], message: 'Informe organizacao_id ou criar.' }),
+  criar: z.object({ nome: z.string().trim().min(2).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/), matriz_id: z.string().uuid().optional(), segmento: z.enum(SEGMENTOS).optional() }).strip().optional() }).strip(),
 ]);
 
 /** Optional debrief failures never block a valid visit; identity stays mandatory. */
