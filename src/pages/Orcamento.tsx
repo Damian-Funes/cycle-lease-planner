@@ -85,9 +85,7 @@ export default function Orcamento() {
         setParams((p) => ({ ...p, pessoa_contato_id: list[0].id }));
       }
     })();
-    return (
-    <>
-    {trava.dialogo}) => { cancel = true; };
+    return () => { cancel = true; };
   }, [params.organizacao_id, params.dados_congelados]);
 
 
@@ -592,6 +590,8 @@ export default function Orcamento() {
   }
 
   return (
+    <>
+    {trava.dialogo}
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card sticky top-0 z-10">
         <div className="container max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4 flex-wrap">
