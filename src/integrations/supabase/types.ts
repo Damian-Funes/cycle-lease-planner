@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_flags: {
+        Row: {
+          ativo: boolean
+          chave: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      atividade_reagendamentos: {
+        Row: {
+          atividade_id: string
+          autor_id: string | null
+          created_at: string
+          data_anterior: string | null
+          data_nova: string
+          id: string
+          motivo: string
+          origem: string
+          tipo: string
+        }
+        Insert: {
+          atividade_id: string
+          autor_id?: string | null
+          created_at?: string
+          data_anterior?: string | null
+          data_nova: string
+          id?: string
+          motivo: string
+          origem?: string
+          tipo?: string
+        }
+        Update: {
+          atividade_id?: string
+          autor_id?: string | null
+          created_at?: string
+          data_anterior?: string | null
+          data_nova?: string
+          id?: string
+          motivo?: string
+          origem?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividade_reagendamentos_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividades: {
         Row: {
           concluida: boolean
@@ -31,12 +96,15 @@ export type Database = {
           google_event_id: string | null
           google_meet_link: string | null
           id: string
+          motivo_cancelamento: string | null
           oportunidade_id: string | null
           organizacao_id: string | null
           pessoa_id: string | null
+          reagendamentos: number
           responsavel_id: string | null
           resultado: string | null
           sincronizado_em: string | null
+          situacao: string
           tipo: string
           tipo_id: string | null
           titulo: string
@@ -58,12 +126,15 @@ export type Database = {
           google_event_id?: string | null
           google_meet_link?: string | null
           id?: string
+          motivo_cancelamento?: string | null
           oportunidade_id?: string | null
           organizacao_id?: string | null
           pessoa_id?: string | null
+          reagendamentos?: number
           responsavel_id?: string | null
           resultado?: string | null
           sincronizado_em?: string | null
+          situacao?: string
           tipo: string
           tipo_id?: string | null
           titulo: string
@@ -85,12 +156,15 @@ export type Database = {
           google_event_id?: string | null
           google_meet_link?: string | null
           id?: string
+          motivo_cancelamento?: string | null
           oportunidade_id?: string | null
           organizacao_id?: string | null
           pessoa_id?: string | null
+          reagendamentos?: number
           responsavel_id?: string | null
           resultado?: string | null
           sincronizado_em?: string | null
+          situacao?: string
           tipo?: string
           tipo_id?: string | null
           titulo?: string
@@ -2281,6 +2355,33 @@ export type Database = {
           },
         ]
       }
+      orcamento_liberacoes: {
+        Row: {
+          created_at: string
+          dia: string
+          id: string
+          liberado_por: string
+          motivo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dia: string
+          id?: string
+          liberado_por: string
+          motivo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dia?: string
+          id?: string
+          liberado_por?: string
+          motivo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orcamentos: {
         Row: {
           cliente_cnpj: string | null
@@ -3979,6 +4080,28 @@ export type Database = {
       }
     }
     Views: {
+      atividades_placar_semanal: {
+        Row: {
+          empurrando: number | null
+          liberacoes_semana: number | null
+          mais_antiga: string | null
+          nao_fiz_semana: number | null
+          no_prazo_semana: number | null
+          reagendamentos_semana: number | null
+          responsavel_id: string | null
+          vencendo_semana: number | null
+          vencidas_abertas: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       oportunidades_sem_valores: {
         Row: {
           concorrente_vencedor: string | null
@@ -5032,6 +5155,103 @@ export type Database = {
         }
         Returns: string
       }
+      fn_atividade_autorizar: {
+        Args: { _autor: string; _id: string }
+        Returns: {
+          concluida: boolean
+          conteudo: string | null
+          created_at: string
+          criar_meet: boolean
+          data_atividade: string
+          data_conclusao: string | null
+          data_inicio: string | null
+          descricao: string | null
+          duracao_minutos: number | null
+          erro_sincronizacao: string | null
+          evento_automatico: boolean
+          google_calendar_id: string | null
+          google_event_id: string | null
+          google_meet_link: string | null
+          id: string
+          motivo_cancelamento: string | null
+          oportunidade_id: string | null
+          organizacao_id: string | null
+          pessoa_id: string | null
+          reagendamentos: number
+          responsavel_id: string | null
+          resultado: string | null
+          sincronizado_em: string | null
+          situacao: string
+          tipo: string
+          tipo_id: string | null
+          titulo: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "atividades"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fn_atividade_cancelar: {
+        Args: {
+          p_autor?: string
+          p_id: string
+          p_motivo: string
+          p_origem?: string
+        }
+        Returns: undefined
+      }
+      fn_atividade_concluir: {
+        Args: {
+          p_autor?: string
+          p_id: string
+          p_origem?: string
+          p_resultado: string
+        }
+        Returns: undefined
+      }
+      fn_atividade_mudar_data: {
+        Args: {
+          p_autor: string
+          p_data: string
+          p_id: string
+          p_motivo: string
+          p_origem: string
+          p_tipo: string
+        }
+        Returns: number
+      }
+      fn_atividade_nao_fiz: {
+        Args: {
+          p_autor?: string
+          p_data: string
+          p_id: string
+          p_motivo: string
+          p_origem?: string
+        }
+        Returns: number
+      }
+      fn_atividade_reagendar: {
+        Args: {
+          p_autor?: string
+          p_data: string
+          p_id: string
+          p_motivo: string
+          p_origem?: string
+        }
+        Returns: number
+      }
+      fn_atividades_travando_orcamento: {
+        Args: { _user: string }
+        Returns: {
+          data_inicio: string
+          id: string
+          organizacao: string
+          titulo: string
+        }[]
+      }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }
         Returns: {
@@ -5049,6 +5269,10 @@ export type Database = {
         }[]
       }
       fn_data_segura: { Args: { _t: string }; Returns: string }
+      fn_dias_uteis_entre: {
+        Args: { _ate: string; _de: string }
+        Returns: number
+      }
       fn_gravar_perfil: {
         Args: {
           p_executado_por?: string
@@ -5071,9 +5295,24 @@ export type Database = {
         Args: { _pessoa_id: string }
         Returns: Json
       }
+      fn_liberar_orcamento: {
+        Args: { p_motivo: string; p_user: string }
+        Returns: undefined
+      }
       fn_match_pessoa_por_telefone: { Args: { _tel: string }; Returns: string }
+      fn_minha_trava_orcamento: {
+        Args: { _user?: string }
+        Returns: {
+          data_inicio: string
+          id: string
+          organizacao: string
+          titulo: string
+          travado: boolean
+        }[]
+      }
       fn_num_seguro: { Args: { _t: string }; Returns: number }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
+      fn_orcamento_travado: { Args: { _user: string }; Returns: boolean }
       fn_pode_escrever_diario: {
         Args: { _rota: string; _user: string }
         Returns: boolean
@@ -5099,6 +5338,7 @@ export type Database = {
         Returns: string
       }
       fn_rota_hoje_brt: { Args: never; Returns: string }
+      fn_sincronizar_cobranca_atividades: { Args: never; Returns: Json }
       fn_tel_chave_match: { Args: { _t: string }; Returns: string }
       fn_tel_digitos: { Args: { _t: string }; Returns: string }
       fn_uuid_seguro: { Args: { _t: string }; Returns: string }
