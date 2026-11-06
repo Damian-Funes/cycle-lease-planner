@@ -93,12 +93,15 @@ export function normalizarBody(body: unknown, hojeBRT = new Date().toLocaleDateS
   }
   if (campo === 'objecoes' && Array.isArray(valor)) { valor = valor.filter(item => item != null && !vazioSemantico(item)); if (valor.length === 0) continue; }
   if (campo === 'sacos_safra') valor = sacosBR(valor);
-  if (campo === 'proximo_passo_data' || campo === 'descobrir_ate' || campo === 'visita_em') valor = dataProximoPasso(valor, hojeBRT);
+  if (campo === 'proximo_passo_data' || campo === 'descobrir_ate' || campo === 'visita_em' || campo === 'data' || campo === 'nova_data') valor = dataProximoPasso(valor, hojeBRT);
   if (campo === 'pessoa_telefone') valor = telefoneBR(valor);
   if (campo === 'descartar_motivo') valor = motivoDescarteBR(valor);
   if (campo === 'sugerir_visita') valor = booleanoBR(valor);
   if (valor === undefined) { avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: valor inválido ou data passada.`); continue; }
   if (campo === 'valor' && typeof valor === 'string') valor = numeroBR(valor) ?? valor;
+  if (campo === 'resolucao' && typeof valor === 'string') valor = resolucaoBR(valor);
+  if (campo === 'tipo' && typeof valor === 'string' && body && (body as Record<string, unknown>).acao === 'criar_compromisso') valor = tipoCompromissoBR(valor);
+  if (campo === 'canal' && typeof valor === 'string') valor = canalBR(valor);
   if (campo === 'interesse' && typeof valor === 'string') valor = valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (campo === 'uf' && typeof valor === 'string') valor = ufBR(valor) ?? valor.toUpperCase();
   if (campo === 'criar') { valor = normalizarCriar(valor, avisos); if (valor === undefined) continue; }
@@ -124,3 +127,9 @@ export function fraseValidacao(issues: { path: (string | number)[]; code: string
  const nomes: Record<string, string> = { body: 'dados enviados', acao: 'ação', ligacao_id: 'identificador da ligação', rota_id: 'identificador da viagem', parada_id: 'identificador da parada', visitada: 'visita realizada', sacos_safra: 'sacos da safra', interesse: 'interesse', uf: 'UF', valor: 'valor', proximo_passo_data: 'data do próximo passo' };
  return `Confira o campo ${nomes[campo] ?? campo.replace(/_/g, ' ')}: valor ausente ou inválido.`;
 }
+const RESOLUCOES: Record<string, string> = { feito: 'feito', feita: 'feito', concluido: 'feito', concluida: 'feito', fiz: 'feito', nao_fiz: 'nao_fiz', 'nao fiz': 'nao_fiz', reagendar: 'reagendar', remarcar: 'reagendar', cancelar: 'cancelar', cancelado: 'cancelar', cancelada: 'cancelar' };
+export function resolucaoBR(v: string): string | undefined { return RESOLUCOES[simplificar(v)]; }
+const TIPOS_COMP: Record<string, string> = { ligacao: 'Ligação', telefone: 'Ligação', visita: 'Visita', reuniao: 'Reunião', tarefa: 'Tarefa', whatsapp: 'WhatsApp', zap: 'WhatsApp' };
+export function tipoCompromissoBR(v: string): string | undefined { return TIPOS_COMP[simplificar(v)]; }
+const CANAIS: Record<string, string> = { telefone: 'telefone', ligacao: 'telefone', whatsapp: 'whatsapp', zap: 'whatsapp', visita: 'visita', presencial: 'visita', email: 'email', 'e-mail': 'email', outro: 'outro' };
+export function canalBR(v: string): string | undefined { return CANAIS[simplificar(v)]; }

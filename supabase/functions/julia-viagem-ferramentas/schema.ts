@@ -4,22 +4,30 @@ import { MOTIVOS_DESCARTE, normalizarBody, SEGMENTOS } from './entrada.ts';
 export const PROXIMO_PASSO_SEM_DESCRICAO = '(sem descrição)';
 const relatoCampos = Object.fromEntries(CAMPOS_TEXTO_RELATO.map(c => [c, z.string().trim().min(1).max(500).optional()]));
 const comum = { ligacao_id: z.string().uuid(), rota_id: z.string().uuid() };
+// Modo livre (ligação recebida sem viagem): rota_id vazio/ausente.
+const livre = { ligacao_id: z.string().uuid(), rota_id: z.string().uuid().optional() };
+const dataISO = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const Schema = z.discriminatedUnion('acao', [
  z.object({ ...comum, acao: z.literal('listar_pendentes') }).strip(),
  z.object({ ...comum, ...relatoCampos, sacos_safra: z.number().finite().nonnegative().optional(), interesse: z.enum(['alto','medio','baixo']).optional(), objecoes: z.array(z.string().trim().min(1).max(500)).max(20).optional(), proximo_passo_data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), acao: z.literal('registrar_visita'), parada_id: z.string().uuid(), visitada: z.boolean(), resultado: z.string().trim().min(1).max(4500).optional(), motivo: z.string().trim().min(1).max(4500).optional() }).strip(),
  z.object({ ...comum, acao: z.literal('registrar_pernoite'), tipo: z.enum(['hotel','sem_custo','voltou_base']), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional(), hotel_nome: z.string().trim().min(1).max(200).optional(), valor: z.number().positive().lt(100000).optional(), observacao: z.string().trim().min(1).max(2000).optional() }).strip(),
  z.object({ ...comum, acao: z.literal('agendar_retorno'), horario: z.string().regex(/^\d{2}:\d{2}$/) }).strip(),
- z.object({ ...comum, acao: z.literal('buscar_organizacao'), texto: z.string().trim().min(3).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional() }).strip(),
+ z.object({ ...livre, acao: z.literal('buscar_organizacao'), texto: z.string().trim().min(3).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional() }).strip(),
  z.object({ ...comum, acao: z.literal('vincular_organizacao'), parada_id: z.string().uuid(), organizacao_id: z.string().uuid().optional(),
   criar: z.object({ nome: z.string().trim().min(2).max(200), cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/), matriz_id: z.string().uuid().optional(), segmento: z.enum(SEGMENTOS).optional() }).strip().optional() }).strip(),
- z.object({ ...comum, acao: z.literal('listar_organizacoes_incompletas') }).strip(),
- z.object({ ...comum, acao: z.literal('completar_organizacao'), organizacao_id: z.string().uuid(),
+ z.object({ ...livre, acao: z.literal('listar_organizacoes_incompletas') }).strip(),
+ z.object({ ...livre, acao: z.literal('completar_organizacao'), organizacao_id: z.string().uuid(),
   pessoa_nome: z.string().trim().min(2).max(200).optional(), pessoa_cargo: z.string().trim().min(1).max(200).optional(),
   pessoa_telefone: z.string().regex(/^\d{10,11}$/).optional(),
   cidade: z.string().trim().min(1).max(200).optional(), uf: z.string().regex(/^[A-Z]{2}$/).optional(),
   descobrir_ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   sugerir_visita: z.boolean().optional(), visita_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   descartar_motivo: z.enum(MOTIVOS_DESCARTE).optional(), descartar_obs: z.string().trim().min(1).max(1000).optional() }).strip(),
+
+ z.object({ ...livre, ...relatoCampos, acao: z.literal('registrar_contato_cliente'), organizacao_id: z.string().uuid(), canal: z.enum(['telefone','whatsapp','visita','email','outro']), sacos_safra: z.number().finite().nonnegative().optional(), interesse: z.enum(['alto','medio','baixo']).optional(), objecoes: z.array(z.string().trim().min(1).max(500)).max(20).optional(), proximo_passo_data: dataISO.optional(), resultado: z.string().trim().min(10).max(4500) }).strip(),
+ z.object({ ...livre, acao: z.literal('listar_atividades_vencidas') }).strip(),
+ z.object({ ...livre, acao: z.literal('resolver_atividade'), atividade_id: z.string().uuid(), resolucao: z.enum(['feito','nao_fiz','reagendar','cancelar']), resultado: z.string().trim().min(10).max(4500).optional(), nova_data: dataISO.optional(), motivo: z.string().trim().min(3).max(1000).optional() }).strip(),
+ z.object({ ...livre, acao: z.literal('criar_compromisso'), organizacao_id: z.string().uuid().optional(), titulo: z.string().trim().min(3).max(200), tipo: z.enum(['Ligação','Visita','Reunião','Tarefa','WhatsApp']), data: dataISO, hora: z.string().regex(/^\d{2}:\d{2}$/).optional(), descricao: z.string().trim().min(1).max(2000).optional() }).strip(),
 ]);
 
 /** Optional debrief failures never block a valid visit; identity stays mandatory. */
@@ -29,6 +37,13 @@ export function prepararEntrada(original: unknown, hojeBRT: string) {
  if (dados && typeof dados === 'object' && !Array.isArray(dados)) {
   const registro = dados as Record<string, unknown>;
   const opcionais = [...CAMPOS_TEXTO_RELATO, 'sacos_safra', 'interesse', 'objecoes', 'proximo_passo_data'];
+  if (registro.acao === 'registrar_contato_cliente') {
+   const validacao = Schema.safeParse(registro);
+   if (!validacao.success) for (const issue of validacao.error.issues) {
+    const campo = String(issue.path[0]);
+    if (opcionais.includes(campo) && campo !== 'resultado' && campo in registro) { delete registro[campo]; avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: formato ou limite inválido.`); }
+   }
+  }
   if (registro.acao === 'registrar_visita') {
    if (registro.visitada === false) {
     for (const campo of opcionais) if (campo in registro) { delete registro[campo]; avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: visita não realizada.`); }
