@@ -718,7 +718,7 @@ export default function Crm() {
           className="sticky z-20 bg-muted/95 backdrop-blur -mx-4 px-4 pt-2"
           style={{ top: topoAltura }}
         >
-        <div className={`flex flex-wrap items-center gap-2 mb-2 ${etapasPipeline.length > 0 ? "hidden md:flex" : ""}`}>
+        <div className="flex flex-nowrap md:flex-wrap items-center gap-2 mb-2 overflow-x-auto md:overflow-visible pb-1 md:pb-0 [&>*]:shrink-0">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
             <Input
