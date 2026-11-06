@@ -192,6 +192,17 @@ export default function OrganizacaoDetalhe() {
         </div>
       </header>
 
+      {(org as any)?.descartada_em && (
+        <div className="max-w-[1400px] mx-auto px-4 pt-4">
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-2 text-sm flex items-center gap-3">
+            <span>Organização descartada em {new Date((org as any).descartada_em).toLocaleDateString("pt-BR")}: <b>{rotuloDescarte((org as any).descarte_motivo)}</b>{(org as any).descarte_obs ? ` — ${(org as any).descarte_obs}` : ""}</span>
+            {isAdminDescarte && <Button size="sm" variant="outline" className="ml-auto h-7" onClick={async () => {
+              try { await reabrirOrganizacao(id!); toast.success("Organização reaberta"); qc.invalidateQueries({ queryKey: ["organizacao", id] }); qc.invalidateQueries({ queryKey: ["organizacoes"] }); }
+              catch (e: any) { toast.error(e?.message); }
+            }}>Reabrir</Button>}
+          </div>
+        </div>
+      )}
       <main className="max-w-[1400px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-[320px_1fr_320px] gap-4">
         {/* ESQUERDA */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">

@@ -21,6 +21,8 @@ import LocalizarOrganizacoesModal from "@/components/LocalizarOrganizacoesModal"
 import { useAuth } from "@/hooks/useAuth";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
+import CompletarOrganizacaoInline from "@/components/organizacao/CompletarOrganizacaoInline";
+import DescartarOrganizacaoDialog from "@/components/organizacao/DescartarOrganizacaoDialog";
 
 const STATUS_STYLES: Record<string, string> = {
   lead: "bg-gray-200 text-gray-800 hover:bg-gray-200",
@@ -43,6 +45,8 @@ function initials(name: string) {
 export default function Organizacoes() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [descartar, setDescartar] = useState<{ id: string; nome: string } | null>(null);
+  const recarregarOrgs = () => { qc.invalidateQueries({ queryKey: ["organizacoes"] }); qc.invalidateQueries({ queryKey: ["organizacoes-incompletas"] }); };
   const [searchParams, setSearchParams] = useSearchParams();
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
   const { data: incompletas } = useOrganizacoesIncompletas();
@@ -77,7 +81,8 @@ export default function Organizacoes() {
         .select("*")
         .order("updated_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as OrganizacaoRow[];
+      // Descartadas não aparecem nas listas (ficam no histórico; a ficha continua acessível pelo link).
+      return ((data ?? []) as any[]).filter((o) => !o.descartada_em) as OrganizacaoRow[];
     },
   });
 
@@ -219,12 +224,17 @@ export default function Organizacoes() {
                         {o.nome_fantasia && <div className="text-xs text-muted-foreground">{o.nome_fantasia}</div>}
                         {flags && (
                           <div className="flex flex-wrap gap-1 mt-1.5">
-                            {flags.semContato && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem contato</Badge>}
-                            {flags.semTelefone && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem telefone</Badge>}
-                            {flags.semEmail && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem email</Badge>}
+                            {flags.semContato && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem contato com telefone</Badge>}
                             {flags.semCidadeEstado && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem cidade/estado</Badge>}
                             {flags.semResponsavel && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">sem responsável</Badge>}
                           </div>
+                        )}
+                        {flags && statusFiltro === "incompletas" && (
+                          <CompletarOrganizacaoInline
+                            org={{ id: o.id, nome: o.nome, cidade: (o as any).cidade, estado: (o as any).estado }}
+                            flags={flags} onDone={recarregarOrgs}
+                            onDescartar={() => setDescartar({ id: o.id, nome: o.nome })}
+                          />
                         )}
                       </TableCell>
                       <TableCell className="text-sm">{o.cnpj || "—"}</TableCell>
@@ -277,6 +287,7 @@ export default function Organizacoes() {
       <OrganizacaoFormModal open={modalOpen} onOpenChange={setModalOpen} organizacao={editing} />
       <ImportarOrganizacoesCsvModal open={importOpen} onOpenChange={setImportOpen} />
       <LocalizarOrganizacoesModal open={localizarOpen} onOpenChange={setLocalizarOpen} />
+    <DescartarOrganizacaoDialog org={descartar} onClose={() => setDescartar(null)} onDone={() => { setDescartar(null); recarregarOrgs(); }} />
     </div>
   );
 }
