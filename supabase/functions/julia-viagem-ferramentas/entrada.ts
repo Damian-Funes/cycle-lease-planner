@@ -72,13 +72,25 @@ function normalizarCriar(criar: unknown, avisos: string[]): unknown {
  }
  return Object.keys(r).length ? r : undefined;
 }
+const CAMPOS_AVISO_VAZIO = ['contato_nome','contato_cargo','decisores','equipamento_atual','problema_principal','motivo_interesse','concorrente','proximo_passo'];
+const CAMPOS_COMPLETAR = ['pessoa_nome','pessoa_cargo','pessoa_telefone','cidade','uf','descobrir_ate','sugerir_visita','visita_em','descartar_motivo','descartar_obs'];
+/** acao=listar_organizacoes_incompletas com organizacao_id + dado de completar = chamada de completar mal configurada. */
+export function pareceCompletar(body: unknown): boolean {
+ if (!body || typeof body !== 'object' || Array.isArray(body)) return false;
+ const b = body as Record<string, unknown>;
+ const tem = (k: string) => b[k] !== undefined && b[k] !== null && b[k] !== '';
+ return b.acao === 'listar_organizacoes_incompletas' && tem('organizacao_id') && CAMPOS_COMPLETAR.some(tem);
+}
 /** Drop optional noise; preserve mandatory fields for strict validation. */
 export function normalizarBody(body: unknown, hojeBRT = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }), avisos: string[] = []): unknown {
  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
  const resultado: Record<string, unknown> = {};
  for (const [campo, original] of Object.entries(body)) {
   let valor = typeof original === 'string' ? original.trim() : original;
-  if (valor === null || valor === undefined || (campo !== 'visitada' && vazioSemantico(valor)) || valor === '' || (Array.isArray(valor) && valor.length === 0)) continue;
+  if (valor === null || valor === undefined || (campo !== 'visitada' && vazioSemantico(valor)) || valor === '' || (Array.isArray(valor) && valor.length === 0)) {
+   if (CAMPOS_AVISO_VAZIO.includes(campo) && typeof valor === 'string' && valor) avisos.push(`Campo ${campo.replace(/_/g, ' ')} tratado como vazio ("${valor.slice(0, 30)}"): não gravado.`);
+   continue;
+  }
   if (campo === 'objecoes' && Array.isArray(valor)) { valor = valor.filter(item => item != null && !vazioSemantico(item)); if (valor.length === 0) continue; }
   if (campo === 'sacos_safra') valor = sacosBR(valor);
   if (campo === 'proximo_passo_data' || campo === 'descobrir_ate' || campo === 'visita_em') valor = dataProximoPasso(valor, hojeBRT);
