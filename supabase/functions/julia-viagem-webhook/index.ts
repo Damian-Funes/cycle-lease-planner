@@ -1,6 +1,6 @@
 import { z } from 'npm:zod@3';
-import { check, corsHeaders, dbAdmin, erro, json } from '../_shared/juliaViagem.ts';
-import { assinaturaValida, motivoAssinatura } from '../_shared/juliaWebhook.ts';
+import { admins, check, corsHeaders, dbAdmin, erro, json, notificar } from '../_shared/juliaViagem.ts';
+import { assinaturaValida, ligacaoInterrompida, motivoAssinatura } from '../_shared/juliaWebhook.ts';
 import { notificarResumoAdmins, sincronizarNotificacoes } from '../_shared/notificacoesViagem.ts';
 const Event = z.object({ type: z.enum(['post_call_transcription','call_initiation_failure']), data: z.object({ conversation_id: z.string().min(1), failure_reason:z.string().optional(), transcript: z.array(z.object({ role:z.string(),message:z.string().nullable() }).passthrough()).optional(), analysis:z.object({ transcript_summary:z.string().optional() }).passthrough().optional(), metadata:z.object({ call_duration_secs:z.number().nonnegative().optional() }).passthrough().optional() }).passthrough() });
 Deno.serve(async req => {
@@ -17,8 +17,31 @@ Deno.serve(async req => {
   const result=check(await db.rpc('julia_finalizar_ligacao',{p_conversa:event.data.conversation_id,p_falha:naoAtendeu,p_resumo:resumo,p_transcricao:event.data.transcript ?? [],p_duracao:Math.round(event.data.metadata?.call_duration_secs ?? 0)}));
   // "O que faltou": nunca derruba o webhook.
   try {
-   const l=check(await db.from('ligacoes_viagem').select('id,rota_id,data_ref,status,teste').eq('conversation_id',event.data.conversation_id).maybeSingle());
-   if(l && !l.teste){ const s=await sincronizarNotificacoes(db,l.rota_id,l.data_ref); if(l.status==='concluida') await notificarResumoAdmins(db,l.id,s.rota,l.data_ref); }
+   const l=check(await db.from('ligacoes_viagem').select('id,rota_id,vendedor_id,data_ref,status,teste,created_at').eq('conversation_id',event.data.conversation_id).maybeSingle());
+   if(l && !l.teste){
+    const s=await sincronizarNotificacoes(db,l.rota_id,l.data_ref);
+    let status=l.status;
+    if(status==='concluida'){
+     const desde=l.created_at;
+     const [d,p,o]=await Promise.all([
+      db.from('rota_diario').select('id',{count:'exact',head:true}).eq('rota_id',l.rota_id).like('texto','Júlia — %').gte('created_at',desde),
+      db.from('rota_pernoites').select('id',{count:'exact',head:true}).eq('rota_id',l.rota_id).gte('created_at',desde),
+      db.from('organizacao_levantamentos').select('id',{count:'exact',head:true}).eq('rota_id',l.rota_id).in('origem',['julia','faxina']).gte('created_at',desde),
+     ]);
+     const gravou=[d,p,o].some(r=>(r.count ?? 0)>0);
+     const paradaPendente=((s.rota?.paradas ?? []) as {visitada:boolean|null}[]).some(x=>x.visitada==null);
+     const meta=event.data.metadata as Record<string,unknown>|undefined;
+     const motivo=String(meta?.termination_reason ?? event.data.failure_reason ?? '');
+     if(ligacaoInterrompida({duracao_s:Math.round(event.data.metadata?.call_duration_secs ?? 0),motivo,gravou,paradaPendente})){
+      // Status novo só existe após a SQL; se falhar, fica 'concluida' e o aviso sai igual.
+      const u=await db.from('ligacoes_viagem').update({status:'interrompida',erro:`caiu: ${motivo || 'curta'}`.slice(0,200)}).eq('id',l.id).eq('status','concluida');
+      if(!u.error) status='interrompida';
+      const perf=await db.from('profiles').select('nome').eq('user_id',l.vendedor_id).maybeSingle();
+      for(const a of await admins(db)) await notificar(db,a,`caiu:${l.id}`,`Ligação com ${perf.data?.nome ?? 'o vendedor'} caiu — religar?`,`/viagens/${l.rota_id}/acompanhar`,`Encerrou aos ${Math.round(event.data.metadata?.call_duration_secs ?? 0)} s${motivo?` (${motivo})`:''}${gravou?'':', nada gravado'}.`);
+     }
+    }
+    if(status==='concluida') await notificarResumoAdmins(db,l.id,s.rota,l.data_ref);
+   }
   } catch(e){ console.warn('julia-viagem-webhook notificacoes', e instanceof Error ? e.message : 'erro'); }
   return json(result);
  } catch(e) {return erro(e);}

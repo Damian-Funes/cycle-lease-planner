@@ -37,7 +37,7 @@ export async function handler(req: Request) {
         const c = await contexto(db, l.rota_id, data);
         if (c.rota.status !== 'aprovada' || data < c.rota.data_inicio || data > c.rota.data_fim) throw new Error('Viagem fora do período.');
         const relevantes = c.pendencias.filter(p => p.tipo !== 'nota_hotel');
-        if (!relevantes.length) { check(await db.from('ligacoes_viagem').update({ status: 'cancelada' }).eq('id', l.id)); throw new Error('Nada pendente nesta viagem hoje: ligação cancelada.'); }
+        if (!relevantes.length) { check(await db.from('ligacoes_viagem').update({ status: 'cancelada' }).eq('id', l.id)); return false; }
         let perfil = c.perfil;
         if (l.teste) {
           if (l.solicitado_por !== DAMIAN_ID) throw new Error('Teste fora da whitelist.');
@@ -83,7 +83,7 @@ export async function handler(req: Request) {
       }
       const l = await reservar(input.rota_id, origem, agora.toISOString(), input.teste);
       // Nunca responder ok sem discar (antes, a inicial já concluída voltava "ok" em silêncio).
-      if (!await discar(l.id)) return json({ error: 'Essa ligação já foi feita hoje e não pôde ser religada.' }, 409);
+      if (!await discar(l.id)) return json({ error: 'Não foi possível discar: ligação já encerrada ou nada pendente nesta viagem hoje.' }, 409);
       return json({ ok: true, ligacao_id: l.id });
     }
     if (input.modo === 'escolha') { await discar(input.ligacao_id); return json({ ok: true }); }

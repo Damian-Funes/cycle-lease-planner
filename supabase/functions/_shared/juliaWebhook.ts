@@ -17,3 +17,8 @@ export async function assinaturaValida(raw: string, header: string | null, secre
  const expected = new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(`${t}.${raw}`)));
  return signatures.some(sig => { let d=0; for(let i=0;i<32;i++) d |= expected[i] ^ parseInt(sig.slice(i*2,i*2+2),16); return d===0; });
 }
+/** Ligação caiu no meio: encerrou sem gravar nada (ou com parada ainda pendente) e foi curta ou terminou por silêncio/timeout. */
+export function ligacaoInterrompida(i: { duracao_s: number; motivo?: string | null; gravou: boolean; paradaPendente: boolean }): boolean {
+ const silencio = /timeout|silence|silencio|inactiv/i.test(i.motivo ?? '');
+ return (!i.gravou || i.paradaPendente) && (i.duracao_s < 180 || silencio);
+}
