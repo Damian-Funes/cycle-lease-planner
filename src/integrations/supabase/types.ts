@@ -5481,6 +5481,10 @@ export type Database = {
         }[]
       }
       fn_atualizar_completude: { Args: { _org: string }; Returns: undefined }
+      fn_casar_pessoa_org: {
+        Args: { _nome: string; _org: string }
+        Returns: Record<string, unknown>
+      }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }
         Returns: {
