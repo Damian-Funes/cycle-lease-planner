@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.fn_paradas_levantamento() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_registrar_levantamento_parada(uuid, text, uuid) FROM PUBLIC, anon, authenticated;
