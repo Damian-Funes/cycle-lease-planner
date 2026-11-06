@@ -135,10 +135,10 @@ BEGIN
   WITH v AS (
     SELECT a.id, a.responsavel_id, a.titulo, a.reagendamentos,
            (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date AS dia,
-           coalesce(p.full_name, 'Vendedor') AS vendedor,
+           coalesce(p.nome, 'Vendedor') AS vendedor,
            coalesce(o.nome_fantasia, o.nome) AS org
     FROM atividades a
-    LEFT JOIN profiles p ON p.id = a.responsavel_id
+    LEFT JOIN profiles p ON p.user_id = a.responsavel_id
     LEFT JOIN organizacoes o ON o.id = a.organizacao_id
     WHERE NOT a.concluida AND a.responsavel_id IS NOT NULL AND a.data_atividade IS NOT NULL
       AND (a.data_atividade AT TIME ZONE 'America/Sao_Paulo')::date <= hoje
@@ -155,9 +155,9 @@ BEGIN
     WHERE fn_dias_uteis_entre(v.dia, hoje) > 3
     UNION ALL
     SELECT ur.user_id, 'atividade:'||a.id||':empurrando', 'atividade_empurrando',
-           coalesce(p.full_name,'Vendedor')||' está empurrando: reagendada '||a.reagendamentos||' vezes',
+           coalesce(p.nome,'Vendedor')||' está empurrando: reagendada '||a.reagendamentos||' vezes',
            a.titulo
-    FROM atividades a JOIN user_roles ur ON ur.role = 'admin' LEFT JOIN profiles p ON p.id = a.responsavel_id
+    FROM atividades a JOIN user_roles ur ON ur.role = 'admin' LEFT JOIN profiles p ON p.user_id = a.responsavel_id
     WHERE NOT a.concluida AND a.reagendamentos >= 3
   ), ins AS (
     INSERT INTO notificacoes(user_id, chave, tipo, titulo, texto, link)
