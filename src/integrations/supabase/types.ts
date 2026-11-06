@@ -514,6 +514,13 @@ export type Database = {
             foreignKeyName: "diagnosticos_tecnicos_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "diagnosticos_tecnicos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -982,6 +989,13 @@ export type Database = {
             foreignKeyName: "dossies_sementeiras_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossies_sementeiras_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -1267,6 +1281,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      faxina_config: {
+        Row: {
+          ativo: boolean
+          dia_semana: number
+          hora: string
+          id: boolean
+          orgs_por_ligacao: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          dia_semana?: number
+          hora?: string
+          id?: boolean
+          orgs_por_ligacao?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          dia_semana?: number
+          hora?: string
+          id?: boolean
+          orgs_por_ligacao?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       formas_pagamento: {
         Row: {
@@ -1652,6 +1696,13 @@ export type Database = {
             foreignKeyName: "layouts_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layouts_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -1944,6 +1995,13 @@ export type Database = {
             foreignKeyName: "ligacoes_bot_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_bot_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -1976,7 +2034,7 @@ export type Database = {
           id: string
           origem: string
           resumo: string | null
-          rota_id: string
+          rota_id: string | null
           solicitado_por: string | null
           status: string
           telefone: string | null
@@ -1998,7 +2056,7 @@ export type Database = {
           id?: string
           origem: string
           resumo?: string | null
-          rota_id: string
+          rota_id?: string | null
           solicitado_por?: string | null
           status?: string
           telefone?: string | null
@@ -2020,7 +2078,7 @@ export type Database = {
           id?: string
           origem?: string
           resumo?: string | null
-          rota_id?: string
+          rota_id?: string | null
           solicitado_por?: string | null
           status?: string
           telefone?: string | null
@@ -2322,6 +2380,13 @@ export type Database = {
             foreignKeyName: "oportunidades_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -2546,6 +2611,13 @@ export type Database = {
             foreignKeyName: "orcamentos_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -2683,6 +2755,13 @@ export type Database = {
             foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -2697,12 +2776,14 @@ export type Database = {
       }
       organizacao_levantamentos: {
         Row: {
+          acao: string | null
           atividade_id: string | null
           atividade_visita_id: string | null
           autor_id: string | null
           concorrente: string | null
           contato_cargo: string | null
           contato_nome: string | null
+          contato_telefone: string | null
           created_at: string
           data_visita: string
           decisores: string | null
@@ -2725,12 +2806,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acao?: string | null
           atividade_id?: string | null
           atividade_visita_id?: string | null
           autor_id?: string | null
           concorrente?: string | null
           contato_cargo?: string | null
           contato_nome?: string | null
+          contato_telefone?: string | null
           created_at?: string
           data_visita: string
           decisores?: string | null
@@ -2753,12 +2836,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acao?: string | null
           atividade_id?: string | null
           atividade_visita_id?: string | null
           autor_id?: string | null
           concorrente?: string | null
           contato_cargo?: string | null
           contato_nome?: string | null
+          contato_telefone?: string | null
           created_at?: string
           data_visita?: string
           decisores?: string | null
@@ -2781,6 +2866,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "organizacao_levantamentos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "organizacao_levantamentos_organizacao_id_fkey"
             columns: ["organizacao_id"]
@@ -2815,7 +2907,12 @@ export type Database = {
         Row: {
           cidade: string | null
           cnpj: string | null
+          completada_em: string | null
           created_at: string
+          descartada_em: string | null
+          descartada_por: string | null
+          descarte_motivo: string | null
+          descarte_obs: string | null
           email_principal: string | null
           endereco: string | null
           estado: string | null
@@ -2842,7 +2939,12 @@ export type Database = {
         Insert: {
           cidade?: string | null
           cnpj?: string | null
+          completada_em?: string | null
           created_at?: string
+          descartada_em?: string | null
+          descartada_por?: string | null
+          descarte_motivo?: string | null
+          descarte_obs?: string | null
           email_principal?: string | null
           endereco?: string | null
           estado?: string | null
@@ -2869,7 +2971,12 @@ export type Database = {
         Update: {
           cidade?: string | null
           cnpj?: string | null
+          completada_em?: string | null
           created_at?: string
+          descartada_em?: string | null
+          descartada_por?: string | null
+          descarte_motivo?: string | null
+          descarte_obs?: string | null
           email_principal?: string | null
           endereco?: string | null
           estado?: string | null
@@ -2899,6 +3006,13 @@ export type Database = {
             columns: ["estado_id"]
             isOneToOne: false
             referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizacoes_matriz_id_fkey"
+            columns: ["matriz_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
             referencedColumns: ["id"]
           },
           {
@@ -3062,6 +3176,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pessoas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pessoas_organizacao_id_fkey"
             columns: ["organizacao_id"]
@@ -3296,6 +3417,13 @@ export type Database = {
             foreignKeyName: "propostas_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -3389,6 +3517,13 @@ export type Database = {
           texto?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rota_diario_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rota_diario_organizacao_id_fkey"
             columns: ["organizacao_id"]
@@ -3576,6 +3711,13 @@ export type Database = {
             columns: ["oportunidade_id"]
             isOneToOne: false
             referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
             referencedColumns: ["id"]
           },
           {
@@ -4087,6 +4229,8 @@ export type Database = {
           mais_antiga: string | null
           nao_fiz_semana: number | null
           no_prazo_semana: number | null
+          organizacoes_completadas: number | null
+          organizacoes_descartadas: number | null
           reagendamentos_semana: number | null
           responsavel_id: string | null
           vencendo_semana: number | null
@@ -4180,6 +4324,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_relatorio_tempo_etapa"
             referencedColumns: ["etapa_id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "oportunidades_organizacao_id_fkey"
@@ -4304,6 +4455,13 @@ export type Database = {
             foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_reforma_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -4416,6 +4574,13 @@ export type Database = {
             foreignKeyName: "orcamentos_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -4425,6 +4590,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizacoes"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizacao_completude: {
+        Row: {
+          falta_cidade: boolean | null
+          falta_contato: boolean | null
+          falta_responsavel: boolean | null
+          falta_uf: boolean | null
+          id: string | null
+          responsavel_id: string | null
+        }
+        Insert: {
+          falta_cidade?: never
+          falta_contato?: never
+          falta_responsavel?: never
+          falta_uf?: never
+          id?: string | null
+          responsavel_id?: string | null
+        }
+        Update: {
+          falta_cidade?: never
+          falta_contato?: never
+          falta_responsavel?: never
+          falta_uf?: never
+          id?: string | null
+          responsavel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizacoes_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -4567,6 +4767,13 @@ export type Database = {
             foreignKeyName: "propostas_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -4632,6 +4839,13 @@ export type Database = {
             foreignKeyName: "oportunidades_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -4690,6 +4904,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_relatorio_tempo_etapa"
             referencedColumns: ["etapa_id"]
+          },
+          {
+            foreignKeyName: "oportunidades_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "oportunidades_organizacao_id_fkey"
@@ -5004,6 +5225,13 @@ export type Database = {
             foreignKeyName: "dossies_sementeiras_organizacao_id_fkey"
             columns: ["organizacao_id"]
             isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dossies_sementeiras_organizacao_id_fkey"
+            columns: ["organizacao_id"]
+            isOneToOne: false
             referencedRelation: "organizacao_situacao_atual"
             referencedColumns: ["organizacao_id"]
           },
@@ -5252,6 +5480,7 @@ export type Database = {
           titulo: string
         }[]
       }
+      fn_atualizar_completude: { Args: { _org: string }; Returns: undefined }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }
         Returns: {
@@ -5271,6 +5500,10 @@ export type Database = {
       fn_data_segura: { Args: { _t: string }; Returns: string }
       fn_dias_uteis_entre: {
         Args: { _ate: string; _de: string }
+        Returns: number
+      }
+      fn_distancia_km: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
       fn_gravar_perfil: {
@@ -5313,6 +5546,31 @@ export type Database = {
       fn_num_seguro: { Args: { _t: string }; Returns: number }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
       fn_orcamento_travado: { Args: { _user: string }; Returns: boolean }
+      fn_organizacao_descartar: {
+        Args: {
+          p_autor?: string
+          p_motivo: string
+          p_obs?: string
+          p_org: string
+          p_origem?: string
+        }
+        Returns: Json
+      }
+      fn_organizacao_faltas: { Args: { _org: string }; Returns: string[] }
+      fn_organizacao_reabrir: { Args: { p_org: string }; Returns: undefined }
+      fn_organizacoes_incompletas_priorizadas: {
+        Args: { p_limite?: number; p_rota?: string; p_vendedor: string }
+        Returns: {
+          cidade: string
+          distancia_km: number
+          falta: string[]
+          motivo: string
+          nome: string
+          organizacao_id: string
+          prioridade: number
+          uf: string
+        }[]
+      }
       fn_pode_escrever_diario: {
         Args: { _rota: string; _user: string }
         Returns: boolean
@@ -5341,6 +5599,7 @@ export type Database = {
       fn_sincronizar_cobranca_atividades: { Args: never; Returns: Json }
       fn_tel_chave_match: { Args: { _t: string }; Returns: string }
       fn_tel_digitos: { Args: { _t: string }; Returns: string }
+      fn_tel_valido: { Args: { _t: string }; Returns: boolean }
       fn_uuid_seguro: { Args: { _t: string }; Returns: string }
       has_any_role: {
         Args: {
@@ -5386,6 +5645,10 @@ export type Database = {
           uf: string
         }[]
       }
+      julia_completar_organizacao: {
+        Args: { p_dados: Json; p_ligacao: string; p_org: string }
+        Returns: Json
+      }
       julia_escolher_contato: {
         Args: { p_escolha: string; p_ligacao: string }
         Returns: undefined
@@ -5429,7 +5692,7 @@ export type Database = {
           id: string
           origem: string
           resumo: string | null
-          rota_id: string
+          rota_id: string | null
           solicitado_por: string | null
           status: string
           telefone: string | null
