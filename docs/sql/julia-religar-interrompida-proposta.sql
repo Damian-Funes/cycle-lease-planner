@@ -1,4 +1,4 @@
--- Religar manual (admin) + status 'interrompida'. NÃO APLICAR sem aprovação.
+-- Religar manual (admin) + status interrompida. Aprovado e aplicado em 06/11/2026.
 ALTER TABLE public.ligacoes_viagem DROP CONSTRAINT ligacoes_viagem_origem_check;
 ALTER TABLE public.ligacoes_viagem ADD CONSTRAINT ligacoes_viagem_origem_check CHECK (origem = ANY (ARRAY['inicial','retentativa','retorno','teste','faxina','manual']));
 ALTER TABLE public.ligacoes_viagem DROP CONSTRAINT ligacoes_viagem_status_check;
