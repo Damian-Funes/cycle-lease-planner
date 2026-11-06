@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.viagem-sincronizar-pendencias]
 verify_jwt = false
+
+[functions.julia-viagem-entrada]
+verify_jwt = false
