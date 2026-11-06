@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.atividade_reagendamentos (
   motivo text NOT NULL,
   autor_id uuid,
   origem text NOT NULL DEFAULT 'app',
+  tipo text NOT NULL DEFAULT 'reagendado', -- reagendado (cliente) | nao_concluido (vendedor não fez) | edicao
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS atividade_reagendamentos_ativ_idx ON public.atividade_reagendamentos(atividade_id, created_at DESC);
@@ -49,8 +50,8 @@ BEGIN
   IF NOT OLD.concluida AND NOT NEW.concluida
      AND coalesce(NEW.data_inicio, NEW.data_atividade) IS DISTINCT FROM coalesce(OLD.data_inicio, OLD.data_atividade)
      AND coalesce(current_setting('app.reagendando', true), '') <> 'on' THEN
-    INSERT INTO atividade_reagendamentos(atividade_id, data_anterior, data_nova, motivo, autor_id, origem)
-    VALUES (NEW.id, coalesce(OLD.data_inicio, OLD.data_atividade), coalesce(NEW.data_inicio, NEW.data_atividade), 'Alterado na edição (sem motivo)', auth.uid(), 'edicao');
+    INSERT INTO atividade_reagendamentos(atividade_id, data_anterior, data_nova, motivo, autor_id, origem, tipo)
+    VALUES (NEW.id, coalesce(OLD.data_inicio, OLD.data_atividade), coalesce(NEW.data_inicio, NEW.data_atividade), 'Alterado na edição (sem motivo)', auth.uid(), 'edicao', 'edicao');
     NEW.reagendamentos := OLD.reagendamentos + 1;
   END IF;
   RETURN NEW;
@@ -77,7 +78,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.fn_atividade_concluir(p_id uuid, p_resultado text, p_autor uuid DEFAULT NULL, p_origem text DEFAULT 'app')
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF length(trim(coalesce(p_resultado,''))) < 3 THEN RAISE EXCEPTION 'Informe o resultado.'; END IF;
+  IF length(trim(coalesce(p_resultado,''))) < 10 THEN RAISE EXCEPTION 'Descreva o resultado (mínimo 10 caracteres).'; END IF;
   PERFORM fn_atividade_autorizar(p_id, p_autor);
   UPDATE atividades SET concluida = true, situacao = 'concluida', data_conclusao = now(),
     resultado = trim(p_resultado) || CASE WHEN p_origem = 'julia' THEN ' (via Júlia)' ELSE '' END
@@ -94,7 +95,7 @@ BEGIN
   WHERE id = p_id;
 END $$;
 
-CREATE OR REPLACE FUNCTION public.fn_atividade_reagendar(p_id uuid, p_data timestamptz, p_motivo text, p_autor uuid DEFAULT NULL, p_origem text DEFAULT 'app')
+CREATE OR REPLACE FUNCTION public.fn_atividade_mudar_data(p_id uuid, p_data timestamptz, p_motivo text, p_autor uuid, p_origem text, p_tipo text)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE a atividades; n integer;
 BEGIN
@@ -103,9 +104,10 @@ BEGIN
     RAISE EXCEPTION 'A nova data não pode estar no passado.';
   END IF;
   IF p_origem NOT IN ('app','julia') THEN RAISE EXCEPTION 'Origem inválida.'; END IF;
+  IF p_tipo NOT IN ('reagendado','nao_concluido') THEN RAISE EXCEPTION 'Tipo inválido.'; END IF;
   a := fn_atividade_autorizar(p_id, p_autor);
-  INSERT INTO atividade_reagendamentos(atividade_id, data_anterior, data_nova, motivo, autor_id, origem)
-  VALUES (p_id, coalesce(a.data_inicio, a.data_atividade), p_data, trim(p_motivo), coalesce(auth.uid(), p_autor), p_origem);
+  INSERT INTO atividade_reagendamentos(atividade_id, data_anterior, data_nova, motivo, autor_id, origem, tipo)
+  VALUES (p_id, coalesce(a.data_inicio, a.data_atividade), p_data, trim(p_motivo), coalesce(auth.uid(), p_autor), p_origem, p_tipo);
   PERFORM set_config('app.reagendando', 'on', true);
   UPDATE atividades SET data_atividade = p_data, data_inicio = p_data, reagendamentos = reagendamentos + 1
   WHERE id = p_id RETURNING reagendamentos INTO n;
@@ -113,7 +115,21 @@ BEGIN
   RETURN n;
 END $$;
 
+-- Reagendar: a mudança vem do cliente.
+CREATE OR REPLACE FUNCTION public.fn_atividade_reagendar(p_id uuid, p_data timestamptz, p_motivo text, p_autor uuid DEFAULT NULL, p_origem text DEFAULT 'app')
+RETURNS integer LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT fn_atividade_mudar_data(p_id, p_data, p_motivo, p_autor, p_origem, 'reagendado');
+$$;
+-- Não fiz: o vendedor não fez (tempo/esquecimento). Também exige nova data e conta como reagendamento.
+CREATE OR REPLACE FUNCTION public.fn_atividade_nao_fiz(p_id uuid, p_data timestamptz, p_motivo text, p_autor uuid DEFAULT NULL, p_origem text DEFAULT 'app')
+RETURNS integer LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT fn_atividade_mudar_data(p_id, p_data, p_motivo, p_autor, p_origem, 'nao_concluido');
+$$;
+
 REVOKE ALL ON FUNCTION public.fn_atividade_autorizar(uuid, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_atividade_mudar_data(uuid, timestamptz, text, uuid, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_atividade_nao_fiz(uuid, timestamptz, text, uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_atividade_nao_fiz(uuid, timestamptz, text, uuid, text) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.fn_atividade_concluir(uuid, text, uuid, text) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.fn_atividade_cancelar(uuid, text, uuid, text) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.fn_atividade_reagendar(uuid, timestamptz, text, uuid, text) FROM PUBLIC, anon;
@@ -202,6 +218,86 @@ DROP TRIGGER IF EXISTS trg_atividade_resolver_notificacoes ON public.atividades;
 CREATE TRIGGER trg_atividade_resolver_notificacoes AFTER UPDATE ON public.atividades
   FOR EACH ROW EXECUTE FUNCTION public.fn_atividade_resolver_notificacoes();
 
+-- ===== Trava do Novo orçamento =====
+CREATE TABLE IF NOT EXISTS public.orcamento_liberacoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  dia date NOT NULL,
+  liberado_por uuid NOT NULL,
+  motivo text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, dia)
+);
+GRANT SELECT ON public.orcamento_liberacoes TO authenticated;
+GRANT ALL ON public.orcamento_liberacoes TO service_role;
+ALTER TABLE public.orcamento_liberacoes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Ver própria liberação ou admin" ON public.orcamento_liberacoes;
+CREATE POLICY "Ver própria liberação ou admin" ON public.orcamento_liberacoes
+  FOR SELECT TO authenticated USING (user_id = auth.uid() OR has_role(auth.uid(), 'admin'));
+-- sem insert direto: só por fn_liberar_orcamento
+
+-- Atividades do usuário vencidas há MAIS de 1 dia útil.
+CREATE OR REPLACE FUNCTION public.fn_atividades_travando_orcamento(_user uuid)
+RETURNS TABLE(id uuid, titulo text, data_inicio timestamptz, organizacao text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT a.id, a.titulo, coalesce(a.data_inicio, a.data_atividade), coalesce(o.nome_fantasia, o.nome)
+  FROM atividades a LEFT JOIN organizacoes o ON o.id = a.organizacao_id
+  WHERE a.responsavel_id = _user AND NOT a.concluida
+    AND coalesce(a.data_inicio, a.data_atividade) IS NOT NULL
+    AND fn_dias_uteis_entre((coalesce(a.data_inicio, a.data_atividade) AT TIME ZONE 'America/Sao_Paulo')::date, fn_rota_hoje_brt()) > 1
+  ORDER BY 3;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fn_orcamento_travado(_user uuid) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT _user IS NOT NULL
+     AND NOT has_role(_user, 'admin')
+     AND NOT EXISTS (SELECT 1 FROM orcamento_liberacoes WHERE user_id = _user AND dia = fn_rota_hoje_brt())
+     AND EXISTS (SELECT 1 FROM fn_atividades_travando_orcamento(_user));
+$$;
+
+-- Para a tela: só do próprio usuário (admin pode consultar outro).
+CREATE OR REPLACE FUNCTION public.fn_minha_trava_orcamento(_user uuid DEFAULT NULL)
+RETURNS TABLE(travado boolean, id uuid, titulo text, data_inicio timestamptz, organizacao text)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE u uuid := coalesce(_user, auth.uid());
+BEGIN
+  IF u <> auth.uid() AND NOT has_role(auth.uid(), 'admin') THEN RAISE EXCEPTION 'Sem permissão.'; END IF;
+  IF NOT fn_orcamento_travado(u) THEN RETURN QUERY SELECT false, NULL::uuid, NULL::text, NULL::timestamptz, NULL::text; RETURN; END IF;
+  RETURN QUERY SELECT true, t.id, t.titulo, t.data_inicio, t.organizacao FROM fn_atividades_travando_orcamento(u) t;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.fn_liberar_orcamento(p_user uuid, p_motivo text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NOT has_role(auth.uid(), 'admin') THEN RAISE EXCEPTION 'Só admin pode liberar.'; END IF;
+  IF length(trim(coalesce(p_motivo,''))) < 3 THEN RAISE EXCEPTION 'Informe o motivo.'; END IF;
+  INSERT INTO orcamento_liberacoes(user_id, dia, liberado_por, motivo)
+  VALUES (p_user, fn_rota_hoje_brt(), auth.uid(), trim(p_motivo))
+  ON CONFLICT (user_id, dia) DO UPDATE SET liberado_por = EXCLUDED.liberado_por, motivo = EXCLUDED.motivo, created_at = now();
+END $$;
+
+-- Autoridade no banco: nenhum orçamento novo é gravado por vendedor travado (qualquer ponto de entrada).
+CREATE OR REPLACE FUNCTION public.fn_orcamentos_trava_atividades() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.uid() IS NOT NULL AND fn_orcamento_travado(auth.uid()) THEN
+    RAISE EXCEPTION 'Antes de criar o orçamento, resolva suas atividades vencidas (ou peça liberação ao admin).'
+      USING ERRCODE = 'P0001', HINT = 'atividades_vencidas';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS trg_orcamentos_trava_atividades ON public.orcamentos;
+CREATE TRIGGER trg_orcamentos_trava_atividades BEFORE INSERT ON public.orcamentos
+  FOR EACH ROW EXECUTE FUNCTION public.fn_orcamentos_trava_atividades();
+
+REVOKE ALL ON FUNCTION public.fn_atividades_travando_orcamento(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_orcamento_travado(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.fn_minha_trava_orcamento(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.fn_liberar_orcamento(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fn_minha_trava_orcamento(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.fn_liberar_orcamento(uuid, text) TO authenticated;
+
 -- Placar semanal (segunda a domingo, BRT) por responsável. Só leitura; respeita RLS de atividades.
 CREATE OR REPLACE VIEW public.atividades_placar_semanal WITH (security_invoker = true) AS
 WITH semana AS (
@@ -217,7 +313,11 @@ SELECT a.responsavel_id,
   min(coalesce(a.data_inicio, a.data_atividade)) FILTER (WHERE NOT a.concluida AND coalesce(a.data_inicio, a.data_atividade) < now()) AS mais_antiga,
   count(*) FILTER (WHERE NOT a.concluida AND a.reagendamentos >= 3) AS empurrando,
   (SELECT count(*) FROM atividade_reagendamentos r JOIN atividades x ON x.id = r.atividade_id
-    WHERE x.responsavel_id = a.responsavel_id AND (r.created_at AT TIME ZONE 'America/Sao_Paulo')::date >= s.ini) AS reagendamentos_semana
+    WHERE x.responsavel_id = a.responsavel_id AND r.tipo <> 'nao_concluido' AND (r.created_at AT TIME ZONE 'America/Sao_Paulo')::date >= s.ini) AS reagendamentos_semana,
+  (SELECT count(*) FROM atividade_reagendamentos r JOIN atividades x ON x.id = r.atividade_id
+    WHERE x.responsavel_id = a.responsavel_id AND r.tipo = 'nao_concluido' AND (r.created_at AT TIME ZONE 'America/Sao_Paulo')::date >= s.ini) AS nao_fiz_semana,
+  (SELECT count(*) FROM orcamento_liberacoes l
+    WHERE l.user_id = a.responsavel_id AND l.dia >= s.ini) AS liberacoes_semana
 FROM atividades a CROSS JOIN semana s
 WHERE a.responsavel_id IS NOT NULL
 GROUP BY a.responsavel_id, s.ini;
