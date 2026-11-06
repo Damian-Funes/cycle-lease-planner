@@ -1,6 +1,6 @@
 // Ligação recebida: webhook de iniciação da ElevenLabs (Twilio inbound). Só o comercial é atendido.
 // Com viagem hoje: mesmo contexto da ligação feita. Sem viagem: modo livre (rota_id vazio).
-import { carregarRota, check, dbAdmin, horarioBRT, json, secretIgual } from '../_shared/juliaViagem.ts';
+import { carregarRota, check, dbAdmin, horarioBRT, json, secretIgualAlgum } from '../_shared/juliaViagem.ts';
 import { permitidoLigar } from '../_shared/juliaViagemRegras.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { primeiroNome } from '../_shared/contatosOrg.ts';
@@ -11,7 +11,7 @@ const mascarar = (t: string) => t.replace(/\d(?=\d{4})/g, '*');
 
 export async function handler(req: Request) {
   if (req.method !== 'POST') return json({ error: 'Use POST.' }, 405);
-  if (!await secretIgual(req.headers.get('x-julia-secret'), 'JULIA_ENTRADA_SECRET')) return json({ error: 'Unauthorized' }, 401);
+  if (!await secretIgualAlgum(req.headers.get('x-julia-secret'), ['JULIA_ENTRADA_SECRET', 'JULIA_TOOL_SECRET'])) return json({ error: 'Unauthorized' }, 401);
   const t0 = Date.now();
   let nome = '';
   try {

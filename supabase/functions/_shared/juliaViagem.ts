@@ -24,7 +24,16 @@ export async function usuario(req: Request, admin = false) {
   return data.claims.sub as string;
 }
 export async function secretIgual(recebido: string | null, nome: string) {
-  const esperado = Deno.env.get(nome)?.trim();
+  return secretIgualValor(recebido, Deno.env.get(nome));
+}
+/** Aceita qualquer um dos segredos definidos (ignora os vazios); compara todos, em tempo constante. */
+export async function secretIgualAlgum(recebido: string | null, nomes: string[]) {
+  let ok = false;
+  for (const n of nomes) if (await secretIgual(recebido, n)) ok = true;
+  return ok;
+}
+export async function secretIgualValor(recebido: string | null | undefined, esperadoBruto: string | null | undefined) {
+  const esperado = esperadoBruto?.trim();
   recebido = recebido?.trim() ?? null;
   if (!recebido || !esperado) return false;
   const encoder = new TextEncoder();
