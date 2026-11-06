@@ -15,3 +15,4 @@
 - Julia configuration queries fail independently and keep the card visible; the test trip selector queries only approved current-period routes without diary/expense joins to avoid unrelated access failures.
 - Travel ElevenLabs configuration and provider-error sanitization live in a pure function-local helper so URL normalization, telephony selection, and credential redaction can be tested without making calls.
 - Travel tool input normalization and schemas stay function-local and are tested without calls; validation logs include keys and sanitized issues only, never submitted values.
+- Visit data feeds organizations through the immutable `organizacao_levantamentos` history, written only by a non-blocking `rota_paradas` trigger (later relato corrections append 'manual' rows); "current situation" is always derived by the `organizacao_situacao_atual` view, so no prior data is ever overwritten.
