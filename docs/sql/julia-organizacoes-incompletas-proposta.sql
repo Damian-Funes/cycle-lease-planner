@@ -194,21 +194,25 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
       (SELECT r.rotulo FROM refs r WHERE r.tipo = 'parada' AND nullif(btrim(c.cidade),'') IS NOT NULL
          AND lower(unaccent_simple(btrim(r.cidade))) = lower(unaccent_simple(btrim(c.cidade)))
          AND upper(coalesce(r.uf,'')) = coalesce(c.uf,'') LIMIT 1) AS mesma_cidade,
-      (SELECT r FROM (SELECT r2.rotulo, r2.tipo, fn_distancia_km(c.latitude, c.longitude, r2.lat, r2.lng) AS km FROM refs r2) r
-        WHERE r.km IS NOT NULL AND r.km <= 60 ORDER BY r.km LIMIT 1) AS perto,
+      pt.km AS perto_km, pt.tipo AS perto_tipo, pt.rotulo AS perto_rotulo,
       EXISTS (SELECT 1 FROM oportunidades op WHERE op.organizacao_id = c.id AND op.status = 'aberta')
         OR EXISTS (SELECT 1 FROM orcamentos oc WHERE oc.organizacao_id = c.id) AS tem_negocio
-    FROM cand c WHERE cardinality(c.falta) > 0
+    FROM cand c
+    LEFT JOIN LATERAL (
+      SELECT r2.rotulo, r2.tipo, fn_distancia_km(c.latitude, c.longitude, r2.lat, r2.lng) AS km FROM refs r2
+      WHERE fn_distancia_km(c.latitude, c.longitude, r2.lat, r2.lng) <= 60
+      ORDER BY 3 LIMIT 1) pt ON true
+    WHERE cardinality(c.falta) > 0
   )
   SELECT a.id, a.nome, a.cidade, a.uf, a.falta,
-    CASE WHEN a.mesma_cidade IS NOT NULL THEN 1 WHEN a.perto IS NOT NULL THEN 2 WHEN a.tem_negocio THEN 3 ELSE 4 END,
+    CASE WHEN a.mesma_cidade IS NOT NULL THEN 1 WHEN a.perto_km IS NOT NULL THEN 2 WHEN a.tem_negocio THEN 3 ELSE 4 END,
     CASE WHEN a.mesma_cidade IS NOT NULL THEN 'mesma cidade da parada '||a.mesma_cidade
-         WHEN a.perto IS NOT NULL THEN 'a '||round((a.perto).km)||' km '||CASE WHEN (a.perto).tipo = 'pernoite' THEN 'do pernoite de hoje' ELSE 'da parada '||(a.perto).rotulo END
+         WHEN a.perto_km IS NOT NULL THEN 'a '||round(a.perto_km)||' km '||CASE WHEN a.perto_tipo = 'pernoite' THEN 'do pernoite de hoje' ELSE 'da parada '||a.perto_rotulo END
          WHEN a.tem_negocio THEN 'tem negócio ou orçamento'
          ELSE 'incompleta há mais tempo' END,
-    round((a.perto).km, 1)
+    round(a.perto_km, 1)
   FROM aval a
-  ORDER BY 6, (a.perto).km NULLS LAST, a.created_at
+  ORDER BY 6, a.perto_km NULLS LAST, a.created_at
   LIMIT greatest(1, least(coalesce(p_limite, 1), 5));
 $$;
 REVOKE ALL ON FUNCTION public.fn_organizacoes_incompletas_priorizadas(uuid, uuid, integer) FROM PUBLIC, anon, authenticated;
