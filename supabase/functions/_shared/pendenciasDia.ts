@@ -1,6 +1,7 @@
 export type TipoPendenciaDia =
   | "parada_pendente" | "pernoite_noite" | "nota_hotel"
-  | "proximo_passo_sem_data" | "levantamento_incompleto" | "parada_sem_empresa" | "paradas_restantes";
+  | "proximo_passo_sem_data" | "levantamento_incompleto" | "parada_sem_empresa" | "paradas_restantes"
+  | "organizacao_incompleta";
 export interface PendenciaDia { tipo: TipoPendenciaDia; id: string; titulo: string; detalhe: string }
 type Relato = Record<string, unknown> | null | undefined;
 export interface ParadaPendencia {
@@ -35,7 +36,11 @@ const lista = (itens: string[]) => itens.length <= 1 ? itens.join("") : `${itens
  * Fonte única das pendências. Sem `completo`, mantém só as do fechamento do dia (decidem se a Júlia liga).
  * Com `completo`, inclui o que faltou no debrief — usado pela Júlia em listar_pendentes e pelas notificações.
  */
-export function montarPendencias(contexto: ContextoPendencias, data: string, opcoes: { completo?: boolean } = {}): PendenciaDia[] {
+/** Organização incompleta sugerida para a Júlia perguntar (opcional; nunca bloqueia o fechamento nem vira notificação). */
+export interface OrganizacaoIncompletaSugerida { organizacao_id: string; nome: string; falta: string[]; motivo: string }
+const ROTULO_FALTA: Record<string, string> = { contato: "contato com telefone", cidade: "cidade", uf: "UF", responsavel: "responsável" };
+
+export function montarPendencias(contexto: ContextoPendencias, data: string, opcoes: { completo?: boolean; organizacaoIncompleta?: OrganizacaoIncompletaSugerida | null } = {}): PendenciaDia[] {
   const itens: PendenciaDia[] = contexto.paradas.filter(p => p.visitada == null).map(p => ({
     tipo: "parada_pendente", id: p.id, titulo: nomeParada(p),
     detalhe: [p.cidade, p.estado].filter(Boolean).join(" / "),
@@ -61,6 +66,11 @@ export function montarPendencias(contexto: ContextoPendencias, data: string, opc
   }
   if (data >= contexto.data_fim && contexto.paradas.some(p => p.visitada == null)) {
     itens.push({ tipo: "paradas_restantes", id: contexto.id, titulo: "Informe as paradas que faltam antes de encerrar", detalhe: `${contexto.paradas.filter(p => p.visitada == null).length} parada(s) sem informação` });
+  }
+  const oi = opcoes.organizacaoIncompleta;
+  if (oi) {
+    const faltas = oi.falta.map(f => ROTULO_FALTA[f] ?? f);
+    itens.push({ tipo: "organizacao_incompleta", id: oi.organizacao_id, titulo: `Completar ${oi.nome}: falta ${lista(faltas)}`, detalhe: `Opcional — ${oi.motivo}` });
   }
   return itens;
 }

@@ -12,6 +12,7 @@ interface Linha {
   responsavel_id: string; vencendo_semana: number; no_prazo_semana: number; vencidas_abertas: number;
   mais_antiga: string | null; empurrando: number; reagendamentos_semana: number;
   nao_fiz_semana: number; liberacoes_semana: number;
+  organizacoes_completadas?: number; organizacoes_descartadas?: number;
 }
 
 /** Aba admin: atrasadas por vendedor + placar semanal (só acompanhamento). */
@@ -36,7 +37,7 @@ export default function PlacarAtividades({ nomes, onVerVendedor }: { nomes: Reco
   useEffect(() => {
     (supabase as any).from("atividades_placar_semanal").select("*").then(({ data, error }: any) => {
       if (error) { setIndisponivel(true); setLinhas([]); return; }
-      setLinhas(((data ?? []) as Linha[]).filter((l) => l.vencidas_abertas || l.vencendo_semana || l.reagendamentos_semana || l.empurrando || l.nao_fiz_semana || l.liberacoes_semana)
+      setLinhas(((data ?? []) as Linha[]).filter((l) => l.vencidas_abertas || l.vencendo_semana || l.reagendamentos_semana || l.empurrando || l.nao_fiz_semana || l.liberacoes_semana || l.organizacoes_completadas || l.organizacoes_descartadas)
         .sort((a, b) => b.vencidas_abertas - a.vencidas_abertas));
     });
   }, [recarga]);
@@ -57,6 +58,8 @@ export default function PlacarAtividades({ nomes, onVerVendedor }: { nomes: Reco
             <th className="text-right p-2">Reagendamentos (semana)</th>
             <th className="text-right p-2">Não fiz (semana)</th>
             <th className="text-right p-2">Liberações (semana)</th>
+            <th className="text-right p-2">Orgs completadas</th>
+            <th className="text-right p-2">Orgs descartadas</th>
             <th className="p-2"></th>
           </tr>
         </thead>
@@ -73,6 +76,8 @@ export default function PlacarAtividades({ nomes, onVerVendedor }: { nomes: Reco
                 <td className="p-2 text-right tabular-nums">{l.reagendamentos_semana}</td>
                 <td className={`p-2 text-right tabular-nums ${l.nao_fiz_semana ? "text-destructive font-semibold" : ""}`}>{l.nao_fiz_semana}</td>
                 <td className="p-2 text-right tabular-nums">{l.liberacoes_semana}</td>
+                <td className="p-2 text-right tabular-nums">{l.organizacoes_completadas ?? "—"}</td>
+                <td className="p-2 text-right tabular-nums">{l.organizacoes_descartadas ?? "—"}</td>
                 <td className="p-2 text-right" onClick={(e) => e.stopPropagation()}>
                   <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setLiberar(l.responsavel_id)}>Liberar por hoje</Button>
                 </td>
