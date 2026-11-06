@@ -31,13 +31,13 @@ export async function handler(req: Request) {
     const discar = async (id: string) => {
       // Claim atômico: só um executor chega à ElevenLabs, mesmo com cron e Agora simultâneos.
       const l = check(await db.from('ligacoes_viagem').update({ status: 'discando', updated_at: agora.toISOString() }).eq('id', id).in('status', ['agendada','aguardando_escolha']).lte('agendada_para', agora.toISOString()).select('*').maybeSingle());
-      if (!l) return;
+      if (!l) return false;
       try {
         if (l.data_ref !== data || hora >= '22:00') throw new Error('Janela de ligação encerrada.');
         const c = await contexto(db, l.rota_id, data);
         if (c.rota.status !== 'aprovada' || data < c.rota.data_inicio || data > c.rota.data_fim) throw new Error('Viagem fora do período.');
         const relevantes = c.pendencias.filter(p => p.tipo !== 'nota_hotel');
-        if (!relevantes.length) { check(await db.from('ligacoes_viagem').update({ status: 'cancelada' }).eq('id', l.id)); return; }
+        if (!relevantes.length) { check(await db.from('ligacoes_viagem').update({ status: 'cancelada' }).eq('id', l.id)); return false; }
         let perfil = c.perfil;
         if (l.teste) {
           if (l.solicitado_por !== DAMIAN_ID) throw new Error('Teste fora da whitelist.');
@@ -60,6 +60,7 @@ export async function handler(req: Request) {
         const result = await res.json();
         if (!result.conversation_id || result.success === false) throw new Error('ElevenLabs não confirmou a conversa.');
         check(await db.from('ligacoes_viagem').update({ status: 'em_andamento', conversation_id: result.conversation_id, call_sid: result.callSid ?? result.call_sid ?? null }).eq('id', l.id));
+        return true;
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Falha ao ligar.';
         check(await db.from('ligacoes_viagem').update({ status: 'falhou', erro: message }).eq('id', l.id));
@@ -73,8 +74,17 @@ export async function handler(req: Request) {
         const limite = new Date(agora.getTime() - 10 * 60000).toISOString();
         check(await db.from('ligacoes_viagem').update({ status: 'falhou', erro: 'expirado', updated_at: agora.toISOString() }).eq('teste', true).eq('data_ref', data).in('status', ['discando','em_andamento']).lt('updated_at', limite));
       }
-      const l = await reservar(input.rota_id, input.teste ? 'teste' : 'inicial', agora.toISOString(), input.teste);
-      await discar(l.id); return json({ ok: true, ligacao_id: l.id });
+      let origem = input.teste ? 'teste' : 'inicial';
+      if (!input.teste) {
+        // Já houve a inicial hoje: admin religa como 'manual' (tentativa seguinte, sem limite).
+        const r = check(await db.from('rotas').select('vendedor_id').eq('id', input.rota_id).maybeSingle());
+        const inicial = r && check(await db.from('ligacoes_viagem').select('id').eq('vendedor_id', r.vendedor_id).eq('data_ref', data).eq('origem', 'inicial').maybeSingle());
+        if (inicial) origem = 'manual';
+      }
+      const l = await reservar(input.rota_id, origem, agora.toISOString(), input.teste);
+      // Nunca responder ok sem discar (antes, a inicial já concluída voltava "ok" em silêncio).
+      if (!await discar(l.id)) return json({ error: 'Não foi possível discar: ligação já encerrada ou nada pendente nesta viagem hoje.' }, 409);
+      return json({ ok: true, ligacao_id: l.id });
     }
     if (input.modo === 'escolha') { await discar(input.ligacao_id); return json({ ok: true }); }
     // 9h: inclui viagens terminadas ontem, mesmo fora da lista de "em andamento" de hoje.
