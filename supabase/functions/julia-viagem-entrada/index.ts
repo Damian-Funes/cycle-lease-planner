@@ -48,7 +48,7 @@ export async function handler(req: Request) {
     const org = await db.rpc('fn_organizacoes_incompletas_priorizadas', { p_vendedor: lig.vendedor_id, p_rota: rota!.id, p_limite: 1 });
     const pendencias = montarPendencias(r, data, { completo: true, organizacaoIncompleta: org.error ? null : ((org.data ?? [])[0] ?? null) });
     const vendNome = teste ? (check(await db.from('profiles').select('nome').eq('user_id', lig.vendedor_id).single()))?.nome ?? perfil!.nome : perfil!.nome;
-    const vars = montarVariaveis({ rota: r, perfilNome: teste ? perfil!.nome : vendNome, vendedorId: lig.vendedor_id, rotaId: rota!.id, ligacaoId: lig.id, data, pendencias, teste, origem: 'entrada' });
+    const vars = montarVariaveis({ rota: r, perfilNome: vendNome, vendedorId: lig.vendedor_id, rotaId: rota!.id, ligacaoId: lig.id, data, pendencias, teste, origem: 'entrada' });
     console.log('julia-viagem-entrada ok', JSON.stringify({ ligacao: lig.id, ms: Date.now() - t0 }));
     return json(respostaEntrada(vars, MSG_ENTRADA.sim(nome)));
   } catch (e) {
