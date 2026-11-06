@@ -32,20 +32,4 @@ export function fraseErro(msg: unknown) {
   return !t || /^[[{]/.test(t) ? 'Não consegui salvar agora; tente de novo em instantes.' : t;
 }
 
-type ParadaHoje = Parada & { id: string; cidade?: string | null; estado?: string | null };
-export type JaRegistrada = { parada_id: string; empresa: string; cidade: string | null; uf: string | null; visitada: boolean; proximo_passo: string | null; proximo_passo_data: string | null };
-
-/** Paradas já informadas no dia (para a Júlia não pedir de novo o que já está gravado). */
-export function jaRegistradasHoje(paradas: ParadaHoje[] | null | undefined, hoje: string): JaRegistrada[] {
-  return (paradas ?? []).filter(p => p.dia === hoje && p.visitada != null).map(p => {
-    const r = (p.relato ?? {}) as Record<string, unknown>;
-    const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
-    return { parada_id: p.id, empresa: nomeEmpresa(p), cidade: p.cidade?.trim() || null, uf: p.estado?.trim() || null, visitada: !!p.visitada, proximo_passo: s(r.proximo_passo), proximo_passo_data: s(r.proximo_passo_data) };
-  });
-}
-
-export function fraseJaRegistradas(itens: JaRegistrada[]) {
-  if (!itens.length) return '';
-  const partes = itens.map(i => `${i.visitada ? 'visita' : 'não visita'} na ${i.empresa}${i.cidade ? ` (${i.cidade})` : ''}`);
-  return `Já registrado hoje: ${partes.join('; ')}.`;
-}
+export { jaRegistradasHoje, fraseJaRegistradas, type JaRegistrada } from '../_shared/jaRegistradas.ts';

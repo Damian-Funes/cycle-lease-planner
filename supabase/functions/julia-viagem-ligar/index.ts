@@ -1,6 +1,6 @@
 import { z } from 'npm:zod@3';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
-import { jaRegistradasHoje, fraseJaRegistradas } from '../julia-viagem-ferramentas/respostas.ts';
+import { jaRegistradasHoje, fraseJaRegistradas } from '../_shared/jaRegistradas.ts';
 import { admins, check, contexto, corsHeaders, dbAdmin, enviarContato, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
 import { DAMIAN_ID, janelaCron, motivoNaoDiscar } from '../_shared/juliaViagemRegras.ts';
 import { configurarElevenLabs, erroElevenLabs } from './elevenlabs.ts';
