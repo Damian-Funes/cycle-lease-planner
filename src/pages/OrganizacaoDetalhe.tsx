@@ -35,6 +35,7 @@ import OrgOrcamentos from "@/components/OrgOrcamentos";
 import OrgLayouts from "@/components/OrgLayouts";
 import DiagnosticoResumo from "@/components/capacidade/DiagnosticoResumo";
 import LevantamentoTecnico from "@/components/organizacao/LevantamentoTecnico";
+import MatrizFiliais from "@/components/organizacao/MatrizFiliais";
 import OrgKpis from "@/components/OrgKpis";
 import SemPermissao from "@/components/SemPermissao";
 import { InformacoesImportantes } from "@/components/IaInsights";
@@ -407,6 +408,7 @@ export default function OrganizacaoDetalhe() {
 
         {/* DIREITA */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <MatrizFiliais organizacaoId={id} />
           <Card className="p-4">
             <h3 className="font-semibold text-sm mb-2">Próximas Atividades</h3>
             <p className="text-sm text-muted-foreground">Nenhuma agendada.</p>

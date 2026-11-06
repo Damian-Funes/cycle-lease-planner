@@ -59,3 +59,8 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 # Visitas alimentam a Organização
 - [x] Histórico de levantamentos, situação atual, gatilho não bloqueante, contato/decisor, atividade sem duplicata, backfill (aplicado).
 - [x] Aba "Levantamento técnico" na Organização e sacos/safra pré-preenchido no Diagnóstico.
+
+# Júlia vincula empresa + Matriz/Filial + notificações "o que faltou"
+- [x] SQL (matriz, vínculo sem reaprovação, busca/vínculo, decisores, notificações, correção Patos de Minas) testado e aplicado.
+- [x] Ferramentas buscar/vincular, pendências únicas, sincronização de notificações (webhook, fechar dia, sino), resumo admin.
+- [x] Telas: Filial/Filiais, levantamento por unidade; roteiro completo + 6 schemas no doc.

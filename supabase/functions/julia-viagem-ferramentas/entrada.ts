@@ -26,6 +26,31 @@ function dataProximoPasso(valor: unknown, hoje: string): string | undefined {
  const instante = new Date(`${data}T12:00:00Z`);
  return Number.isFinite(instante.getTime()) && instante.toISOString().slice(0,10) === data && data >= hoje ? data : undefined;
 }
+export const SEGMENTOS = ['COOPERATIVAS','MULTINACIONAIS','SEMENTEIRA PRIVADA','PRODUTOR RURAL','REVENDA'] as const;
+const UFS: Record<string,string> = { acre:'AC', alagoas:'AL', amapa:'AP', amazonas:'AM', bahia:'BA', ceara:'CE', 'distrito federal':'DF', 'espirito santo':'ES', goias:'GO', maranhao:'MA', 'mato grosso':'MT', 'mato grosso do sul':'MS', 'minas gerais':'MG', 'minas':'MG', para:'PA', paraiba:'PB', parana:'PR', pernambuco:'PE', piaui:'PI', 'rio de janeiro':'RJ', 'rio grande do norte':'RN', 'rio grande do sul':'RS', rondonia:'RO', roraima:'RR', 'santa catarina':'SC', 'sao paulo':'SP', sergipe:'SE', tocantins:'TO' };
+/** "minas gerais" / "mg" → "MG"; desconhecido → undefined */
+export function ufBR(valor: unknown): string | undefined {
+ if (typeof valor !== 'string') return undefined;
+ const s = simplificar(valor); if (/^[a-z]{2}$/.test(s)) return s.toUpperCase(); return UFS[s];
+}
+/** Aceita segmento falado sem acento/caixa/plural; fora da lista → undefined */
+export function segmentoBR(valor: unknown): typeof SEGMENTOS[number] | undefined {
+ if (typeof valor !== 'string') return undefined;
+ const s = simplificar(valor).toUpperCase().replace(/S$/, '');
+ return SEGMENTOS.find(x => x.replace(/S$/, '') === s || (s.includes('SEMENTEIRA') && x === 'SEMENTEIRA PRIVADA') || (s.includes('COOPERATIVA') && x === 'COOPERATIVAS') || (s.includes('PRODUTOR') && x === 'PRODUTOR RURAL') || (s.includes('MULTINACIONA') && x === 'MULTINACIONAIS'));
+}
+function normalizarCriar(criar: unknown, avisos: string[]): unknown {
+ if (!criar || typeof criar !== 'object' || Array.isArray(criar)) return undefined;
+ const r: Record<string, unknown> = {};
+ for (const [k, v0] of Object.entries(criar)) {
+  const v = typeof v0 === 'string' ? v0.trim() : v0;
+  if (v === null || v === undefined || v === '' || vazioSemantico(v)) continue;
+  if (k === 'uf') { const uf = ufBR(v); if (uf) r.uf = uf; else avisos.push('Campo UF não reconhecido.'); continue; }
+  if (k === 'segmento') { const seg = segmentoBR(v); if (seg) r.segmento = seg; else avisos.push('Segmento descartado: fora da lista.'); continue; }
+  r[k] = v;
+ }
+ return Object.keys(r).length ? r : undefined;
+}
 /** Drop optional noise; preserve mandatory fields for strict validation. */
 export function normalizarBody(body: unknown, hojeBRT = new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' }), avisos: string[] = []): unknown {
  if (!body || typeof body !== 'object' || Array.isArray(body)) return body;
@@ -39,7 +64,8 @@ export function normalizarBody(body: unknown, hojeBRT = new Date().toLocaleDateS
   if (valor === undefined) { avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: valor inválido ou data passada.`); continue; }
   if (campo === 'valor' && typeof valor === 'string') valor = numeroBR(valor) ?? valor;
   if (campo === 'interesse' && typeof valor === 'string') valor = valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (campo === 'uf' && typeof valor === 'string') valor = valor.toUpperCase();
+  if (campo === 'uf' && typeof valor === 'string') valor = ufBR(valor) ?? valor.toUpperCase();
+  if (campo === 'criar') { valor = normalizarCriar(valor, avisos); if (valor === undefined) continue; }
   if (campo === 'visitada' && typeof valor === 'string') {
    const booleano = valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
    if (['true', 'sim'].includes(booleano)) valor = true;

@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import {
-  dataCurta, historicoLevantamentos, informadoPor, nomesAutores, situacaoAtual, type CampoAtual,
+  dataCurta, historicoUnidades, informadoPor, nomesAutores, situacoesAtuais, unidadesOrganizacao, type CampoAtual, type SituacaoAtual,
 } from "@/lib/levantamentos";
 
 const INTERESSE: Record<string, string> = { alto: "Alto", medio: "Médio", baixo: "Baixo" };
@@ -14,15 +14,19 @@ export default function LevantamentoTecnico({ organizacaoId }: { organizacaoId: 
     queryKey: ["levantamentos", organizacaoId],
     retry: false,
     queryFn: async () => {
-      const [atual, historico] = await Promise.all([situacaoAtual(organizacaoId), historicoLevantamentos(organizacaoId)]);
+      const unidades = await unidadesOrganizacao(organizacaoId);
+      const ids = unidades.length ? unidades.map(u => u.id) : [organizacaoId];
+      const [situacoes, historico] = await Promise.all([situacoesAtuais(ids), historicoUnidades(ids)]);
       const nomes = await nomesAutores(historico.map((h) => h.autor_id ?? ""));
-      return { atual, historico, nomes };
+      return { unidades, situacoes, historico, nomes };
     },
   });
 
   if (q.isLoading) return <Card className="p-4 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Carregando levantamentos…</Card>;
   if (q.isError) return <Card className="p-4 text-sm text-destructive" role="alert">Não foi possível carregar o levantamento técnico.</Card>;
-  const { atual, historico, nomes } = q.data!;
+  const { unidades, situacoes, historico, nomes } = q.data!;
+  const varias = unidades.length > 1;
+  const nomeUnidade = (id: string) => unidades.find(u => u.id === id)?.nome ?? "";
   if (!historico.length) return <Card className="p-4 text-sm text-muted-foreground">Nenhuma visita registrada ainda. Os dados aparecem aqui quando uma visita é prestada.</Card>;
 
   const item = (rotulo: string, campo: CampoAtual | null, fmt?: (v: CampoAtual["valor"]) => string) => (
@@ -35,8 +39,9 @@ export default function LevantamentoTecnico({ organizacaoId }: { organizacaoId: 
 
   return (
     <div className="space-y-4">
-      <Card className="p-4 space-y-3">
-        <h3 className="font-semibold text-sm">Situação atual</h3>
+      {unidades.map(u => situacoes.find(x => x.organizacao_id === u.id)).filter((x): x is SituacaoAtual => !!x).map(atual => (
+      <Card key={atual.organizacao_id} className="p-4 space-y-3">
+        <h3 className="font-semibold text-sm">Situação atual{varias ? ` — ${nomeUnidade(atual.organizacao_id)}` : ""}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {item("Sacos por safra", atual?.sacos_safra ?? null, (v) => Number(v).toLocaleString("pt-BR"))}
           {item("Equipamento atual", atual?.equipamento_atual ?? null)}
@@ -51,7 +56,7 @@ export default function LevantamentoTecnico({ organizacaoId }: { organizacaoId: 
           </div>
         </div>
       </Card>
-
+      ))}
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold text-sm">Histórico de levantamentos</h3>
         <ol className="space-y-3">
@@ -60,6 +65,7 @@ export default function LevantamentoTecnico({ organizacaoId }: { organizacaoId: 
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">{dataCurta(h.data_visita)}</span>
                 <span>{h.autor_id ? nomes[h.autor_id] ?? "vendedor" : "sistema"}</span>
+                {varias && <Badge variant="secondary">{nomeUnidade(h.organizacao_id)}</Badge>}
                 <Badge variant="outline">{h.origem === "manual" ? "Correção" : h.origem === "whatsapp" ? "WhatsApp" : "Visita"}</Badge>
                 {h.interesse && <Badge variant="secondary">Interesse {INTERESSE[h.interesse] ?? h.interesse}</Badge>}
                 {h.rota_id && <Link className="text-primary underline" to={`/viagens/${h.rota_id}/acompanhar`}>viagem</Link>}
