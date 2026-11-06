@@ -386,3 +386,35 @@ Call initiation failure contém conversation_id e failure_reason (busy/no-answer
 - Consulta pós-migration: quatro celulares conferem, RLS ligada nas novas tabelas, viagem existente continua concluída, zero ligações, zero cron e ligacao_ativa=false.
 - Alerta 0029 revisado: julia_escolher_contato é intencionalmente executável por authenticated; valida identidade do dono, data atual, ausência de teste e estado anterior à discagem. As outras RPCs de voz permanecem exclusivas de service_role. Não ampliar permissões de escrita das tabelas para eliminar esse alerta.
 - Não verificados: telas autenticadas (Supabase externo sem sessão disponível), upload real, chamada ElevenLabs/Twilio, webhook real e cron/Vault. Nenhuma ligação ou WhatsApp enviado.
+
+---
+
+## Futuro — não colar (ferramentas de atividades vencidas)
+
+> Preparado, **não ativado**. Não altera o prompt atual. As funções de banco já aceitam `p_origem = 'julia'` e `p_autor` (vendedor da ligação), chamadas pelo servidor (`julia-viagem-ferramentas`) com service_role, no mesmo padrão de segurança/ligação ativa.
+
+### `listar_atividades_vencidas`
+```json
+{ "name": "listar_atividades_vencidas", "description": "Lista as atividades vencidas do vendedor da ligação (mais antigas primeiro, até 10).", "parameters": { "type": "object", "properties": {}, "required": [] } }
+```
+Resposta: `{ itens: [{ atividade_id, titulo, empresa, venceu_em, reagendamentos }], mensagem }`.
+
+### `resolver_atividade`
+```json
+{
+  "name": "resolver_atividade",
+  "description": "Resolve uma atividade vencida: feito (resultado), reagendar (nova_data + motivo) ou cancelar (motivo).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "atividade_id": { "type": "string", "description": "ID vindo de listar_atividades_vencidas" },
+      "acao": { "type": "string", "enum": ["feito", "reagendar", "cancelar"] },
+      "resultado": { "type": "string", "description": "Obrigatório se acao=feito" },
+      "nova_data": { "type": "string", "description": "AAAA-MM-DD, obrigatório se acao=reagendar; não pode ser no passado" },
+      "motivo": { "type": "string", "description": "Obrigatório se acao=reagendar ou cancelar" }
+    },
+    "required": ["atividade_id", "acao"]
+  }
+}
+```
+Mapeamento: `fn_atividade_concluir(p_id, p_resultado, p_autor, 'julia')`, `fn_atividade_reagendar(p_id, p_data, p_motivo, p_autor, 'julia')`, `fn_atividade_cancelar(p_id, p_motivo, p_autor, 'julia')`.
