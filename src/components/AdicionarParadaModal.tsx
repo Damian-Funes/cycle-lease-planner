@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, MapPin, Search, Plus } from "lucide-react";
+import { Loader2, MapPin, Search, Plus, Check } from "lucide-react";
+import { DialogFooter } from "@/components/ui/dialog";
 import { geocodeAddress, distanceKm } from "@/lib/maps";
 import { filtrarOrganizacoes } from "@/lib/buscaOrganizacao";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,13 +16,19 @@ import { Label } from '@/components/ui/label';
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSelectOrganizacao: (org: OrganizacaoProxima, cidade: { nome: string; estado: string; lat: number; lng: number }) => Promise<void> | void;
-  onAddProspeccao: (cidade: { nome: string; estado: string; lat: number; lng: number }) => Promise<void> | void;
+  onSelectOrganizacao: (org: OrganizacaoProxima, cidade: { nome: string; estado: string; lat: number; lng: number }) => Promise<boolean | void> | boolean | void;
+  onAddProspeccao: (cidade: { nome: string; estado: string; lat: number; lng: number }) => Promise<boolean | void> | boolean | void;
   onObjetivo?: (objetivo: string) => void;
+  /** Organizações que já são paradas da rota (aparecem como "Adicionada"). */
+  orgIdsNaRota?: string[];
 }
 
 
-export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrganizacao, onAddProspeccao, onObjetivo }: Props) {
+export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrganizacao, onAddProspeccao, onObjetivo, orgIdsNaRota = [] }: Props) {
+  const [adicionadas, setAdicionadas] = useState<Set<string>>(new Set());
+  const [contador, setContador] = useState(0);
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const jaNaRota = useMemo(() => new Set([...orgIdsNaRota, ...adicionadas]), [orgIdsNaRota, adicionadas]);
   const [objetivo, setObjetivo] = useState('');
   const [query, setQuery] = useState("");
   const [cidadeSel, setCidadeSel] = useState<{ nome: string; estado: string; lat: number; lng: number } | null>(null);
@@ -34,7 +41,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
   useEffect(() => {
     if (!open) {
       setObjetivo('');
-      setQuery(""); setCidadeSel(null); setOrgs([]); setNomeFiltro("");
+      setQuery(""); setCidadeSel(null); setOrgs([]); setNomeFiltro(""); setAdicionadas(new Set()); setContador(0);
       encerrar();
     }
   }, [open]);
@@ -67,6 +74,37 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
     }));
   }, [todas, orgs, termo, cidadeSel]);
   const semObjetivo = Boolean(onObjetivo && !objetivo.trim());
+
+  async function addOrg(o: OrganizacaoProxima, cidade: { nome: string; estado: string; lat: number; lng: number }) {
+    if (jaNaRota.has(o.id) || enviando) return;
+    setEnviando(o.id);
+    try {
+      const ok = await onSelectOrganizacao(o, cidade);
+      if (ok !== false) { setAdicionadas((s) => new Set(s).add(o.id)); setContador((c) => c + 1); }
+    } finally { setEnviando(null); }
+  }
+  async function addProsp(cidade: { nome: string; estado: string; lat: number; lng: number }) {
+    if (enviando) return;
+    setEnviando("prosp");
+    try {
+      const ok = await onAddProspeccao(cidade);
+      if (ok !== false) setContador((c) => c + 1);
+    } finally { setEnviando(null); }
+  }
+
+  function BotaoAdd({ o, cidade }: { o: OrganizacaoProxima; cidade: { nome: string; estado: string; lat: number; lng: number } }) {
+    if (jaNaRota.has(o.id)) return (
+      <Button size="sm" variant="secondary" disabled className="bg-primary/10 text-primary disabled:opacity-100">
+        <Check className="w-3.5 h-3.5 mr-1" /> Adicionada
+      </Button>
+    );
+    return (
+      <Button size="sm" disabled={semObjetivo || enviando !== null} onClick={() => addOrg(o, cidade)}>
+        {enviando === o.id ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Plus className="w-3.5 h-3.5 mr-1" />} Adicionar
+      </Button>
+    );
+  }
+  const semAutofill = { autoComplete: "off", autoCorrect: "off", spellCheck: false, "data-1p-ignore": true, "data-lpignore": "true", "data-form-type": "other" } as const;
 
   function Nomes({ o }: { o: { nome: string; nome_fantasia: string | null } }) {
     const fant = o.nome_fantasia?.trim();
@@ -108,6 +146,10 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
           <div className="relative">
             <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
+              {...semAutofill}
+              type="search"
+              id="busca-cid-rota"
+              name="busca-cid-rota"
               value={query}
               placeholder="Buscar cidade..."
               onChange={(e) => { setQuery(e.target.value); setCidadeSel(null); setOrgs([]); }}
@@ -143,7 +185,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
                     ? `${orgsFiltradas.length} de ${orgs.length} no raio de 100 km`
                     : `${orgs.length} organização(ões) num raio de 100 km`}
               </div>
-              <Button size="sm" variant="outline" disabled={semObjetivo} onClick={() => onAddProspeccao(cidadeSel)}>
+              <Button size="sm" variant="outline" disabled={semObjetivo || enviando !== null} onClick={() => addProsp(cidadeSel)}>
                 <Plus className="w-3.5 h-3.5 mr-1" /> Prospecção (sem org)
               </Button>
             </div>
@@ -151,7 +193,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
 
           <div className="relative">
             <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input value={nomeFiltro} onChange={(e) => setNomeFiltro(e.target.value)} placeholder="Filtrar empresas por nome..." className="pl-8" />
+            <Input {...semAutofill} type="search" id="filtro-org-rota" name="filtro-org-rota" value={nomeFiltro} onChange={(e) => setNomeFiltro(e.target.value)} placeholder="Filtrar empresas por nome..." className="pl-8" />
           </div>
 
           {cidadeSel && (
@@ -162,7 +204,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
                   cor === "verde" ? "bg-emerald-500" : cor === "amarelo" ? "bg-amber-500" : "bg-red-500";
                 const label = o.ultima_visita_dias == null ? "Nunca visitada" : `${o.ultima_visita_dias} dias atrás`;
                 return (
-                  <div key={o.id} className="border rounded-md p-3 flex items-center gap-3">
+                  <div key={o.id} className={`border rounded-md p-3 flex items-center gap-3 ${jaNaRota.has(o.id) ? "border-primary/40 bg-primary/5" : ""}`}>
                     <span className={`w-3 h-3 rounded-full ${corClass}`} title={label} />
                     <div className="flex-1 min-w-0">
                       <Nomes o={o} />
@@ -178,9 +220,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
                         </Badge>
                       )}
                     </div>
-                    <Button size="sm" disabled={semObjetivo} onClick={() => onSelectOrganizacao(o, cidadeSel)}>
-                      <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
-                    </Button>
+                    <BotaoAdd o={o} cidade={cidadeSel} />
                   </div>
                 );
               })}
@@ -195,7 +235,7 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
               ) : foraDoRaio.length === 0 ? (
                 <div className="text-xs text-muted-foreground">Nenhuma outra organização com esse nome.</div>
               ) : foraDoRaio.map((o) => (
-                <div key={o.id} className="border rounded-md p-3 flex items-center gap-3">
+                <div key={o.id} className={`border rounded-md p-3 flex items-center gap-3 ${jaNaRota.has(o.id) ? "border-primary/40 bg-primary/5" : ""}`}>
                   <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <Nomes o={o} />
@@ -204,15 +244,18 @@ export default function AdicionarParadaModal({ open, onOpenChange, onSelectOrgan
                       {o.distancia != null && ` · ${Math.round(o.distancia).toLocaleString("pt-BR")} km de ${cidadeSel?.nome}`}
                     </div>
                   </div>
-                  <Button size="sm" disabled={semObjetivo}
-                    onClick={() => onSelectOrganizacao(o, cidadeSel ?? { nome: o.cidade ?? "", estado: o.estado ?? "", lat: Number(o.latitude ?? 0), lng: Number(o.longitude ?? 0) })}>
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Adicionar
-                  </Button>
+                  <BotaoAdd o={o} cidade={cidadeSel ?? { nome: o.cidade ?? "", estado: o.estado ?? "", lat: Number(o.latitude ?? 0), lng: Number(o.longitude ?? 0) }} />
                 </div>
               ))}
             </div>
           )}
         </div>
+        <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 px-6 py-3 border-t bg-background flex-row items-center justify-between sm:justify-between">
+          <span className="text-sm text-muted-foreground">
+            {contador === 0 ? "Nenhuma parada adicionada" : `${contador} parada${contador > 1 ? "s" : ""} adicionada${contador > 1 ? "s" : ""}`}
+          </span>
+          <Button onClick={() => onOpenChange(false)}>Concluir</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
