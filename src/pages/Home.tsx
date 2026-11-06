@@ -23,95 +23,12 @@ const allCards = [
     color: "bg-secondary text-secondary-foreground",
   },
   {
-    title: "Motivos de perda (Júlia)",
-    desc: "Ligações concluídas",
-    icon: Phone,
-    to: "/julia/motivos-perda",
-    color: "bg-secondary text-secondary-foreground",
-  },
-  {
-    title: "Nova Proposta de Aluguel",
-    desc: "Calculadora SmartCycle · Contrato 10 anos",
-    icon: FileText,
-    to: "/smartcycle?novo=1",
-    color: "bg-primary/10 text-primary",
-  },
-  {
-    title: "Novo Orçamento",
-    desc: "Venda direta de equipamentos",
-    icon: Receipt,
-    to: "/orcamento?novo=1",
-    color: "bg-amber-500/10 text-amber-600",
-  },
-  {
-    title: "Biblioteca de Típicos",
-    desc: "Templates pré-configurados de orçamentos e aluguéis",
-    icon: Library,
-    to: "/tipicos",
-    color: "bg-indigo-500/10 text-indigo-600",
-  },
-  {
-    title: "Propostas",
-    desc: SMARTCYCLE_ATIVO ? "Ver aluguéis e orçamentos salvos" : "Ver orçamentos salvos",
-    icon: FolderOpen,
-    to: SMARTCYCLE_ATIVO ? "/smartcycle?propostas=1" : "/orcamento?propostas=1",
-    color: "bg-blue-500/10 text-blue-600",
-  },
-  {
-    title: "Catálogo",
-    desc: "Equipamentos e preços",
-    icon: Package,
-    to: "/catalogo",
-    color: "bg-purple-500/10 text-purple-600",
-  },
-  {
-    title: "Visualizador 3D",
-    desc: "Apresentação de equipamentos em 3D",
-    icon: Box,
-    to: "/visualizador",
-    color: "bg-slate-500/10 text-slate-700",
-  },
-  {
-    title: "Layouts",
-    desc: "Vista em planta dos projetos",
-    icon: LayoutGrid,
-    to: "/layouts",
-    color: "bg-teal-500/10 text-teal-600",
-  },
-  {
-    title: "Reforma",
-    desc: "Projetos de reforma e adequação",
-    icon: Wrench,
-    to: "/reforma",
-    color: "bg-rose-500/10 text-rose-600",
-  },
-  {
-    title: "Calculadora de Frete",
-    desc: "Rotas, pedágio e combustível (Rotas Brasil)",
-    icon: Truck,
-    to: "/frete",
+    title: "Atividades",
+    desc: "Sua inbox de tarefas e follow-ups",
+    icon: CheckSquare,
+    to: "/atividades",
     color: "bg-orange-500/10 text-orange-600",
-  },
-  {
-    title: "Organizações",
-    desc: "Empresas e contatos (CRM)",
-    icon: Building2,
-    to: "/organizacoes",
-    color: "bg-cyan-500/10 text-cyan-600",
-  },
-  {
-    title: "Dossiês",
-    desc: "Sementeiras mapeadas em campo (pré-CRM)",
-    icon: FileSearch,
-    to: "/dossies",
-    color: "bg-blue-500/10 text-blue-700",
-  },
-  {
-    title: "Pessoas",
-    desc: "Contatos individuais",
-    icon: User,
-    to: "/pessoas",
-    color: "bg-sky-500/10 text-sky-600",
+    badgeKey: "atividades",
   },
   {
     title: "CRM",
@@ -128,19 +45,81 @@ const allCards = [
     color: "bg-lime-500/10 text-lime-700",
   },
   {
+    title: "Layouts",
+    desc: "Vista em planta dos projetos",
+    icon: LayoutGrid,
+    to: "/layouts",
+    color: "bg-teal-500/10 text-teal-600",
+  },
+  {
+    title: "Visualizador 3D",
+    desc: "Apresentação de equipamentos em 3D",
+    icon: Box,
+    to: "/visualizador",
+    color: "bg-slate-500/10 text-slate-700",
+  },
+  {
+    title: "Organizações",
+    desc: "Empresas e contatos (CRM)",
+    icon: Building2,
+    to: "/organizacoes",
+    color: "bg-cyan-500/10 text-cyan-600",
+  },
+  {
+    title: "Pessoas",
+    desc: "Contatos individuais",
+    icon: User,
+    to: "/pessoas",
+    color: "bg-sky-500/10 text-sky-600",
+  },
+  {
+    title: "Reforma",
+    desc: "Projetos de reforma e adequação",
+    icon: Wrench,
+    to: "/reforma",
+    color: "bg-rose-500/10 text-rose-600",
+  },
+  {
+    title: "Novo Orçamento",
+    desc: "Venda direta de equipamentos",
+    icon: Receipt,
+    to: "/orcamento?novo=1",
+    color: "bg-amber-500/10 text-amber-600",
+  },
+  {
+    title: "Propostas",
+    desc: SMARTCYCLE_ATIVO ? "Ver aluguéis e orçamentos salvos" : "Ver orçamentos salvos",
+    icon: FolderOpen,
+    to: SMARTCYCLE_ATIVO ? "/smartcycle?propostas=1" : "/orcamento?propostas=1",
+    color: "bg-blue-500/10 text-blue-600",
+  },
+  {
+    title: "Biblioteca de Típicos",
+    desc: "Templates pré-configurados de orçamentos e aluguéis",
+    icon: Library,
+    to: "/tipicos",
+    color: "bg-indigo-500/10 text-indigo-600",
+  },
+  {
+    title: "Catálogo",
+    desc: "Equipamentos e preços",
+    icon: Package,
+    to: "/catalogo",
+    color: "bg-purple-500/10 text-purple-600",
+  },
+  {
+    title: "Calculadora de Frete",
+    desc: "Rotas, pedágio e combustível (Rotas Brasil)",
+    icon: Truck,
+    to: "/frete",
+    color: "bg-orange-500/10 text-orange-600",
+  },
+  {
     title: "Leads",
     desc: "Leads do site (RD Station)",
     icon: Inbox,
     to: "/leads",
     color: "bg-pink-500/10 text-pink-600",
-  },
-  {
-    title: "Atividades",
-    desc: "Sua inbox de tarefas e follow-ups",
-    icon: CheckSquare,
-    to: "/atividades",
-    color: "bg-orange-500/10 text-orange-600",
-    badgeKey: "atividades",
   },
   {
     title: "Relatórios",
@@ -149,6 +128,21 @@ const allCards = [
     to: "/relatorios",
     color: "bg-violet-500/10 text-violet-600",
   },
+  {
+    title: "Motivos de perda (Júlia)",
+    desc: "Ligações concluídas",
+    icon: Phone,
+    to: "/julia/motivos-perda",
+    color: "bg-secondary text-secondary-foreground",
+  },
+  {
+    title: "Nova Proposta de Aluguel",
+    desc: "Calculadora SmartCycle · Contrato 10 anos",
+    icon: FileText,
+    to: "/smartcycle?novo=1",
+    color: "bg-primary/10 text-primary",
+  },
+
 ];
 
 const cards = SMARTCYCLE_ATIVO ? allCards : allCards.filter((c) => c.to !== "/smartcycle?novo=1");
@@ -209,7 +203,7 @@ export default function Home() {
           <h2 className="text-lg font-semibold mb-4">O que você quer fazer?</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {isAdmin && aprovacoes > 0 && <Card className="p-6 border-primary flex items-center gap-4"><Route className="w-6 h-6 text-primary" /><Button variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Rotas p/ aprovar ({aprovacoes})</Button></Card>}
+          {isAdmin && aprovacoes > 0 && <Card className="p-6 border-primary sm:col-span-2 flex items-center gap-4"><Route className="w-6 h-6 text-primary" /><Button variant="outline" onClick={() => navigate('/rotas/aprovacoes')}>Rotas p/ aprovar ({aprovacoes})</Button></Card>}
           {cards.map((c: any) => {
             const Icon = c.icon;
             const showBadge = c.badgeKey === "atividades" && ativBadge > 0;
