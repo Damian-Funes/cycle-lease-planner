@@ -143,7 +143,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE vend text; periodo text; resumo text; n int := NEW.envios_aprovacao; ator uuid := auth.uid();
 BEGIN
   BEGIN
-    SELECT split_part(coalesce(nullif(trim(nome),''),'Vendedor'),' ',1) INTO vend FROM profiles WHERE id=NEW.vendedor_id;
+    SELECT split_part(coalesce(nullif(trim(nome),''),'Vendedor'),' ',1) INTO vend FROM profiles WHERE user_id=NEW.vendedor_id;
     vend := coalesce(vend,'Vendedor');
     periodo := CASE WHEN coalesce(NEW.data_fim,NEW.data_inicio)<>NEW.data_inicio
                     THEN to_char(NEW.data_inicio,'DD')||'–'||to_char(NEW.data_fim,'DD/MM')
