@@ -1,12 +1,18 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, Users, Home, Plug, Phone } from "lucide-react";
+import { LogOut, User as UserIcon, Users, Home, Plug, Phone, BellRing } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import NotificacoesSino from "@/components/NotificacoesSino";
+import { desativarAparelhoAtual, sincronizarAparelho } from "@/lib/push/pushalert";
+
+let aparelhoSincronizado: string | null = null;
 
 export default function AppHeader() {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, signOut, user } = useAuth();
+  // Aparelho já inscrito: confirma o vínculo com quem está logado (uma vez por sessão/usuário).
+  useEffect(() => { if (user && aparelhoSincronizado !== user.id) { aparelhoSincronizado = user.id; sincronizarAparelho(user.id); } }, [user]);
   const navigate = useNavigate();
 
   return (
@@ -56,7 +62,10 @@ export default function AppHeader() {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={async () => { await signOut(); navigate("/auth"); }} className="gap-2 text-destructive">
+        <DropdownMenuItem onClick={() => navigate("/notificacoes/ativar")} className="gap-2">
+          <BellRing className="w-4 h-4" /> Notificações no celular
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={async () => { await desativarAparelhoAtual().catch(() => undefined); await signOut(); navigate("/auth"); }} className="gap-2 text-destructive">
           <LogOut className="w-4 h-4" /> Sair
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -36,6 +36,7 @@ import Frete from "./pages/Frete";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
 import Tipicos from "./pages/Tipicos";
 import NotFound from "./pages/NotFound";
+import AtivarNotificacoes from "./pages/AtivarNotificacoes";
 const Leads = lazy(() => import("./pages/Leads"));
 const Visualizador = lazy(() => import("./pages/Visualizador"));
 const VisualizadorDetalhe = lazy(() => import("./pages/VisualizadorDetalhe"));
@@ -129,6 +130,7 @@ const App = () => (
               <Route path="/configuracoes/montagem" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesMontagem /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/formas-pagamento" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesFormasPagamento /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/notificacoes" element={<ProtectedRoute><ConfiguracoesNotificacoes /></ProtectedRoute>} />
+              <Route path="/notificacoes/ativar" element={<ProtectedRoute><AtivarNotificacoes /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
