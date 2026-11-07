@@ -2266,6 +2266,8 @@ export type Database = {
           id: string
           lida_em: string | null
           link: string | null
+          push_enviado_em: string | null
+          push_status: string | null
           resolvida_em: string | null
           rota_id: string | null
           texto: string | null
@@ -2279,6 +2281,8 @@ export type Database = {
           id?: string
           lida_em?: string | null
           link?: string | null
+          push_enviado_em?: string | null
+          push_status?: string | null
           resolvida_em?: string | null
           rota_id?: string | null
           texto?: string | null
@@ -2292,6 +2296,8 @@ export type Database = {
           id?: string
           lida_em?: string | null
           link?: string | null
+          push_enviado_em?: string | null
+          push_status?: string | null
           resolvida_em?: string | null
           rota_id?: string | null
           texto?: string | null
@@ -3521,6 +3527,66 @@ export type Database = {
           },
         ]
       }
+      push_inscricoes: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          criado_em: string
+          id: string
+          motivo_inativo: string | null
+          plataforma: string
+          subscriber_id: string
+          ultimo_envio: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          motivo_inativo?: string | null
+          plataforma: string
+          subscriber_id: string
+          ultimo_envio?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          criado_em?: string
+          id?: string
+          motivo_inativo?: string | null
+          plataforma?: string
+          subscriber_id?: string
+          ultimo_envio?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_regras: {
+        Row: {
+          ativo: boolean
+          descricao: string
+          prefixo: string
+          urgente: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          descricao: string
+          prefixo: string
+          urgente?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string
+          prefixo?: string
+          urgente?: boolean
+        }
+        Relationships: []
+      }
       rd_sync_log: {
         Row: {
           erro: string | null
@@ -3902,6 +3968,7 @@ export type Database = {
           data_inicio: string | null
           data_rota: string
           enviada_em: string | null
+          envios_aprovacao: number
           id: string
           km_total_estimado: number | null
           motivo_reprovacao: string | null
@@ -3930,6 +3997,7 @@ export type Database = {
           data_inicio?: string | null
           data_rota: string
           enviada_em?: string | null
+          envios_aprovacao?: number
           id?: string
           km_total_estimado?: number | null
           motivo_reprovacao?: string | null
@@ -3958,6 +4026,7 @@ export type Database = {
           data_inicio?: string | null
           data_rota?: string
           enviada_em?: string | null
+          envios_aprovacao?: number
           id?: string
           km_total_estimado?: number | null
           motivo_reprovacao?: string | null
@@ -5694,6 +5763,15 @@ export type Database = {
       fn_proximo_comercial_para_estado: {
         Args: { _estado_id: string }
         Returns: string
+      }
+      fn_push_desativar: { Args: { p_subscriber: string }; Returns: undefined }
+      fn_push_registrar: {
+        Args: {
+          p_plataforma: string
+          p_subscriber: string
+          p_user_agent: string
+        }
+        Returns: undefined
       }
       fn_registrar_decisores: {
         Args: { _org: string; _resp: string; _texto: string }
