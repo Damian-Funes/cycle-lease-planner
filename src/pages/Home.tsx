@@ -158,6 +158,9 @@ export default function Home() {
   const ativBadge = useAtividadesBadge();
   const { data: incompletas } = useOrganizacoesIncompletas();
   const incompletasTotal = incompletas?.total ?? 0;
+  const { data: inscricoes } = useMinhasInscricoes();
+  // Só aparece quando a tabela já existe (null = servidor ainda sem push) e não há aparelho ativo.
+  const semPush = Array.isArray(inscricoes) && !inscricoes.some((i) => i.ativo);
   return (
     <div className="min-h-screen bg-muted/20">
       <header className="bg-background border-b">
