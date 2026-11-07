@@ -32,7 +32,7 @@ export const Schema = z.discriminatedUnion('acao', [
   contato_telefone: z.string().regex(/^\d{10,11}$/).optional(), papel: z.enum(['contato','decisor']).optional() }).strip(),
  z.object({ ...livre, acao: z.literal('listar_atividades_vencidas'), vendedor_nome: z.string().trim().min(2).max(100).optional() }).strip(),
  z.object({ ...livre, acao: z.literal('resolver_atividade'), atividade_id: z.string().uuid(), resolucao: z.enum(['feito','nao_fiz','reagendar','cancelar']), resultado: z.string().trim().min(10).max(4500).optional(), nova_data: dataISO.optional(), motivo: z.string().trim().min(3).max(1000).optional() }).strip(),
- z.object({ ...livre, acao: z.literal('criar_compromisso'), vendedor_nome: z.string().trim().min(2).max(100).optional(), organizacao_id: z.string().uuid().optional(), titulo: z.string().trim().min(3).max(200), tipo: z.enum(['Ligação','Visita','Reunião','Tarefa','WhatsApp']), data: dataISO, hora: z.string().regex(/^\d{2}:\d{2}$/).optional(), descricao: z.string().trim().min(1).max(2000).optional() }).strip(),
+ z.object({ ...livre, acao: z.literal('criar_compromisso'), vendedor_nome: z.string().trim().min(2).max(100).optional(), organizacao_id: z.string().uuid().optional(), contato_nome: z.string().trim().min(2).max(200).optional(), contato_novo_confirmado: z.boolean().optional(), titulo: z.string().trim().min(3).max(200), tipo: z.enum(['Ligação','Visita','Reunião','Tarefa','WhatsApp']), data: dataISO, hora: z.string().regex(/^\d{2}:\d{2}$/).optional(), descricao: z.string().trim().min(1).max(2000).optional() }).strip(),
 ]);
 
 /** Optional debrief failures never block a valid visit; identity stays mandatory. */

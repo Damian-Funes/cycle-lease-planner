@@ -57,3 +57,8 @@ Deno.test("completar_contato: frases", () => {
   assertEquals(mensagemCompletarContato({ pessoa_nome: "Rafael Souza", criada: true, empresa: "Cocari", levantamentos_vinculados: 1 }), "Cadastrei Rafael Souza como contato novo da Cocari e liguei ao registro de hoje.");
   assertEquals(mensagemCompletarContato({ pessoa_nome: "Marcelo Guerra", criada: false, papel: "contato", levantamentos_vinculados: 1 }), "Pronto: usei o contato Marcelo Guerra e liguei ao registro de hoje.");
 });
+Deno.test("criar_compromisso aceita contato_nome opcional", () => {
+  const base = { acao: "criar_compromisso", ligacao_id: L, organizacao_id: O, titulo: "WhatsApp para o Rennan", tipo: "WhatsApp", data: "2026-11-09" };
+  assertEquals((prepararEntrada({ ...base, contato_nome: "Rennan" }, "2026-11-07").body as Record<string, unknown>).contato_nome, "Rennan");
+  assertEquals((prepararEntrada(base, "2026-11-07").body as Record<string, unknown>).contato_nome, undefined);
+});
