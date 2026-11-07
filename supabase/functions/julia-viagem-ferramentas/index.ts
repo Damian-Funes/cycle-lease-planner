@@ -131,8 +131,20 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    const { acao: _a, ligacao_id: _l, rota_id: _r, vendedor_nome, ...dadosBase } = body;
    const at = await atribuir(vendedor_nome); if (!at.ok) return semVendedor(at);
    const dados = at.responsavel_id ? { ...dadosBase, responsavel_id: at.responsavel_id } : dadosBase;
-   const r = check(await db.rpc('julia_criar_compromisso', { p_ligacao: l.id, p_dados: dados })); t.marcar('rpc_compromisso');
-   return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompromisso(body.tipo, body.data, body.hora, r?.empresa) + (at.responsavel_id ? paraQuem(r?.responsavel_nome ?? at.nome) : ''), avisos });
+   const comContato = !!(body.contato_nome && body.organizacao_id);
+   if (body.contato_nome && !body.organizacao_id) avisos.push('Contato não ligado: diga a empresa para ligar o contato ao compromisso.');
+   const [rr, porOrg] = await Promise.all([
+    db.rpc('julia_criar_compromisso', { p_ligacao: l.id, p_dados: dados }),
+    comContato ? pessoasDasOrgs([body.organizacao_id!]) : Promise.resolve(new Map()),
+   ]);
+   const { contatos_resolvidos, ...r } = check(rr) ?? {}; t.marcar('rpc_compromisso');
+   let mensagem = mensagemCompromisso(body.tipo, body.data, body.hora, r?.empresa) + (at.responsavel_id ? paraQuem(r?.responsavel_nome ?? at.nome) : '');
+   let confirmar_contato = null;
+   if (comContato && Array.isArray(contatos_resolvidos)) {
+    const rc = respostaContatos(contatos_resolvidos, porOrg.get(body.organizacao_id!) ?? [], r?.empresa || 'empresa');
+    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+   }
+   return json({ ok: true, salvo: true, ...r, mensagem, avisos, confirmar_contato });
   }
  const recarregar = async () => { const r = await carregarRota(db, l.rota_id); t.marcar('recarregar_rota'); return r; };
   // Fonte única: a Júlia cobra o mesmo que vira notificação depois.
