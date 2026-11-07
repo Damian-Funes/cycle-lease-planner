@@ -636,7 +636,6 @@ export default function RotaEditor() {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm">Paradas ({paradas.length})</h2>
-        {planejamento && <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>}
       </div>
       {planejamento && <p className="text-xs text-muted-foreground">Monte a lista de paradas do período. O dia de cada visita e onde dormiu são registrados durante a viagem.</p>}
       {paradas.length === 0 && (
