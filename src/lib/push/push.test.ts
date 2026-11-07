@@ -20,6 +20,23 @@ describe('quais avisos viram push', () => {
   });
 });
 
+describe('avisos de rotas', () => {
+  it('rota enviada, aprovada e reprovada viram push e não são urgentes', () => {
+    for (const k of ['rota-enviada:r1:1', 'rota-aprovada:r1:2', 'rota-reprovada:r1:1']) {
+      expect(regraDaChave(k)?.prefixo).toBe(k.split(':')[0] + ':');
+      expect(regraDaChave(k)?.urgente).toBe(false);
+    }
+  });
+  it('rascunho, prestação e trava de orçamento ficam só no sininho', () => {
+    expect(regraDaChave('rota-rascunho:r1:2')).toBeNull();
+    expect(regraDaChave('rota-prestacao:r1')).toBeNull();
+    expect(regraDaChave('orcamento-trava:u1')).toBeNull();
+  });
+  it('rota enviada à noite fica para as 7h', () => {
+    expect(decidirEnvio(regraDaChave('rota-enviada:r1:1'), new Date('2026-11-08T02:00:00Z'))).toBe('adiar');
+  });
+});
+
 describe('horário silencioso 21h–7h (Brasília)', () => {
   it('20h59 BRT envia; 21h BRT segura; 6h59 segura; 7h envia', () => {
     expect(emSilencio(new Date('2026-11-07T23:59:00Z'))).toBe(false);
