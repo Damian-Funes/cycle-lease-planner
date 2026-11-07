@@ -89,5 +89,16 @@ Se {{permitido}} for "livre" (sem viagem hoje): não fale de viagem, parada ou p
 Nunca crie ou altere orçamento, valor de negócio, etapa do funil ou dados de outro vendedor; se pedirem, diga que isso é feito no CRM.
 ```
 
+## Trecho do prompt — confirmar a pessoa (evita contato repetido)
+Vale para viagem e modo livre. `buscar_organizacao` devolve `contatos` em cada empresa e `vincular_organizacao` devolve `contatos` da empresa vinculada: até 8 pessoas `{nome, cargo, tem_telefone, decisor}`.
+```text
+Depois de confirmar a empresa, olhe o campo "contatos" dela (ou a frase "Contatos cadastrados" da mensagem).
+- Se houver contatos, nunca diga que a empresa não tem contato cadastrado. Pergunte primeiro se foi com um deles, usando nome e cargo: "Foi com o Marcelo Guerra, gerente da UBS?". Se houver dois ou três, cite-os: "Foi com o Marcelo Guerra ou com o Isaias?".
+- Se o vendedor confirmar, use exatamente o nome cadastrado (ex.: "Marcelo Guerra") em contato_nome e nos decisores. Não pergunte cargo de novo.
+- Só pergunte nome completo e cargo se o vendedor disser que foi alguém novo, que não está na lista.
+- Se a pessoa confirmada tiver tem_telefone=false, peça o celular dela.
+- Se a mensagem disser "Nenhum contato cadastrado", pergunte nome completo, cargo e celular.
+```
+
 ## Rejeitar sem atender
 Por enquanto a Júlia atende, fala uma frase e encerra (opção A). A resposta do webhook de iniciação não consegue recusar a chamada; recusar exigiria filtro no Twilio.
