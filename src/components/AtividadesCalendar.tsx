@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import * as Icons from "lucide-react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   format,
@@ -28,11 +28,12 @@ interface Props {
   tipos: Tipo[];
   onSelectAtividade: (a: Atividade) => void;
   onCreateAt?: (date: Date) => void;
+  onConcluirRapido?: (a: Atividade) => void;
 }
 
 const WEEKDAYS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
 
-export default function AtividadesCalendar({ atividades, tipos, onSelectAtividade, onCreateAt }: Props) {
+export default function AtividadesCalendar({ atividades, tipos, onSelectAtividade, onCreateAt, onConcluirRapido }: Props) {
   const [cursor, setCursor] = useState<Date>(() => startOfMonth(new Date()));
 
   const dias = useMemo(() => {
@@ -56,6 +57,8 @@ export default function AtividadesCalendar({ atividades, tipos, onSelectAtividad
     return m;
   }, [atividades]);
 
+  const agora = new Date();
+  const atrasada = (a: Atividade) => !a.concluida && new Date(a.data_inicio) < agora;
   const tipoMap = useMemo(() => Object.fromEntries(tipos.map((t) => [t.id, t])), [tipos]);
 
   return (
@@ -120,21 +123,33 @@ export default function AtividadesCalendar({ atividades, tipos, onSelectAtividad
                   const tipo = a.tipo_id ? tipoMap[a.tipo_id] : null;
                   const Icon: any = tipo?.icone && (Icons as any)[tipo.icone] ? (Icons as any)[tipo.icone] : Icons.Circle;
                   const cor = tipo?.cor || "#6b7280";
+                  const atr = atrasada(a);
                   return (
-                    <button
-                      key={a.id}
-                      onClick={() => onSelectAtividade(a)}
-                      className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] truncate text-left hover:opacity-80 ${
-                        a.concluida ? "line-through opacity-60" : ""
-                      }`}
-                      style={{ background: cor + "22", color: cor }}
-                      title={`${format(new Date(a.data_inicio), "HH:mm")} — ${a.titulo}`}
-                    >
-                      <Icon className="h-3 w-3 shrink-0" />
-                      <span className="truncate">
-                        <span className="tabular-nums">{format(new Date(a.data_inicio), "HH:mm")}</span> {a.titulo}
-                      </span>
-                    </button>
+                    <div key={a.id} className="group/item relative flex items-center">
+                      <button
+                        onClick={() => onSelectAtividade(a)}
+                        className={`flex-1 min-w-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] truncate text-left hover:opacity-80 ${
+                          a.concluida ? "line-through opacity-50" : ""
+                        } ${atr ? "bg-destructive/10 text-destructive border border-destructive/40" : ""}`}
+                        style={atr ? undefined : { background: cor + "22", color: cor }}
+                        title={`${format(new Date(a.data_inicio), "HH:mm")} — ${a.titulo}${atr ? " (atrasada)" : ""}`}
+                      >
+                        <Icon className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          <span className="tabular-nums">{format(new Date(a.data_inicio), "HH:mm")}</span> {a.titulo}
+                        </span>
+                      </button>
+                      {onConcluirRapido && !a.concluida && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onConcluirRapido(a); }}
+                          className="ml-0.5 shrink-0 h-5 w-5 inline-flex items-center justify-center rounded bg-primary text-primary-foreground md:opacity-0 md:group-hover/item:opacity-100 focus:opacity-100"
+                          title="Marcar como feito"
+                          aria-label={`Marcar "${a.titulo}" como feito`}
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
                 {itens.length > 3 && (
@@ -158,8 +173,8 @@ export default function AtividadesCalendar({ atividades, tipos, onSelectAtividad
                               key={a.id}
                               onClick={() => onSelectAtividade(a)}
                               className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted text-left ${
-                                a.concluida ? "line-through opacity-60" : ""
-                              }`}
+                                a.concluida ? "line-through opacity-50" : ""
+                              } ${atrasada(a) ? "text-destructive" : ""}`}
                             >
                               <span className="tabular-nums text-muted-foreground w-10">
                                 {format(new Date(a.data_inicio), "HH:mm")}

@@ -28,7 +28,7 @@ const allCards = [
     title: "Atividades",
     desc: "Sua inbox de tarefas e follow-ups",
     icon: CheckSquare,
-    to: "/atividades",
+    to: "/atividades?visao=calendario",
     color: "bg-orange-500/10 text-orange-600",
     badgeKey: "atividades",
   },
