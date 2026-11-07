@@ -50,3 +50,22 @@ export function resolverAtribuicao(a: { ehAdmin: boolean; vendedorNome?: string 
   const avisos = c.tipo === 'aproximado' ? [`Usei o vendedor ${c.vendedor.nome} para "${falado}"; confirme.`] : [];
   return { ok: true, responsavel_id: c.vendedor.id, avisos, nome: c.vendedor.nome };
 }
+
+// deno-lint-ignore no-explicit-any
+type Db = { from: (t: string) => any };
+const PAPEIS_EQUIPE = ['comercial', 'rtv', 'gerente_comercial'];
+/** Time comercial (quem pode receber atribuição do admin). */
+export async function carregarEquipe(db: Db): Promise<Vendedor[]> {
+  const r = await db.from('user_roles').select('user_id').in('role', PAPEIS_EQUIPE);
+  if (r.error) throw r.error;
+  const ids = [...new Set(((r.data ?? []) as { user_id: string }[]).map(x => x.user_id))];
+  if (!ids.length) return [];
+  const p = await db.from('profiles').select('user_id,nome').in('user_id', ids);
+  if (p.error) throw p.error;
+  return ((p.data ?? []) as { user_id: string; nome: string | null }[]).filter(x => x.nome).map(x => ({ id: x.user_id, nome: x.nome as string }));
+}
+/** Admin por voz só depois da SQL julia-gasto-admin (tabela de configuração existe). */
+export async function adminVozPronto(db: Db): Promise<boolean> {
+  const r = await db.from('julia_gasto_config').select('id').limit(1);
+  return !r.error;
+}
