@@ -5,6 +5,8 @@ import { permitidoLigar } from '../_shared/juliaViagemRegras.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { orgsParadasPendentes, primeiroNome } from '../_shared/contatosOrg.ts';
 import { carregarSituacoes } from '../_shared/jaSabemos.ts';
+import { adminVozPronto, carregarEquipe, listaVendedores } from '../_shared/vendedores.ts';
+import { hashTelefone, mascararTelefone } from '../_shared/gastoJulia.ts';
 import { chaveTelefone, decidirEntrada, montarVariaveis, MSG_ENTRADA, respostaEntrada, variaveisVazias } from '../_shared/variaveisLigacao.ts';
 
 const PAPEIS = ['comercial', 'rtv', 'gerente_comercial'];
@@ -27,9 +29,11 @@ export async function handler(req: Request) {
     const comercial = papeis.some(p => PAPEIS.includes(p));
     const vendedor = !!perfil && (comercial || permitidoLigar(perfil.user_id, papeis));
     nome = perfil ? primeiroNome(perfil.nome) : '';
-    const teste = vendedor && !comercial; // Damian admin
+    // Admin por voz (Damian): após a SQL vira admin real (modo livre, papel 'admin'); antes, segue como teste.
+    const adminVoz = vendedor && !comercial && await adminVozPronto(db);
+    const teste = vendedor && !comercial && !adminVoz;
     let rota: { id: string; vendedor_id: string } | null = null;
-    if (vendedor && perfil) {
+    if (vendedor && perfil && !adminVoz) {
       let q = db.from('rotas').select('id,vendedor_id').eq('status', 'aprovada').lte('data_inicio', data).gte('data_fim', data).order('data_inicio').limit(1);
       if (!teste) q = q.eq('vendedor_id', perfil.user_id);
       rota = (check(await q) ?? [])[0] ?? null;
@@ -37,14 +41,23 @@ export async function handler(req: Request) {
     const alvo = rota?.vendedor_id ?? perfil?.user_id;
     const ativa = vendedor ? check(await db.from('ligacoes_viagem').select('id').eq('vendedor_id', alvo).eq('data_ref', data).eq('teste', teste).in('status', ['discando', 'em_andamento']).limit(1)) ?? [] : [];
     const decisao = decidirEntrada({ vendedor, temViagem: !!rota, ocupado: ativa.length > 0 });
-    console.log('julia-viagem-entrada', JSON.stringify({ caller: mascarar(caller), decisao, teste, ms: Date.now() - t0 }));
-    if (decisao === 'nao') return json(respostaEntrada(variaveisVazias('nao'), MSG_ENTRADA.nao));
+    console.log('julia-viagem-entrada', JSON.stringify({ caller: mascarar(caller), decisao, teste, admin: adminVoz, ms: Date.now() - t0 }));
+    if (decisao === 'nao') {
+      // Gasto das recusadas: registra sem atrasar a resposta além de uma ida ao banco; falha só loga.
+      let recusa = '';
+      try {
+        const r = await db.rpc('julia_registrar_recusa', { p_mascarado: mascararTelefone(caller), p_hash: await hashTelefone(caller, Deno.env.get('JULIA_TELEFONE_SAL')), p_call_sid: String(body.call_sid ?? '') || null, p_motivo: 'nao' });
+        if (r.error) console.warn('julia-viagem-entrada recusa_nao_gravada', r.error.code); else recusa = String(r.data ?? '');
+      } catch { console.warn('julia-viagem-entrada recusa_nao_gravada'); }
+      return json(respostaEntrada({ ...variaveisVazias('nao'), recusa_id: recusa }, MSG_ENTRADA.nao));
+    }
     if (decisao === 'ocupado') return json(respostaEntrada(variaveisVazias('ocupado', nome), MSG_ENTRADA.ocupado(nome)));
     // Reserva atômica (cancela agendadas não discadas, uma ativa por vendedor) — só existe após a SQL.
-    const reserva = (rotaId: string | null, vend: string) => db.rpc('julia_reservar_entrada', { p_vendedor: vend, p_rota: rotaId, p_telefone: caller, p_call_sid: String(body.call_sid ?? '') || null, p_teste: teste, p_solicitante: perfil!.user_id });
+    const reserva = (rotaId: string | null, vend: string) => db.rpc('julia_reservar_entrada', { p_vendedor: vend, p_rota: rotaId, p_telefone: caller, p_call_sid: String(body.call_sid ?? '') || null, p_teste: teste, p_solicitante: perfil!.user_id, ...(adminVoz ? { p_papel: 'admin' } : {}) });
     if (decisao === 'livre') {
       const lig = check(await reserva(null, perfil!.user_id)) as { id: string };
-      const vars = { ...variaveisVazias('livre', nome), vendedor_id: perfil!.user_id, ligacao_id: lig.id, data_hoje: data.split('-').reverse().join('/'), teste: teste ? 'sim' : 'não' };
+      const equipe = adminVoz ? await carregarEquipe(db).catch(() => []) : [];
+      const vars = { ...variaveisVazias('livre', nome), vendedor_id: perfil!.user_id, ligacao_id: lig.id, data_hoje: data.split('-').reverse().join('/'), teste: teste ? 'sim' : 'não', eh_admin: adminVoz ? 'sim' : 'não', vendedores: listaVendedores(equipe) };
       console.log('julia-viagem-entrada livre', JSON.stringify({ ligacao: lig.id, ms: Date.now() - t0 }));
       return json(respostaEntrada(vars, MSG_ENTRADA.livre(nome)));
     }

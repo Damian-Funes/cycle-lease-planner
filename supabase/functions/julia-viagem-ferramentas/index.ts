@@ -10,6 +10,7 @@ import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.t
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
 import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, orgsParadasPendentes, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
 import { carregarSituacoes, fraseJaSabemos, montarJaSabemos } from '../_shared/jaSabemos.ts';
+import { carregarEquipe, resolverAtribuicao } from '../_shared/vendedores.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
@@ -79,8 +80,19 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    for (const p of r.data ?? []) mapa.set(p.organizacao_id, [...(mapa.get(p.organizacao_id) ?? []), p]);
    return mapa;
   };
+  // Admin por voz atribui a um vendedor; vendedor nunca (o banco força de novo em fn_julia_responsavel).
+  const ehAdmin = l.papel_ligacao === 'admin' && papeis.includes('admin');
+  const atribuir = async (nomeFalado?: string) => {
+   const r = resolverAtribuicao({ ehAdmin, vendedorNome: nomeFalado, equipe: ehAdmin && nomeFalado ? await carregarEquipe(db) : [] });
+   if (r.ok) avisos.push(...r.avisos);
+   return r;
+  };
+  const semVendedor = (r: { ok: false; confirmar_vendedor: unknown; mensagem: string }) => json({ ok: true, salvo: false, mensagem: r.mensagem, avisos, confirmar_vendedor: r.confirmar_vendedor });
+  const paraQuem = (nome?: string | null) => nome ? ` Ficou com ${nome}.` : '';
   if (body.acao === 'registrar_contato_cliente') {
-   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
+   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, vendedor_nome, ...dadosBase } = body;
+   const at = await atribuir(vendedor_nome); if (!at.ok) return semVendedor(at);
+   const dados = at.responsavel_id ? { ...dadosBase, responsavel_id: at.responsavel_id } : dadosBase;
    // Pessoas da empresa (só para a frase de confirmação) em paralelo com a gravação.
    const [rr, porOrg] = await Promise.all([
     db.rpc('julia_registrar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados }),
@@ -93,6 +105,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
     const rc = respostaContatos(contatos_resolvidos, porOrg.get(organizacao_id) ?? [], r?.empresa || 'empresa');
     avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
    } else if (r?.contato_ambiguo) avisos.push('Há mais de uma pessoa com esse nome na empresa: contato não vinculado; diga o nome completo.');
+   if (at.responsavel_id) mensagem += paraQuem(r?.responsavel_nome ?? at.nome);
    return json({ ok: true, salvo: true, ...r, mensagem, avisos, confirmar_contato });
   }
   if (body.acao === 'completar_contato') {
@@ -103,8 +116,10 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompletarContato(r), avisos: [...avisos, ...(avisosSql ?? [])] });
   }
   if (body.acao === 'listar_atividades_vencidas') {
-   const lista = check(await db.rpc('julia_listar_atividades', { p_ligacao: l.id, p_limite: 10 })) ?? []; t.marcar('rpc_atividades');
-   return json({ ok: true, salvo: true, mensagem: mensagemAtividades(lista), avisos, atividades: lista });
+   const at = await atribuir(body.vendedor_nome); if (!at.ok) return semVendedor(at);
+   const lista = check(await db.rpc('julia_listar_atividades', { p_ligacao: l.id, p_limite: 10, ...(at.responsavel_id ? { p_vendedor: at.responsavel_id } : {}) })) ?? []; t.marcar('rpc_atividades');
+   const extra = at.responsavel_id ? ` (atividades de ${at.nome}; só ${at.nome} pode resolver)` : '';
+   return json({ ok: true, salvo: true, mensagem: mensagemAtividades(lista) + extra, avisos, atividades: lista, ...(at.responsavel_id ? { somente_leitura: true } : {}) });
   }
   if (body.acao === 'resolver_atividade') {
    const falta = faltaResolver(body);
@@ -113,9 +128,11 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    return json({ ok: true, salvo: true, mensagem: mensagemResolver(r?.titulo, body.resolucao, body.nova_data), avisos, atividade_id: body.atividade_id });
   }
   if (body.acao === 'criar_compromisso') {
-   const { acao: _a, ligacao_id: _l, rota_id: _r, ...dados } = body;
+   const { acao: _a, ligacao_id: _l, rota_id: _r, vendedor_nome, ...dadosBase } = body;
+   const at = await atribuir(vendedor_nome); if (!at.ok) return semVendedor(at);
+   const dados = at.responsavel_id ? { ...dadosBase, responsavel_id: at.responsavel_id } : dadosBase;
    const r = check(await db.rpc('julia_criar_compromisso', { p_ligacao: l.id, p_dados: dados })); t.marcar('rpc_compromisso');
-   return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompromisso(body.tipo, body.data, body.hora, r?.empresa), avisos });
+   return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompromisso(body.tipo, body.data, body.hora, r?.empresa) + (at.responsavel_id ? paraQuem(r?.responsavel_nome ?? at.nome) : ''), avisos });
   }
  const recarregar = async () => { const r = await carregarRota(db, l.rota_id); t.marcar('recarregar_rota'); return r; };
   // Fonte única: a Júlia cobra o mesmo que vira notificação depois.
