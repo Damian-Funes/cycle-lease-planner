@@ -134,7 +134,7 @@ BEGIN
   RETURN NEW;
 END $$;
 DROP TRIGGER IF EXISTS trg_rotas_zz_contar_envio ON public.rotas;
-CREATE TRIGGER trg_rotas_zz_contar_envio BEFORE UPDATE OF status ON public.rotas
+CREATE TRIGGER trg_rotas_zz_contar_envio BEFORE UPDATE ON public.rotas
   FOR EACH ROW EXECUTE FUNCTION public.fn_rotas_contar_envio();
 
 -- AFTER UPDATE: gera os avisos. Nunca bloqueia a rota; sem valores em R$.
