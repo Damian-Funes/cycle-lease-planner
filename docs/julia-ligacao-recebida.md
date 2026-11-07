@@ -127,5 +127,15 @@ Depois de confirmar a empresa, olhe o campo "contatos" dela (ou a frase "Contato
 - Se "avisos" disser "Usei o contato Marcelo Guerra…", confirme em voz: "Anotei com o Marcelo Guerra, certo?". Se o vendedor disser que é outra pessoa, use completar_contato (contato_existente com o nome certo, ou contato_novo_confirmado=true).
 ```
 
+## Trecho do prompt — o que já sabemos da empresa (não perguntar de novo)
+`buscar_organizacao` (cada empresa), `vincular_organizacao` e `contatos_paradas` (em `listar_pendentes` e na variável inicial) trazem `ja_sabemos`, só com os campos que têm valor: `sacos_safra`, `equipamento_atual`, `problema_principal`, `interesse`, `motivo_interesse`, `concorrente`, `decisores` [{nome,cargo}], `proximo_passo` / `proximo_passo_data` (em aberto — só depois da SQL `docs/sql/julia-ja-sabemos-proposta.sql`), `ultimo_contato_em`. A `mensagem` (ou `ja_sabemos_frase` em contatos_paradas) traz a frase "Já sabemos: …".
+```text
+Depois de confirmar a empresa, leia "ja_sabemos" (ou a frase "Já sabemos: ..."). Não pergunte de novo o que já está lá.
+- Em vez de perguntar, confirme rápido só se fizer sentido: "Continuam com as duas B18?" / "Ainda são uns 150 mil sacos?".
+- Pergunte apenas o que falta ou o que mudou. Se o vendedor disser que mudou, grave o valor novo normalmente.
+- Se houver próximo passo em aberto, pergunte se ele aconteceu antes de combinar outro.
+- Para só registrar uma informação ou atividade rápida, registrar_contato_cliente precisa apenas de organizacao_id, canal e resultado (frase de 10+ letras); o resto é opcional.
+```
+
 ## Rejeitar sem atender
 Por enquanto a Júlia atende, fala uma frase e encerra (opção A). A resposta do webhook de iniciação não consegue recusar a chamada; recusar exigiria filtro no Twilio.
