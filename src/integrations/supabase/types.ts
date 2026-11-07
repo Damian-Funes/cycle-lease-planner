@@ -1479,6 +1479,78 @@ export type Database = {
         }
         Relationships: []
       }
+      julia_gasto_config: {
+        Row: {
+          id: number
+          max_minutos_recusadas_dia: number
+          max_recusadas_dia: number
+          reais_por_credito: number | null
+          reais_por_minuto: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          max_minutos_recusadas_dia?: number
+          max_recusadas_dia?: number
+          reais_por_credito?: number | null
+          reais_por_minuto?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          max_minutos_recusadas_dia?: number
+          max_recusadas_dia?: number
+          reais_por_credito?: number | null
+          reais_por_minuto?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      julia_ligacoes_recusadas: {
+        Row: {
+          call_sid: string | null
+          conversation_id: string | null
+          custo_creditos: number | null
+          data_ref: string
+          duracao_s: number | null
+          id: string
+          motivo: string
+          recebida_em: string
+          telefone_hash: string | null
+          telefone_mascarado: string
+          updated_at: string
+        }
+        Insert: {
+          call_sid?: string | null
+          conversation_id?: string | null
+          custo_creditos?: number | null
+          data_ref?: string
+          duracao_s?: number | null
+          id?: string
+          motivo?: string
+          recebida_em?: string
+          telefone_hash?: string | null
+          telefone_mascarado: string
+          updated_at?: string
+        }
+        Update: {
+          call_sid?: string | null
+          conversation_id?: string | null
+          custo_creditos?: number | null
+          data_ref?: string
+          duracao_s?: number | null
+          id?: string
+          motivo?: string
+          recebida_em?: string
+          telefone_hash?: string | null
+          telefone_mascarado?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       layout_conexoes: {
         Row: {
           created_at: string
@@ -2027,12 +2099,14 @@ export type Database = {
           call_sid: string | null
           conversation_id: string | null
           created_at: string
+          custo_creditos: number | null
           data_ref: string
           duracao_s: number | null
           erro: string | null
           escolha: string | null
           id: string
           origem: string
+          papel_ligacao: string
           resumo: string | null
           rota_id: string | null
           solicitado_por: string | null
@@ -2049,12 +2123,14 @@ export type Database = {
           call_sid?: string | null
           conversation_id?: string | null
           created_at?: string
+          custo_creditos?: number | null
           data_ref: string
           duracao_s?: number | null
           erro?: string | null
           escolha?: string | null
           id?: string
           origem: string
+          papel_ligacao?: string
           resumo?: string | null
           rota_id?: string | null
           solicitado_por?: string | null
@@ -2071,12 +2147,14 @@ export type Database = {
           call_sid?: string | null
           conversation_id?: string | null
           created_at?: string
+          custo_creditos?: number | null
           data_ref?: string
           duracao_s?: number | null
           erro?: string | null
           escolha?: string | null
           id?: string
           origem?: string
+          papel_ligacao?: string
           resumo?: string | null
           rota_id?: string | null
           solicitado_por?: string | null
@@ -5532,6 +5610,23 @@ export type Database = {
         }
         Returns: string
       }
+      fn_julia_avisar_atribuicao: {
+        Args: {
+          l: Database["public"]["Tables"]["ligacoes_viagem"]["Row"]
+          p_ativ: string
+          p_resp: string
+          p_texto: string
+        }
+        Returns: undefined
+      }
+      fn_julia_gasto_resumo: { Args: never; Returns: Json }
+      fn_julia_responsavel: {
+        Args: {
+          l: Database["public"]["Tables"]["ligacoes_viagem"]["Row"]
+          p_alvo: string
+        }
+        Returns: string
+      }
       fn_lgpd_excluir_dados_pessoa: {
         Args: { _pessoa_id: string }
         Returns: Json
@@ -5700,6 +5795,16 @@ export type Database = {
         }
         Returns: Json
       }
+      julia_finalizar_recusa: {
+        Args: {
+          p_call_sid: string
+          p_conversa: string
+          p_creditos: number
+          p_duracao: number
+          p_recusa: string
+        }
+        Returns: Json
+      }
       julia_ligacao_ativa: {
         Args: { p_ligacao: string }
         Returns: {
@@ -5707,12 +5812,14 @@ export type Database = {
           call_sid: string | null
           conversation_id: string | null
           created_at: string
+          custo_creditos: number | null
           data_ref: string
           duracao_s: number | null
           erro: string | null
           escolha: string | null
           id: string
           origem: string
+          papel_ligacao: string
           resumo: string | null
           rota_id: string | null
           solicitado_por: string | null
@@ -5732,7 +5839,7 @@ export type Database = {
         }
       }
       julia_listar_atividades: {
-        Args: { p_ligacao: string; p_limite?: number }
+        Args: { p_ligacao: string; p_limite?: number; p_vendedor?: string }
         Returns: {
           atividade_id: string
           data: string
@@ -5747,6 +5854,15 @@ export type Database = {
         Args: { p_dados: Json; p_ligacao: string; p_org: string }
         Returns: Json
       }
+      julia_registrar_recusa: {
+        Args: {
+          p_call_sid: string
+          p_hash: string
+          p_mascarado: string
+          p_motivo: string
+        }
+        Returns: string
+      }
       julia_registrar_voz: {
         Args: {
           p_acao: string
@@ -5759,6 +5875,7 @@ export type Database = {
       julia_reservar_entrada: {
         Args: {
           p_call_sid: string
+          p_papel?: string
           p_rota: string
           p_solicitante: string
           p_telefone: string
@@ -5770,12 +5887,14 @@ export type Database = {
           call_sid: string | null
           conversation_id: string | null
           created_at: string
+          custo_creditos: number | null
           data_ref: string
           duracao_s: number | null
           erro: string | null
           escolha: string | null
           id: string
           origem: string
+          papel_ligacao: string
           resumo: string | null
           rota_id: string | null
           solicitado_por: string | null
@@ -5807,12 +5926,14 @@ export type Database = {
           call_sid: string | null
           conversation_id: string | null
           created_at: string
+          custo_creditos: number | null
           data_ref: string
           duracao_s: number | null
           erro: string | null
           escolha: string | null
           id: string
           origem: string
+          papel_ligacao: string
           resumo: string | null
           rota_id: string | null
           solicitado_por: string | null
