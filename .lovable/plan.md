@@ -1,102 +1,116 @@
 # Notificações push do CRM via PushAlert
 
 ## Como está hoje (verificado)
-- Não existe nenhuma integração de push: nenhum script, service worker, manifest ou segredo do PushAlert. Em `public/` só há favicon, logo, placeholder e robots.
-- `notificacoes` tem as colunas: user_id, tipo, titulo, texto, link, chave, lida_em, resolvida_em, rota_id e created_at. Existe uma chave única `(user_id, chave)`, então os sincronizadores já fazem upsert por chave.
-- Tipos que aparecem hoje: `julia_viagem` (17), `viagem_pendencia` (4) e `atividade_vencida` (1).
+- O projeto não tem nenhum service worker, PWA, manifest, `vite-plugin-pwa` ou script de push. Em `public/` existem só favicon, logo, placeholder e robots. Então não há conflito com `/sw.js`.
+- A tabela `notificacoes` tem estas colunas: user_id, tipo, titulo, texto, link, chave, lida_em, resolvida_em, rota_id e created_at. Também tem uma chave única `(user_id, chave)`, que os sincronizadores usam com upsert.
+- Tipos em uso hoje: `julia_viagem`, `viagem_pendencia` e `atividade_vencida`.
 
-## 1. Front-end (só em crmls.com.br)
-- O PushAlert exige um arquivo próprio na raiz: `public/sw.js` com uma linha `importScripts("https://cdn.pushalert.co/sw-XXXX.js")` (o CEO passa o código). O Vite copia `public/` sem mexer, então o arquivo é servido em `/sw.js`.
-- Não existe PWA nem outro service worker, logo não há conflito. Não vamos adicionar `vite-plugin-pwa` nem cache offline: o worker serve só para mensagens.
-- Um carregador `src/lib/push/pushalert.ts` injeta o script do PushAlert apenas quando o endereço é `crmls.com.br` ou `www.crmls.com.br`. Nada carrega no preview, em `*.lovable.app` ou dentro de iframe.
-- `www` e o domínio sem `www` são origens diferentes para o push. Recomendação: o CEO cadastra `https://crmls.com.br` no PushAlert e `www` redireciona para ele (já é o domínio principal).
+## 1. Script, service worker e iPhone
+- **Script:** um carregador injeta `https://cdn.pushalert.co/unified_da99e6c9a1ae793c0b52edabdb883bf1.js` no `<head>`. Ele só roda quando o `location.hostname` é `crmls.com.br` ou `www.crmls.com.br`. Nunca carrega no preview, em `*.lovable.app` ou dentro de iframe. A checagem fica num script inline no `index.html`, antes de `</head>`.
+- **`public/sw.js`:** fica previsto com o conteúdo que o CEO copiar do painel, normalmente uma linha `importScripts(...)`. O Vite serve `public/` sem alterar, em `/sw.js`. Não é PWA e não tem cache offline: o arquivo serve só para mensagens. Enquanto o conteúdo não chegar, o arquivo não é criado.
+- **`public/manifest.webmanifest`:**
+  - name e short_name "CRM LS", `start_url "/"`, `display "standalone"`;
+  - cor esmeralda;
+  - ícones de 192 e 512 px (normal e maskable), gerados a partir do logo.
+  - Tags no `index.html`: manifest, apple-touch-icon, theme-color e `apple-mobile-web-app-capable`.
+- **Sem pedido automático:**
+  - No painel do PushAlert, desligar o opt-in automático.
+  - No código, usar `pushalertbyiw.push(['disableAutoInit', true])` e, ao tocar no botão, `PushAlertCo.forceSubscribe()`.
+  - O nome exato da função ainda não está confirmado. O primeiro passo da implementação é verificar na documentação do script unificado. Se não existir, o plano B é deixar só o prompt manual configurado no painel e disparar pelo botão.
+- **Tela "Ativar notificações":**
+  - **iPhone fora do modo app** (`navigator.standalone`, `display-mode`): passo a passo (Compartilhar → Adicionar à Tela de Início → abrir pelo ícone → Ativar). Para iOS abaixo de 16.4, mostra "não compatível".
+  - **iPhone no modo app, Android e desktop:** botão "Ativar notificações".
+  - **Estados:** ativo neste aparelho / bloqueado (como liberar nos ajustes) / não suportado.
+  - **Acesso:** item com status no perfil e um aviso na tela inicial enquanto não estiver ativo.
 
-## 2. iPhone e Android
-- Criar `public/manifest.webmanifest` com nome "CRM LS", short_name "CRM LS", `display: standalone`, cor tema esmeralda e ícones de 192/512 px gerados a partir do logo. Incluir as tags no `index.html` (manifest, apple-touch-icon, theme-color, `apple-mobile-web-app-capable`).
-- Nova tela "Ativar notificações" (menu do usuário e um aviso no sininho enquanto não estiver ativado):
-  - **iPhone fora do modo app** (detectado por `navigator.standalone` / `display-mode: standalone`): passo a passo ilustrado (Compartilhar → Adicionar à Tela de Início → abrir pelo ícone → Ativar). Se o iOS for anterior à 16.4, avisar que não é compatível.
-  - **iPhone no modo app e Android/desktop:** botão "Ativar notificações". O pedido de permissão só aparece depois do toque, como o iOS exige.
-  - Mostra o estado: ativo neste aparelho, bloqueado (como liberar nos ajustes) ou não suportado.
+## 2. Vincular o aparelho ao usuário
+- Nova tabela `push_inscricoes`, com vários aparelhos por usuário:
+  - campos: id, user_id, subscriber_id (único), plataforma (ios, android, desktop), user_agent (curto, até 120 caracteres), criado_em, ultimo_envio, ativo e motivo_inativo.
+  - Leitura: cada usuário vê as suas; o admin vê todas.
+  - Gravação: só pelas RPCs.
+- Depois do `onSuccess` ou do `getSubsInfo`, o app chama `fn_push_registrar(subscriber_id, plataforma, user_agent)`. Ela grava com o `auth.uid()`. Se o subscriber já existir com outro usuário, ela reatribui ao usuário atual e reativa. Ao abrir o app logado, a mesma chamada confirma o vínculo.
+- O user_id também vai como atributo no PushAlert (`addAttributes`), só para conferência no painel. O envio sempre usa o nosso vínculo.
+- Ao sair do CRM, a RPC `fn_push_desativar(subscriber_id)` desativa a inscrição. Assim um aparelho compartilhado não recebe o push do usuário anterior.
 
-## 3. Vincular o aparelho ao usuário
-- Nova tabela `push_inscricoes`: id, user_id, subscriber_id (único), plataforma (ios/android/desktop), navegador, criado_em, ultimo_uso, ativo, desativado_motivo. Permite vários aparelhos por usuário.
-- Depois de inscrever, o callback do PushAlert (`pushalertbyiw` → `onSuccess` / `getSubsInfo`) devolve o subscriber_id. O app chama a RPC `fn_push_registrar(subscriber_id, plataforma, navegador)`, que grava com o `auth.uid()`, reativa se já existir e transfere o aparelho se outro usuário logar nele. Ao abrir o app, `ultimo_uso` é atualizado.
-- Quem vê: cada usuário vê as próprias inscrições; o admin vê todas. Escrita só pela RPC; o desativar/excluir é do próprio usuário ou do admin.
-- Também enviamos `user_id` como atributo no PushAlert (`addAttributes`), útil para depuração no painel deles. O envio usa sempre o nosso vínculo.
-- Ao sair do CRM: desativa a inscrição do aparelho, para o próximo usuário dele não receber pushes de outra pessoa.
+## 3. Envio sem duplicar
+- **Edge function `push-enviar`:**
+  - Sem JWT, aceita só o segredo interno. Usa `PUSHALERT_API_KEY` com o header `Authorization: api_key=<KEY>`.
+  - Para cada aparelho ativo do user_id, faz `POST https://api.pushalert.co/rest/v1/send` com subscriber, title, message, url (`https://crmls.com.br` + link) e icon.
+- **Gatilho:** trigger `AFTER INSERT` em `notificacoes` com `net.http_post` (pg_net), filtrando o tipo dentro do trigger. É melhor que database webhook porque fica versionado e só chama a função quando o tipo vira push.
+- **Duplicidade:** só dispara no INSERT.
+  - Upserts `ON CONFLICT DO UPDATE` não disparam.
+  - Quando `lida_em` volta a NULL, também não dispara. As chaves diárias já criam uma linha nova por dia, então o push do dia seguinte sai normalmente.
+  - Novas colunas `push_status` (pendente, enviado, adiado, sem_aparelho, erro) e `push_enviado_em`. A função só envia se o status ainda for pendente ou adiado, então uma nova tentativa não repete o push.
+- **Falha da PushAlert:** não afeta o sininho (o pg_net é assíncrono). Fica registrada em `push_status`.
 
-## 4. Envio
-- Nova edge function `push-enviar` (sem JWT, protegida por segredo interno), que lê `PUSHALERT_API_KEY`. Para cada aparelho ativo do user_id, faz `POST https://api.pushalert.co/rest/v1/send` com `subscriber`, title, message e url (`https://crmls.com.br` + link).
-- Gatilho: um trigger `AFTER INSERT` em `notificacoes` chama `net.http_post` (pg_net) com o id da notificação, só para tipos que viram push. Recomendo pg_net em vez de database webhook, porque fica versionado na migração e permite filtrar o tipo dentro do trigger.
-- Duplicidade:
-  - Só o INSERT dispara push. Upserts por `(user_id, chave)` com `ON CONFLICT DO UPDATE` não reenviam.
-  - Novas colunas `push_enviado_em` e `push_status`: a função marca a notificação antes de enviar e ignora se já estiver marcada, o que torna novas tentativas idempotentes.
-  - As chaves diárias (ex.: `atividade_vencida:<id>:<data>`) geram no máximo um push por dia por item.
-  - Alterações em texto ou `resolvida_em` nunca enviam.
-- Falhas: um erro da PushAlert não afeta a gravação da notificação (pg_net é assíncrono). Fica no `push_status` e no log.
-
-## 5. Quais tipos viram push
-Viram push:
-- `atividade_vencida` e atividade do dia (lembrete das 7h);
-- trava de orçamento (atividade travando novo orçamento);
-- "X marcou para você" (atribuição do admin pela Júlia);
-- rota aprovada / reprovada / devolvida;
-- ligação da Júlia caída ou não concluída;
-- alertas de admin (gasto da Júlia acima do limite, rota aguardando aprovação).
+## 4. Tipos que viram push
+| Push | Urgente (ignora o horário silencioso) |
+|---|---|
+| Atividade vencida / do dia | não |
+| Trava de orçamento | não |
+| "X marcou para você" (admin pela Júlia) | não |
+| Rota aprovada / reprovada / devolvida | não |
+| Rota aguardando aprovação (admin) | não |
+| Ligação da Júlia caída / não concluída | sim |
+| Alerta de gasto da Júlia (admin) | sim |
 
 Ficam só no sininho:
-- `viagem_pendencia` repetitiva (o push sai uma vez por dia, no resumo);
-- avisos informativos e sincronizações.
+- `viagem_pendencia` repetitiva;
+- informativos;
+- sincronizações.
 
-A lista fica numa tabela de configuração `push_tipos` (tipo, ativo, urgente), que o admin pode ajustar.
+A lista fica na tabela `push_tipos` (tipo, ativo, urgente), editável pelo admin.
 
-**Horário silencioso** (21h–7h, horário de Brasília): pushes não urgentes ficam com `push_status='adiado'`. Às 7h, um único agendamento diário envia o acumulado, agrupado por usuário ("Você tem 3 avisos"). Urgentes (ex.: alerta de gasto do admin, ligação caída em andamento) saem na hora.
+**Horário silencioso (21h–7h, horário de Brasília):** pushes não urgentes ficam como `adiado`. Um agendamento diário às 7h BRT envia um push por usuário ("Você tem 3 avisos"). Ele roda uma vez por dia.
 
-## 6. Privacidade
-- **Título:** curto e por tipo ("Atividade vencida", "Rota aprovada").
-- **Texto:** pode ter o nome da empresa e a data, sem valores, preços, telefones, notas ou custos.
-- Os textos são montados por uma função pura `montarPush(notificacao)`, com testes. Não reaproveitamos o `texto` bruto da notificação.
-- O push aparece na tela bloqueada, então nada além disso deve ir nele.
+## 5. Texto do push
+- O texto é montado por uma função pura `montarPush(notificacao)`, com testes:
+  - **título:** curto, por tipo ("Atividade vencida");
+  - **mensagem:** pode ter o nome da empresa e a data;
+  - nunca valores em R$, preços, telefones, custos ou notas.
+- O `texto` bruto da notificação não é reaproveitado, porque aparece na tela bloqueada.
 
-## 7. Painel do admin
-Em Configurações, cartão "Notificações no celular":
-- lista do time comercial com push ativo / sem push / último uso e quantidade de aparelhos;
-- botão "Enviar push de teste para mim" (para quem é admin);
-- botão "Enviar teste" para cada usuário;
-- lista dos últimos envios com falha.
+## 6. Admin e perfil
+- **Configurações → cartão "Notificações no celular":**
+  - time comercial com status ativo/sem push, quantidade de aparelhos, plataforma e último envio;
+  - filtro "sem push" para cobrar o time;
+  - lista dos últimos erros.
+- **Botão "Enviar push de teste para mim":** envia para todos os aparelhos ativos de quem clicou.
+- **Perfil/tela inicial:** item "Ativar notificações" com status.
 
-## 8. Inscrições expiradas
-- Se a PushAlert responder que o subscriber é inválido ou cancelado, a função marca `ativo=false` com o motivo.
-- Uma inscrição sem uso há 60 dias aparece como "inativa?" no painel, sem ser apagada.
-- Quando o usuário reativa no aparelho, a inscrição volta a valer.
+## 7. Erros e inscrições inválidas
+- Se a PushAlert responder com subscriber inválido, cancelado ou não encontrado, a inscrição fica com `ativo=false` e o motivo.
+- Outros erros ficam na notificação como `erro`, sem desativar a inscrição.
+- Quando o usuário reativa no aparelho, a inscrição volta pela RPC.
 
-## O que o CEO faz no PushAlert
-1. Cadastrar o site `https://crmls.com.br`, com nome "CRM LS" e ícone.
-2. Em Integrate, copiar o código do script (o ID do site) e a linha do service worker, e enviar.
-3. Em Settings → API, copiar a REST API Key e cadastrar como `PUSHALERT_API_KEY` nos segredos do projeto.
-4. Desligar o pedido automático de inscrição (opt-in prompt/box), porque o app controla o botão.
-5. Ativar o suporte a Safari/iOS, se houver opção.
+## O que o CEO faz no painel do PushAlert
+1. Desligar o prompt/opt-in automático (Settings → Opt-in), deixando a inscrição manual pelo botão.
+2. Enviar o conteúdo do `sw.js` mostrado em Integrate.
+3. Definir o ícone padrão (logo LS, 192 px ou mais) e o idioma português nas mensagens de permissão e de boas-vindas. Desligar a notificação de boas-vindas.
+4. Ativar o suporte a Safari/iOS, se houver opção.
+5. Copiar a REST API Key em Settings → API e cadastrar como `PUSHALERT_API_KEY` nos segredos.
+6. Conferir os limites do plano grátis: envios por API, atributos e marca "via PushAlert".
 
 ## Riscos
 - **iPhone:** só funciona pela Tela de Início no iOS 16.4+. Parte do time vai precisar de ajuda. O painel mostra quem falta.
-- **Plano grátis do PushAlert:** pode ter limites de envio por API, de atributos ou marca no push. Confirmar no painel antes de liberar para todos.
-- **Bloqueio de permissão:** se o usuário negar, só é possível reverter nos ajustes do celular. A tela explica como.
-- **Domínio:** pushes ficam presos ao domínio cadastrado. Trocar de domínio exige reinscrever todos.
-- **Excesso de pushes:** vira ruído e o time desliga. Por isso a lista fechada, o máximo de um por item por dia e o horário silencioso.
-- **Aparelho compartilhado:** tratado com a desativação ao sair.
-- **Suporte limitado:** o PushAlert é um serviço terceiro sem suporte formal por aqui. Se sair do ar, o sininho continua funcionando normalmente.
+- **Pedido manual:** se o script unificado não permitir pedir a permissão só via JS, é necessário o ajuste no painel (plano B acima).
+- **Domínio:** o push fica preso à origem cadastrada. `www` e o domínio sem `www` são origens diferentes. Recomendação: manter `www` redirecionando para `crmls.com.br`.
+- **Plano grátis:** pode limitar envios por API ou colocar marca no push.
+- **Permissão negada:** só é revertida nos ajustes do celular. A tela explica como.
+- **Excesso de pushes:** o time acaba desligando. Isso é mitigado pela lista fechada, pelo máximo de um push por item por dia e pelo horário silencioso.
+- **Dependência de terceiro:** se a PushAlert cair, o sininho continua normal.
 
 ## Detalhes técnicos
-- **SQL (proposta em `docs/sql/push-pushalert-proposta.sql`, só aplicado após aprovação):**
+- **SQL (proposta em `docs/sql/push-pushalert-proposta.sql`, aplicada só após aprovação):**
   - tabelas `push_inscricoes` e `push_tipos`, com grants e RLS;
-  - colunas `push_enviado_em` e `push_status` em `notificacoes`;
+  - colunas `push_status` e `push_enviado_em` em `notificacoes`;
   - RPCs `fn_push_registrar` e `fn_push_desativar`;
   - trigger AFTER INSERT com pg_net;
-  - agendamento diário às 7h BRT (10h UTC) para os adiados.
+  - agendamento das 7h BRT (10h UTC) para os adiados.
 - **Código:**
-  - `src/lib/push/` (carregador, detecção de plataforma);
+  - `src/lib/push/` (carregador por domínio, detecção de plataforma);
   - tela `AtivarNotificacoes`;
-  - `public/sw.js` e `public/manifest.webmanifest`;
-  - edge function `push-enviar` com `_shared/push.ts` (montarPush, regra de horário silencioso, testes);
+  - `public/manifest.webmanifest` e ícones;
+  - `public/sw.js` (quando chegar o conteúdo);
+  - edge function `push-enviar` com `_shared/push.ts` (montarPush, horário silencioso, classificação de erro), com testes;
   - cartão admin.
-- **Para começar:** precisamos do código de integração e da API key.
