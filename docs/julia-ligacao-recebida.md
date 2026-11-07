@@ -47,6 +47,27 @@ Em qualquer caso de vendedor, retornos agendados ainda não discados são cancel
 | concorrente | string | não | |
 | proximo_passo | string | não | o que ficou combinado |
 | proximo_passo_data | string | não | AAAA-MM-DD; cria atividade às 9h |
+| contato_novo_confirmado | boolean | não | true só depois que o vendedor confirmou que a pessoa é NOVA (não está nos contatos da empresa) |
+
+### Campo novo em registrar_visita (viagem)
+| Campo | Tipo | Obrig. | Descrição para o LLM |
+|---|---|---|---|
+| contato_novo_confirmado | boolean | não | true só depois que o vendedor confirmou que a pessoa é NOVA (não está nos contatos da empresa) |
+
+Sem `contato_novo_confirmado=true`, um nome que não bate com ninguém da empresa **não vira cadastro**: a visita/contato e o próximo passo são gravados, o nome fica só no texto, e a resposta traz `confirmar_contato` = `{nome_falado, papel, motivo, contatos_existentes:[{nome,cargo}]}` e a pergunta pronta no fim de `mensagem`. Se o nome bater por aproximação (ex.: "Marcello" → Marcelo Guerra), `avisos` traz "Usei o contato Marcelo Guerra…".
+
+### completar_contato (acao constante `completar_contato`) — viagem e modo livre
+Usar logo depois de uma resposta com `confirmar_contato`. Liga o nome falado a um contato já cadastrado OU cria a pessoa nova, e põe essa pessoa na visita/contato e no próximo passo gravados nesta ligação.
+| Campo | Tipo | Obrig. | Descrição para o LLM |
+|---|---|---|---|
+| organizacao_id | string | sim | id da empresa (de buscar_organizacao / da parada) |
+| nome_falado | string | sim | o nome exatamente como veio em confirmar_contato.nome_falado |
+| contato_existente | string | um dos dois | nome do contato já cadastrado que o vendedor confirmou (como está em contatos_existentes) |
+| contato_novo_confirmado | boolean | um dos dois | true quando o vendedor confirmou que é pessoa nova |
+| contato_nome | string | não | nome completo da pessoa nova (se não vier, usa nome_falado) |
+| contato_cargo | string | não | cargo |
+| contato_telefone | string | não | celular com DDD, só números |
+| papel | string | não | contato (padrão) ou decisor — use o papel que veio em confirmar_contato |
 
 ### listar_atividades_vencidas (acao constante `listar_atividades_vencidas`)
 Sem campos extras. Devolve até 10 atividades abertas do vendedor, vencidas e de hoje (`atividades`: `atividade_id`, `titulo`, `tipo`, `data`, `hora`, `empresa`, `vencida`).
