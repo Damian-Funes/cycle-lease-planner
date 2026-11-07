@@ -10,8 +10,13 @@ export const REGRAS_PADRAO: RegraPush[] = [
   { prefixo: 'falha:', ativo: true, urgente: false },            // Júlia não conseguiu ligar
   { prefixo: 'nota:', ativo: true, urgente: false },             // nota do hotel
   { prefixo: 'julia-recusadas:', ativo: true, urgente: true },   // alerta de gasto (admin)
-  { prefixo: 'rota-', ativo: true, urgente: false },             // rota aprovada/reprovada/aguardando (futuro)
-  { prefixo: 'orcamento-trava:', ativo: true, urgente: false },  // trava de orçamento (futuro)
+  { prefixo: 'rota-', ativo: true, urgente: false },             // genérico de rota
+  { prefixo: 'rota-enviada:', ativo: true, urgente: false },     // admins: rota enviada para aprovação
+  { prefixo: 'rota-aprovada:', ativo: true, urgente: false },    // vendedor
+  { prefixo: 'rota-reprovada:', ativo: true, urgente: false },   // vendedor (com motivo)
+  { prefixo: 'rota-rascunho:', ativo: false, urgente: false },   // só sininho
+  { prefixo: 'rota-prestacao:', ativo: false, urgente: false },  // só sininho
+  { prefixo: 'orcamento-trava:', ativo: false, urgente: false }, // trava já aparece na tela
   { prefixo: 'pend:', ativo: false, urgente: false },            // só sininho
   { prefixo: 'resumo:', ativo: false, urgente: false },          // só sininho
 ];
