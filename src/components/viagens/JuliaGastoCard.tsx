@@ -18,7 +18,7 @@ type Resumo = {
 const PERIODOS = [['hoje', 'Hoje'], ['d7', '7 dias'], ['d30', '30 dias']] as const;
 const min = (s: number) => (s / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-// deno-style cast: as tabelas/funções novas só entram nos tipos após a SQL.
+// Tabelas/funções novas só entram nos tipos gerados após a SQL.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
