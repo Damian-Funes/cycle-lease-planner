@@ -1,5 +1,6 @@
 // Casamento de contato falado pela Júlia com pessoas já cadastradas na organização.
 // Espelha public.fn_casar_pessoa_org (SQL é a autoridade ao gravar; aqui só avisos e contexto).
+import { fraseJaSabemos, montarJaSabemos, temJaSabemos, type SituacaoAtual } from './jaSabemos.ts';
 export type PessoaOrg = { id?: string; nome: string | null; cargo?: string | null };
 export type Casamento =
   | { tipo: 'exata' | 'primeiro_nome' | 'aproximado'; pessoa: PessoaOrg }
@@ -84,16 +85,24 @@ export function avisosContatos(body: { contato_nome?: unknown; decisores?: unkno
   return avisos;
 }
 
-type ParadaCtx = { id: string; visitada?: boolean | null; organizacao_id?: string | null; organizacao?: { nome?: string | null; nome_fantasia?: string | null; pessoas?: PessoaOrg[] | null } | null };
-export function contatosParadas(paradas: ParadaCtx[]) {
+type ParadaCtx = { id: string; visitada?: boolean | null; organizacao_id?: string | null; organizacao?: { nome?: string | null; nome_fantasia?: string | null; pessoas?: PessoaContato[] | null } | null };
+/** Organizações das paradas ainda não informadas (para carregar o "já sabemos" antes). */
+export const orgsParadasPendentes = (paradas: ParadaCtx[]) =>
+  (paradas ?? []).filter(p => p.visitada == null && p.organizacao_id && p.organizacao).map(p => p.organizacao_id as string);
+export function contatosParadas(paradas: ParadaCtx[], situacoes?: Map<string, SituacaoAtual>) {
   return (paradas ?? [])
     .filter(p => p.visitada == null && p.organizacao_id && p.organizacao)
-    .map(p => ({
-      parada_id: p.id,
-      empresa: p.organizacao?.nome_fantasia || p.organizacao?.nome || '',
-      contatos: (p.organizacao?.pessoas ?? []).filter(valido).slice(0, 8).map(x => ({ nome: x.nome, cargo: x.cargo ?? null })),
-    }))
-    .filter(x => x.contatos.length);
+    .map(p => {
+      const empresa = p.organizacao?.nome_fantasia || p.organizacao?.nome || '';
+      const base = {
+        parada_id: p.id, empresa,
+        contatos: (p.organizacao?.pessoas ?? []).filter(valido).slice(0, 8).map(x => ({ nome: x.nome, cargo: x.cargo ?? null })),
+      };
+      if (!situacoes) return base;
+      const ja_sabemos = montarJaSabemos(situacoes.get(p.organizacao_id as string), p.organizacao?.pessoas);
+      return temJaSabemos(ja_sabemos) ? { ...base, ja_sabemos, ja_sabemos_frase: fraseJaSabemos(ja_sabemos, empresa) } : base;
+    })
+    .filter(x => x.contatos.length || 'ja_sabemos' in x);
 }
 
 export const primeiroNome = (nome: string | null | undefined) => {

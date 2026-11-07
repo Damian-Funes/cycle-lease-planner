@@ -1,6 +1,8 @@
 import { z } from 'npm:zod@3';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { montarVariaveis } from '../_shared/variaveisLigacao.ts';
+import { carregarSituacoes } from '../_shared/jaSabemos.ts';
+import { orgsParadasPendentes } from '../_shared/contatosOrg.ts';
 import { admins, check, contexto, corsHeaders, dbAdmin, enviarContato, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
 import { DAMIAN_ID, janelaCron, motivoNaoDiscar } from '../_shared/juliaViagemRegras.ts';
 import { configurarElevenLabs, erroElevenLabs } from './elevenlabs.ts';
@@ -61,10 +63,13 @@ export async function handler(req: Request) {
         if (!/^\+55[1-9]\d{9,10}$/.test(perfil.celular ?? '')) throw new Error('Celular do destinatário ausente ou inválido.');
         const config = configurarElevenLabs({ key: Deno.env.get('ELEVENLABS_API_KEY'), agent: Deno.env.get('ELEVENLABS_AGENT_ID_VIAGEM'), phone: Deno.env.get('ELEVENLABS_PHONE_NUMBER_ID'), telefonia: Deno.env.get('ELEVENLABS_TELEFONIA') });
         const { key, agent, phone } = config;
-        check(await db.from('ligacoes_viagem').update({ telefone: perfil.celular }).eq('id', l.id));
+        const [, situacoes] = await Promise.all([
+          db.from('ligacoes_viagem').update({ telefone: perfil.celular }).eq('id', l.id).then(check),
+          carregarSituacoes(db, orgsParadasPendentes(c.rota.paradas)),
+        ]);
         const res = await fetch(config.endpoint, { method: 'POST', headers: { 'xi-api-key': key, 'Content-Type': 'application/json' }, body: JSON.stringify({
           agent_id: agent, agent_phone_number_id: phone, to_number: perfil.celular,
-          conversation_initiation_client_data: { dynamic_variables: montarVariaveis({ rota: c.rota, perfilNome: c.perfil.nome, vendedorId: l.vendedor_id, rotaId: l.rota_id, ligacaoId: l.id, data, pendencias: c.pendencias, teste: !!l.teste, origem: l.origem }) },
+          conversation_initiation_client_data: { dynamic_variables: montarVariaveis({ rota: c.rota, perfilNome: c.perfil.nome, vendedorId: l.vendedor_id, rotaId: l.rota_id, ligacaoId: l.id, data, pendencias: c.pendencias, teste: !!l.teste, origem: l.origem, situacoes }) },
         }) });
         if (!res.ok) throw new Error(erroElevenLabs(res.status, await res.text(), [key, agent, phone, perfil.celular ?? '', Deno.env.get('ELEVENLABS_AGENT_ID_VIAGEM') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '', Deno.env.get('JULIA_TOOL_SECRET') ?? '', Deno.env.get('JULIA_WEBHOOK_SECRET') ?? '', Deno.env.get('JULIA_CRON_SECRET') ?? '']));
         const result = await res.json();

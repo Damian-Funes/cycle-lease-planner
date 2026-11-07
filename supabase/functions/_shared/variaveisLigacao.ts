@@ -1,6 +1,7 @@
 // Variáveis dinâmicas da Júlia de viagem: uma única fonte para ligação feita (julia-viagem-ligar)
 // e recebida (julia-viagem-entrada), para as duas nunca divergirem.
 import { contatosParadas, primeiroNome } from './contatosOrg.ts';
+import type { SituacaoAtual } from './jaSabemos.ts';
 import { fraseJaRegistradas, jaRegistradasHoje } from './jaRegistradas.ts';
 
 export const CHAVES_VARIAVEIS = ['vendedor_nome','vendedor_id','rota_id','rota_nome','data_hoje','noite','ultimo_dia','ligacao_id','pendencias','visitadas_hoje','ja_registradas_hoje','ja_registradas_hoje_frase','contatos_paradas','teste','origem','permitido'] as const;
@@ -9,7 +10,7 @@ export type Variaveis = Record<(typeof CHAVES_VARIAVEIS)[number], string | numbe
 // deno-lint-ignore no-explicit-any
 type Rota = { nome?: string | null; data_fim: string; paradas: any[] };
 
-export function montarVariaveis(a: { rota: Rota; perfilNome: string | null; vendedorId: string; rotaId: string; ligacaoId: string; data: string; pendencias: unknown[]; teste: boolean; origem: string; permitido?: string }): Variaveis {
+export function montarVariaveis(a: { rota: Rota; perfilNome: string | null; vendedorId: string; rotaId: string; ligacaoId: string; data: string; pendencias: unknown[]; teste: boolean; origem: string; permitido?: string; situacoes?: Map<string, SituacaoAtual> }): Variaveis {
   const ja = jaRegistradasHoje(a.rota.paradas, a.data);
   return {
     vendedor_nome: primeiroNome(a.perfilNome), vendedor_id: a.vendedorId, rota_id: a.rotaId,
@@ -17,7 +18,7 @@ export function montarVariaveis(a: { rota: Rota; perfilNome: string | null; vend
     ultimo_dia: a.data === a.rota.data_fim ? 'sim' : 'não', ligacao_id: a.ligacaoId, pendencias: JSON.stringify(a.pendencias),
     visitadas_hoje: a.rota.paradas.filter((p: { dia: string; visitada: boolean | null }) => p.dia === a.data && p.visitada != null).length,
     ja_registradas_hoje: JSON.stringify(ja), ja_registradas_hoje_frase: fraseJaRegistradas(ja) || 'Nada registrado hoje ainda.',
-    contatos_paradas: JSON.stringify(contatosParadas(a.rota.paradas)), teste: a.teste ? 'sim' : 'não', origem: a.origem, permitido: a.permitido ?? 'sim',
+    contatos_paradas: JSON.stringify(contatosParadas(a.rota.paradas, a.situacoes ?? new Map())), teste: a.teste ? 'sim' : 'não', origem: a.origem, permitido: a.permitido ?? 'sim',
   };
 }
 
