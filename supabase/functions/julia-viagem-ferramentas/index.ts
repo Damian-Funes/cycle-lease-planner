@@ -162,7 +162,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    const orgIds = r?.organizacao_id ? [r.organizacao_id] : [];
    const [rotaNova, porOrg, situacoes] = await Promise.all([recarregar(), pessoasDasOrgs(orgIds), carregarSituacoes(db, orgIds)]);
    const contatos = contatosOrganizacao(porOrg.get(r?.organizacao_id));
-   const ja_sabemos = montarJaSabemos(situacoes.get(r?.organizacao_id), porOrg.get(r?.organizacao_id));
+   const ja_sabemos = montarJaSabemos(situacoes.get(r?.organizacao_id ?? ''), porOrg.get(r?.organizacao_id));
    const mensagem = [mensagemVinculo(r, !!body.criar?.matriz_id), fraseContatos(contatos), fraseJaSabemos(ja_sabemos)].filter(Boolean).join(' ');
    return json({ ok: true, salvo: true, empresa: r?.nome, mensagem, avisos, organizacao_id: r?.organizacao_id, contatos, ja_sabemos, pendencias: pendencias(rotaNova) });
   }
