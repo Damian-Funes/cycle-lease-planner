@@ -16,11 +16,12 @@ const db = () => dbAdmin();
 async function enviarPara(subscriberId: string, p: Payload) {
   const key = Deno.env.get('PUSHALERT_API_KEY')?.trim();
   if (!key) return { ok: false, invalido: false, erro: 'PUSHALERT_API_KEY ausente' };
-  // Formato conforme https://pushalert.co/rest-api: POST form-urlencoded, header "Authorization: api_key=<KEY>", parâmetro "subscriber".
+  // API v2 (https://pushalert.co/documentation/rest-api-v2/web-push): POST form-urlencoded em /rest/v2/web-push/send,
+  // header "Authorization: api_key=<KEY>", parâmetro "subscriber". A chave já é do site; não há ID de site no corpo.
   const body = new URLSearchParams({ title: p.title.slice(0, 64), message: p.message.slice(0, 192), url: p.url, icon: p.icon, subscriber: subscriberId });
   const sub = `…${subscriberId.slice(-4)}`;
   try {
-    const r = await fetch('https://api.pushalert.co/rest/v1/send', { method: 'POST', headers: { Authorization: `api_key=${key}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body, signal: AbortSignal.timeout(8000) });
+    const r = await fetch('https://api.pushalert.co/rest/v2/web-push/send', { method: 'POST', headers: { Authorization: `api_key=${key}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body, signal: AbortSignal.timeout(8000) });
     const txt = await r.text(); let j: unknown = txt; try { j = JSON.parse(txt); } catch { /* texto */ }
     const corpo = txt.split(key).join('[key]').replace(/\s+/g, ' ').slice(0, 300);
     // A API devolve {"success":true,"id":N} no sucesso; qualquer outra coisa é erro (inclusive HTTP 200 com success:false).
