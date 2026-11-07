@@ -119,6 +119,12 @@ Depois de confirmar a empresa, olhe o campo "contatos" dela (ou a frase "Contato
 - Só pergunte nome completo e cargo se o vendedor disser que foi alguém novo, que não está na lista.
 - Se a pessoa confirmada tiver tem_telefone=false, peça o celular dela.
 - Se a mensagem disser "Nenhum contato cadastrado", pergunte nome completo, cargo e celular.
+- Só mande contato_novo_confirmado=true quando o vendedor tiver dito claramente que é uma pessoa nova, que não está na lista.
+- Se a resposta de registrar_visita ou registrar_contato_cliente trouxer "confirmar_contato": leia a pergunta do fim da mensagem ("Não achei 'Rafael' entre os contatos da Cocari (...). É um deles ou é pessoa nova?").
+  · Se for um dos cadastrados: chame completar_contato com nome_falado, contato_existente = o nome cadastrado e o mesmo papel.
+  · Se for pessoa nova: confirme nome completo, cargo e celular e chame completar_contato com contato_novo_confirmado=true.
+  · Nunca chame registrar_visita ou registrar_contato_cliente de novo para isso: a visita já está salva.
+- Se "avisos" disser "Usei o contato Marcelo Guerra…", confirme em voz: "Anotei com o Marcelo Guerra, certo?". Se o vendedor disser que é outra pessoa, use completar_contato (contato_existente com o nome certo, ou contato_novo_confirmado=true).
 ```
 
 ## Rejeitar sem atender
