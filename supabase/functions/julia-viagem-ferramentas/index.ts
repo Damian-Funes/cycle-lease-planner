@@ -8,7 +8,8 @@ import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
-import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
+import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, orgsParadasPendentes, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
+import { carregarSituacoes, fraseJaSabemos, montarJaSabemos } from '../_shared/jaSabemos.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
@@ -122,10 +123,10 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   // Uma organização incompleta por ligação, priorizada pela proximidade da viagem (falha aqui nunca derruba a ligação).
   const orgIncompleta = async (): Promise<OrgIncompleta | null> => (!orgPri || orgPri.error) ? null : ((orgPri.data ?? [])[0] as OrgIncompleta | undefined) ?? null;
   if (body.acao === 'listar_pendentes') {
-   const oi = await orgIncompleta();
+   const [oi, situacoes] = await Promise.all([orgIncompleta(), carregarSituacoes(db, orgsParadasPendentes(c.rota.paradas))]); t.marcar('ja_sabemos');
    const ja = jaRegistradasHoje(c.rota.paradas, data);
    const frase = fraseJaRegistradas(ja);
-   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja, contatos_paradas: contatosParadas(c.rota.paradas) });
+   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja, contatos_paradas: contatosParadas(c.rota.paradas, situacoes) });
   }
   if (body.acao === 'listar_organizacoes_incompletas') {
    const oi = await orgIncompleta();
@@ -146,9 +147,11 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   if (body.acao === 'buscar_organizacao') {
    const opcoes = check(await db.rpc('julia_buscar_organizacao',{ p_ligacao: l.id, p_texto: body.texto, p_cidade: body.cidade ?? null, p_uf: body.uf ?? null })) ?? []; t.marcar('rpc_buscar');
    const base = (opcoes as { id: string; nome: string; cidade: string | null; uf: string | null; matriz_id: string | null; matriz_nome: string | null }[]).map(o => ({ id: o.id, nome: o.nome, cidade: o.cidade, uf: o.uf, matriz: o.matriz_nome, matriz_id: o.matriz_id }));
-   const porOrg = await pessoasDasOrgs(base.map(o => o.id)); t.marcar('pessoas_busca');
-   const lista = base.map(o => ({ ...o, contatos: contatosOrganizacao(porOrg.get(o.id)) }));
-   const frases = lista.map(o => fraseContatos(o.contatos, lista.length > 1 ? o.nome : undefined));
+   const ids = base.map(o => o.id);
+   const [porOrg, situacoes] = await Promise.all([pessoasDasOrgs(ids), carregarSituacoes(db, ids)]); t.marcar('pessoas_busca');
+   const varias = base.length > 1;
+   const lista = base.map(o => ({ ...o, contatos: contatosOrganizacao(porOrg.get(o.id)), ja_sabemos: montarJaSabemos(situacoes.get(o.id), porOrg.get(o.id)) }));
+   const frases = lista.flatMap(o => [fraseContatos(o.contatos, varias ? o.nome : undefined), fraseJaSabemos(o.ja_sabemos, varias ? o.nome : undefined)]).filter(Boolean);
    return json({ ok: true, salvo: true, mensagem: [mensagemBusca(base), ...frases].join(' '), avisos, organizacoes: lista });
   }
   if (body.acao === 'vincular_organizacao') {
@@ -156,9 +159,12 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    const p = (c.rota.paradas ?? []).find((x: { id: string }) => x.id === body.parada_id);
    if (!p) return recusar('Essa parada não pertence à viagem.');
    t.marcar('pre_vincular'); const r = check(await db.rpc('julia_vincular_organizacao',{ p_ligacao: l.id, p_parada: body.parada_id, p_organizacao: body.organizacao_id ?? null, p_criar: body.criar ?? null }));
-   const [rotaNova, porOrg] = await Promise.all([recarregar(), pessoasDasOrgs(r?.organizacao_id ? [r.organizacao_id] : [])]);
+   const orgIds = r?.organizacao_id ? [r.organizacao_id] : [];
+   const [rotaNova, porOrg, situacoes] = await Promise.all([recarregar(), pessoasDasOrgs(orgIds), carregarSituacoes(db, orgIds)]);
    const contatos = contatosOrganizacao(porOrg.get(r?.organizacao_id));
-   return json({ ok: true, salvo: true, empresa: r?.nome, mensagem: `${mensagemVinculo(r, !!body.criar?.matriz_id)} ${fraseContatos(contatos)}`, avisos, organizacao_id: r?.organizacao_id, contatos, pendencias: pendencias(rotaNova) });
+   const ja_sabemos = montarJaSabemos(situacoes.get(r?.organizacao_id), porOrg.get(r?.organizacao_id));
+   const mensagem = [mensagemVinculo(r, !!body.criar?.matriz_id), fraseContatos(contatos), fraseJaSabemos(ja_sabemos)].filter(Boolean).join(' ');
+   return json({ ok: true, salvo: true, empresa: r?.nome, mensagem, avisos, organizacao_id: r?.organizacao_id, contatos, ja_sabemos, pendencias: pendencias(rotaNova) });
   }
   if (body.acao === 'agendar_retorno') {
    const quando = horarioRetorno(data,body.horario,new Date()); if (!quando) return recusar('Confira o campo horário: escolha um horário futuro de hoje até 22h.');
