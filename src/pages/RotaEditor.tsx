@@ -779,14 +779,14 @@ export default function RotaEditor() {
 
       <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(380px,45%)_1fr]">
         <section className={`${vistaMobile === "lista" ? "flex" : "hidden"} lg:flex flex-col min-h-0 border-r bg-background/60`}>
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+          <div className="shrink-0 max-h-[45%] overflow-y-auto p-3 pb-2 space-y-2 border-b">
             {rota.status === 'reprovada' && <div className="border border-destructive bg-destructive/10 text-destructive p-2 rounded-md text-sm">Reprovada: {rota.motivo_reprovacao}</div>}
             {rota.status === 'aguardando_aprovacao' && <div className="border p-2 rounded-md flex items-center justify-between gap-2 text-sm"><span>Aguardando aprovação</span><Button size="sm" variant="outline" disabled={busy} onClick={() => mudarStatus('rascunho')}>Voltar para rascunho</Button></div>}
             {rota.status === 'aprovada' && !prestacao && <p className="text-sm text-primary">Viagem aprovada. Alterar o plano exigirá nova aprovação.</p>}
             {(rota.status === 'aprovada' || rota.status === 'concluida') && <div className="flex flex-wrap gap-2">{prestacao && rota.vendedor_id === user?.id && <Button size="sm" variant="outline" onClick={() => navigate(`/viagens/${id}/hoje`)}>Viagem de hoje (celular)</Button>}<Button size="sm" variant="outline" onClick={() => navigate(`/viagens/${id}/acompanhar`)}>Acompanhar · diário e gastos</Button></div>}
 
             <Card className="p-3 space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                 <div>
                   <Label htmlFor="rota-inicio" className="text-xs">Início</Label>
                   <Input id="rota-inicio" type="date" value={data} disabled={!planejamento || busy} onChange={(e) => { setData(e.target.value); if (!dataFim || dataFim < e.target.value) setDataFim(e.target.value); }} />
@@ -814,7 +814,8 @@ export default function RotaEditor() {
               </details>
             </Card>
 
-            <div className="sticky -top-3 z-10 bg-background/95 backdrop-blur border rounded-md p-1 grid grid-cols-3 gap-1" role="tablist" aria-label="Seções da rota">
+            <div className="flex items-center gap-2">
+            <div className="flex-1 bg-background border rounded-md p-1 grid grid-cols-3 gap-1" role="tablist" aria-label="Seções da rota">
               {abas.map((t) => (
                 <button key={t.k} role="tab" aria-selected={aba === t.k} onClick={() => setAba(t.k)}
                   className={`text-xs sm:text-sm py-1.5 rounded ${aba === t.k ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted"}`}>
@@ -822,6 +823,11 @@ export default function RotaEditor() {
                 </button>
               ))}
             </div>
+            {planejamento && aba === "paradas" && <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar</Button>}
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-[220px] overflow-y-auto p-3 bg-muted/30" aria-label="Lista da rota">
             <div hidden={aba !== "paradas"}>{listaParadas}</div>
             <div hidden={aba !== "sugestoes"}>{painelSugestoes}</div>
             <div hidden={aba !== "custo"}>{painelCusto}</div>
