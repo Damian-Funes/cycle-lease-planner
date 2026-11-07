@@ -1,5 +1,5 @@
 import { assertEquals } from 'jsr:@std/assert';
-import { avisosContatos, casarContato, contatosOrganizacao, contatosParadas, edicaoAte1, fraseContatos, primeiroNome } from './contatosOrg.ts';
+import { avisosContatos, casarContato, contatosOrganizacao, contatosParadas, edicaoAte1, fraseContatos, primeiroNome, respostaContatos } from './contatosOrg.ts';
 
 const cocari = [
   { id: 'm', nome: 'Marcelo Guerra', cargo: 'Gerente UBS e TSI' },
@@ -87,4 +87,33 @@ Deno.test('contatos da organização para buscar/vincular', () => {
   assertEquals(fraseContatos(c), 'Contatos cadastrados: Isaias Rodigues (Coordenador de UBS / TSi), Marcelo Guerra (Gerente UBS e TSI), Gilberto (Diretor).');
   assertEquals(fraseContatos([], 'Cocari'), 'Nenhum contato cadastrado na Cocari.');
   assertEquals(contatosOrganizacao(Array.from({ length: 12 }, (_, i) => ({ nome: `Pessoa ${i}` }))).length, 8);
+});
+
+Deno.test('trava: nome sem casamento pede confirmação com os contatos da empresa', () => {
+  const r = respostaContatos([{ nome_falado: 'Rafael', papel: 'contato', tipo: 'pendente' }], cocariReal, 'Cocari');
+  assertEquals(r.pergunta, 'Não achei "Rafael" entre os contatos da Cocari (Isaias Rodigues, Marcelo Guerra, Gilberto). É um deles ou é pessoa nova?');
+  assertEquals(r.confirmar_contato, { nome_falado: 'Rafael', papel: 'contato', motivo: 'nao_encontrado', contatos_existentes: [
+    { nome: 'Isaias Rodigues', cargo: 'Coordenador de UBS / TSi' }, { nome: 'Marcelo Guerra', cargo: 'Gerente UBS e TSI' }, { nome: 'Gilberto', cargo: 'Diretor' }] });
+  assertEquals(r.avisos, [r.pergunta]);
+});
+
+Deno.test('aproximado avisa qual pessoa foi usada e não pede confirmação de cadastro', () => {
+  const r = respostaContatos([{ nome_falado: 'Marcello', tipo: 'aproximado', pessoa_nome: 'Marcelo Guerra' }, { nome_falado: 'Gilberto', papel: 'decisor', tipo: 'exata', pessoa_nome: 'Gilberto' }], cocariReal, 'Cocari');
+  assertEquals(r.avisos, ['Usei o contato Marcelo Guerra para "Marcello"; confirme com o vendedor.']);
+  assertEquals(r.confirmar_contato, null);
+  assertEquals(r.pergunta, '');
+});
+
+Deno.test('ambíguo pede para escolher entre as candidatas; mesmo nome em contato e decisor aparece uma vez', () => {
+  const ps = [{ nome: 'Marcelo Guerra', cargo: 'Gerente' }, { nome: 'Marcelo Souza', cargo: null }];
+  const r = respostaContatos([{ nome_falado: 'Marcelo', tipo: 'ambigua' }, { nome_falado: 'Marcelo', papel: 'decisor', tipo: 'ambigua' }], ps, 'Cocari');
+  assertEquals(r.avisos.length, 1);
+  assertEquals(r.confirmar_contato?.motivo, 'ambiguo');
+  assertEquals(r.confirmar_contato?.contatos_existentes.map(c => c.nome), ['Marcelo Guerra', 'Marcelo Souza']);
+});
+
+Deno.test('empresa sem contatos: pede confirmação de pessoa nova', () => {
+  const r = respostaContatos([{ nome_falado: 'Rafael', tipo: 'pendente' }], [], 'Cocari');
+  assertEquals(r.pergunta, 'A Cocari não tem contatos cadastrados; não cadastrei "Rafael". Confirme que é pessoa nova.');
+  assertEquals(r.confirmar_contato?.contatos_existentes, []);
 });

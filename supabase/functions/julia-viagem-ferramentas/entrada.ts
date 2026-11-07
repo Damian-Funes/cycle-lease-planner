@@ -94,9 +94,10 @@ export function normalizarBody(body: unknown, hojeBRT = new Date().toLocaleDateS
   if (campo === 'objecoes' && Array.isArray(valor)) { valor = valor.filter(item => item != null && !vazioSemantico(item)); if (valor.length === 0) continue; }
   if (campo === 'sacos_safra') valor = sacosBR(valor);
   if (campo === 'proximo_passo_data' || campo === 'descobrir_ate' || campo === 'visita_em' || campo === 'data' || campo === 'nova_data') valor = dataProximoPasso(valor, hojeBRT);
-  if (campo === 'pessoa_telefone') valor = telefoneBR(valor);
+  if (campo === 'pessoa_telefone' || campo === 'contato_telefone') valor = telefoneBR(valor);
   if (campo === 'descartar_motivo') valor = motivoDescarteBR(valor);
-  if (campo === 'sugerir_visita') valor = booleanoBR(valor);
+  if (campo === 'sugerir_visita' || campo === 'contato_novo_confirmado') valor = booleanoBR(valor);
+  if (campo === 'papel' && typeof valor === 'string') valor = valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (valor === undefined) { avisos.push(`Campo ${campo.replace(/_/g, ' ')} descartado: valor inválido ou data passada.`); continue; }
   if (campo === 'valor' && typeof valor === 'string') valor = numeroBR(valor) ?? valor;
   if (campo === 'resolucao' && typeof valor === 'string') valor = resolucaoBR(valor);

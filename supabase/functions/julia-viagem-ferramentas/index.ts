@@ -2,13 +2,13 @@ import { z } from 'npm:zod@3';
 import { carregarRota, check, corsHeaders, dbAdmin, horarioBRT, json, secretIgual } from '../_shared/juliaViagem.ts';
 import { permitidoLigar } from '../_shared/juliaViagemRegras.ts';
 import { Cronometro } from './tempo.ts';
-import { ACOES_LIVRES, ACOES_SO_LIVRES, faltaResolver, mensagemAtividades, mensagemCompromisso, mensagemContato, mensagemResolver } from './livre.ts';
+import { ACOES_LIVRES, ACOES_SO_LIVRES, faltaCompletarContato, faltaResolver, mensagemAtividades, mensagemCompletarContato, mensagemCompromisso, mensagemContato, mensagemResolver } from './livre.ts';
 import { horarioRetorno } from '../_shared/juliaViagemRegras.ts';
 import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
-import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
+import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
@@ -36,7 +36,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
  try {
   const original = await req.json(); t.marcar('json');
   if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
-  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
+  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
   const { data } = horarioBRT();
   // ElevenLabs mal configurado (constante acao errada): corpo com dados de completar vira completar_organizacao.
   if (pareceCompletar(original)) {
@@ -80,9 +80,26 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   };
   if (body.acao === 'registrar_contato_cliente') {
    const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
-   const r = check(await db.rpc('julia_registrar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados })); t.marcar('rpc_contato');
-   if (r?.contato_ambiguo) avisos.push('Há mais de uma pessoa com esse nome na empresa: contato não vinculado; diga o nome completo.');
-   return json({ ok: true, salvo: true, ...r, mensagem: mensagemContato(r?.empresa, body.canal, r?.proximo_passo_atividade_id ? body.proximo_passo_data : null), avisos });
+   // Pessoas da empresa (só para a frase de confirmação) em paralelo com a gravação.
+   const [rr, porOrg] = await Promise.all([
+    db.rpc('julia_registrar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados }),
+    pessoasDasOrgs([organizacao_id]),
+   ]);
+   const { contatos_resolvidos, ...r } = check(rr) ?? {}; t.marcar('rpc_contato');
+   let mensagem = mensagemContato(r?.empresa, body.canal, r?.proximo_passo_atividade_id ? body.proximo_passo_data : null);
+   let confirmar_contato = null;
+   if (contatos_resolvidos !== undefined) {
+    const rc = respostaContatos(contatos_resolvidos, porOrg.get(organizacao_id) ?? [], r?.empresa || 'empresa');
+    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+   } else if (r?.contato_ambiguo) avisos.push('Há mais de uma pessoa com esse nome na empresa: contato não vinculado; diga o nome completo.');
+   return json({ ok: true, salvo: true, ...r, mensagem, avisos, confirmar_contato });
+  }
+  if (body.acao === 'completar_contato') {
+   const falta = faltaCompletarContato(body);
+   if (falta) return recusar(falta);
+   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
+   const { avisos: avisosSql, ...r } = check(await db.rpc('julia_completar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados })) ?? {}; t.marcar('rpc_completar_contato');
+   return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompletarContato(r), avisos: [...avisos, ...(avisosSql ?? [])] });
   }
   if (body.acao === 'listar_atividades_vencidas') {
    const lista = check(await db.rpc('julia_listar_atividades', { p_ligacao: l.id, p_limite: 10 })) ?? []; t.marcar('rpc_atividades');
@@ -162,10 +179,17 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
     return json({ ok: true, salvo: true, empresa, mensagem: 'Essa visita já estava salva — tudo certo.', avisos: novos.length ? [...avisos, `Campos novos não gravados: ${novos.join(', ')}; complete pelo CRM.`] : avisos, pendencias: pendencias(c.rota) });
    }
    if (estado === 'conflito') return recusar(p.dia === data ? `A ${empresa} já foi informada hoje de outro jeito; corrija pelo CRM.` : `A ${empresa} já foi informada em outro dia; corrija pelo CRM.`);
-   if (body.visitada) avisos.push(...avisosContatos(body as Record<string, unknown>, p.organizacao?.pessoas ?? []));
-   const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body })); t.marcar('rpc_registrar');
+   const existentes = p.organizacao?.pessoas ?? [];
+   const { contatos_resolvidos, ...result } = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body })) ?? {}; t.marcar('rpc_registrar');
    if (body.visitada && (body as Record<string, unknown>).proximo_passo && body.proximo_passo_data && !result?.atividade_id) avisos.push(p.organizacao_id ? 'Próximo passo salvo, mas a atividade não foi criada; confira no CRM.' : 'Próximo passo salvo sem atividade: a parada não tem empresa vinculada.');
-   return json({ ...result, salvo: true, empresa, mensagem: mensagemVisita(empresa,body.visitada,result?.atividade_id,relato.proximo_passo_data as string), avisos, pendencias: pendencias(await recarregar()) });
+   let mensagem = mensagemVisita(empresa,body.visitada,result?.atividade_id,relato.proximo_passo_data as string);
+   let confirmar_contato = null;
+   // Banco com a trava (devolve contatos_resolvidos): fala o que ele decidiu. Antes da migração: aviso antigo de ambíguo.
+   if (contatos_resolvidos !== undefined) {
+    const rc = respostaContatos(contatos_resolvidos, existentes, empresa);
+    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+   } else if (body.visitada) avisos.push(...avisosContatos(body as Record<string, unknown>, existentes));
+   return json({ ...result, salvo: true, empresa, mensagem, avisos, confirmar_contato, pendencias: pendencias(await recarregar()) });
   }
   if(body.acao==='registrar_pernoite') {
    if(body.tipo!=='voltou_base' && (!body.cidade || !body.uf)) return recusar('Informe os campos cidade e UF.');
