@@ -8,7 +8,7 @@ import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
-import { avisosContatos, contatosParadas } from '../_shared/contatosOrg.ts';
+import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
@@ -69,6 +69,15 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   const papeis = (check(roles) ?? []).map((x: { role: string }) => x.role);
   if (!permitidoLigar(l.vendedor_id, papeis) && !papeis.includes('gerente_comercial')) return falha('Acesso não autorizado.',403);
   t.marcar('papeis+org');
+  // Pessoas das organizações já liberadas ao vendedor pela RPC (busca/vínculo): uma ida ao banco.
+  const pessoasDasOrgs = async (ids: string[]): Promise<Map<string | undefined, PessoaContato[]>> => {
+   const mapa = new Map<string | undefined, PessoaContato[]>();
+   if (!ids.length) return mapa;
+   const r = await db.from('pessoas').select('organizacao_id,nome,cargo,telefone,celular,e_decisor,created_at').in('organizacao_id', ids).order('created_at').limit(200);
+   if (r.error) { console.warn('julia-viagem-ferramentas pessoas_falhou', r.error.code); return mapa; }
+   for (const p of r.data ?? []) mapa.set(p.organizacao_id, [...(mapa.get(p.organizacao_id) ?? []), p]);
+   return mapa;
+  };
   if (body.acao === 'registrar_contato_cliente') {
    const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
    const r = check(await db.rpc('julia_registrar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados })); t.marcar('rpc_contato');
@@ -119,15 +128,20 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   }
   if (body.acao === 'buscar_organizacao') {
    const opcoes = check(await db.rpc('julia_buscar_organizacao',{ p_ligacao: l.id, p_texto: body.texto, p_cidade: body.cidade ?? null, p_uf: body.uf ?? null })) ?? []; t.marcar('rpc_buscar');
-   const lista = (opcoes as { id: string; nome: string; cidade: string | null; uf: string | null; matriz_id: string | null; matriz_nome: string | null }[]).map(o => ({ id: o.id, nome: o.nome, cidade: o.cidade, uf: o.uf, matriz: o.matriz_nome, matriz_id: o.matriz_id }));
-   return json({ ok: true, salvo: true, mensagem: mensagemBusca(lista), avisos, organizacoes: lista });
+   const base = (opcoes as { id: string; nome: string; cidade: string | null; uf: string | null; matriz_id: string | null; matriz_nome: string | null }[]).map(o => ({ id: o.id, nome: o.nome, cidade: o.cidade, uf: o.uf, matriz: o.matriz_nome, matriz_id: o.matriz_id }));
+   const porOrg = await pessoasDasOrgs(base.map(o => o.id)); t.marcar('pessoas_busca');
+   const lista = base.map(o => ({ ...o, contatos: contatosOrganizacao(porOrg.get(o.id)) }));
+   const frases = lista.map(o => fraseContatos(o.contatos, lista.length > 1 ? o.nome : undefined));
+   return json({ ok: true, salvo: true, mensagem: [mensagemBusca(base), ...frases].join(' '), avisos, organizacoes: lista });
   }
   if (body.acao === 'vincular_organizacao') {
    if (!!body.organizacao_id === !!body.criar) return recusar('Informe a empresa encontrada ou os dados para criar uma nova, não os dois.');
    const p = (c.rota.paradas ?? []).find((x: { id: string }) => x.id === body.parada_id);
    if (!p) return recusar('Essa parada não pertence à viagem.');
    t.marcar('pre_vincular'); const r = check(await db.rpc('julia_vincular_organizacao',{ p_ligacao: l.id, p_parada: body.parada_id, p_organizacao: body.organizacao_id ?? null, p_criar: body.criar ?? null }));
-   return json({ ok: true, salvo: true, empresa: r?.nome, mensagem: mensagemVinculo(r, !!body.criar?.matriz_id), avisos, organizacao_id: r?.organizacao_id, pendencias: pendencias(await recarregar()) });
+   const [rotaNova, porOrg] = await Promise.all([recarregar(), pessoasDasOrgs(r?.organizacao_id ? [r.organizacao_id] : [])]);
+   const contatos = contatosOrganizacao(porOrg.get(r?.organizacao_id));
+   return json({ ok: true, salvo: true, empresa: r?.nome, mensagem: `${mensagemVinculo(r, !!body.criar?.matriz_id)} ${fraseContatos(contatos)}`, avisos, organizacao_id: r?.organizacao_id, contatos, pendencias: pendencias(rotaNova) });
   }
   if (body.acao === 'agendar_retorno') {
    const quando = horarioRetorno(data,body.horario,new Date()); if (!quando) return recusar('Confira o campo horário: escolha um horário futuro de hoje até 22h.');
