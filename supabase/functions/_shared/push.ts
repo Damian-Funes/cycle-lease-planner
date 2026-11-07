@@ -78,8 +78,17 @@ export function montarResumoAdiados(qtd: number) {
 }
 
 /** Resposta do PushAlert que indica inscrito que não existe mais → marcar inativo. */
+// API v2 responde erros como {success:false, code:"<codigo>", msg:"..."}. Erros da conta/chave
+// (versão errada, chave inválida, sem permissão, limite) NUNCA desativam aparelhos.
+const ERRO_DA_CONTA = /version_mismatch|api_key|unauthori[sz]ed|forbidden|permission|rate_limit|too_many|quota|plan|website|site/i;
+const ERRO_DO_INSCRITO = /invalid[_ ]subscriber|subscriber[_ ].*(not[_ ]found|invalid|unsubscribed|expired|inactive)|unsubscribed|expired_subscription/i;
+
 export function inscritoInvalido(status: number, corpo: unknown): boolean {
-  const txt = typeof corpo === 'string' ? corpo : JSON.stringify(corpo ?? '');
-  if (status === 404 || status === 410) return true;
-  return /invalid subscriber|subscriber.*(not found|invalid|unsubscribed|expired)|unsubscribed/i.test(txt);
+  const obj = corpo && typeof corpo === 'object' ? (corpo as { code?: unknown; msg?: unknown; message?: unknown }) : null;
+  const codigo = obj && typeof obj.code === 'string' ? obj.code : '';
+  if (codigo && ERRO_DA_CONTA.test(codigo)) return false;
+  if (status === 401 || status === 403 || status === 429 || status >= 500) return false;
+  if (status === 410) return true;
+  const txt = obj ? [codigo, obj.msg, obj.message].filter((x) => typeof x === 'string').join(' ') : String(corpo ?? '');
+  return ERRO_DO_INSCRITO.test(txt);
 }
