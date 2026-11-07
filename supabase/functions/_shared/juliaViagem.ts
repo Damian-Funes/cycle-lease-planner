@@ -43,7 +43,7 @@ export async function secretIgualValor(recebido: string | null | undefined, espe
   return diferenca === 0;
 }
 export function check<T>(r: { data: T; error: { message: string } | null }): T { if (r.error) throw new Error(r.error.message); return r.data; }
-export const SELECT_ROTA = '*,paradas:rota_paradas(*,organizacao:organizacoes(nome,nome_fantasia,pessoas(id,nome,cargo))),pernoites:rota_pernoites(*),gastos:rota_gastos(*)';
+export const SELECT_ROTA = '*,paradas:rota_paradas(*,organizacao:organizacoes(nome,nome_fantasia,pessoas(id,nome,cargo,e_decisor))),pernoites:rota_pernoites(*),gastos:rota_gastos(*)';
 export async function carregarRota(db: ReturnType<typeof dbAdmin>, rotaId: string) {
   return check(await db.from('rotas').select(SELECT_ROTA).eq('id', rotaId).single());
 }
