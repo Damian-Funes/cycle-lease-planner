@@ -4,7 +4,7 @@ import { contatosParadas, primeiroNome } from './contatosOrg.ts';
 import type { SituacaoAtual } from './jaSabemos.ts';
 import { fraseJaRegistradas, jaRegistradasHoje } from './jaRegistradas.ts';
 
-export const CHAVES_VARIAVEIS = ['vendedor_nome','vendedor_id','rota_id','rota_nome','data_hoje','noite','ultimo_dia','ligacao_id','pendencias','visitadas_hoje','ja_registradas_hoje','ja_registradas_hoje_frase','contatos_paradas','teste','origem','permitido'] as const;
+export const CHAVES_VARIAVEIS = ['vendedor_nome','vendedor_id','rota_id','rota_nome','data_hoje','noite','ultimo_dia','ligacao_id','pendencias','visitadas_hoje','ja_registradas_hoje','ja_registradas_hoje_frase','contatos_paradas','teste','origem','permitido','eh_admin','vendedores','recusa_id'] as const;
 export type Variaveis = Record<(typeof CHAVES_VARIAVEIS)[number], string | number>;
 
 // deno-lint-ignore no-explicit-any
@@ -19,13 +19,14 @@ export function montarVariaveis(a: { rota: Rota; perfilNome: string | null; vend
     visitadas_hoje: a.rota.paradas.filter((p: { dia: string; visitada: boolean | null }) => p.dia === a.data && p.visitada != null).length,
     ja_registradas_hoje: JSON.stringify(ja), ja_registradas_hoje_frase: fraseJaRegistradas(ja) || 'Nada registrado hoje ainda.',
     contatos_paradas: JSON.stringify(contatosParadas(a.rota.paradas, a.situacoes ?? new Map())), teste: a.teste ? 'sim' : 'não', origem: a.origem, permitido: a.permitido ?? 'sim',
+    eh_admin: 'não', vendedores: '', recusa_id: '',
   };
 }
 
 /** Variáveis vazias: a ElevenLabs exige todas as declaradas, mesmo quando a Júlia só se despede. */
 export function variaveisVazias(permitido: string, nome = ''): Variaveis {
   const v = Object.fromEntries(CHAVES_VARIAVEIS.map(k => [k, ''])) as Variaveis;
-  return { ...v, vendedor_nome: nome, pendencias: '[]', ja_registradas_hoje: '[]', contatos_paradas: '[]', visitadas_hoje: 0, teste: 'não', origem: 'entrada', permitido };
+  return { ...v, vendedor_nome: nome, pendencias: '[]', ja_registradas_hoje: '[]', contatos_paradas: '[]', visitadas_hoje: 0, teste: 'não', origem: 'entrada', permitido, eh_admin: 'não' };
 }
 
 /** Chave de comparação de celular BR: DDD + últimos 8 dígitos (ignora 55 e o 9º dígito). */
