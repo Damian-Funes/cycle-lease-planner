@@ -56,7 +56,10 @@ export default function AppHeader() {
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={async () => { await signOut(); navigate("/auth"); }} className="gap-2 text-destructive">
+        <DropdownMenuItem onClick={() => navigate("/notificacoes/ativar")} className="gap-2">
+          <BellRing className="w-4 h-4" /> Notificações no celular
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={async () => { await desativarAparelhoAtual().catch(() => undefined); await signOut(); navigate("/auth"); }} className="gap-2 text-destructive">
           <LogOut className="w-4 h-4" /> Sair
         </DropdownMenuItem>
       </DropdownMenuContent>

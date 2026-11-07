@@ -129,6 +129,7 @@ const App = () => (
               <Route path="/configuracoes/montagem" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesMontagem /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/formas-pagamento" element={<ProtectedRoute><RequireRole roles={["admin"]} mensagem="Esta página requer perfil de administrador."><ConfiguracoesFormasPagamento /></RequireRole></ProtectedRoute>} />
               <Route path="/configuracoes/notificacoes" element={<ProtectedRoute><ConfiguracoesNotificacoes /></ProtectedRoute>} />
+              <Route path="/notificacoes/ativar" element={<ProtectedRoute><AtivarNotificacoes /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
