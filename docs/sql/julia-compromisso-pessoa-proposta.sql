@@ -40,4 +40,4 @@ END $function$;
 UPDATE atividades a SET pessoa_id = c.pessoa_id
 FROM fn_casar_pessoa_org_detalhe('637139d1-dc65-4b3c-bd4f-d9f13c92d1d6','Rennan') c
 WHERE a.id = 'bf01fac0-588f-4e99-b7e8-ee1e6f03342a' AND a.pessoa_id IS NULL
-  AND NOT c.ambigua AND c.tipo = 'exato' AND c.pessoa_id = 'a4454e87-2800-4b6a-9c37-9887b23ae4b0';
+  AND NOT c.ambigua AND c.tipo = 'exata' AND c.pessoa_id = 'a4454e87-2800-4b6a-9c37-9887b23ae4b0';
