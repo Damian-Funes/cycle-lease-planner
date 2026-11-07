@@ -16,13 +16,22 @@ const db = () => dbAdmin();
 async function enviarPara(subscriberId: string, p: Payload) {
   const key = Deno.env.get('PUSHALERT_API_KEY')?.trim();
   if (!key) return { ok: false, invalido: false, erro: 'PUSHALERT_API_KEY ausente' };
-  const body = new URLSearchParams({ title: p.title, message: p.message, url: p.url, icon: p.icon, subscriber: subscriberId });
+  // Formato conforme https://pushalert.co/rest-api: POST form-urlencoded, header "Authorization: api_key=<KEY>", parâmetro "subscriber".
+  const body = new URLSearchParams({ title: p.title.slice(0, 64), message: p.message.slice(0, 192), url: p.url, icon: p.icon, subscriber: subscriberId });
+  const sub = `…${subscriberId.slice(-4)}`;
   try {
     const r = await fetch('https://api.pushalert.co/rest/v1/send', { method: 'POST', headers: { Authorization: `api_key=${key}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body, signal: AbortSignal.timeout(8000) });
     const txt = await r.text(); let j: unknown = txt; try { j = JSON.parse(txt); } catch { /* texto */ }
-    const ok = r.ok && (j as { success?: boolean })?.success !== false;
-    return { ok, invalido: !ok && inscritoInvalido(r.status, j), erro: ok ? null : `HTTP ${r.status}: ${String((j as { msg?: string })?.msg ?? '').slice(0, 120)}` };
-  } catch (e) { return { ok: false, invalido: false, erro: String((e as Error).message).slice(0, 120) }; }
+    const corpo = txt.split(key).join('[key]').replace(/\s+/g, ' ').slice(0, 300);
+    // A API devolve {"success":true,"id":N} no sucesso; qualquer outra coisa é erro (inclusive HTTP 200 com success:false).
+    const ok = r.ok && (j as { success?: boolean })?.success === true;
+    console.warn('push-enviar pushalert', JSON.stringify({ subscriber: sub, status: r.status, ok, corpo }));
+    return { ok, invalido: !ok && inscritoInvalido(r.status, j), erro: ok ? null : `HTTP ${r.status}: ${corpo || '(sem corpo)'}` };
+  } catch (e) {
+    const erro = String((e as Error).message).split(key).join('[key]').slice(0, 300);
+    console.warn('push-enviar pushalert falha', JSON.stringify({ subscriber: sub, erro }));
+    return { ok: false, invalido: false, erro };
+  }
 }
 
 /** Envia para todos os aparelhos ativos do usuário; desativa os inválidos. */
@@ -83,6 +92,7 @@ Deno.serve(async (req) => {
     if (p.data.acao === 'adiados') return json(await adiados());
     const uid = await usuario(req);
     const r = await enviarUsuario(uid, { title: 'Teste do CRM LS', message: 'Se você está vendo isto, as notificações estão funcionando.', url: 'https://crmls.com.br/notificacoes/ativar', icon: 'https://crmls.com.br/icons/icon-192.png' });
+    console.warn('push-enviar teste', JSON.stringify({ user: uid.slice(0, 8), aparelhos: r.aparelhos, enviados: r.enviados, erros: r.erros }));
     return json(r);
   } catch (e) {
     const m = String((e as Error).message);
