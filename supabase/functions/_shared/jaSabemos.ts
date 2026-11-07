@@ -1,7 +1,14 @@
 // "Já sabemos" da organização para a Júlia não perguntar de novo.
 // Fonte única: view public.organizacao_situacao_atual (último valor de cada campo) + pessoas com e_decisor.
 // `proximo_passo` só vem depois da SQL docs/sql/julia-ja-sabemos-proposta.sql (até lá, é omitido).
-import { nomesDecisoresComCargo, type PessoaContato } from './contatosOrg.ts';
+import type { PessoaContato } from './contatosOrg.ts';
+
+/** Mesmo padrão de public.fn_registrar_decisores: "Nome (cargo)". */
+export function nomesDecisoresComCargo(t: string | null | undefined): { nome: string; cargo: string | null }[] {
+  if (!t) return [];
+  const re = /(\p{Lu}\p{L}+(?: \p{Lu}\p{L}+)?)\s*\(([^()]{2,80})\)/gu;
+  return [...t.matchAll(re)].map(m => ({ nome: m[1].trim(), cargo: m[2].trim().replace(/^./, c => c.toLocaleUpperCase('pt-BR')) || null }));
+}
 
 type Valor = { valor?: unknown; data?: string | null; motivo?: string | null } | null | undefined;
 export type SituacaoAtual = {
