@@ -66,6 +66,16 @@ describe('inscrito inválido fica inativo', () => {
     expect(inscritoInvalido(200, { success: false, msg: 'Invalid subscriber' })).toBe(true);
     expect(inscritoInvalido(500, { success: false, msg: 'Server error' })).toBe(false);
   });
+  it('v2: erro de inscrito pelo código desativa', () => {
+    expect(inscritoInvalido(400, { success: false, code: 'invalid_subscriber', msg: 'x' })).toBe(true);
+    expect(inscritoInvalido(410, { success: false, code: 'gone' })).toBe(true);
+  });
+  it('v2: erro da chave/conta nunca desativa o aparelho', () => {
+    expect(inscritoInvalido(403, { success: false, code: 'version_mismatch', msg: 'This API key was created for API v2 and cannot be used with API v1.' })).toBe(false);
+    expect(inscritoInvalido(401, { success: false, code: 'invalid_api_key', msg: 'Invalid subscriber or key' })).toBe(false);
+    expect(inscritoInvalido(429, { success: false, code: 'rate_limit', msg: 'subscriber unsubscribed' })).toBe(false);
+    expect(inscritoInvalido(404, { success: false, msg: 'Not found' })).toBe(false);
+  });
 });
 
 describe('plataforma e domínio', () => {
