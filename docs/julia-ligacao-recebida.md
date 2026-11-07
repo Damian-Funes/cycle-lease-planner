@@ -9,8 +9,8 @@ SQL: `docs/sql/julia-ligacao-entrada-proposta.sql` — aplicar antes de ativar.
 | Número não é do comercial | `nao` | vazio | "Oi! Esse número é exclusivo da equipe comercial da LS. Até mais!" |
 | Já há ligação em andamento | `ocupado` | vazio | "…Já tem uma ligação minha em andamento com você…" |
 | Falha interna | `erro` | vazio | "Tive um problema aqui, tenta de novo em instantes." |
-| Vendedor com viagem hoje | `sim` | id da viagem | "Oi, <nome>! Aqui é a Júlia. Em que posso ajudar? Quer fechar o dia agora?" |
-| Vendedor sem viagem hoje | `livre` | vazio | "Oi, <nome>! … posso registrar um contato com cliente, resolver suas atividades, completar uma empresa ou marcar um compromisso." |
+| Vendedor com viagem hoje | `sim` | id da viagem | "Oi, <primeiro nome>! Em que posso te ajudar?" |
+| Vendedor sem viagem hoje | `livre` | vazio | "Oi, <primeiro nome>! Em que posso te ajudar?" |
 
 Com `sim`: mesmas variáveis da ligação feita + `origem="entrada"`. Com `livre`: `vendedor_nome`, `vendedor_id`, `ligacao_id`, `data_hoje`, `origem="entrada"`, demais vazias.
 Em qualquer caso de vendedor, retornos agendados ainda não discados são cancelados ("Vendedor ligou").
