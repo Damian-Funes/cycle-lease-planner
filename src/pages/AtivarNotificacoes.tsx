@@ -101,9 +101,17 @@ export default function AtivarNotificacoes() {
     setTestando(true);
     const { data, error } = await supabase.functions.invoke("push-enviar", { body: { acao: "teste" } });
     setTestando(false);
-    if (error) toast.error("Falha ao enviar o teste");
-    else if (!data?.aparelhos) toast.warning("Nenhum aparelho ativo para você.");
-    else toast.success(`Teste enviado para ${data.enviados} de ${data.aparelhos} aparelho(s).`);
+    if (error) {
+      let msg = error.message;
+      try { const b = await (error as { context?: Response }).context?.json(); if (b?.erro) msg = b.erro; } catch { /* sem corpo */ }
+      toast.error(`Falha ao enviar o teste: ${msg}`);
+      return;
+    }
+    const erros: string[] = Array.isArray(data?.erros) ? data.erros : [];
+    const resumo = `Enviados ${data?.enviados ?? 0} de ${data?.aparelhos ?? 0} aparelho(s).`;
+    if (!data?.aparelhos) toast.warning("Nenhum aparelho ativo para você.");
+    else if (erros.length) toast.error(resumo, { description: erros.join(" · ").slice(0, 400), duration: 15000 });
+    else toast.success(resumo);
   };
 
   const ativoAqui = !!aqui && !!minhas?.some((m) => m.ativo);
