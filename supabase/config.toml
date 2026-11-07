@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.julia-viagem-entrada]
 verify_jwt = false
+
+[functions.push-enviar]
+verify_jwt = false

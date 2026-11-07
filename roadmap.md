@@ -82,3 +82,8 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Faxina semanal preparada (desligada); placar com orgs completadas/descartadas; docs ElevenLabs.
 - [ ] Aplicar SQL — aguardando aprovação.
 - [ ] Localizar no mapa as ~45 orgs sem coordenadas (botão "Localizar organizações") — depois do SQL.
+
+# Push PushAlert
+- [x] sw.js, manifest, script por domínio, tela Ativar notificações, edge function push-enviar, testes.
+- [ ] Aplicar docs/sql/push-pushalert-proposta.sql (aguarda aprovação do CEO).
+- [ ] Segredo PUSHALERT_API_KEY (CEO cadastra).
