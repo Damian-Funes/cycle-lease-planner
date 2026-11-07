@@ -317,8 +317,10 @@ BEGIN
   IF v_falado IS NULL THEN RAISE EXCEPTION 'Informe o nome falado (nome_falado).'; END IF;
   IF v_papel NOT IN ('contato','decisor') THEN RAISE EXCEPTION 'Papel inválido: use contato ou decisor.'; END IF;
   v_decisor := v_papel = 'decisor' OR coalesce(p_dados->>'decisor','') = 'true';
-  IF (v_exist IS NOT NULL) = v_novo THEN
-    RAISE EXCEPTION 'Diga se é um contato já cadastrado (contato_existente) ou pessoa nova (contato_novo_confirmado), não os dois.'; END IF;
+  IF v_exist IS NOT NULL AND v_novo THEN
+    RAISE EXCEPTION 'Escolha um: contato já cadastrado (contato_existente) ou pessoa nova (contato_novo_confirmado), não os dois.'; END IF;
+  IF v_exist IS NULL AND NOT v_novo THEN
+    RAISE EXCEPTION 'Diga qual contato já cadastrado foi (contato_existente) ou confirme que é pessoa nova (contato_novo_confirmado=true).'; END IF;
   IF v_tel IS NOT NULL AND NOT fn_tel_valido(v_tel) THEN RAISE EXCEPTION 'Telefone incompleto: diga com DDD.'; END IF;
   v_dig := nullif(regexp_replace(coalesce(v_tel,''), '\D', '', 'g'), '');
 
