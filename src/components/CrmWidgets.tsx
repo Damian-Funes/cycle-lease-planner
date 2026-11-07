@@ -157,7 +157,7 @@ export default function CrmWidgets() {
       </Card>
 
       {/* 2) Atividades Hoje */}
-      <Card onClick={() => navigate("/atividades")} className="p-5 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all">
+      <Card onClick={() => navigate("/atividades?visao=calendario")} className="p-5 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all">
         <div className="text-xs text-muted-foreground flex items-center gap-1.5"><CheckSquare className="w-3.5 h-3.5" /> Atividades Hoje</div>
         <div className="text-2xl font-bold mt-1">{ativHoje.length}</div>
         <ul className="mt-2 space-y-1">
@@ -215,7 +215,7 @@ export default function CrmWidgets() {
       </Card>
 
       {/* 6) Próximas Atividades */}
-      <Card onClick={() => navigate("/atividades")} className="p-5 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all">
+      <Card onClick={() => navigate("/atividades?visao=calendario")} className="p-5 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all">
         <div className="text-xs text-muted-foreground flex items-center gap-1.5"><ListChecks className="w-3.5 h-3.5" /> Próximas Atividades</div>
         <ul className="mt-2 space-y-1.5">
           {proximas5.map(a => (

@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle, Play } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle, Play, MoreHorizontal } from "lucide-react";
 import { useSyncingAtividade } from "@/hooks/useGoogleIntegration";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
@@ -28,6 +28,7 @@ import AtividadesCalendar from "@/components/AtividadesCalendar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useResponsavelFilterOptions } from "@/hooks/useResponsavelFilterOptions";
 import { AcaoAtividadeDialog, BotoesAcaoAtividade, type AcaoAtividade } from "@/components/atividade/AcoesAtividade";
+import AtividadeDetalhe from "@/components/atividade/AtividadeDetalhe";
 import PlacarAtividades from "@/components/atividade/PlacarAtividades";
 import { empurrando } from "@/lib/atividadesAcoes";
 
@@ -90,7 +91,17 @@ export default function Atividades() {
   const [respSel, setRespSel] = useState<string>("all");
   const [periodo, setPeriodo] = useState<Periodo>(() => (new URLSearchParams(window.location.search).get("atrasadas") ? "atrasadas" : "tudo"));
   const [showConcluidas, setShowConcluidas] = useState(false);
-  const [view, setView] = useState<"lista" | "calendario" | "placar">("lista");
+  type Visao = "lista" | "calendario" | "placar";
+  const [view, setViewState] = useState<Visao>(() => {
+    const q = new URLSearchParams(window.location.search);
+    const v = q.get("visao");
+    if (v === "lista" || v === "calendario") return v;
+    if (q.get("atrasadas")) return "lista";
+    const salvo = localStorage.getItem("atividades:visao");
+    return salvo === "lista" || salvo === "calendario" ? salvo : "calendario";
+  });
+  const setView = (v: Visao) => { setViewState(v); if (v !== "placar") localStorage.setItem("atividades:visao", v); };
+  const [detalhe, setDetalhe] = useState<Atividade | null>(null);
 
   // Modais
   const [novoModal, setNovoModal] = useState(false);
@@ -172,7 +183,7 @@ export default function Atividades() {
   useEffect(() => {
     if (loading || !atividadeLink) return;
     const atividade = atividades.find(a => a.id === atividadeLink);
-    if (atividade) setEditAtiv(atividade);
+    if (atividade) setDetalhe(atividade);
     else toast.error('Atividade não encontrada ou sem acesso.');
     setSearchParams(params => { const next = new URLSearchParams(params); next.delete('atividade'); return next; }, { replace: true });
   }, [loading, atividadeLink, atividades, setSearchParams]);
@@ -264,8 +275,8 @@ export default function Atividades() {
     const orgName = opp ? orgs[opp.organizacao_id] : (a.organizacao_id ? orgs[a.organizacao_id] : null);
 
     return (
-      <div key={a.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40 border-b last:border-0">
-        <Checkbox checked={a.concluida} onCheckedChange={() => marcarConcluida(a)} />
+      <div key={a.id} onClick={() => setDetalhe(a)} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40 border-b last:border-0 cursor-pointer">
+        <span onClick={(e) => e.stopPropagation()}><Checkbox checked={a.concluida} onCheckedChange={() => marcarConcluida(a)} /></span>
         <span className="text-xs text-muted-foreground w-12 tabular-nums">{format(new Date(a.data_inicio), "HH:mm")}</span>
         <div className="rounded p-1.5" style={{ background: (tipo?.cor || "#888") + "22", color: tipo?.cor || "#666" }}>
           <Icon className="h-3.5 w-3.5" />
@@ -297,8 +308,8 @@ export default function Atividades() {
             )}
           </div>
           <div className="text-xs text-muted-foreground truncate flex flex-wrap gap-x-1">
-            {orgName && <Link to={a.oportunidade_id && opp ? `/organizacoes/${opp.organizacao_id}` : `/organizacoes/${a.organizacao_id}`} className="hover:underline">{orgName}</Link>}
-            {opp && a.oportunidade_id && <span>→ <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline">{opp.titulo}</Link></span>}
+            {orgName && <Link to={a.oportunidade_id && opp ? `/organizacoes/${opp.organizacao_id}` : `/organizacoes/${a.organizacao_id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>{orgName}</Link>}
+            {opp && a.oportunidade_id && <span>→ <Link to={`/crm/deal/${a.oportunidade_id}`} className="hover:underline" onClick={(e) => e.stopPropagation()}>{opp.titulo}</Link></span>}
             {a.pessoa_id && pessoasMap[a.pessoa_id] && (
               <span>{(orgName || opp) ? "· " : ""}<Link to={`/pessoas`} className="hover:underline">{pessoasMap[a.pessoa_id].nome}</Link></span>
             )}
@@ -306,8 +317,8 @@ export default function Atividades() {
         </div>
         <Avatar className="h-7 w-7"><AvatarFallback className="text-[10px]">{initials(prof?.nome || prof?.email)}</AvatarFallback></Avatar>
         {!a.concluida && <BotoesAcaoAtividade compacto onAcao={(tipo) => setAcao({ a, tipo })} />}
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditAtiv(a)}><Pencil className="h-3.5 w-3.5" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => excluir(a.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditAtiv(a); }}><Pencil className="h-3.5 w-3.5" /></Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={(e) => { e.stopPropagation(); excluir(a.id); }}><Trash2 className="h-3.5 w-3.5" /></Button>
       </div>
     );
   };
@@ -348,10 +359,16 @@ export default function Atividades() {
             </Tabs>
             <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
             {isAdmin && (
-              <Button size="sm" variant="outline" onClick={testarAssumirOrgs} disabled={testando}>
-                {testando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
-                Testar assumir orgs
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Ferramentas de admin" disabled={testando}>
+                    {testando ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={testarAssumirOrgs}><Play className="h-4 w-4 mr-2" />Testar aviso "assumir organizações"</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             <Button size="sm" onClick={() => setNovoModal(true)}><Plus className="h-4 w-4 mr-1" />Nova</Button>
             <AppHeader />
@@ -403,7 +420,8 @@ export default function Atividades() {
             <AtividadesCalendar
               atividades={filtradas}
               tipos={tipos}
-              onSelectAtividade={(a) => setEditAtiv(a as any)}
+              onSelectAtividade={(a) => setDetalhe(a as any)}
+              onConcluirRapido={(a) => setAcao({ a: a as any, tipo: "feito" })}
               onCreateAt={() => setNovoModal(true)}
             />
           ) : filtradas.length === 0 ? (
@@ -458,6 +476,26 @@ export default function Atividades() {
           )}
         </DialogContent>
       </Dialog>
+
+      {detalhe && (() => {
+        const opp = detalhe.oportunidade_id ? opps[detalhe.oportunidade_id] : null;
+        const orgId = detalhe.organizacao_id || opp?.organizacao_id || null;
+        const nomeDe = (uid: string | null) => { const p = profiles.find(x => x.user_id === uid); return p ? (p.nome || p.email) : null; };
+        return (
+          <AtividadeDetalhe
+            atividade={{ ...detalhe, organizacao_id: orgId }}
+            tipoNome={tipos.find(t => t.id === detalhe.tipo_id)?.nome}
+            responsavelNome={nomeDe(detalhe.responsavel_id)}
+            orgNome={orgId ? orgs[orgId] : null}
+            oppTitulo={opp?.titulo}
+            nomeDe={nomeDe}
+            onClose={() => setDetalhe(null)}
+            onAcao={(tipo) => { const a = detalhe; setDetalhe(null); setAcao({ a, tipo }); }}
+            onEditar={() => { const a = detalhe; setDetalhe(null); setEditAtiv(a); }}
+            onReabrir={() => { const a = detalhe; setDetalhe(null); marcarConcluida(a); }}
+          />
+        );
+      })()}
 
       {/* Concluir atividade + próximo passo */}
       <AcaoAtividadeDialog
