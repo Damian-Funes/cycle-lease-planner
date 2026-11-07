@@ -100,3 +100,44 @@ export const primeiroNome = (nome: string | null | undefined) => {
   const p = (nome ?? '').trim().split(/\s+/)[0] ?? '';
   return p ? p.charAt(0).toLocaleUpperCase('pt-BR') + p.slice(1).toLocaleLowerCase('pt-BR') : '';
 };
+
+// Resultado de public.fn_resolver_contato_org (campo contatos_resolvidos das RPCs da Júlia).
+export type Resolvido = {
+  nome_falado: string; papel?: 'contato' | 'decisor' | string; cargo_falado?: string | null;
+  tipo: 'exata' | 'primeiro_nome' | 'aproximado' | 'ambigua' | 'pendente' | 'criada' | string;
+  pessoa_nome?: string | null;
+};
+export type ConfirmarContato = { nome_falado: string; papel: string; motivo: 'nao_encontrado' | 'ambiguo'; contatos_existentes: { nome: string; cargo: string | null }[] };
+
+/** Avisos + pedido de confirmação a partir do que o banco decidiu (o banco é a trava; aqui só a fala). */
+export function respostaContatos(resolvidos: Resolvido[] | null | undefined, existentes: PessoaOrg[], empresa: string) {
+  const lista = existentes.filter(valido).slice(0, 8).map(p => ({ nome: (p.nome ?? '').trim(), cargo: p.cargo?.trim() || null }));
+  const nomes = lista.map(c => c.nome).join(', ');
+  const vistos = new Set<string>();
+  const avisos: string[] = [];
+  let confirmar: ConfirmarContato | null = null;
+  let pergunta = '';
+  for (const r of resolvidos ?? []) {
+    const chave = normalizarNome(r?.nome_falado);
+    if (!r || !chave || vistos.has(chave)) continue;
+    vistos.add(chave);
+    const papel = r.papel === 'decisor' ? 'decisor' : 'contato';
+    if (r.tipo === 'aproximado' && r.pessoa_nome) {
+      avisos.push(`Usei o contato ${r.pessoa_nome} para "${r.nome_falado}"; confirme com o vendedor.`);
+    } else if (r.tipo === 'criada') {
+      avisos.push(`Cadastrei ${r.nome_falado} como contato novo.`);
+    } else if (r.tipo === 'pendente' || r.tipo === 'ambigua') {
+      const ambiguo = r.tipo === 'ambigua';
+      const c = ambiguo ? casarContato(r.nome_falado, existentes) : null;
+      const candidatas = c?.tipo === 'ambigua' ? c.candidatas.map(p => ({ nome: (p.nome ?? '').trim(), cargo: p.cargo?.trim() || null })) : lista;
+      const frase = ambiguo
+        ? `"${r.nome_falado}" bate com mais de um contato da ${empresa} (${candidatas.map(x => x.nome).join(', ')}); não cadastrei. Qual deles foi?`
+        : nomes
+          ? `Não achei "${r.nome_falado}" entre os contatos da ${empresa} (${nomes}). É um deles ou é pessoa nova?`
+          : `A ${empresa} não tem contatos cadastrados; não cadastrei "${r.nome_falado}". Confirme que é pessoa nova.`;
+      avisos.push(frase);
+      if (!confirmar) { confirmar = { nome_falado: r.nome_falado, papel, motivo: ambiguo ? 'ambiguo' : 'nao_encontrado', contatos_existentes: candidatas }; pergunta = frase; }
+    }
+  }
+  return { avisos, confirmar_contato: confirmar, pergunta };
+}
