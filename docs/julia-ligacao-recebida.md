@@ -140,7 +140,7 @@ Depois de confirmar a empresa, leia "ja_sabemos" (ou a frase "Já sabemos: ...")
 ## Rejeitar sem atender
 Por enquanto a Júlia atende, fala uma frase e encerra (opção A). A resposta do webhook de iniciação não consegue recusar a chamada; recusar exigiria filtro no Twilio.
 
-## Gasto da Júlia e admin por voz (após `docs/sql/julia-gasto-admin-proposta.sql`)
+## Gasto da Júlia e admin por voz (`docs/sql/julia-gasto-admin-proposta.sql` aplicada em 07/11/2026; preços em branco — painel mostra só minutos até o CEO preencher)
 - Número de fora: a entrada grava a recusa (número mascarado, hash com sal `JULIA_TELEFONE_SAL`) e devolve `recusa_id`; o webhook completa duração e custo. Painel "Gasto da Júlia" em Configurações → Viagens; alerta no sininho acima dos limites.
 - Damian liga: modo livre como admin (`eh_admin=sim`, `vendedores` = primeiros nomes do comercial). Antes da SQL continua como teste.
 - Declarar no agente as variáveis `eh_admin`, `vendedores`, `recusa_id` (padrão vazio).
