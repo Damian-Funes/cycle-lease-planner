@@ -4636,6 +4636,7 @@ export type Database = {
           interesse: Json | null
           organizacao_id: string | null
           problema_principal: Json | null
+          proximo_passo: Json | null
           sacos_safra: Json | null
           ultima_visita: Json | null
         }
@@ -4646,6 +4647,7 @@ export type Database = {
           interesse?: never
           organizacao_id?: string | null
           problema_principal?: never
+          proximo_passo?: never
           sacos_safra?: never
           ultima_visita?: never
         }
@@ -4656,6 +4658,7 @@ export type Database = {
           interesse?: never
           organizacao_id?: string | null
           problema_principal?: never
+          proximo_passo?: never
           sacos_safra?: never
           ultima_visita?: never
         }
