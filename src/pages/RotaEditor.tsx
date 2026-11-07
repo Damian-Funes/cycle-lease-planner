@@ -249,6 +249,48 @@ export default function RotaEditor() {
   const infoRef = useRef<any>(null);
   const adicionarRef = useRef<(s: ClienteMapa, objetivo: string) => Promise<void>>();
 
+  // ---- Layout: abas, destaque e ligação mapa ↔ lista (só apresentação) ----
+  const [aba, setAba] = useState<"paradas" | "sugestoes" | "custo">("paradas");
+  const [vistaMobile, setVistaMobile] = useState<"lista" | "mapa">("lista");
+  const [destacadaId, setDestacadaId] = useState<string | null>(null);
+  const paradaRefs = useRef(new Map<string, HTMLElement>());
+  const paradaMarkersRef = useRef(new Map<string, any>());
+  const irParaParadaRef = useRef<(pid: string) => void>();
+  const destaqueTimer = useRef<number>();
+  const destacar = (pid: string) => {
+    setDestacadaId(pid);
+    window.clearTimeout(destaqueTimer.current);
+    destaqueTimer.current = window.setTimeout(() => setDestacadaId(null), 2000);
+  };
+  irParaParadaRef.current = (pid: string) => {
+    setAba("paradas");
+    setVistaMobile("lista");
+    destacar(pid);
+    window.setTimeout(() => paradaRefs.current.get(pid)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+  };
+  function focarNoMapa(p: RotaParada) {
+    const g = (window as any).google;
+    const map = mapInstanceRef.current;
+    const mk = paradaMarkersRef.current.get(p.id);
+    destacar(p.id);
+    if (!g || !map || !mk || !coordenadaValida(p.latitude, p.longitude)) { toast.info("Parada sem localização no mapa"); return; }
+    map.panTo({ lat: Number(p.latitude), lng: Number(p.longitude) });
+    map.setZoom(Math.max(map.getZoom() ?? 4, 11));
+    mk.setAnimation(g.maps.Animation.BOUNCE);
+    window.setTimeout(() => mk.setAnimation(null), 1400);
+  }
+  // Mapa redimensionado/mostrado (abas no celular): reenquadra para não ficar cinza
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const g = (window as any).google; const map = mapInstanceRef.current;
+      if (g && map && el.offsetWidth > 0) g.maps.event.trigger(map, "resize");
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mapaPronto]);
+
   // Busca única por abertura da tela
   useEffect(() => {
     const vend = rota?.vendedor_id;
@@ -322,7 +364,7 @@ export default function RotaEditor() {
           map, position: { lat: c.lat, lng: c.lng }, title: c.nome, zIndex: 5 - categoriaMapa(c.motivo),
           icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: cat.cor, fillOpacity: 0.9, strokeColor: "#ffffff", strokeWeight: 1 },
         });
-        m.addListener("click", () => abrirCard(c, m));
+        m.addListener("click", () => { abrirCard(c, m); setAba("sugestoes"); });
         sugMarkersRef.current.push(m);
         return;
       }
@@ -401,6 +443,7 @@ export default function RotaEditor() {
     if (!g || !mapInstanceRef.current) return;
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
+    paradaMarkersRef.current.clear();
 
     const valid = paradas.filter((p) => coordenadaValida(p.latitude, p.longitude));
 
@@ -436,6 +479,8 @@ export default function RotaEditor() {
         title: p.tipo === "pernoite" ? `Pernoite: ${p.hotel_nome}` : undefined,
         zIndex: 1001, label: { text: p.tipo === "pernoite" ? "H" : String(paradas.indexOf(p) + 1), color: "white", fontWeight: "bold" },
       });
+      marker.addListener("click", () => irParaParadaRef.current?.(p.id));
+      paradaMarkersRef.current.set(p.id, marker);
       markersRef.current.push(marker);
       bounds.extend(pos);
       path.push(pos);
