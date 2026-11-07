@@ -249,6 +249,48 @@ export default function RotaEditor() {
   const infoRef = useRef<any>(null);
   const adicionarRef = useRef<(s: ClienteMapa, objetivo: string) => Promise<void>>();
 
+  // ---- Layout: abas, destaque e ligação mapa ↔ lista (só apresentação) ----
+  const [aba, setAba] = useState<"paradas" | "sugestoes" | "custo">("paradas");
+  const [vistaMobile, setVistaMobile] = useState<"lista" | "mapa">("lista");
+  const [destacadaId, setDestacadaId] = useState<string | null>(null);
+  const paradaRefs = useRef(new Map<string, HTMLElement>());
+  const paradaMarkersRef = useRef(new Map<string, any>());
+  const irParaParadaRef = useRef<(pid: string) => void>();
+  const destaqueTimer = useRef<number>();
+  const destacar = (pid: string) => {
+    setDestacadaId(pid);
+    window.clearTimeout(destaqueTimer.current);
+    destaqueTimer.current = window.setTimeout(() => setDestacadaId(null), 2000);
+  };
+  irParaParadaRef.current = (pid: string) => {
+    setAba("paradas");
+    setVistaMobile("lista");
+    destacar(pid);
+    window.setTimeout(() => paradaRefs.current.get(pid)?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+  };
+  function focarNoMapa(p: RotaParada) {
+    const g = (window as any).google;
+    const map = mapInstanceRef.current;
+    const mk = paradaMarkersRef.current.get(p.id);
+    destacar(p.id);
+    if (!g || !map || !mk || !coordenadaValida(p.latitude, p.longitude)) { toast.info("Parada sem localização no mapa"); return; }
+    map.panTo({ lat: Number(p.latitude), lng: Number(p.longitude) });
+    map.setZoom(Math.max(map.getZoom() ?? 4, 11));
+    mk.setAnimation(g.maps.Animation.BOUNCE);
+    window.setTimeout(() => mk.setAnimation(null), 1400);
+  }
+  // Mapa redimensionado/mostrado (abas no celular): reenquadra para não ficar cinza
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const g = (window as any).google; const map = mapInstanceRef.current;
+      if (g && map && el.offsetWidth > 0) g.maps.event.trigger(map, "resize");
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mapaPronto]);
+
   // Busca única por abertura da tela
   useEffect(() => {
     const vend = rota?.vendedor_id;
@@ -322,7 +364,7 @@ export default function RotaEditor() {
           map, position: { lat: c.lat, lng: c.lng }, title: c.nome, zIndex: 5 - categoriaMapa(c.motivo),
           icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: cat.cor, fillOpacity: 0.9, strokeColor: "#ffffff", strokeWeight: 1 },
         });
-        m.addListener("click", () => abrirCard(c, m));
+        m.addListener("click", () => { abrirCard(c, m); setAba("sugestoes"); });
         sugMarkersRef.current.push(m);
         return;
       }
@@ -401,6 +443,7 @@ export default function RotaEditor() {
     if (!g || !mapInstanceRef.current) return;
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
+    paradaMarkersRef.current.clear();
 
     const valid = paradas.filter((p) => coordenadaValida(p.latitude, p.longitude));
 
@@ -436,6 +479,8 @@ export default function RotaEditor() {
         title: p.tipo === "pernoite" ? `Pernoite: ${p.hotel_nome}` : undefined,
         zIndex: 1001, label: { text: p.tipo === "pernoite" ? "H" : String(paradas.indexOf(p) + 1), color: "white", fontWeight: "bold" },
       });
+      marker.addListener("click", () => irParaParadaRef.current?.(p.id));
+      paradaMarkersRef.current.set(p.id, marker);
       markersRef.current.push(marker);
       bounds.extend(pos);
       path.push(pos);
@@ -582,183 +627,229 @@ export default function RotaEditor() {
     return <div className="min-h-screen flex flex-col gap-3 items-center justify-center text-muted-foreground"><p>{erroRota ? (erroRota as { message?: string }).message : carregandoRota ? 'Carregando...' : 'Rota não encontrada.'}</p><Button variant="outline" onClick={() => navigate('/rotas')}>Voltar para rotas</Button></div>;
   }
 
+  const numParadas = paradas.filter((p) => p.tipo !== "pernoite").length;
+  const kmResumo = calculo ? formatarKm(calculo.totalKm * 1000) : rota.km_total_estimado != null ? `${Number(rota.km_total_estimado).toFixed(0)} km` : null;
+  const podeEnviar = rota.status === 'rascunho' || rota.status === 'reprovada';
+  const podeConcluir = prestacao && paradasParaPrestar(paradas).length > 0 && paradasParaPrestar(paradas).every(paradaInformada);
+
+  const listaParadas = (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold text-sm">Paradas ({paradas.length})</h2>
+        {planejamento && <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>}
+      </div>
+      {planejamento && <p className="text-xs text-muted-foreground">Monte a lista de paradas do período. O dia de cada visita e onde dormiu são registrados durante a viagem.</p>}
+      {paradas.length === 0 && (
+        <Card className="p-6 text-center text-muted-foreground text-sm">
+          <MapPin className="w-6 h-6 mx-auto mb-2 opacity-40" />
+          Nenhuma parada. Adicione a primeira.
+        </Card>
+      )}
+      {paradas.map((p, idx) => (
+        <div key={p.id} className="space-y-2" ref={(el) => { if (el) paradaRefs.current.set(p.id, el); else paradaRefs.current.delete(p.id); }}>
+        <Card className={`p-3 transition-shadow ${p.tipo === "pernoite" ? "border-dashed bg-muted/40" : ""} ${destacadaId === p.id ? "ring-2 ring-primary" : ""}`}>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-0.5">
+            {planejamento && <><Button size="icon" variant="ghost" aria-label="Mover parada para cima" onClick={() => mover(p, -1)} disabled={busy || !podeMover(idx, -1)} className="h-6 w-6">▲</Button>
+            <Button size="icon" variant="ghost" aria-label="Mover parada para baixo" onClick={() => mover(p, 1)} disabled={busy || !podeMover(idx, 1)} className="h-6 w-6">▼</Button></>}
+          </div>
+          <button type="button" onClick={() => { focarNoMapa(p); }} aria-label={`Mostrar parada ${idx + 1} no mapa`} className="flex items-center gap-2 flex-1 min-w-0 text-left rounded-md hover:bg-muted/50 -m-1 p-1">
+          <div className="w-7 h-7 shrink-0 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+            {p.tipo === "pernoite" ? <Hotel className="w-3.5 h-3.5" /> : idx + 1}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium truncate">
+              {p.tipo === "pernoite" ? `Pernoite: ${p.hotel_nome ?? ""}` : (p.organizacao?.nome_fantasia || p.organizacao?.nome || '')}
+            </div>
+            {p.tipo === "pernoite" && p.valor_diaria_est != null && <div className="text-xs">Diária estimada: {formatBRL(Number(p.valor_diaria_est))}</div>}
+            <div className="text-sm font-medium truncate">
+              {p.cidade ?? "—"}{p.estado ? ` / ${p.estado}` : ""}
+            </div>
+            {trechoPorParada[p.id] && (
+              <div className="text-xs text-muted-foreground">+ {formatarKm(trechoPorParada[p.id].distanciaM)} · {formatarDuracao(trechoPorParada[p.id].duracaoS)} {trechoPorParada[p.id].desde}</div>
+            )}
+            <div className="text-xs text-muted-foreground">
+              <Badge variant={p.tipo === "prospeccao" ? "outline" : "secondary"} className="text-[10px]">
+                {p.tipo === "prospeccao" ? "Prospecção" : p.tipo === "pernoite" ? "Pernoite" : "Visita"}
+              </Badge>
+            </div>
+            {p.dia && p.visitada != null && <div className="text-xs text-muted-foreground">Informada em {diaRota(p.dia)}</div>}
+          </div>
+          </button>
+          {coordenadaValida(p.latitude, p.longitude) && (
+            <Button asChild variant="outline" size="sm" aria-label={`Abrir parada ${idx + 1} no Waze`}>
+              <a href={linkWaze({ lat: Number(p.latitude), lng: Number(p.longitude) })} target="_blank" rel="noopener noreferrer">Waze</a>
+            </Button>
+          )}
+          {planejamento && <Button variant="ghost" size="icon" disabled={busy} aria-label="Remover parada" onClick={() => removeParada(p)}>
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </Button>}
+        </div>
+        {p.tipo !== "pernoite" && <div className="mt-3 space-y-1"><Label htmlFor={`objetivo-${p.id}`}>Objetivo *</Label><Input id={`objetivo-${p.id}`} value={objetivos[p.id] ?? p.objetivo ?? ''} disabled={!planejamento || busy} onChange={e => setObjetivos(v => ({ ...v, [p.id]: e.target.value }))} placeholder="Ex.: apresentar LSB150" /></div>}
+        {prestacao && p.tipo !== "pernoite" && <PrestacaoParada parada={p} onSaved={recarregar} />}
+        {rota.status === 'concluida' && p.tipo !== "pernoite" && <p className="text-sm mt-3">{p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</p>}
+        </Card>
+        {(idx === paradas.length - 1 || paradas[idx + 1].dia !== p.dia) && resumoDia[p.dia ?? ""]?.volta && (
+          <p className="text-xs text-muted-foreground pl-2">Volta à base: + {formatarKm(resumoDia[p.dia ?? ""].volta!.distanciaM)} · {formatarDuracao(resumoDia[p.dia ?? ""].volta!.duracaoS)}</p>
+        )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const painelCusto = (
+    <div className="space-y-3">
+      {(calculo || erroTrajeto || linksMaps.length > 0) ? (
+        <Card className="p-3 space-y-2" aria-label="Resumo da rota">
+          {calculo && <p className="font-semibold">{formatarKm(calculo.totalKm * 1000)} · {formatarDuracao(calculo.totalSegundos)} de direção{calculo.dias.length > 1 ? ` em ${calculo.dias.length} dias` : ""}</p>}
+          {calculo && calculo.dias.length > 1 && (
+            <ul className="text-sm space-y-0.5">
+              {calculo.dias.map((d) => <li key={d.plano.dia}>Dia {numeroDia(d.plano.dia)} ({diaRota(d.plano.dia)}): {formatarKm(d.km * 1000)} · {formatarDuracao(d.segundos)}{rotaLonga(d.segundos) ? " ⚠" : ""}</li>)}
+            </ul>
+          )}
+          {calculo && dias.length > 1 && <p className="text-xs text-muted-foreground">≈ {formatarDuracao(calculo.totalSegundos / dias.length)} de direção por dia em {dias.length} dias</p>}
+          {calculo && dias.length === 1 && calculo.dias.filter((d) => rotaLonga(d.segundos)).map((d) => (
+            <p key={d.plano.dia} className="flex items-center gap-2 text-sm rounded-md border border-warning/40 bg-warning/10 text-warning-foreground p-2"><AlertTriangle className="w-4 h-4 text-warning" /> Rota longa para um dia{calculo.dias.length > 1 ? ` (dia ${numeroDia(d.plano.dia)})` : ""}</p>
+          ))}
+          {erroTrajeto && <p className="text-sm text-destructive">{erroTrajeto}</p>}
+          {linksPorDia.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {linksPorDia.map((l) => (
+                <Button key={l.dia} asChild size="sm" variant="outline">
+                  <a href={l.url} target="_blank" rel="noopener noreferrer"><Navigation className="w-4 h-4 mr-1" />Google Maps — Dia {numeroDia(l.dia)}</a>
+                </Button>
+              ))}
+            </div>
+          ) : linksMaps.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {linksMaps.map((url, i) => (
+                <Button key={url} asChild size="sm" variant="outline">
+                  <a href={url} target="_blank" rel="noopener noreferrer"><Navigation className="w-4 h-4 mr-1" />Abrir no Google Maps{linksMaps.length > 1 ? ` — Trecho ${i + 1}` : ""}</a>
+                </Button>
+              ))}
+            </div>
+          )}
+        </Card>
+      ) : <p className="text-sm text-muted-foreground">Adicione paradas para calcular o trajeto.</p>}
+      <CustoViagemCard custo={custo} avisoPedagio={avisoPedagio} />
+    </div>
+  );
+
+  const painelSugestoes = planejamento && calculo ? (
+    <ClientesNoCaminho
+      sugestoes={sugestoes} carregando={carregandoSug} erro={erroSug}
+      raioKm={raioKm} onRaio={setRaioKm}
+      selecionadaId={selecionadaId} onSelecionar={setSelecionadaId}
+      onAdicionar={adicionarSugestao} busy={busy}
+    />
+  ) : <p className="text-sm text-muted-foreground">{planejamento ? "As sugestões aparecem quando a rota tiver ao menos uma parada com localização." : "Sugestões só aparecem durante o planejamento."}</p>;
+
+  const abas: { k: typeof aba; rotulo: string }[] = [
+    { k: "paradas", rotulo: `Paradas (${paradas.length})` },
+    { k: "sugestoes", rotulo: `Sugestões${planejamento && calculo ? ` (${sugestoes.length})` : ""}` },
+    { k: "custo", rotulo: "Custo e trajeto" },
+  ];
+
   return (
-    <div className="min-h-screen bg-muted/20 flex flex-col">
-      <header className="bg-background border-b">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/rotas")}><ArrowLeft className="w-4 h-4" /></Button>
-            <h1 className="font-semibold">{prestacao ? 'Prestação de contas' : 'Rota Comercial'}</h1>
+    <div className="h-[100dvh] bg-muted/20 flex flex-col overflow-hidden">
+      <header className="bg-background border-b shrink-0">
+        <div className="px-4 py-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/rotas")} aria-label="Voltar"><ArrowLeft className="w-4 h-4" /></Button>
+            <h1 className="font-semibold truncate">{prestacao ? 'Prestação de contas' : 'Rota Comercial'}</h1>
             <RotaStatus status={rota.status} />
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => executar(otimizar)} disabled={!planejamento || busy || paradas.length < 1}>
-              <Wand2 className="w-4 h-4 mr-1" /> Otimizar ordem
-            </Button>
-            {planejamento && <Button onClick={salvarMeta} disabled={busy}><Save className="w-4 h-4 mr-1" /> Salvar</Button>}
+          <div className="flex items-center gap-3 text-sm" aria-label="Resumo da rota">
+            <span className="hidden sm:inline text-muted-foreground">
+              {[kmResumo, `${dias.length} ${dias.length > 1 ? "dias" : "dia"}`, `${numParadas} ${numParadas === 1 ? "parada" : "paradas"}`].filter(Boolean).join(" · ")}
+            </span>
+            <span className="font-semibold">{formatBRL(custo.total)}</span>
             <AppHeader />
           </div>
         </div>
+        <div className="lg:hidden grid grid-cols-2 border-t" role="tablist" aria-label="Visualização">
+          {(["lista", "mapa"] as const).map((v) => (
+            <button key={v} role="tab" aria-selected={vistaMobile === v} onClick={() => setVistaMobile(v)}
+              className={`py-2 text-sm font-medium border-b-2 ${vistaMobile === v ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
+              {v === "lista" ? "Lista" : "Mapa"}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="space-y-3 flex flex-col min-h-0">
-          {rota.status === 'reprovada' && <div className="border border-destructive bg-destructive/10 text-destructive p-3 rounded-md">Reprovada: {rota.motivo_reprovacao}</div>}
-          {rota.status === 'aguardando_aprovacao' && <div className="border p-3 rounded-md space-y-2"><p>Aguardando aprovação</p><Button variant="outline" disabled={busy} onClick={() => mudarStatus('rascunho')}>Voltar para rascunho</Button></div>}
-          {rota.status === 'aprovada' && !prestacao && <p className="text-sm text-primary">Viagem aprovada. Alterar o plano exigirá nova aprovação.</p>}
-          {(rota.status === 'aprovada' || rota.status === 'concluida') && <div className="flex flex-wrap gap-2">{prestacao && rota.vendedor_id === user?.id && <Button variant="outline" onClick={() => navigate(`/viagens/${id}/hoje`)}>Viagem de hoje (celular)</Button>}<Button variant="outline" onClick={() => navigate(`/viagens/${id}/acompanhar`)}>Acompanhar · diário e gastos</Button></div>}
-          {faltas.length > 0 && <ul className="border border-destructive bg-destructive/10 text-destructive p-3 pl-7 rounded-md list-disc text-sm">{faltas.map(f => <li key={f}>{f}</li>)}</ul>}
-          {(rota.status === 'rascunho' || rota.status === 'reprovada') && <Button disabled={busy} onClick={() => mudarStatus('aguardando_aprovacao')}>Enviar para aprovação</Button>}
-          {prestacao && <Button disabled={busy || !paradasParaPrestar(paradas).length || !paradasParaPrestar(paradas).every(paradaInformada)} onClick={async () => {
-            const { count } = await (supabase as any).from('rota_gastos').select('id', { count: 'exact', head: true }).eq('rota_id', id);
-            if (!count && !confirm('Nenhum gasto real foi lançado nesta viagem (combustível, pedágio, hotel...). Concluir mesmo assim?')) return;
-            mudarStatus('concluida');
-          }}>Concluir prestação de contas</Button>}
-          {isAdmin && rota.status === 'aprovada' && <Button variant="outline" disabled={busy} onClick={() => { if (confirm('Cancelar esta viagem aprovada?')) mudarStatus('cancelada'); }}>Cancelar viagem</Button>}
-          <Card className="p-3 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label htmlFor="rota-inicio" className="text-xs">Início</Label>
-                <Input id="rota-inicio" type="date" value={data} disabled={!planejamento || busy} onChange={(e) => { setData(e.target.value); if (!dataFim || dataFim < e.target.value) setDataFim(e.target.value); }} />
-              </div>
-              <div>
-                <Label htmlFor="rota-fim" className="text-xs">Fim</Label>
-                <Input id="rota-fim" type="date" value={dataFim} min={data} disabled={!planejamento || busy} onChange={(e) => setDataFim(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="rota-veiculo" className="text-xs">Veículo</Label>
-                <select id="rota-veiculo" className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50" value={veiculoId} disabled={!planejamento || busy} onChange={(e) => setVeiculoId(e.target.value)}>
-                  <option value="">Sem veículo</option>
-                  {veiculos.filter((v) => v.ativo || v.id === veiculoId).map((v) => <option key={v.id} value={v.id}>{v.modelo} · {v.combustivel} · {String(v.consumo_km_l).replace(".", ",")} km/L{v.placa ? ` · ${v.placa}` : ""}</option>)}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="rota-alimentacao" className="text-xs">Alimentação por dia (opcional, R$)</Label>
-                <Input id="rota-alimentacao" inputMode="decimal" value={alimentacao} disabled={!planejamento || busy} onChange={(e) => setAlimentacao(e.target.value)} placeholder="Ex.: 80,00" />
-              </div>
-              {rota.km_total_estimado != null && (
-                <div className="col-span-2">
-                  <Badge variant="secondary">{Number(rota.km_total_estimado).toFixed(1)} km estimados · {dias.length} {dias.length > 1 ? "dias" : "dia"}</Badge>
-                </div>
-              )}
-            </div>
-            {planejamento && (data !== inicioRota || (dataFim || data) !== fimRotaSalvo) && <p className="text-xs text-muted-foreground">Clique em Salvar para aplicar o novo período.</p>}
-            <div>
-              <Label className="text-xs">Observações</Label>
-              <Textarea rows={2} value={obs} disabled={!planejamento || busy} onChange={(e) => setObs(e.target.value)} />
-            </div>
-          </Card>
+      <main className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(380px,45%)_1fr]">
+        <section className={`${vistaMobile === "lista" ? "flex" : "hidden"} lg:flex flex-col min-h-0 border-r bg-background/60`}>
+          <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-3">
+            {rota.status === 'reprovada' && <div className="border border-destructive bg-destructive/10 text-destructive p-2 rounded-md text-sm">Reprovada: {rota.motivo_reprovacao}</div>}
+            {rota.status === 'aguardando_aprovacao' && <div className="border p-2 rounded-md flex items-center justify-between gap-2 text-sm"><span>Aguardando aprovação</span><Button size="sm" variant="outline" disabled={busy} onClick={() => mudarStatus('rascunho')}>Voltar para rascunho</Button></div>}
+            {rota.status === 'aprovada' && !prestacao && <p className="text-sm text-primary">Viagem aprovada. Alterar o plano exigirá nova aprovação.</p>}
+            {(rota.status === 'aprovada' || rota.status === 'concluida') && <div className="flex flex-wrap gap-2">{prestacao && rota.vendedor_id === user?.id && <Button size="sm" variant="outline" onClick={() => navigate(`/viagens/${id}/hoje`)}>Viagem de hoje (celular)</Button>}<Button size="sm" variant="outline" onClick={() => navigate(`/viagens/${id}/acompanhar`)}>Acompanhar · diário e gastos</Button></div>}
 
-          {(calculo || erroTrajeto || linksMaps.length > 0) && (
-            <Card className="p-3 space-y-2" aria-label="Resumo da rota">
-              {calculo && <p className="font-semibold">{formatarKm(calculo.totalKm * 1000)} · {formatarDuracao(calculo.totalSegundos)} de direção{calculo.dias.length > 1 ? ` em ${calculo.dias.length} dias` : ""}</p>}
-              {calculo && calculo.dias.length > 1 && (
-                <ul className="text-sm space-y-0.5">
-                  {calculo.dias.map((d) => <li key={d.plano.dia}>Dia {numeroDia(d.plano.dia)} ({diaRota(d.plano.dia)}): {formatarKm(d.km * 1000)} · {formatarDuracao(d.segundos)}{rotaLonga(d.segundos) ? " ⚠" : ""}</li>)}
-                </ul>
-              )}
-              {calculo && dias.length > 1 && <p className="text-xs text-muted-foreground">≈ {formatarDuracao(calculo.totalSegundos / dias.length)} de direção por dia em {dias.length} dias</p>}
-              {calculo && dias.length === 1 && calculo.dias.filter((d) => rotaLonga(d.segundos)).map((d) => (
-                <p key={d.plano.dia} className="flex items-center gap-2 text-sm rounded-md border border-warning/40 bg-warning/10 text-warning-foreground p-2"><AlertTriangle className="w-4 h-4 text-warning" /> Rota longa para um dia{calculo.dias.length > 1 ? ` (dia ${numeroDia(d.plano.dia)})` : ""}</p>
-              ))}
-              {erroTrajeto && <p className="text-sm text-destructive">{erroTrajeto}</p>}
-              {linksPorDia.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {linksPorDia.map((l) => (
-                    <Button key={l.dia} asChild size="sm" variant="outline">
-                      <a href={l.url} target="_blank" rel="noopener noreferrer"><Navigation className="w-4 h-4 mr-1" />Google Maps — Dia {numeroDia(l.dia)}</a>
-                    </Button>
-                  ))}
+            <Card className="p-3 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label htmlFor="rota-inicio" className="text-xs">Início</Label>
+                  <Input id="rota-inicio" type="date" value={data} disabled={!planejamento || busy} onChange={(e) => { setData(e.target.value); if (!dataFim || dataFim < e.target.value) setDataFim(e.target.value); }} />
                 </div>
-              ) : linksMaps.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {linksMaps.map((url, i) => (
-                    <Button key={url} asChild size="sm" variant="outline">
-                      <a href={url} target="_blank" rel="noopener noreferrer"><Navigation className="w-4 h-4 mr-1" />Abrir no Google Maps{linksMaps.length > 1 ? ` — Trecho ${i + 1}` : ""}</a>
-                    </Button>
-                  ))}
+                <div>
+                  <Label htmlFor="rota-fim" className="text-xs">Fim</Label>
+                  <Input id="rota-fim" type="date" value={dataFim} min={data} disabled={!planejamento || busy} onChange={(e) => setDataFim(e.target.value)} />
                 </div>
-              )}
+                <div>
+                  <Label htmlFor="rota-veiculo" className="text-xs">Veículo</Label>
+                  <select id="rota-veiculo" className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm disabled:opacity-50" value={veiculoId} disabled={!planejamento || busy} onChange={(e) => setVeiculoId(e.target.value)}>
+                    <option value="">Sem veículo</option>
+                    {veiculos.filter((v) => v.ativo || v.id === veiculoId).map((v) => <option key={v.id} value={v.id}>{v.modelo} · {v.combustivel} · {String(v.consumo_km_l).replace(".", ",")} km/L{v.placa ? ` · ${v.placa}` : ""}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="rota-alimentacao" className="text-xs">Alimentação/dia (R$, opcional)</Label>
+                  <Input id="rota-alimentacao" inputMode="decimal" value={alimentacao} disabled={!planejamento || busy} onChange={(e) => setAlimentacao(e.target.value)} placeholder="Ex.: 80,00" />
+                </div>
+              </div>
+              {planejamento && (data !== inicioRota || (dataFim || data) !== fimRotaSalvo) && <p className="text-xs text-muted-foreground">Clique em Salvar para aplicar o novo período.</p>}
+              <details>
+                <summary className="text-xs text-muted-foreground cursor-pointer">Observações{obs ? " (preenchidas)" : ""}</summary>
+                <Textarea className="mt-1" rows={2} value={obs} disabled={!planejamento || busy} onChange={(e) => setObs(e.target.value)} />
+              </details>
             </Card>
-          )}
 
-          <CustoViagemCard custo={custo} avisoPedagio={avisoPedagio} />
-
-          {planejamento && calculo && (
-            <ClientesNoCaminho
-              sugestoes={sugestoes} carregando={carregandoSug} erro={erroSug}
-              raioKm={raioKm} onRaio={setRaioKm}
-              selecionadaId={selecionadaId} onSelecionar={setSelecionadaId}
-              onAdicionar={adicionarSugestao} busy={busy}
-            />
-          )}
-
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm">Paradas ({paradas.length})</h2>
-            {planejamento && <div className="flex gap-2">
-              <Button size="sm" disabled={busy} onClick={() => setAddOpen(true)}><Plus className="w-4 h-4 mr-1" /> Adicionar Parada</Button>
-            </div>}
+            <div className="sticky -top-3 z-10 bg-background/95 backdrop-blur border rounded-md p-1 grid grid-cols-3 gap-1" role="tablist" aria-label="Seções da rota">
+              {abas.map((t) => (
+                <button key={t.k} role="tab" aria-selected={aba === t.k} onClick={() => setAba(t.k)}
+                  className={`text-xs sm:text-sm py-1.5 rounded ${aba === t.k ? "bg-primary text-primary-foreground font-medium" : "text-muted-foreground hover:bg-muted"}`}>
+                  {t.rotulo}
+                </button>
+              ))}
+            </div>
+            <div hidden={aba !== "paradas"}>{listaParadas}</div>
+            <div hidden={aba !== "sugestoes"}>{painelSugestoes}</div>
+            <div hidden={aba !== "custo"}>{painelCusto}</div>
           </div>
-          {planejamento && <p className="text-xs text-muted-foreground">Monte a lista de paradas do período. O dia de cada visita e onde dormiu são registrados durante a viagem.</p>}
 
-          <div className="space-y-2 overflow-y-auto pr-1">
-            {paradas.length === 0 && (
-              <Card className="p-6 text-center text-muted-foreground text-sm">
-                <MapPin className="w-6 h-6 mx-auto mb-2 opacity-40" />
-                Nenhuma parada. Adicione a primeira.
-              </Card>
+          <div className="shrink-0 border-t bg-background p-2 space-y-2">
+            {faltas.length > 0 && (
+              <details className="border border-destructive bg-destructive/10 text-destructive rounded-md text-sm px-2 py-1">
+                <summary className="cursor-pointer">{faltas.length} {faltas.length === 1 ? "pendência" : "pendências"} para enviar · ver faltas</summary>
+                <ul className="list-disc pl-5 py-1">{faltas.map(f => <li key={f}>{f}</li>)}</ul>
+              </details>
             )}
-            {paradas.map((p, idx) => (
-              <div key={p.id} className="space-y-2">
-              <Card className={`p-3 ${p.tipo === "pernoite" ? "border-dashed bg-muted/40" : ""}`}>
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col gap-0.5">
-                  {planejamento && <><Button size="icon" variant="ghost" aria-label="Mover parada para cima" onClick={() => mover(p, -1)} disabled={busy || !podeMover(idx, -1)} className="h-6 w-6">▲</Button>
-                  <Button size="icon" variant="ghost" aria-label="Mover parada para baixo" onClick={() => mover(p, 1)} disabled={busy || !podeMover(idx, 1)} className="h-6 w-6">▼</Button></>}
-                </div>
-                <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                  {p.tipo === "pernoite" ? <Hotel className="w-3.5 h-3.5" /> : idx + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">
-                    {p.tipo === "pernoite" ? `Pernoite: ${p.hotel_nome ?? ""}` : (p.organizacao?.nome_fantasia || p.organizacao?.nome || '')}
-                  </div>
-                  {p.tipo === "pernoite" && p.valor_diaria_est != null && <div className="text-xs">Diária estimada: {formatBRL(Number(p.valor_diaria_est))}</div>}
-                  <div className="text-sm font-medium truncate">
-                    {p.cidade ?? "—"}{p.estado ? ` / ${p.estado}` : ""}
-                  </div>
-                  {trechoPorParada[p.id] && (
-                    <div className="text-xs text-muted-foreground">+ {formatarKm(trechoPorParada[p.id].distanciaM)} · {formatarDuracao(trechoPorParada[p.id].duracaoS)} {trechoPorParada[p.id].desde}</div>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    <Badge variant={p.tipo === "prospeccao" ? "outline" : "secondary"} className="text-[10px]">
-                      {p.tipo === "prospeccao" ? "Prospecção" : p.tipo === "pernoite" ? "Pernoite" : "Visita"}
-                    </Badge>
-                  </div>
-                  {p.dia && p.visitada != null && <div className="text-xs text-muted-foreground">Informada em {diaRota(p.dia)}</div>}
-                </div>
-                {coordenadaValida(p.latitude, p.longitude) && (
-                  <Button asChild variant="outline" size="sm" aria-label={`Abrir parada ${idx + 1} no Waze`}>
-                    <a href={linkWaze({ lat: Number(p.latitude), lng: Number(p.longitude) })} target="_blank" rel="noopener noreferrer">Waze</a>
-                  </Button>
-                )}
-                {planejamento && <Button variant="ghost" size="icon" disabled={busy} aria-label="Remover parada" onClick={() => removeParada(p)}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
-                </Button>}
-              </div>
-              {p.tipo !== "pernoite" && <div className="mt-3 space-y-1"><Label htmlFor={`objetivo-${p.id}`}>Objetivo *</Label><Input id={`objetivo-${p.id}`} value={objetivos[p.id] ?? p.objetivo ?? ''} disabled={!planejamento || busy} onChange={e => setObjetivos(v => ({ ...v, [p.id]: e.target.value }))} placeholder="Ex.: apresentar LSB150" /></div>}
-              {prestacao && p.tipo !== "pernoite" && <PrestacaoParada parada={p} onSaved={recarregar} />}
-              {rota.status === 'concluida' && p.tipo !== "pernoite" && <p className="text-sm mt-3">{p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</p>}
-              </Card>
-              {(idx === paradas.length - 1 || paradas[idx + 1].dia !== p.dia) && resumoDia[p.dia ?? ""]?.volta && (
-                <p className="text-xs text-muted-foreground pl-2">Volta à base: + {formatarKm(resumoDia[p.dia ?? ""].volta!.distanciaM)} · {formatarDuracao(resumoDia[p.dia ?? ""].volta!.duracaoS)}</p>
-              )}
-              </div>
-            ))}
+            <div className="flex flex-wrap gap-2 justify-end">
+              {planejamento && <Button variant="outline" size="sm" onClick={() => executar(otimizar)} disabled={busy || paradas.length < 1}><Wand2 className="w-4 h-4 mr-1" /> Otimizar ordem</Button>}
+              {isAdmin && rota.status === 'aprovada' && <Button size="sm" variant="outline" disabled={busy} onClick={() => { if (confirm('Cancelar esta viagem aprovada?')) mudarStatus('cancelada'); }}>Cancelar viagem</Button>}
+              {planejamento && <Button size="sm" variant={podeEnviar ? "outline" : "default"} onClick={salvarMeta} disabled={busy}><Save className="w-4 h-4 mr-1" /> Salvar</Button>}
+              {podeEnviar && <Button size="sm" disabled={busy} onClick={() => mudarStatus('aguardando_aprovacao')}>Enviar para aprovação</Button>}
+              {prestacao && <Button size="sm" disabled={busy || !podeConcluir} onClick={async () => {
+                const { count } = await (supabase as any).from('rota_gastos').select('id', { count: 'exact', head: true }).eq('rota_id', id);
+                if (!count && !confirm('Nenhum gasto real foi lançado nesta viagem (combustível, pedágio, hotel...). Concluir mesmo assim?')) return;
+                mudarStatus('concluida');
+              }}>Concluir prestação de contas</Button>}
+            </div>
           </div>
-        </div>
+        </section>
 
-        <Card className="overflow-hidden min-h-[400px] lg:min-h-0 flex flex-col">
+        <section className={`${vistaMobile === "mapa" ? "flex" : "hidden"} lg:flex flex-col min-h-0`} aria-label="Mapa da rota">
+        <div className="flex-1 min-h-0 flex flex-col bg-background">
           <div className="flex flex-wrap items-center gap-1.5 p-2 border-b" role="group" aria-label="Filtros de clientes no mapa">
             {([1, 2, 3, 4] as CategoriaMapa[]).map((c) => (
               <Button key={c} size="sm" variant={categoriasOn[c] ? "secondary" : "ghost"} aria-pressed={categoriasOn[c]}
@@ -774,7 +865,7 @@ export default function RotaEditor() {
             </Button>
             {carregandoSug && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
           </div>
-          <div className="relative flex-1 min-h-[400px]">
+          <div className="relative flex-1 min-h-0">
             <div ref={mapRef} className="absolute inset-0" />
             <div className="absolute bottom-6 left-2 bg-background/95 border rounded-md shadow-sm p-2 text-xs space-y-1 pointer-events-none">
               {([1, 2, 3, 4] as CategoriaMapa[]).map((c) => (
@@ -784,7 +875,8 @@ export default function RotaEditor() {
               <div className="text-muted-foreground">{visiveisMapa.length} clientes no mapa</div>
             </div>
           </div>
-        </Card>
+        </div>
+        </section>
       </main>
 
       <AdicionarParadaModal
