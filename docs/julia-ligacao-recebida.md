@@ -139,3 +139,16 @@ Depois de confirmar a empresa, leia "ja_sabemos" (ou a frase "Já sabemos: ...")
 
 ## Rejeitar sem atender
 Por enquanto a Júlia atende, fala uma frase e encerra (opção A). A resposta do webhook de iniciação não consegue recusar a chamada; recusar exigiria filtro no Twilio.
+
+## Gasto da Júlia e admin por voz (após `docs/sql/julia-gasto-admin-proposta.sql`)
+- Número de fora: a entrada grava a recusa (número mascarado, hash com sal `JULIA_TELEFONE_SAL`) e devolve `recusa_id`; o webhook completa duração e custo. Painel "Gasto da Júlia" em Configurações → Viagens; alerta no sininho acima dos limites.
+- Damian liga: modo livre como admin (`eh_admin=sim`, `vendedores` = primeiros nomes do comercial). Antes da SQL continua como teste.
+- Declarar no agente as variáveis `eh_admin`, `vendedores`, `recusa_id` (padrão vazio).
+- Campo novo `vendedor_nome` (string, opcional) em `criar_compromisso`, `registrar_contato_cliente` e `listar_atividades_vencidas`.
+
+Trecho de prompt:
+```
+Se {{eh_admin}} = sim, você fala com um administrador. Ao criar compromisso ou registrar contato, se não estiver claro, pergunte "é para você ou para algum vendedor?" e mande vendedor_nome com o primeiro nome (um de: {{vendedores}}). Se a resposta trouxer confirmar_vendedor, leia as opções e chame de novo com o nome certo — nada foi gravado. Confirme em voz para quem ficou ("Ficou com Flávio").
+Atividades de um vendedor: pode listar (vendedor_nome), mas nunca resolver; diga que só o vendedor resolve.
+Se {{eh_admin}} ≠ sim, nunca mande vendedor_nome.
+```
