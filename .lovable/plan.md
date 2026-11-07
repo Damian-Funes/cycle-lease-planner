@@ -1,64 +1,129 @@
-# Filtro no Twilio antes da ElevenLabs (+55 11 5039-3814)
+# Júlia: gasto das ligações recusadas + Damian como admin
 
-## Objetivo
-Número que não é do comercial não é atendido: o Twilio recusa a chamada antes de a ElevenLabs entrar, sem custo de voz.
+O filtro no Twilio foi descartado. A `julia-viagem-entrada` continua sendo a única barreira.
 
-```text
-Hoje:     Twilio -> ElevenLabs (inbound_call) -> julia-viagem-entrada
-Proposto: Twilio -> julia-twilio-filtro --(autorizado: Redirect)--> ElevenLabs -> julia-viagem-entrada
-                                         \--(não autorizado: Reject busy)
+## Parte 1: monitorar o gasto
+
+### Onde guardar
+Recomendo uma **tabela própria `julia_ligacoes_recusadas`**, e não `ligacoes_viagem`.
+- `ligacoes_viagem` exige um vendedor e alimenta o placar e o acompanhamento dos vendedores. Misturar estranhos ali poluiria as métricas e todos os filtros que já existem.
+- Colunas: `id`, `recebida_em`, `telefone_mascarado` (4 últimos), `telefone_hash` (SHA-256 com sal, para agrupar o mesmo número sem guardar o número), `call_sid`, `conversation_id`, `duracao_s`, `custo_creditos`, `custo_estimado_brl`, `motivo` (`nao` ou `ocupado`).
+- Só o admin lê. Só o servidor grava.
+
+### Como preencher
+1. A `julia-viagem-entrada`, ao decidir `nao`, grava a linha com `call_sid` e o número mascarado. A gravação não pode atrasar a resposta: se falhar, só loga.
+2. Ela também devolve uma variável nova, `recusa_id`, para a ElevenLabs.
+3. O `julia-viagem-webhook`, quando `permitido=nao`, atualiza essa linha pelo `recusa_id`. Se não houver `recusa_id`, usa o `metadata.phone_call.call_sid`. Grava `conversation_id`, `duracao_s` e o custo, e não chama `julia_finalizar_ligacao`.
+
+### Campos de duração e custo
+- **Conferido no código**: hoje o webhook só lê `metadata.call_duration_secs`. O resto passa sem ser lido.
+- **Ainda não confirmado**: a ElevenLabs costuma mandar também `metadata.cost` (créditos) e `metadata.charging` (com preço da IA e da chamada), mas não confirmei isso nos nossos eventos.
+- **Primeiro passo da implementação**: registrar só os nomes das chaves de `metadata` de um evento real, sem valores.
+- **Custo em R$**: créditos vezes um "R$ por crédito" configurável. Se não houver custo no evento, usa minutos vezes um "R$ por minuto" configurável.
+
+### Gasto total da Júlia
+- As ligações de vendedores (entrada e saída) já gravam `duracao_s` em `ligacoes_viagem`.
+- Adicionar ali a coluna `custo_creditos`, preenchida pelo mesmo webhook.
+- Ligações com `teste=true` (Damian hoje) ficam numa linha separada, chamada "Admin/teste".
+
+### Painel (admin)
+Um cartão novo **"Gasto da Júlia"** na tela de configuração da Júlia, ao lado de Ligações:
+- Recusadas: quantidade, minutos e custo estimado para hoje, 7 dias e 30 dias.
+- Ranking dos 10 números mascarados que mais ligam, com quantidade, minutos e última vez.
+- Vendedores (entrada e saída): minutos e custo para hoje, 7 dias e 30 dias, mais a linha Admin/teste e o total geral.
+- Os números vêm de uma função SQL `fn_julia_gasto_resumo(dias)`, só para admin. Não lê as linhas soltas no navegador.
+
+### Alerta no sininho
+- Limites configuráveis em `app_flags`, editáveis no cartão:
+  - `julia_recusadas_max_dia` (padrão 5);
+  - `julia_recusadas_min_dia` (padrão 10);
+  - `julia_reais_por_credito` / `julia_reais_por_minuto`.
+- O webhook, depois de gravar uma recusa, soma o dia (horário de Brasília). Se passar de algum limite, cria uma notificação para cada admin.
+- A notificação usa a chave `julia-recusadas:AAAA-MM-DD`, então sai no máximo um aviso por dia, que é atualizado com os números do momento.
+
+## Parte 2: Damian como admin na Júlia
+
+### Quem é admin
+- O teste deixa de ser "é o Damian". Passa a ser o papel `admin` em `user_roles`.
+- O Damian continua sendo o único admin aceito por telefone (lista fixa de admins com Júlia), para um admin qualquer não ganhar acesso por voz por engano.
+- `teste` deixa de ser verdadeiro só por ele ligar. As ligações dele recebem a marca `papel_ligacao='admin'`, nova coluna em `ligacoes_viagem`, e saem do placar dos vendedores.
+- A ligação de teste manual pela tela continua como está.
+- O atendimento do admin é sempre o modo livre, com "Oi, Damian! Em que posso te ajudar?". Ele não pega a viagem de outro vendedor.
+
+### O que o admin pode fazer por voz
+| Ação | Admin | Vendedor |
+|---|---|---|
+| criar_compromisso | para si ou para um vendedor (`vendedor_nome`) | sempre para si; o campo é ignorado, com aviso |
+| registrar_contato_cliente | em nome próprio ou de um vendedor | sempre para si |
+| completar_organizacao / completar_contato | sim, autor = admin | como hoje |
+| listar_atividades_vencidas | de um vendedor (`vendedor_nome`) ou as próprias | as próprias |
+| resolver_atividade | **só as próprias**; as do vendedor ficam com o vendedor | as próprias |
+| buscar/vincular_organizacao | sem limite de responsável | como hoje |
+
+### Casamento do nome do vendedor
+- Mesma lógica dos contatos: nome completo, depois primeiro nome único, depois aproximado com 1 letra de diferença.
+- Vale só entre perfis com papel comercial, rtv ou gerente_comercial.
+- Ambíguo ou não encontrado: não grava nada e devolve `confirmar_vendedor` com as opções, para a Júlia perguntar.
+
+### Trava no servidor
+- O SQL `julia_criar_compromisso` e o `julia_registrar_contato` recebem `p_responsavel`.
+- Se o autor da ligação não for admin, o responsável é forçado para o próprio autor, seja qual for o valor recebido.
+- A atividade guarda `criado_por = admin` e `responsavel_id = vendedor`, e o vendedor recebe uma notificação: "Damian marcou: visitar Cocari qui 09:00".
+
+### Variáveis novas
+- `eh_admin` ("sim"/"não").
+- `vendedores`: lista de primeiros nomes do time comercial, por exemplo "Flávio, Renan, Marcos".
+- `recusa_id`, da Parte 1.
+- As três precisam ser declaradas no agente, com padrão vazio.
+
+### Campos novos nas ferramentas da ElevenLabs
+```json
+[
+  {"ferramenta":"criar_compromisso","campo":"vendedor_nome","tipo":"string","obrigatorio":false,
+   "llm_prompt":"Só se {{eh_admin}}=sim e o admin pediu para outro vendedor. Primeiro nome falado (um de {{vendedores}}). Vazio = o próprio admin."},
+  {"ferramenta":"registrar_contato_cliente","campo":"vendedor_nome","tipo":"string","obrigatorio":false,
+   "llm_prompt":"Só se {{eh_admin}}=sim e o contato foi feito por um vendedor. Primeiro nome. Vazio = o próprio admin."},
+  {"ferramenta":"listar_atividades_vencidas","campo":"vendedor_nome","tipo":"string","obrigatorio":false,
+   "llm_prompt":"Só se {{eh_admin}}=sim e ele perguntou pelas atividades de um vendedor. Vazio = as do próprio admin."},
+  {"variavel_dinamica":"eh_admin","tipo":"string","padrao":""},
+  {"variavel_dinamica":"vendedores","tipo":"string","padrao":""},
+  {"variavel_dinamica":"recusa_id","tipo":"string","padrao":""}
+]
 ```
-
-## Situação atual (conferida)
-- **Não existe nenhum segredo do Twilio no projeto.** Hoje existem só segredos da Júlia, do RD, Google Maps, QualP, Resend e Rotas Brasil.
-- A regra de quem pode ligar está dentro da `julia-viagem-entrada`: os papéis comercial, rtv e gerente_comercial ficam fixos no código, mais a exceção do Damian via `permitidoLigar`; o celular vem de `profiles.celular` via `chaveTelefone`.
-
-## O que será feito
-1. **Regra única em `_shared`**: criar `vendedorPorTelefone(db, telefone)` com a regra hoje dentro da `julia-viagem-entrada`. Ela devolve o perfil, se é vendedor e se é teste. A `julia-viagem-entrada` passa a usar essa função, sem mudar o comportamento.
-2. **Nova função `julia-twilio-filtro`**: sem JWT, recebe POST no formato do Twilio.
-   - Valida o `X-Twilio-Signature`: HMAC-SHA1 da URL pública exata mais os parâmetros em ordem alfabética, com o `TWILIO_AUTH_TOKEN`, comparado em tempo constante. Se a assinatura for inválida ou faltar, recusa.
-   - Lê o `From` e aplica a regra única.
-   - **Autorizado**: devolve `<Response><Redirect method="POST">https://api.us.elevenlabs.io/twilio/inbound_call</Redirect></Response>`. A URL da ElevenLabs fica num segredo opcional `JULIA_ELEVENLABS_INBOUND_URL`, com esse valor como padrão.
-   - **Não autorizado**: devolve `<Response><Reject reason="busy"/></Response>`. A chamada não é atendida e não há cobrança de chamada atendida.
-   - O log guarda só o número mascarado (4 últimos dígitos), a decisão e o tempo.
-3. **Testes**: assinatura válida, inválida e com parâmetro alterado (usando o exemplo oficial do Twilio); TwiML de redirect e de reject; e a mesma decisão do filtro e da entrada para os mesmos papéis.
-4. **Guia**: atualizar `docs/julia-ligacao-recebida.md` com o passo a passo e como voltar atrás.
-5. **`julia-viagem-entrada` continua como segunda barreira**, com a mesma frase curta de recusa.
-
-## Recomendação para falha interna (banco fora do ar ou demora)
-Recomendo **deixar passar** nesses casos, mas só com assinatura válida:
-- Se o filtro falhar, a `julia-viagem-entrada` ainda recusa quem não é do comercial com a frase curta. O custo é de poucos segundos de ElevenLabs.
-- Recusar na falha deixaria os vendedores sem atendimento sempre que o banco oscilasse.
-- Há um limite de 3 s para a consulta; passou disso, deixa passar.
-- **Assinatura inválida sempre recusa.**
-
-Se o CEO preferir zero gasto mesmo nas falhas, troca-se por recusar. É uma linha de código.
+Junto vai um trecho de prompt:
+- se `eh_admin=sim`, perguntar "para você ou para algum vendedor?" quando não estiver claro;
+- se vier `confirmar_vendedor`, ler as opções;
+- nunca dizer que resolveu uma atividade de um vendedor.
 
 ## Riscos
-- **A ElevenLabs aceitar o redirect**: no `<Redirect>`, o Twilio faz uma nova requisição assinada para a URL de destino. Se a ElevenLabs conferir a assinatura, ela confere com a própria URL e deve bater. Não há documentação oficial da ElevenLabs sobre receber redirect. **Primeiro passo da implementação**: testar com o celular de um vendedor antes de deixar fixo. Se falhar, basta colar de volta a URL da ElevenLabs.
-- **A ElevenLabs reescrever o endereço do número**: ao reimportar o número ou mexer na integração com o Twilio, ela pode gravar de novo a URL dela. O filtro some em silêncio, mas a `julia-viagem-entrada` continua barrando quem não é do comercial. Mitigação:
-  - O guia avisa para conferir o endereço depois de qualquer mudança na ElevenLabs.
-  - Opcional: um alerta no log quando a entrada recusar um número de fora, o que indica que o filtro foi contornado.
-- **Demora extra**: uma ida a mais até a nossa função, com uma consulta leve. Estimativa: 150 a 400 ms, e mais na primeira chamada depois de um tempo parada. Fica dentro do toque.
-- **URL usada na assinatura**: precisa ser exatamente a configurada no Twilio, `https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-twilio-filtro`, sem barra no fim. A função monta essa URL a partir de uma constante, não do cabeçalho recebido.
-- **Cadastro do vendedor**: um vendedor sem celular, ou com celular errado, passa a ouvir "ocupado" em vez da frase da Júlia. O log mostra o motivo com o número mascarado.
-- **Assinatura com chave de API**: a assinatura do Twilio usa o Auth Token principal da conta, não uma API Key.
+- **Custo não vem no evento**: aí o painel mostra só a estimativa por minuto, sinalizada como "estimado".
+- **A ligação recusada não chega ao webhook** (ElevenLabs não manda o evento quando a ligação é muito curta): a linha fica com duração vazia e conta 1 ligação com 0 min. O painel mostra "sem duração".
+- **Privacidade**: não se guarda o número completo de estranhos. Com o sal, o hash não é revertido por tabela pronta, mas também não deixa ligar de volta. Se o CEO quiser bloquear um número no Twilio, terá de pegar o número no próprio Twilio.
+- **Admin por voz é poder alto**: quem clonar o número do Damian poderia criar tarefas para vendedores. Mitigações:
+  - nada destrutivo por voz (não resolve atividades dos outros, não descarta);
+  - toda ação do admin notifica o vendedor afetado.
+- **Nome de vendedor errado**: uma tarefa poderia ir para a pessoa errada. Mitigações:
+  - sem casamento único, não grava;
+  - a mensagem de retorno sempre diz o nome usado, para a Júlia confirmar em voz.
+- **Mudar o `teste` do Damian**: tirar o `teste=true` muda a forma como as ligações dele aparecem.
+  - O placar passa a excluir as ligações com `papel_ligacao='admin'`. Isso exige revisar as consultas de métricas.
+  - O antigo "teste não agenda retorno" continua valendo para admin.
+- **Atualização do agente**: as variáveis novas precisam ser declaradas no agente antes do deploy. Sem isso, o agente ignora os valores, sem quebrar nada.
 
-## Ligações de saída
-Não passam pelo filtro. Quando a Júlia liga, quem cria a chamada é a ElevenLabs pela API do Twilio, com instruções próprias. O endereço "A call comes in" vale só para chamadas que entram no número.
+## SQL (só com aprovação)
+- Tabela `julia_ligacoes_recusadas`, com GRANT para service_role, RLS e SELECT só para admin.
+- `ligacoes_viagem`: novas colunas `custo_creditos` e `papel_ligacao` (`vendedor` | `admin`, padrão `vendedor`).
+- Chaves novas em `app_flags`.
+- `fn_julia_gasto_resumo` (só admin).
+- `fn_casar_vendedor(_nome)`.
+- `julia_criar_compromisso` e `julia_registrar_contato` com `p_responsavel` e a trava de admin.
+- `julia_listar_vencidas` com o alvo validado.
 
-## Passo a passo para o CEO
-1. **Cadastrar o segredo**: no Twilio, em Console → Account → API keys & tokens → **Auth Token** (Live), clicar em mostrar e copiar. No Lovable, em Project Settings → Secrets, criar `TWILIO_AUTH_TOKEN` com esse valor. Eu peço isso na hora certa.
-2. **Ligar o filtro** (só depois do deploy e do teste): Phone Numbers → Manage → Active numbers → +55 11 5039 3814 → Voice Configuration.
-   - Em "A call comes in", escolher **Webhook**.
-   - URL: `https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-twilio-filtro`
-   - Método **HTTP POST**.
-   - **Antes de salvar, anotar a URL atual da ElevenLabs.**
-3. **Testar**: ligar de um celular de vendedor, que deve cair na Júlia normalmente. Depois ligar de um número de fora, que deve dar ocupado.
-4. **Voltar atrás**: no mesmo campo, colar de volta `https://api.us.elevenlabs.io/twilio/inbound_call`, método POST, e salvar.
+O SQL vai para `docs/sql/julia-gasto-admin-proposta.sql` e só é aplicado depois da aprovação.
 
 ## Detalhes técnicos
-- Arquivos novos: `supabase/functions/julia-twilio-filtro/index.ts`, `filtro_test.ts`, `_shared/twilioAssinatura.ts` (função pura) e `_shared/vendedorTelefone.ts`.
-- `supabase/config.toml`: `[functions.julia-twilio-filtro] verify_jwt = false`.
-- A resposta é `Content-Type: text/xml`. O corpo é lido com `req.formData()` e só aceita POST.
-- Não há mudança no banco de dados.
+- Regra única de quem liga e com qual papel em `_shared/vendedorTelefone.ts`, usada pela entrada.
+- Casamento do vendedor espelhado em `_shared/vendedores.ts`, com testes: Flávio/Flavio, ambíguo e vendedor tentando atribuir a outro.
+- Teste da trava: um vendedor que manda `vendedor_nome` fica como responsável.
+- Teste do webhook: recusa com e sem `recusa_id`.
+- Tela: `JuliaGastoCard` dentro de `JuliaConfiguracao`, mais o hook `useJuliaGasto`.
