@@ -36,6 +36,7 @@ import Frete from "./pages/Frete";
 import ReformaCatalogo from "./pages/ReformaCatalogo";
 import Tipicos from "./pages/Tipicos";
 import NotFound from "./pages/NotFound";
+import AtivarNotificacoes from "./pages/AtivarNotificacoes";
 const Leads = lazy(() => import("./pages/Leads"));
 const Visualizador = lazy(() => import("./pages/Visualizador"));
 const VisualizadorDetalhe = lazy(() => import("./pages/VisualizadorDetalhe"));

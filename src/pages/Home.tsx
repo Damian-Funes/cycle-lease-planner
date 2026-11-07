@@ -13,6 +13,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { viagensEmAndamento } from '@/lib/viagemDados';
 import { hojeRota, paradaInformada } from '@/lib/rotasFluxo';
+import { BellRing } from "lucide-react";
+import { useMinhasInscricoes } from "@/pages/AtivarNotificacoes";
 
 const allCards = [
   {
@@ -172,6 +174,13 @@ export default function Home() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-10 space-y-10">
+        {semPush && (
+          <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+            <BellRing className="w-5 h-5 shrink-0 text-primary" />
+            <div className="flex-1 text-sm">Ative as notificações no celular para receber os avisos que pedem ação.</div>
+            <Button size="sm" variant="outline" onClick={() => navigate("/notificacoes/ativar")}>Ativar notificações</Button>
+          </div>
+        )}
         {incompletasTotal > 0 && (
           <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
             <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600" />

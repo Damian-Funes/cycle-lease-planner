@@ -1,12 +1,18 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, Users, Home, Plug, Phone } from "lucide-react";
+import { LogOut, User as UserIcon, Users, Home, Plug, Phone, BellRing } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import NotificacoesSino from "@/components/NotificacoesSino";
+import { desativarAparelhoAtual, sincronizarAparelho } from "@/lib/push/pushalert";
+
+let aparelhoSincronizado: string | null = null;
 
 export default function AppHeader() {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, signOut, user } = useAuth();
+  // Aparelho já inscrito: confirma o vínculo com quem está logado (uma vez por sessão/usuário).
+  useEffect(() => { if (user && aparelhoSincronizado !== user.id) { aparelhoSincronizado = user.id; sincronizarAparelho(user.id); } }, [user]);
   const navigate = useNavigate();
 
   return (
