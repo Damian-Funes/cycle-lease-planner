@@ -1,0 +1,80 @@
+// Regras puras do push (PushAlert). Sem Deno/APIs: usado pela edge function push-enviar e pelos testes (vitest).
+
+export type RegraPush = { prefixo: string; ativo: boolean; urgente: boolean };
+
+/** Padrão — espelha o seed de push_regras na SQL. Chave da notificação começa com o prefixo. */
+export const REGRAS_PADRAO: RegraPush[] = [
+  { prefixo: 'atividade:', ativo: true, urgente: false },        // vencida / escalada / empurrando
+  { prefixo: 'julia-admin:', ativo: true, urgente: false },      // "X marcou para você"
+  { prefixo: 'caiu:', ativo: true, urgente: true },              // ligação da Júlia caiu
+  { prefixo: 'falha:', ativo: true, urgente: false },            // Júlia não conseguiu ligar
+  { prefixo: 'nota:', ativo: true, urgente: false },             // nota do hotel
+  { prefixo: 'julia-recusadas:', ativo: true, urgente: true },   // alerta de gasto (admin)
+  { prefixo: 'rota-', ativo: true, urgente: false },             // rota aprovada/reprovada/aguardando (futuro)
+  { prefixo: 'orcamento-trava:', ativo: true, urgente: false },  // trava de orçamento (futuro)
+  { prefixo: 'pend:', ativo: false, urgente: false },            // só sininho
+  { prefixo: 'resumo:', ativo: false, urgente: false },          // só sininho
+];
+
+/** Prefixo mais longo que casa vence. Sem regra = só sininho. */
+export function regraDaChave(chave: string | null | undefined, regras: RegraPush[] = REGRAS_PADRAO): RegraPush | null {
+  if (!chave) return null;
+  let melhor: RegraPush | null = null;
+  for (const r of regras) if (chave.startsWith(r.prefixo) && (!melhor || r.prefixo.length > melhor.prefixo.length)) melhor = r;
+  return melhor?.ativo ? melhor : null;
+}
+
+/** Hora em America/Sao_Paulo (sem horário de verão desde 2019: UTC-3). */
+export function horaBRT(agora: Date): number {
+  return (agora.getUTCHours() + 21) % 24;
+}
+
+/** Silêncio 21h–7h BRT (21:00 até 06:59). */
+export function emSilencio(agora: Date): boolean {
+  const h = horaBRT(agora);
+  return h >= 21 || h < 7;
+}
+
+export function decidirEnvio(regra: RegraPush | null, agora: Date): 'enviar' | 'adiar' | 'ignorar' {
+  if (!regra) return 'ignorar';
+  if (regra.urgente || !emSilencio(agora)) return 'enviar';
+  return 'adiar';
+}
+
+const corta = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
+
+/** Remove valores em R$, números grandes, telefones e e-mails: o push aparece na tela bloqueada. */
+export function limparTexto(t: string | null | undefined): string {
+  return (t ?? '')
+    .replace(/R\$\s?[\d.,]+(\s?(mil|mi|milhões?|k))?/gi, '')
+    .replace(/\S+@\S+\.\S+/g, '')
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([,.;:])/g, '$1')
+    .trim();
+}
+
+export const SITE_PUSH = 'https://crmls.com.br';
+
+export function montarPush(n: { titulo: string; texto?: string | null; link?: string | null }) {
+  const titulo = corta(limparTexto(n.titulo) || 'CRM LS', 64);
+  const msg = corta(limparTexto(n.texto) || 'Toque para abrir no CRM.', 140);
+  const link = n.link && n.link.startsWith('/') && !n.link.startsWith('//') ? n.link : '/';
+  return { title: titulo, message: msg, url: SITE_PUSH + link, icon: SITE_PUSH + '/icons/icon-192.png' };
+}
+
+export function montarResumoAdiados(qtd: number) {
+  return {
+    title: qtd === 1 ? 'Você tem 1 aviso no CRM' : `Você tem ${qtd} avisos no CRM`,
+    message: 'Chegaram durante a noite. Toque para ver.',
+    url: SITE_PUSH + '/',
+    icon: SITE_PUSH + '/icons/icon-192.png',
+  };
+}
+
+/** Resposta do PushAlert que indica inscrito que não existe mais → marcar inativo. */
+export function inscritoInvalido(status: number, corpo: unknown): boolean {
+  const txt = typeof corpo === 'string' ? corpo : JSON.stringify(corpo ?? '');
+  if (status === 404 || status === 410) return true;
+  return /invalid subscriber|subscriber.*(not found|invalid|unsubscribed|expired)|unsubscribed/i.test(txt);
+}
