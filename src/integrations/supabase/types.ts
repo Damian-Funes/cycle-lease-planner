@@ -5485,6 +5485,10 @@ export type Database = {
         Args: { _nome: string; _org: string }
         Returns: Record<string, unknown>
       }
+      fn_casar_pessoa_org_detalhe: {
+        Args: { _nome: string; _org: string }
+        Returns: Record<string, unknown>
+      }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }
         Returns: {
@@ -5510,6 +5514,7 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      fn_edicao_ate_1: { Args: { a: string; b: string }; Returns: boolean }
       fn_gravar_perfil: {
         Args: {
           p_executado_por?: string
@@ -5547,6 +5552,7 @@ export type Database = {
           travado: boolean
         }[]
       }
+      fn_nome_normalizado: { Args: { t: string }; Returns: string }
       fn_num_seguro: { Args: { _t: string }; Returns: number }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
       fn_orcamento_travado: { Args: { _user: string }; Returns: boolean }
@@ -5595,9 +5601,25 @@ export type Database = {
         Args: { _org: string; _resp: string; _texto: string }
         Returns: undefined
       }
+      fn_registrar_decisores_detalhe: {
+        Args: { _criar: boolean; _org: string; _resp: string; _texto: string }
+        Returns: Json
+      }
       fn_registrar_levantamento_parada: {
         Args: { _autor?: string; _origem?: string; _parada: string }
         Returns: string
+      }
+      fn_resolver_contato_org: {
+        Args: {
+          _cargo: string
+          _criar: boolean
+          _decisor: boolean
+          _nome: string
+          _org: string
+          _papel?: string
+          _resp: string
+        }
+        Returns: Json
       }
       fn_rota_hoje_brt: { Args: never; Returns: string }
       fn_sincronizar_cobranca_atividades: { Args: never; Returns: Json }
@@ -5648,6 +5670,10 @@ export type Database = {
           similaridade: number
           uf: string
         }[]
+      }
+      julia_completar_contato: {
+        Args: { p_dados: Json; p_ligacao: string; p_org: string }
+        Returns: Json
       }
       julia_completar_organizacao: {
         Args: { p_dados: Json; p_ligacao: string; p_org: string }
