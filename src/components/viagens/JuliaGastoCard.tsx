@@ -22,11 +22,12 @@ const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
+// Sem preço cadastrado o painel mostra só minutos (nada de "R$").
 function custo(b: Bloco | undefined, c: Config) {
-  if (!b) return '—';
-  if (b.creditos != null && c.reais_por_credito != null) return brl(b.creditos * c.reais_por_credito);
-  if (c.reais_por_minuto != null) return `${brl((b.segundos / 60) * c.reais_por_minuto)} (estimado)`;
-  return 'defina o preço';
+  if (!b) return '';
+  if (b.creditos != null && c.reais_por_credito != null) return ` · ${brl(b.creditos * c.reais_por_credito)}`;
+  if (c.reais_por_minuto != null) return ` · ${brl((b.segundos / 60) * c.reais_por_minuto)} (estimado)`;
+  return '';
 }
 const somar = (xs: Bloco[]): Bloco => ({ qtd: xs.reduce((a, x) => a + x.qtd, 0), segundos: xs.reduce((a, x) => a + x.segundos, 0), creditos: xs.every(x => x.creditos != null) && xs.length ? xs.reduce((a, x) => a + (x.creditos ?? 0), 0) : null });
 
