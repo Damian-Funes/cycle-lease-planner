@@ -35,7 +35,7 @@ export default function AtividadeDetalhe({ atividade, tipoNome, responsavelNome,
   const isMobile = useIsMobile();
   const [pessoa, setPessoa] = useState<Pessoa | null>(null);
   const [reags, setReags] = useState<Reag[] | null>(null);
-  const [extra, setExtra] = useState<{ resultado: string | null; motivo_cancelamento: string | null } | null>(null);
+  const [extra, setExtra] = useState<{ resultado: string | null; motivo_cancelamento: string | null; situacao: string | null; data_conclusao: string | null } | null>(null);
 
   useEffect(() => {
     setPessoa(null); setReags(null); setExtra(null);
@@ -46,7 +46,7 @@ export default function AtividadeDetalhe({ atividade, tipoNome, responsavelNome,
       .then(({ data }: any) => vivo && setPessoa(data ?? null));
     db.from("atividade_reagendamentos").select("id, data_anterior, data_nova, motivo, tipo, autor_id, created_at").eq("atividade_id", atividade.id).order("created_at", { ascending: false })
       .then(({ data, error }: any) => vivo && setReags(error ? null : data ?? []));
-    db.from("atividades").select("resultado, motivo_cancelamento").eq("id", atividade.id).maybeSingle()
+    db.from("atividades").select("resultado, motivo_cancelamento, situacao, data_conclusao").eq("id", atividade.id).maybeSingle()
       .then(({ data }: any) => vivo && setExtra(data ?? null));
     return () => { vivo = false; };
   }, [atividade?.id]);
@@ -59,7 +59,17 @@ export default function AtividadeDetalhe({ atividade, tipoNome, responsavelNome,
 
   const acoes = a.concluida ? (
     <div className="space-y-2">
-      <div className="rounded-md bg-muted p-3 text-sm"><span className="font-medium">Concluída.</span> {extra?.resultado || extra?.motivo_cancelamento || ""}</div>
+      {extra?.situacao === "cancelada" ? (
+        <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm">
+          <div className="font-medium">Cancelada{extra.data_conclusao ? ` em ${dt(extra.data_conclusao)}` : ""}</div>
+          {extra.motivo_cancelamento && <p className="whitespace-pre-wrap mt-1">{extra.motivo_cancelamento}</p>}
+        </div>
+      ) : (
+        <div className="rounded-md bg-muted p-3 text-sm">
+          <div className="font-medium">{extra?.data_conclusao ? `Feito em ${dt(extra.data_conclusao)}` : "Concluída"}</div>
+          {extra?.resultado && <p className="whitespace-pre-wrap mt-1">{extra.resultado}</p>}
+        </div>
+      )}
       <Button variant="outline" className="w-full" onClick={onReabrir}><RotateCcw className="h-4 w-4 mr-1" />Reabrir</Button>
     </div>
   ) : (
