@@ -1,0 +1,1 @@
+CREATE POLICY push_regras_admin_ver ON public.push_regras FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'::public.app_role));
