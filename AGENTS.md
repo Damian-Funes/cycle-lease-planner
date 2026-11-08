@@ -26,3 +26,4 @@
 - Julia spend: refused inbound calls live in `julia_ligacoes_recusadas` (never in `ligacoes_viagem`, to keep seller metrics clean); alert thresholds and prices live in `julia_gasto_config`, and the over-limit alert is raised by SQL `julia_finalizar_recusa`.
 - Voice admin: only `ligacoes_viagem.papel_ligacao='admin'` plus the admin role may assign work to another seller; SQL `fn_julia_responsavel` forces the caller otherwise, and `_shared/vendedores.ts` only resolves spoken names to ids.
 - Push (PushAlert) loads only on crmls.com.br via index.html; which notifications push is decided by `push_regras` key prefixes mirrored in `_shared/push.ts`, and only a real INSERT marks `push_status=pendente`, so upserts never resend.
+- Public views use `security_invoker=true`; legacy dossiê/perfil-IA functions, trigger functions and unused views are executable only by service_role, so the anon key never reads data without RLS.
