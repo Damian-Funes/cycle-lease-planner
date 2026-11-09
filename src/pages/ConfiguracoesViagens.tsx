@@ -68,7 +68,7 @@ export default function ConfiguracoesViagens() {
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Configurações de Viagens</h1>
-          <Button onClick={salvar} disabled={salvando}><Save className="w-4 h-4 mr-1" />Salvar</Button>
+          <Button onClick={salvar} disabled={salvando}><Save className="w-4 h-4 mr-1" />Salvar combustível e veículos</Button>
         </div>
         <Card className="p-4 space-y-3">
           <h2 className="font-semibold">Preço do combustível</h2>
