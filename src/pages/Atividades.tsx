@@ -18,13 +18,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as Icons from "lucide-react";
-import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle, Play, MoreHorizontal } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronLeft, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle, Play, MoreHorizontal } from "lucide-react";
 import { useSyncingAtividade } from "@/hooks/useGoogleIntegration";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { startOfMonth, addMonths, setMonth } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CalendarioMesMobile from "@/components/atividade/CalendarioMesMobile";
+import RotuloMes from "@/components/atividade/RotuloMes";
 import { rotuloPilula } from "@/lib/calendarioMes";
+import { acaoVoltar } from "@/lib/voltar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Menu, Search } from "lucide-react";
@@ -471,6 +473,12 @@ export default function Atividades() {
     </>
   );
 
+  // Seta do topo no celular: volta à página anterior se houver histórico do app; senão, Home.
+  const voltar = () => {
+    if (acaoVoltar(window.history.state) === "voltar") navigate(-1);
+    else navigate("/");
+  };
+
   const termo = busca.trim().toLowerCase();
   const resultadosBusca = termo.length < 2 ? [] : filtradas.filter((a) => {
     const orgId = a.organizacao_id || (a.oportunidade_id ? opps[a.oportunidade_id]?.organizacao_id : null);
@@ -486,11 +494,12 @@ export default function Atividades() {
     return (
       <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-background">
         <header className="flex w-full min-w-0 items-center gap-0.5 border-b px-1 py-1">
+          <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" aria-label="Voltar" onClick={voltar}><ChevronLeft className="h-6 w-6" /></Button>
           <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" aria-label="Menu" onClick={() => setMenuMobile(true)}><Menu className="h-5 w-5" /></Button>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="min-w-0 shrink px-1.5 text-lg font-semibold capitalize">
-                <span className="truncate">{format(mesMobile, "MMMM", { locale: ptBR })}{mesMobile.getFullYear() !== hoje.getFullYear() ? ` ${mesMobile.getFullYear()}` : ""}</span>
+              <Button variant="ghost" className="min-w-0 shrink px-1.5 font-semibold capitalize">
+                <RotuloMes mes={mesMobile} />
                 <ChevronDown className="ml-0.5 h-4 w-4 shrink-0" />
               </Button>
             </PopoverTrigger>
