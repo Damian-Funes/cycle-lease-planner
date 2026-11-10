@@ -19,6 +19,8 @@ export const REGRAS_PADRAO: RegraPush[] = [
   { prefixo: 'orcamento-trava:', ativo: false, urgente: false }, // trava já aparece na tela
   { prefixo: 'pend:', ativo: false, urgente: false },            // só sininho
   { prefixo: 'resumo:', ativo: false, urgente: false },          // só sininho
+  { prefixo: 'fechou:', ativo: true, urgente: false },           // admins: vendedor fechou o dia (respeita silêncio)
+  { prefixo: 'naofechou:', ativo: true, urgente: false },        // admins: 22h não fechou (chega às 7h)
 ];
 
 /** Prefixo mais longo que casa vence. Sem regra = só sininho. */

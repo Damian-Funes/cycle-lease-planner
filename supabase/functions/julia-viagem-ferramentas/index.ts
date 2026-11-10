@@ -6,12 +6,14 @@ import { ACOES_LIVRES, ACOES_SO_LIVRES, faltaCompletarContato, faltaResolver, me
 import { horarioRetorno } from '../_shared/juliaViagemRegras.ts';
 import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
+import { comOrg, resolverOrgContato } from './contatoOrg.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
 import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, orgsParadasPendentes, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
 import { carregarSituacoes, fraseJaSabemos, montarJaSabemos } from '../_shared/jaSabemos.ts';
 import { carregarEquipe, resolverAtribuicao } from '../_shared/vendedores.ts';
-import { montarPendencias } from '../_shared/pendenciasDia.ts';
+import { dataExtenso, montarPendencias } from '../_shared/pendenciasDia.ts';
+import { conferirFechamento } from '../_shared/notificacoesViagem.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
 const falha = (error: unknown, status = 400) => json({ salvo: false, error: fraseErro(error) }, status);
@@ -38,7 +40,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
  try {
   const original = await req.json(); t.marcar('json');
   if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
-  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','agendar_retorno','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
+  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','registrar_dia_sem_visita','agendar_retorno','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
   const { data } = horarioBRT();
   // ElevenLabs mal configurado (constante acao errada): corpo com dados de completar vira completar_organizacao.
   if (pareceCompletar(original)) {
@@ -103,7 +105,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    let confirmar_contato = null;
    if (contatos_resolvidos !== undefined) {
     const rc = respostaContatos(contatos_resolvidos, porOrg.get(organizacao_id) ?? [], r?.empresa || 'empresa');
-    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+    avisos.push(...rc.avisos); confirmar_contato = comOrg(rc.confirmar_contato, organizacao_id, r?.empresa); if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
    } else if (r?.contato_ambiguo) avisos.push('Há mais de uma pessoa com esse nome na empresa: contato não vinculado; diga o nome completo.');
    if (at.responsavel_id) mensagem += paraQuem(r?.responsavel_nome ?? at.nome);
    return json({ ok: true, salvo: true, ...r, mensagem, avisos, confirmar_contato });
@@ -111,7 +113,9 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   if (body.acao === 'completar_contato') {
    const falta = faltaCompletarContato(body);
    if (falta) return recusar(falta);
-   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
+   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id: orgInformada, parada_id, ...dados } = body;
+   const organizacao_id = await resolverOrgContato(db, l.vendedor_id, orgInformada, parada_id);
+   if (!organizacao_id) return recusar('Use o organizacao_id que veio em confirmar_contato (ou o parada_id da visita).');
    const { avisos: avisosSql, ...r } = check(await db.rpc('julia_completar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados })) ?? {}; t.marcar('rpc_completar_contato');
    return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompletarContato(r), avisos: [...avisos, ...(avisosSql ?? [])] });
   }
@@ -222,18 +226,32 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    // Banco com a trava (devolve contatos_resolvidos): fala o que ele decidiu. Antes da migração: aviso antigo de ambíguo.
    if (contatos_resolvidos !== undefined) {
     const rc = respostaContatos(contatos_resolvidos, existentes, empresa);
-    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+    avisos.push(...rc.avisos); confirmar_contato = comOrg(rc.confirmar_contato, p.organizacao_id, empresa, p.id); if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
    } else if (body.visitada) avisos.push(...avisosContatos(body as Record<string, unknown>, existentes));
-   return json({ ...result, salvo: true, empresa, mensagem, avisos, confirmar_contato, pendencias: pendencias(await recarregar()) });
+   const rotaVisita = await recarregar();
+   try { await conferirFechamento(db, rotaVisita, data); } catch { /* idem */ }
+   return json({ ...result, salvo: true, empresa, mensagem, avisos, confirmar_contato, pendencias: pendencias(rotaVisita) });
   }
   if(body.acao==='registrar_pernoite') {
    if(body.tipo!=='voltou_base' && (!body.cidade || !body.uf)) return recusar('Informe os campos cidade e UF.');
    if(body.tipo==='hotel' && (!body.hotel_nome || !body.valor)) return recusar('Informe os campos hotel e valor real.');
    if(body.tipo!=='hotel' && !body.observacao) return recusar('Informe o campo observação com a justificativa.');
-   if ((c.rota.pernoites ?? []).some((x: { noite: string }) => x.noite === data)) return json({ ok: true, salvo: true, mensagem: 'Pernoite dessa noite já estava salvo.', avisos, pendencias: pendencias(c.rota) });
+   const noite = body.noite ?? data;
+   if (noite > data || noite < c.rota.data_inicio || noite >= c.rota.data_fim) return recusar(`A noite ${noite.split('-').reverse().join('/')} não é uma noite desta viagem até hoje.`);
+   if (noite !== data && !Array.isArray(c.rota.dias_sem_visita)) return recusar('Noites anteriores ainda não podem ser registradas por voz; registre pelo app.');
+   if ((c.rota.pernoites ?? []).some((x: { noite: string }) => x.noite === noite)) return json({ ok: true, salvo: true, mensagem: 'Pernoite dessa noite já estava salvo.', avisos, pendencias: pendencias(c.rota) });
+  }
+  if (body.acao === 'registrar_dia_sem_visita') {
+   if (!Array.isArray(c.rota.dias_sem_visita)) return recusar('Dia sem visita ainda não está disponível; registre pelo app.');
+   if (body.dia >= data || body.dia < c.rota.data_inicio) return recusar('Só dá para marcar como sem visita um dia anterior desta viagem.');
+   if (body.motivo === 'outro' && !body.observacao) return recusar('Informe o campo observação explicando o motivo.');
   }
   const result = check(await db.rpc('julia_registrar_voz',{ p_ligacao: l.id, p_rota: l.rota_id, p_acao: body.acao, p_dados: body })); t.marcar('rpc_registrar');
-  return json({ ...result, salvo: true, mensagem: body.acao==='registrar_pernoite' ? mensagemPernoite(body) : 'Salvo.', avisos, pendencias: pendencias(await recarregar()) });
+  const rotaNova = await recarregar();
+  try { await conferirFechamento(db, rotaNova, data); } catch { /* aviso aos admins nunca derruba a ligação */ }
+  const quando = (d?: string) => d && d !== data ? ` (${dataExtenso(d)})` : '';
+  const mensagem = body.acao==='registrar_pernoite' ? mensagemPernoite(body) + quando(body.noite) : body.acao==='registrar_dia_sem_visita' ? `Anotei ${dataExtenso(body.dia)} como dia sem visita.` : 'Salvo.';
+  return json({ ...result, salvo: true, mensagem, avisos, pendencias: pendencias(rotaNova) });
  } catch(e) {
   if (e instanceof z.ZodError) { avisar400(e.issues); return falha(fraseValidacao(e.issues)); }
   if (e instanceof SyntaxError) return recusar('Confira os dados enviados: formato inválido.');

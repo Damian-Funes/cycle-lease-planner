@@ -44,7 +44,10 @@ export async function secretIgualValor(recebido: string | null | undefined, espe
 }
 export function check<T>(r: { data: T; error: { message: string } | null }): T { if (r.error) throw new Error(r.error.message); return r.data; }
 export const SELECT_ROTA = '*,paradas:rota_paradas(*,organizacao:organizacoes(nome,nome_fantasia,pessoas(id,nome,cargo,e_decisor))),pernoites:rota_pernoites(*),gastos:rota_gastos(*)';
+/** Com a tabela de dias sem visita (após a migração) a Júlia cobra os dias anteriores; antes dela, só o dia atual. */
 export async function carregarRota(db: ReturnType<typeof dbAdmin>, rotaId: string) {
+  const comDias = await db.from('rotas').select(`${SELECT_ROTA},dias_sem_visita:rota_dias_sem_visita(dia,motivo)`).eq('id', rotaId).single();
+  if (!comDias.error) return comDias.data;
   return check(await db.from('rotas').select(SELECT_ROTA).eq('id', rotaId).single());
 }
 export async function contexto(db: ReturnType<typeof dbAdmin>, rotaId: string, data: string) {

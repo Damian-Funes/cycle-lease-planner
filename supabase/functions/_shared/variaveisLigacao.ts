@@ -2,9 +2,10 @@
 // e recebida (julia-viagem-entrada), para as duas nunca divergirem.
 import { contatosParadas, primeiroNome } from './contatosOrg.ts';
 import type { SituacaoAtual } from './jaSabemos.ts';
+import { dataExtenso } from './pendenciasDia.ts';
 import { fraseJaRegistradas, jaRegistradasHoje } from './jaRegistradas.ts';
 
-export const CHAVES_VARIAVEIS = ['vendedor_nome','vendedor_id','rota_id','rota_nome','data_hoje','noite','ultimo_dia','ligacao_id','pendencias','visitadas_hoje','ja_registradas_hoje','ja_registradas_hoje_frase','contatos_paradas','teste','origem','permitido','eh_admin','vendedores','recusa_id'] as const;
+export const CHAVES_VARIAVEIS = ['vendedor_nome','vendedor_id','rota_id','rota_nome','data_hoje','noite','ultimo_dia','ligacao_id','pendencias','visitadas_hoje','ja_registradas_hoje','ja_registradas_hoje_frase','contatos_paradas','teste','origem','permitido','eh_admin','vendedores','recusa_id','dias_atrasados'] as const;
 export type Variaveis = Record<(typeof CHAVES_VARIAVEIS)[number], string | number>;
 
 // deno-lint-ignore no-explicit-any
@@ -19,8 +20,15 @@ export function montarVariaveis(a: { rota: Rota; perfilNome: string | null; vend
     visitadas_hoje: a.rota.paradas.filter((p: { dia: string; visitada: boolean | null }) => p.dia === a.data && p.visitada != null).length,
     ja_registradas_hoje: JSON.stringify(ja), ja_registradas_hoje_frase: fraseJaRegistradas(ja) || 'Nada registrado hoje ainda.',
     contatos_paradas: JSON.stringify(contatosParadas(a.rota.paradas, a.situacoes ?? new Map())), teste: a.teste ? 'sim' : 'não', origem: a.origem, permitido: a.permitido ?? 'sim',
-    eh_admin: 'não', vendedores: '', recusa_id: '',
+    eh_admin: 'não', vendedores: '', recusa_id: '', dias_atrasados: diasAtrasados(a.pendencias, a.data),
   };
+}
+
+/** "domingo, 08/11 e segunda, 09/11" — dias anteriores ainda em aberto (vazio = só hoje). */
+export function diasAtrasados(pendencias: unknown[], data: string) {
+  const dias = [...new Set((pendencias as { tipo?: string; id?: string }[]).filter(p => (p.tipo === 'dia_sem_registro' || p.tipo === 'pernoite_noite') && typeof p.id === 'string' && p.id < data).map(p => p.id as string))].sort();
+  const t = dias.map(dataExtenso);
+  return t.length <= 1 ? t.join('') : `${t.slice(0, -1).join(', ')} e ${t[t.length - 1]}`;
 }
 
 /** Variáveis vazias: a ElevenLabs exige todas as declaradas, mesmo quando a Júlia só se despede. */

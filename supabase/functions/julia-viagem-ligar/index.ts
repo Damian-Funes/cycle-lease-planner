@@ -3,6 +3,7 @@ import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { montarVariaveis } from '../_shared/variaveisLigacao.ts';
 import { carregarSituacoes } from '../_shared/jaSabemos.ts';
 import { orgsParadasPendentes } from '../_shared/contatosOrg.ts';
+import { chaveNaoFechou, contarTentativas, pendenciasFechamento, tituloNaoFechou } from '../_shared/fechamentoDia.ts';
 import { admins, check, contexto, corsHeaders, dbAdmin, enviarContato, erro, horarioBRT, json, notificar, secretIgual, usuario } from '../_shared/juliaViagem.ts';
 import { DAMIAN_ID, janelaCron, motivoNaoDiscar } from '../_shared/juliaViagemRegras.ts';
 import { configurarElevenLabs, erroElevenLabs } from './elevenlabs.ts';
@@ -114,12 +115,26 @@ export async function handler(req: Request) {
       }
       return json({ ok: true });
     }
+    // 22h: "não fechou o dia" para os admins, com as tentativas (uma vez por viagem/dia).
+    if (input.modo === 'cron' && hora >= '22:00') {
+      const rs = check(await db.from('rotas').select('id,vendedor_id').eq('status','aprovada').lte('data_inicio',data).gte('data_fim',data));
+      for (const r of rs ?? []) {
+        try {
+          const c = await contexto(db,r.id,data); const pend = pendenciasFechamento(c.rota,data);
+          if (!pend.length) continue;
+          const ls = check(await db.from('ligacoes_viagem').select('status,teste').eq('vendedor_id',r.vendedor_id).eq('data_ref',data)) ?? [];
+          const titulo = tituloNaoFechou((c.perfil.nome ?? 'Vendedor').trim(), pend, contarTentativas(ls));
+          for (const a of await admins(db)) await notificar(db,a,chaveNaoFechou(r.id,data),titulo,`/viagens/${r.id}/acompanhar`,'Dia não fechado até as 22h.');
+        } catch { /* uma viagem não derruba as outras */ }
+      }
+      return json({ ok: true, resumo_22h: true });
+    }
     const rotas = check(await db.from('rotas').select('id,vendedor_id').eq('status','aprovada').lte('data_inicio',data).gte('data_fim',data).order('id'));
     const falhas: string[] = [];
     for (const r of rotas ?? []) {
       try {
         const c = await contexto(db,r.id,data);
-        const precisa = c.pendencias.some(p => p.tipo === 'pernoite_noite') || (data === c.rota.data_fim && c.pendencias.some(p => p.tipo === 'parada_pendente'));
+        const precisa = c.pendencias.some(p => p.tipo === 'pernoite_noite' || p.tipo === 'dia_sem_registro') || (data === c.rota.data_fim && c.pendencias.some(p => p.tipo === 'parada_pendente'));
         if (!precisa || hora < String(parametros.contato_hora).slice(0,5)) continue;
         const existente = check(await db.from('ligacoes_viagem').select('id').eq('vendedor_id',r.vendedor_id).eq('data_ref',data).eq('origem','inicial').maybeSingle());
         if (!existente) {
