@@ -22,6 +22,6 @@ Deno.test("parada de outro vendedor não resolve", async () => {
   assertEquals(await resolverOrgContato(db([ORG], { [PARADA]: { organizacao_id: ORG, vendedor: "outro" } }), VEND, PARADA), null);
 });
 Deno.test("confirmar_contato traz organizacao_id explícito", () => {
-  assertEquals(comOrg({ nome_falado: "Felipe" }, ORG, "Agrícola", PARADA), { nome_falado: "Felipe", organizacao_id: ORG, organizacao_nome: "Agrícola", parada_id: PARADA });
+  assertEquals<unknown>(comOrg({ nome_falado: "Felipe" }, ORG, "Agrícola", PARADA), { nome_falado: "Felipe", organizacao_id: ORG, organizacao_nome: "Agrícola", parada_id: PARADA });
   assertEquals(comOrg(null, ORG), null);
 });
