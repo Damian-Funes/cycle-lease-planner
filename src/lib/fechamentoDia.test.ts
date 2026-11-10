@@ -43,6 +43,6 @@ describe("avisos de fechamento", () => {
     expect(t).toEqual({ total: 3, naoAtendidas: 2, caidas: 1 });
     const pend = montarPendencias({ ...base, dias_sem_visita: [] }, "2026-11-10");
     expect(tituloNaoFechou("Flávio", pend, t)).toBe(`✗ Flávio não fechou o dia, falta: ${textoFalta(pend)} · tentativas: 3 ligações, 2 não atendidas, 1 caídas`);
-    expect(textoFalta(pend)).toBe("visitas de domingo, 08/11, onde dormiu (domingo, 08/11) e onde dormiu (2026-11-10)");
+    expect(textoFalta(pend)).toBe("visitas de domingo, 08/11, onde dormiu (domingo, 08/11) e onde dormiu (terça, 10/11)");
   });
 });

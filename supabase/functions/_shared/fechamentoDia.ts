@@ -1,5 +1,5 @@
 // Textos dos avisos de fechamento do dia para os admins (puros, testáveis). Sem valores em R$.
-import { montarPendencias, nomeParada, type ContextoPendencias, type PendenciaDia } from './pendenciasDia.ts';
+import { dataExtenso, montarPendencias, nomeParada, type ContextoPendencias, type PendenciaDia } from './pendenciasDia.ts';
 
 type Rota = ContextoPendencias & { pernoites: { noite: string; tipo: string; cidade?: string | null; estado?: string | null }[] };
 const lista = (itens: string[]) => itens.length <= 1 ? itens.join('') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
@@ -10,7 +10,7 @@ export const pendenciasFechamento = (rota: ContextoPendencias, data: string) =>
 
 /** "onde dormiu (domingo, 08/11), Cocari e visitas de segunda, 09/11" — curto, até 4 itens. */
 export function textoFalta(pend: PendenciaDia[]) {
-  const itens = pend.map(p => p.tipo === 'pernoite_noite' ? `onde dormiu (${p.detalhe.replace(/^Noite de /, '').replace(/ \(\d{4}-\d{2}-\d{2}\)$/, '')})`
+  const itens = pend.map(p => p.tipo === 'pernoite_noite' ? `onde dormiu (${dataExtenso(p.id)})`
     : p.tipo === 'dia_sem_registro' ? p.titulo.toLowerCase()
     : p.titulo);
   const mostrados = itens.slice(0, 4);
