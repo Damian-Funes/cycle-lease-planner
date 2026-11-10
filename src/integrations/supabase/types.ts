@@ -3698,6 +3698,47 @@ export type Database = {
           },
         ]
       }
+      rota_dias_sem_visita: {
+        Row: {
+          autor_id: string
+          created_at: string
+          dia: string
+          id: string
+          motivo: string
+          observacao: string | null
+          origem: string
+          rota_id: string
+        }
+        Insert: {
+          autor_id: string
+          created_at?: string
+          dia: string
+          id?: string
+          motivo: string
+          observacao?: string | null
+          origem?: string
+          rota_id: string
+        }
+        Update: {
+          autor_id?: string
+          created_at?: string
+          dia?: string
+          id?: string
+          motivo?: string
+          observacao?: string | null
+          origem?: string
+          rota_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_dias_sem_visita_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rota_gastos: {
         Row: {
           arquivo_path: string | null

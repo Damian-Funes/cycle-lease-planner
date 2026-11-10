@@ -124,6 +124,23 @@ export async function salvarNoite(n: {
   if (n.existente?.gasto_id && n.tipo !== "hotel") await excluirGasto(n.existente.gasto_id).catch(() => {});
 }
 
+export type MotivoSemVisita = "deslocamento" | "folga" | "outro";
+export const MOTIVOS_SEM_VISITA: [MotivoSemVisita, string][] = [["deslocamento", "Só deslocamento"], ["folga", "Folga"], ["outro", "Outro motivo"]];
+export interface DiaSemVisita { id: string; dia: string; motivo: MotivoSemVisita; observacao: string | null }
+
+export async function listDiasSemVisita(rotaId: string) {
+  const { data, error } = await db.from("rota_dias_sem_visita").select("id,dia,motivo,observacao").eq("rota_id", rotaId).order("dia");
+  if (error) throw error;
+  return (data ?? []) as DiaSemVisita[];
+}
+
+/** Marca um dia anterior como sem visita; o banco recusa hoje, dia fora da viagem e dia com visita. */
+export async function marcarDiaSemVisita(rotaId: string, dia: string, motivo: MotivoSemVisita, observacao: string) {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await db.from("rota_dias_sem_visita").insert({ rota_id: rotaId, dia, motivo, observacao: observacao.trim() || null, autor_id: u.user?.id });
+  if (error) throw new Error(error.message.includes("rota_dias_sem_visita_rota_id_dia_key") ? "Esse dia já foi marcado." : error.message.includes("row-level") ? "Esta viagem não aceita mais registros." : error.message);
+}
+
 /** "Voltei para a base": registra todas as noites restantes de uma vez. */
 export async function voltarParaBase(rotaId: string, noites: string[], observacao: string) {
   if (!noites.length) return;
