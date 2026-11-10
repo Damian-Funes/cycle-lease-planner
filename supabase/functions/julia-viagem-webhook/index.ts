@@ -2,6 +2,7 @@ import { z } from 'npm:zod@3';
 import { admins, check, corsHeaders, dbAdmin, erro, json, notificar } from '../_shared/juliaViagem.ts';
 import { assinaturaValida, ligacaoInterrompida, motivoAssinatura } from '../_shared/juliaWebhook.ts';
 import { extrairCusto } from '../_shared/gastoJulia.ts';
+import { pendenciasFechamento, tituloCaiu } from '../_shared/fechamentoDia.ts';
 import { notificarResumoAdmins, sincronizarNotificacoes } from '../_shared/notificacoesViagem.ts';
 const Event = z.object({ type: z.enum(['post_call_transcription','call_initiation_failure']), data: z.object({ conversation_id: z.string().min(1), failure_reason:z.string().optional(), transcript: z.array(z.object({ role:z.string(),message:z.string().nullable() }).passthrough()).optional(), analysis:z.object({ transcript_summary:z.string().optional() }).passthrough().optional(), metadata:z.object({ call_duration_secs:z.number().nonnegative().optional() }).passthrough().optional() }).passthrough() });
 Deno.serve(async req => {
@@ -55,7 +56,7 @@ Deno.serve(async req => {
       const u=await db.from('ligacoes_viagem').update({status:'interrompida',erro:`caiu: ${motivo || 'curta'}`.slice(0,200)}).eq('id',l.id).eq('status','concluida');
       if(!u.error) status='interrompida';
       const perf=await db.from('profiles').select('nome').eq('user_id',l.vendedor_id).maybeSingle();
-      for(const a of await admins(db)) await notificar(db,a,`caiu:${l.id}`,`Ligação com ${perf.data?.nome ?? 'o vendedor'} caiu — religar?`,`/viagens/${l.rota_id}/acompanhar`,`Encerrou aos ${Math.round(event.data.metadata?.call_duration_secs ?? 0)} s${motivo?` (${motivo})`:''}${gravou?'':', nada gravado'}.`);
+      for(const a of await admins(db)) await notificar(db,a,`caiu:${l.id}`,tituloCaiu((perf.data?.nome ?? 'o vendedor').trim(),pendenciasFechamento(s.rota,l.data_ref)),`/viagens/${l.rota_id}/acompanhar`,`Encerrou aos ${Math.round(event.data.metadata?.call_duration_secs ?? 0)} s${motivo?` (${motivo})`:''}${gravou?'':', nada gravado'}.`);
      }
     }
     if(status==='concluida') await notificarResumoAdmins(db,l.id,s.rota,l.data_ref);
