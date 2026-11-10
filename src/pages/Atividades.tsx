@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import AppHeader from "@/components/AppHeader";
@@ -83,6 +83,7 @@ function SyncIndicator({ id, erro }: { id: string; erro?: string | null }) {
 export default function Atividades() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { key: rotaKey } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const atividadeLink = searchParams.get('atividade');
   const { profiles: respFilterProfiles } = useResponsavelFilterOptions();
@@ -475,7 +476,8 @@ export default function Atividades() {
 
   // Seta do topo no celular: volta à página anterior se houver histórico do app; senão, Home.
   const voltar = () => {
-    if (acaoVoltar(window.history.state) === "voltar") navigate(-1);
+    const acao = acaoVoltar(window.history.state, { key: rotaKey, historyLength: window.history.length });
+    if (acao === "voltar") navigate(-1);
     else navigate("/");
   };
 
