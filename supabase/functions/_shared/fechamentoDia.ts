@@ -1,7 +1,8 @@
 // Textos dos avisos de fechamento do dia para os admins (puros, testáveis). Sem valores em R$.
 import { dataExtenso, montarPendencias, nomeParada, type ContextoPendencias, type PendenciaDia } from './pendenciasDia.ts';
 
-type Rota = ContextoPendencias & { pernoites: { noite: string; tipo: string; cidade?: string | null; estado?: string | null }[] };
+type Rota = ContextoPendencias;
+type Noite = { noite: string; tipo: string; cidade?: string | null };
 const lista = (itens: string[]) => itens.length <= 1 ? itens.join('') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
 
 /** Pendências que decidem o fechamento (as do dia e as dos dias anteriores; o debrief não conta). */
@@ -20,7 +21,7 @@ export function textoFalta(pend: PendenciaDia[]) {
 export function tituloFechou(vendedor: string, rota: Rota, data: string) {
   const visitas = rota.paradas.filter(p => p.dia === data && p.visitada === true && p.tipo !== 'pernoite');
   const nomes = [...new Set(visitas.map(nomeParada))];
-  const noite = rota.pernoites.find(p => p.noite === data);
+  const noite = (rota.pernoites as Noite[]).find(p => p.noite === data);
   const pernoite = !noite ? '' : noite.tipo === 'voltou_base' ? ', voltou para a base' : noite.cidade ? `, pernoite em ${noite.cidade}` : '';
   const qtd = `${visitas.length} ${visitas.length === 1 ? 'visita' : 'visitas'}`;
   return `✓ ${vendedor} fechou o dia: ${qtd}${nomes.length ? ` (${lista(nomes)})` : ''}${pernoite}`;
