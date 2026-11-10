@@ -1,11 +1,11 @@
 export type TipoPendenciaDia =
   | "parada_pendente" | "pernoite_noite" | "nota_hotel"
   | "proximo_passo_sem_data" | "levantamento_incompleto" | "parada_sem_empresa" | "paradas_restantes"
-  | "organizacao_incompleta";
+  | "organizacao_incompleta" | "dia_sem_registro";
 export interface PendenciaDia { tipo: TipoPendenciaDia; id: string; titulo: string; detalhe: string }
 type Relato = Record<string, unknown> | null | undefined;
 export interface ParadaPendencia {
-  id: string; visitada: boolean | null; cidade?: string | null; estado?: string | null; tipo?: string | null;
+  id: string; visitada: boolean | null; dia?: string | null; cidade?: string | null; estado?: string | null; tipo?: string | null;
   organizacao_id?: string | null; relato?: Relato;
   organizacao?: { nome?: string | null; nome_fantasia?: string | null } | null;
 }
@@ -14,6 +14,35 @@ export interface ContextoPendencias {
   paradas: ParadaPendencia[];
   pernoites: { id: string; noite: string; tipo: string; gasto_id: string | null }[];
   gastos: { id: string; arquivo_path: string | null }[];
+  /** Dias marcados "sem visita" (deslocamento/folga). Ausente = schema antigo: dias anteriores não são cobrados. */
+  dias_sem_visita?: { dia: string }[] | null;
+}
+const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+/** "domingo, 08/11" a partir de AAAA-MM-DD. */
+export function dataExtenso(iso: string) {
+  const [a, m, d] = iso.split("-").map(Number);
+  return `${DIAS_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+}
+const somarDia = (iso: string, n: number) => { const [a, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(a, m - 1, d + n)).toISOString().slice(0, 10); };
+/** Limite de dias antigos cobrados por ligação (o resto fica para a próxima). */
+export const LIMITE_DIAS_ANTERIORES = 3;
+/** Pendências dos dias anteriores da viagem (noite sem pernoite; dia sem visita registrada), da mais antiga para a mais nova. */
+export function pendenciasDiasAnteriores(contexto: ContextoPendencias, data: string): PendenciaDia[] {
+  if (!Array.isArray(contexto.dias_sem_visita)) return [];
+  const dias: string[] = [];
+  for (let d = contexto.data_inicio; d < data && d <= contexto.data_fim; d = somarDia(d, 1)) dias.push(d);
+  const itens: PendenciaDia[] = []; const comPendencia = new Set<string>();
+  for (const d of dias) {
+    const temVisita = contexto.paradas.some(p => p.dia === d && p.visitada != null && p.tipo !== "pernoite");
+    if (!temVisita && !contexto.dias_sem_visita.some(x => x.dia === d)) {
+      itens.push({ tipo: "dia_sem_registro", id: d, titulo: `Visitas de ${dataExtenso(d)}`, detalhe: `Dia ${d} sem visita registrada: registre as visitas ou marque como dia sem visita` }); comPendencia.add(d);
+    }
+    if (d < contexto.data_fim && !contexto.pernoites.some(p => p.noite === d)) {
+      itens.push({ tipo: "pernoite_noite", id: d, titulo: "Onde dormiu", detalhe: `Noite de ${dataExtenso(d)} (${d})` }); comPendencia.add(d);
+    }
+  }
+  const permitidos = new Set([...comPendencia].sort().slice(0, LIMITE_DIAS_ANTERIORES));
+  return itens.filter(i => permitidos.has(i.id));
 }
 const vazio = (v: unknown) => v === undefined || v === null || (typeof v === "string" && !v.trim()) || (Array.isArray(v) && !v.length);
 /** Os 6 pontos do debrief; devolve os rótulos que ficaram vazios. */
@@ -41,10 +70,11 @@ export interface OrganizacaoIncompletaSugerida { organizacao_id: string; nome: s
 const ROTULO_FALTA: Record<string, string> = { contato: "contato com telefone", cidade: "cidade", uf: "UF", responsavel: "responsável" };
 
 export function montarPendencias(contexto: ContextoPendencias, data: string, opcoes: { completo?: boolean; organizacaoIncompleta?: OrganizacaoIncompletaSugerida | null } = {}): PendenciaDia[] {
-  const itens: PendenciaDia[] = contexto.paradas.filter(p => p.visitada == null).map(p => ({
+  const itens: PendenciaDia[] = pendenciasDiasAnteriores(contexto, data);
+  itens.push(...contexto.paradas.filter(p => p.visitada == null).map(p => ({
     tipo: "parada_pendente", id: p.id, titulo: nomeParada(p),
     detalhe: [p.cidade, p.estado].filter(Boolean).join(" / "),
-  }));
+  })));
   if (data >= contexto.data_inicio && data < contexto.data_fim && !contexto.pernoites.some(p => p.noite === data)) {
     itens.push({ tipo: "pernoite_noite", id: data, titulo: "Onde dormiu", detalhe: `Noite de ${data}` });
   }
