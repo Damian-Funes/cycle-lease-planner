@@ -398,7 +398,7 @@ export default function Atividades() {
               <Section id="proxima" label="Próxima semana" emoji="📅" items={grupos.proxima} />
               <Section id="depois" label="Depois" emoji="⏳" items={grupos.depois} defaultOpen={false} />
             </Card>
-          );
+          ));
 
   const modaisUI = (
     <>
