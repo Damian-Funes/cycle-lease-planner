@@ -24,15 +24,17 @@ interface Props {
   pessoasDisponiveis?: Pessoa[];
   onSaved?: () => void;
   onClose?: () => void;
+  /** Data inicial (ex.: "Nova neste dia" no calendário do celular). */
+  dataInicial?: Date;
 }
 
 export default function NovaAtividadeQuickForm({
-  oportunidadeId, organizacaoId, pessoaId, onSaved, onClose,
+  oportunidadeId, organizacaoId, pessoaId, onSaved, onClose, dataInicial,
 }: Props) {
   const { tipos, deals, orgs, pessoas } = useAtividadeListas();
   const [tipoId, setTipoId] = useState<string>("");
   const [titulo, setTitulo] = useState("");
-  const [data, setData] = useState(() => toLocalInput(dataAtalho("amanha")));
+  const [data, setData] = useState(() => toLocalInput(dataInicial ?? dataAtalho("amanha")));
   const [duracao, setDuracao] = useState("30");
   const [duracaoCustom, setDuracaoCustom] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -118,7 +120,7 @@ export default function NovaAtividadeQuickForm({
 
       <Input placeholder={tituloPlaceholder} value={titulo} onChange={e => setTitulo(e.target.value)} autoFocus />
 
-      <DataComAtalhos key={dataKey} value={data} onChange={setData} ativo={concluida ? null : "amanha"} />
+      <DataComAtalhos key={dataKey} value={data} onChange={setData} ativo={concluida || dataInicial ? null : "amanha"} />
 
       <VinculoPicker value={vinc} onChange={setVinc} deals={deals} orgs={orgs} pessoas={pessoas} />
 
