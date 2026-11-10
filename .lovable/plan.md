@@ -1,76 +1,82 @@
-# Júlia: salvar o switch e ligar automaticamente
+# Júlia: dias anteriores, avisos de fechamento, completar_contato e seletor no iPad
 
-## O que já está confirmado
-- **O salvar de combustível não apaga o switch.** O botão "Salvar" do topo grava só `preco_diesel` e `preco_gasolina` em `viagem_parametros`, mais os veículos. A regra do banco nessa tabela só valida os preços e não mexe em `ligacao_ativa`.
-- **O PATCH das 18:23 foi do botão errado.** Ele veio do "Salvar" do topo, e não do "Salvar Júlia". O switch ficou só na tela e nunca foi enviado.
-- **"Salvar Júlia" já foi corrigido na rodada anterior, mas ainda não foi publicado.**
-  - Mostra na tela o motivo de o botão estar indisponível.
-  - Mostra o erro de horário ou de celular com o nome do vendedor.
-  - Confere que a gravação aconteceu (sem permissão = erro na tela).
-  - Mostra "Salvo no sistema: LIGADAS/DESLIGADAS".
+O agendamento `julia-viagem-fechamento` e o switch não serão tocados.
 
-## 1. Salvar sem confusão
-**Recomendação: o switch salva sozinho ao tocar, e os dois botões ganham nomes claros.** Não recomendo um único Salvar para a página toda: um erro num veículo travaria a Júlia.
+## 1. Júlia cobre os dias anteriores da viagem
+**Hoje:** `montarPendencias` só cobra a noite de hoje (`pernoite_noite` para a data atual). Não olha noites anteriores nem dias sem visita. A rota do Renan só tem pernoite de 09/11, e a noite de 08/11 nunca foi cobrada.
 
-- **Switch "Ligações automáticas":**
-  - ao tocar, grava na hora só `ligacao_ativa`;
-  - mostra o aviso "Ligações automáticas LIGADAS";
-  - em caso de erro, volta à posição anterior e mostra o erro na tela.
-  - Ao ligar, pede confirmação: "A Júlia vai ligar de verdade para os vendedores em viagem."
-- **Horário de contato e celulares:** continuam no botão, que passa a se chamar "Salvar horário e celulares". Grava só esses campos.
-- **Botão do topo:** passa a se chamar "Salvar combustível e veículos". Continua gravando só os preços e os veículos (como já faz).
-- **Aviso de alterações não salvas:** um aviso "Alterações não salvas" perto de cada botão quando o campo foi mexido e ainda não gravado.
+**Depois:**
+- **Novas pendências, sempre antes das de hoje, da mais antiga para a mais nova:**
+  - `pernoite_noite` para **cada** noite de `data_inicio` até ontem sem registro, com o texto "noite de domingo, 08/11".
+  - `dia_sem_registro` para cada dia passado sem nenhuma parada contabilizada (`rota_paradas.dia`) e sem marcação de "dia sem visita".
+- **Dia só de deslocamento:** nova tabela `rota_dias_sem_visita` (rota, dia, motivo: deslocamento/folga/outro, observação, quem registrou). Assim o dia some das pendências. Ela é validada por gatilho: o dia precisa estar dentro da viagem e já ter passado, só o dono da rota ou o admin registra, e o dia não pode já ter visita.
+- **Nova ferramenta da Júlia `registrar_dia_sem_visita`** (data, motivo, observação). No app, um botão na tela da viagem faz o mesmo.
+- **`registrar_pernoite` ganha o campo opcional `noite`** (AAAA-MM-DD). Sem ele, vale a noite de hoje, como já acontece. O banco recusa uma noite fora da viagem ou no futuro.
+- **Visita esquecida de um dia anterior:** a Júlia usa o `registrar_visita` de hoje. O dia realizado continua sendo o da contabilização, regra que não muda.
+- **Variáveis da ligação:** `pendencias_texto` passa a listar os dias antigos primeiro. Entra a variável nova `dias_atrasados`, por exemplo "domingo, 08/11".
+- **O que vou entregar:** o trecho do prompt ("resolva um dia antigo por vez, depois hoje") e o JSON completo de `registrar_pernoite` (campo `noite`) e de `registrar_dia_sem_visita`, no formato de webhook que já usamos.
+- **Ligações automáticas:** passam a ver as pendências antigas, então a Júlia liga mesmo quando o dia de hoje já está fechado e falta um dia anterior.
 
-## 2. Ligações automáticas: quem faz e o agendamento
-**A discagem é feita por `julia-viagem-ligar` no modo `cron`.** `viagem-sincronizar-pendencias` só atualiza o sininho e não disca.
+## 2. Avisos aos admins sobre o fechamento
+Os avisos vão para o sininho e viram push, com uma chave única por vendedor e dia.
 
-```text
-a cada 10 min (15h50–22h e 9h–9h10, Brasília)
- -> julia-viagem-ligar {modo:"cron"}, com segredo x-cron-secret
-    - sai se ligacao_ativa=false
-    - só rotas aprovadas com hoje entre data_inicio e data_fim
-    - só se houver pendência (noite sem "onde dormi" ou parada pendente no último dia)
-    - a partir de contato_hora: 1 ligação 'inicial' por vendedor por dia
-      (reserva única no banco) + escolha de horário pelo WhatsApp
-    - disca as ligações que já venceram, com trava atômica (nunca duas vezes)
-    - religar fica com as regras já existentes (webhook/retentativas)
-    - não disca depois das 22h
- 9h: avisa "dia aberto" das viagens de ontem
-```
+- **a) "✓ Renan fechou o dia: 3 visitas (Cocari, Morena, Andreis), pernoite em Cascavel"**
+  - **Quando:** a última pendência da viagem até hoje foi resolvida, pela Júlia ou pelo app.
+  - **Chave:** `fechou:<rota>:<dia>`.
+  - **Recomendação:** push, mas **respeitando o silêncio** (às 21h50 chega às 7h). É uma informação, não exige ação.
+- **b) "⚠ Flávio: ligação caiu, falta: onde dormiu, 1 parada"**
+  - **Quando:** substitui o aviso atual de "caiu" quando ainda há pendências. Se a ligação caiu mas não falta nada, vira o aviso (a).
+  - **Chave:** `caiu:<ligacao>`, como hoje.
+  - **Recomendação:** push **fora do silêncio**, até 21h59, porque o admin ainda pode tocar em "Ligar agora".
+- **c) Às 22h (BRT): "✗ Flávio não fechou o dia, falta: … · tentativas: 3 ligações, 2 não atendidas, 1 caída"**
+  - **Chave:** `naofechou:<rota>:<dia>`.
+  - **Recomendação:** sininho e push **respeitando o silêncio**, chegando às 7h. À noite o admin não tem o que fazer.
+  - **Agendamento:** sem criar outro job. A execução das 22h do agendamento que já existe (`julia-viagem-ligar`, modo cron) gera esse resumo.
+- **Onde o fechamento é detectado:** no servidor. A ferramenta da Júlia e a sincronização de pendências do app passam a chamar um único passo "conferir fechamento".
+- **Regras de push:** novas entradas em `push_regras` para `fechou:`, `caiu:` e `naofechou:`.
 
-**Janela até 21h:** hoje o código para às 22h (21h59). Recomendo manter, porque é a regra aprovada. Se o CEO quiser parar às 21h, isso exige mudar uma linha na função e no cron. **Confirme qual prefere.**
+## 3. Bug completar_contato com o ID da parada
+**Hoje:** o `confirmar_contato` de `registrar_visita` não traz `organizacao_id`. A Júlia aproveitou o `parada_id` e recebeu 400.
 
-**Agendamento:** usar a proposta pronta `docs/sql/julia-viagem-cron-proposta.sql`, com um único job `julia-viagem-fechamento`.
-- **Frequência:** cerca de 54 verificações por dia, e só umas 39 chamam a função.
-- **Atraso máximo:** 10 minutos.
-- **Custo:** a verificação gasta recursos do banco mesmo quando não há trabalho. Um intervalo maior atrasaria o "Agora" e os retornos.
+**Depois:**
+- **Resposta mais clara:** `confirmar_contato` passa a trazer `organizacao_id` e `organizacao_nome` explícitos em `registrar_visita` e `registrar_contato_cliente`.
+- **`completar_contato` aceita `parada_id`:** com ele, o servidor descobre a organização da parada. Se vier um `organizacao_id` que na verdade é o ID de uma parada do vendedor, o servidor também resolve, para não quebrar ligações já em curso.
+- **Erro:** se nada casar, a resposta passa a ser "Use o organizacao_id que veio em confirmar_contato".
+- **O que vou entregar:** o JSON atualizado de `completar_contato`, com `parada_id` opcional e `organizacao_id` deixando de ser obrigatório.
+- **Teste:** um teste novo para o caso real.
 
-**Pré-requisito do CEO (o SQL se recusa a rodar sem isso):**
-1. Em Supabase → Edge Functions → Secrets, trocar `JULIA_CRON_SECRET` por um valor forte que ele conheça.
-2. Em Project Settings → Vault, criar um segredo com o mesmo nome e o mesmo valor.
-
-**Depois de aplicar, eu confiro:**
-- `cron.job` com o job novo;
-- as respostas 200 da função, com `desativada:false`;
-- 1 ligação inicial por vendedor no dia.
-
-**SQL e cron só depois da sua aprovação.**
-
-## 3. Para hoje
-1. Publicar o app.
-2. Abrir a viagem do Flávio em Viagens → Acompanhar e tocar **"Ligar agora"**. Depois fazer o mesmo na viagem do Renan.
-
-Funciona até 21h59, sem depender do switch nem do cron. Se a Júlia não puder discar (sem pendência, celular ou fora do período), a tela mostra o motivo, e os admins recebem aviso no sininho se der falha.
+## 4. Seletor de organização no iPad/celular (Diagnóstico)
+- **Celular e iPad (até 1024 px ou toque):** o seletor abre numa **tela de baixo para cima** (bottom sheet), quase em tela cheia:
+  - a busca fica no topo, sem nada cortado atrás do cabeçalho;
+  - a lista rola sozinha acima do teclado.
+- **Destaque e seleção:**
+  - o destaque acompanha só o item sob o dedo;
+  - ao abrir, o destaque inicial fica no item selecionado, e não no primeiro da lista (era assim que o Agromave aparecia);
+  - o item selecionado ganha ✓ e fundo verde.
+- **Computador:** a lista continua abrindo para baixo, com mais espaço.
+- **Abrangência:** o mesmo seletor é usado em outras telas, que também melhoram. Só muda a aparência; os dados não mudam.
 
 ## Riscos
-- **Ligações e WhatsApp reais:** ligar o switch com o cron ativo faz a Júlia ligar e mandar WhatsApp de verdade no mesmo dia, se já passou do horário de contato.
-- **Segredo diferente entre a função e o Vault:** o cron recebe 401 em silêncio. A conferência depois de aplicar detecta isso.
-- **Mais custo de ElevenLabs/telefonia:** com as ligações diárias.
-- **Salvar ao tocar:** um toque sem querer liga as ligações. A confirmação ao ligar evita isso.
+- **Ligações a mais:** com os dias antigos contando, a Júlia vai ligar hoje para cobrar o domingo do Renan, e isso gasta mais minutos.
+- **Dias antigos marcados sem visita:** "dia sem visita" pode esconder visitas esquecidas. O admin vê o motivo na viagem.
+- **Prompt pesado:** com muitos dias abertos, a Júlia pode se perder. Vou limitar a 3 dias antigos por ligação; o resto fica para a próxima.
+- **Excesso de avisos:** com 4 vendedores, o admin pode receber de 8 a 12 avisos por dia. Se ficar demais, o (a) pode virar só sininho.
+- **Seletor:** muda em todas as telas que o usam; vale testar no iPad depois de publicar.
+- **ElevenLabs:** até o CEO colar os JSONs novos, `registrar_pernoite` continua gravando só a noite de hoje.
 
 ## Detalhes técnicos
-- **Arquivos alterados:**
-  - `src/components/viagens/JuliaConfiguracao.tsx`: o switch chama o update de `ligacao_ativa` com `.select().maybeSingle()` e desfaz a mudança se der erro.
-  - `src/pages/ConfiguracoesViagens.tsx`: só o nome do botão.
-- **Sem mudanças em:** funções, regras e tabelas.
-- **Cron:** roda por SQL direto (`cron.schedule` + `net.http_post`), não por migração.
+- **`_shared/pendenciasDia.ts`:**
+  - `ContextoPendencias` ganha `diasSemVisita` e os dias contabilizados das paradas;
+  - novo tipo `dia_sem_registro`, e `pernoite_noite` passa a ser gerado por noite;
+  - a ordem fica antigos → hoje, com limite de 3;
+  - um helper `dataExtenso` em pt-BR;
+  - testes Deno/Vitest para o caso do Renan.
+- **Ferramentas:** `schema.ts` e `index.ts` de `julia-viagem-ferramentas` (pernoite `noite`, `registrar_dia_sem_visita`, `completar_contato` com `parada_id`, `organizacao_id` em `confirmar_contato`). A variável nova sai de `_shared/variaveisLigacao.ts`.
+- **SQL para aprovação** (`docs/sql/julia-dias-anteriores-proposta.sql`), com proposta apenas e nada aplicado sem o seu ok:
+  - a tabela `rota_dias_sem_visita` com GRANTs, RLS (`fn_pode_ver_rota`) e o gatilho de validação;
+  - a RPC da Júlia para "dia sem visita", só para o servidor;
+  - a revisão da RPC de pernoite para aceitar a noite;
+  - as linhas de `push_regras` para `fechou`, `caiu` e `naofechou`, com a regra de silêncio de cada uma.
+- **Webhook:** `julia-viagem-webhook` monta o texto "falta: …" com `montarPendencias`.
+- **Às 22h:** `julia-viagem-ligar` gera o resumo, contando as tentativas a partir de `ligacoes_viagem` (status `nao_atendeu` / `interrompida`).
+- **Seletor:** `SeletorOrganizacao`, com Drawer (vaul) no toque e Popover com `side="bottom"` e `avoidCollisions` no desktop. Abre com `value` do cmdk igual ao item selecionado e `scrollIntoView`.
