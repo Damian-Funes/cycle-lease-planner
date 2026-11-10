@@ -9,16 +9,16 @@ import { desativarAparelhoAtual, sincronizarAparelho } from "@/lib/push/pushaler
 
 let aparelhoSincronizado: string | null = null;
 
-export default function AppHeader() {
+export default function AppHeader({ compacto = false }: { compacto?: boolean } = {}) {
   const { profile, isAdmin, signOut, user } = useAuth();
   // Aparelho já inscrito: confirma o vínculo com quem está logado (uma vez por sessão/usuário).
   useEffect(() => { if (user && aparelhoSincronizado !== user.id) { aparelhoSincronizado = user.id; sincronizarAparelho(user.id); } }, [user]);
   const navigate = useNavigate();
 
   return (
-    <div className="flex items-center gap-1"><NotificacoesSino /><DropdownMenu>
+    <div className={compacto ? "flex shrink-0 items-center" : "flex items-center gap-1"}><NotificacoesSino compacto={compacto} /><DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button variant="ghost" size="sm" className={compacto ? "h-9 w-9 p-0" : "gap-2"} aria-label="Conta">
           <div className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-semibold">
             {profile?.nome?.[0]?.toUpperCase() || profile?.email?.[0]?.toUpperCase() || "?"}
           </div>

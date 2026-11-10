@@ -24,6 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { startOfMonth, addMonths, setMonth } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CalendarioMesMobile from "@/components/atividade/CalendarioMesMobile";
+import { rotuloPilula } from "@/lib/calendarioMes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Menu, Search } from "lucide-react";
@@ -478,15 +479,19 @@ export default function Atividades() {
 
   if (isMobile) {
     const hoje = new Date();
+    const empresaDe = (a: Atividade) => {
+      const orgId = a.organizacao_id || (a.oportunidade_id ? opps[a.oportunidade_id]?.organizacao_id : null);
+      return orgId ? orgs[orgId] : null;
+    };
     return (
-      <div className="flex h-[100dvh] flex-col bg-background">
-        <header className="flex items-center gap-1 border-b px-2 py-1.5">
-          <Button size="icon" variant="ghost" aria-label="Menu" onClick={() => setMenuMobile(true)}><Menu className="h-5 w-5" /></Button>
+      <div className="flex h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-background">
+        <header className="flex w-full min-w-0 items-center gap-0.5 border-b px-1 py-1">
+          <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" aria-label="Menu" onClick={() => setMenuMobile(true)}><Menu className="h-5 w-5" /></Button>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" className="px-2 text-lg font-semibold capitalize">
-                {format(mesMobile, "MMMM", { locale: ptBR })}{mesMobile.getFullYear() !== hoje.getFullYear() ? ` ${mesMobile.getFullYear()}` : ""}
-                <ChevronDown className="ml-1 h-4 w-4" />
+              <Button variant="ghost" className="min-w-0 shrink px-1.5 text-lg font-semibold capitalize">
+                <span className="truncate">{format(mesMobile, "MMMM", { locale: ptBR })}{mesMobile.getFullYear() !== hoje.getFullYear() ? ` ${mesMobile.getFullYear()}` : ""}</span>
+                <ChevronDown className="ml-0.5 h-4 w-4 shrink-0" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-72" align="start">
@@ -503,11 +508,11 @@ export default function Atividades() {
               </div>
             </PopoverContent>
           </Popover>
-          <div className="ml-auto flex items-center gap-1">
-            <Button size="icon" variant="ghost" aria-label="Buscar" onClick={() => setBuscaAberta(true)}><Search className="h-5 w-5" /></Button>
-            <Button size="icon" variant="outline" aria-label="Hoje" className="h-8 w-8 text-xs font-bold"
+          <div className="ml-auto flex shrink-0 items-center gap-0.5">
+            <Button size="icon" variant="ghost" className="h-9 w-9" aria-label="Buscar" onClick={() => setBuscaAberta(true)}><Search className="h-5 w-5" /></Button>
+            <Button size="icon" variant="outline" aria-label="Hoje" className="h-7 w-7 text-xs font-bold"
               onClick={() => { setMesMobile(startOfMonth(hoje)); setView("calendario"); }}>{hoje.getDate()}</Button>
-            <AppHeader />
+            <AppHeader compacto />
           </div>
         </header>
 
@@ -517,6 +522,8 @@ export default function Atividades() {
           <CalendarioMesMobile
             mes={mesMobile} onMes={setMesMobile}
             atividades={filtradas} tipos={tipos}
+            empresa={empresaDe}
+            rotulo={(a) => rotuloPilula(a.titulo, empresaDe(a))}
             onSelectAtividade={(a) => setDetalhe(a)}
             onConcluirRapido={(a) => setAcao({ a, tipo: "feito" })}
             onNovaNoDia={(d) => { const x = new Date(d); x.setHours(9, 0, 0, 0); setNovoData(x); setNovoModal(true); }}
