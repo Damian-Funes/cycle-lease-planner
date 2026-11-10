@@ -72,7 +72,7 @@ const ROTULO_FALTA: Record<string, string> = { contato: "contato com telefone", 
 export function montarPendencias(contexto: ContextoPendencias, data: string, opcoes: { completo?: boolean; organizacaoIncompleta?: OrganizacaoIncompletaSugerida | null } = {}): PendenciaDia[] {
   const itens: PendenciaDia[] = pendenciasDiasAnteriores(contexto, data);
   itens.push(...contexto.paradas.filter(p => p.visitada == null).map(p => ({
-    tipo: "parada_pendente", id: p.id, titulo: nomeParada(p),
+    tipo: "parada_pendente" as const, id: p.id, titulo: nomeParada(p),
     detalhe: [p.cidade, p.estado].filter(Boolean).join(" / "),
   })));
   if (data >= contexto.data_inicio && data < contexto.data_fim && !contexto.pernoites.some(p => p.noite === data)) {
