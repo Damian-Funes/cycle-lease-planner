@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 /** Acrescenta organizacao_id explícito ao confirmar_contato, para a Júlia não reaproveitar o parada_id. */
-export function comOrg<T extends Record<string, unknown> | null>(confirmar: T, organizacaoId?: string | null, empresa?: string | null, paradaId?: string | null) {
+export function comOrg(confirmar: object | null, organizacaoId?: string | null, empresa?: string | null, paradaId?: string | null) {
   if (!confirmar) return confirmar;
   return { ...confirmar, organizacao_id: organizacaoId ?? null, organizacao_nome: empresa ?? null, ...(paradaId ? { parada_id: paradaId } : {}) };
 }
