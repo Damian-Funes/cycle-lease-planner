@@ -1,4 +1,4 @@
--- PROPOSTA SOMENTE: NÃO EXECUTADA. Aplicar só após aprovação do CEO.
+-- APLICADA em 10/11/2026 após aprovação do CEO (a função julia_registrar_voz foi recriada a partir da definição vigente).
 -- 1) Dias "sem visita" (deslocamento/folga) para a Júlia e o app não cobrarem o dia de novo.
 -- 2) julia_registrar_voz: pernoite de uma noite específica (p_dados.noite) e ação registrar_dia_sem_visita.
 -- 3) push_regras: fechou: e naofechou: (respeitam silêncio); caiu: já existe como urgente.
