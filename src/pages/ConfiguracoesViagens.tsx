@@ -36,6 +36,9 @@ export default function ConfiguracoesViagens() {
   useEffect(() => { if (veiculos) setLinhas(veiculos.map((v) => ({ ...v, consumo: fmt(v.consumo_km_l), lat: fmt(v.base_lat), lng: fmt(v.base_lng) }))); }, [veiculos]);
   useEffect(() => { if (parametros) { setDiesel(fmt(parametros.preco_diesel)); setGasolina(fmt(parametros.preco_gasolina)); } }, [parametros]);
 
+  const linhasSalvas = JSON.stringify((veiculos ?? []).map((v) => ({ ...v, consumo: fmt(v.consumo_km_l), lat: fmt(v.base_lat), lng: fmt(v.base_lng) })));
+  const naoSalvo = Boolean(parametros) && (diesel !== fmt(parametros?.preco_diesel) || gasolina !== fmt(parametros?.preco_gasolina) || JSON.stringify(linhas) !== linhasSalvas);
+
   const upd = (id: string, v: Partial<Linha>) => setLinhas((ls) => ls.map((l) => (l.id === id ? { ...l, ...v } : l)));
 
   async function salvar() {
@@ -68,7 +71,10 @@ export default function ConfiguracoesViagens() {
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Configurações de Viagens</h1>
-          <Button onClick={salvar} disabled={salvando}><Save className="w-4 h-4 mr-1" />Salvar combustível e veículos</Button>
+          <div className="flex items-center gap-2">
+            {naoSalvo && <span role="status" className="text-sm font-medium text-destructive">Alterações não salvas</span>}
+            <Button onClick={salvar} disabled={salvando}><Save className="w-4 h-4 mr-1" />Salvar combustível e veículos</Button>
+          </div>
         </div>
         <Card className="p-4 space-y-3">
           <h2 className="font-semibold">Preço do combustível</h2>
