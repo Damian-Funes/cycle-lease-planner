@@ -6,6 +6,7 @@ import { ACOES_LIVRES, ACOES_SO_LIVRES, faltaCompletarContato, faltaResolver, me
 import { horarioRetorno } from '../_shared/juliaViagemRegras.ts';
 import { extrairRelato } from '../_shared/relatoVisita.ts';
 import { prepararEntrada } from './schema.ts';
+import { comOrg, resolverOrgContato } from './contatoOrg.ts';
 import { mensagensValidacao, fraseValidacao, pareceCompletar } from './entrada.ts';
 import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, type OrgIncompleta } from './organizacao.ts';
 import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, orgsParadasPendentes, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
@@ -103,7 +104,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    let confirmar_contato = null;
    if (contatos_resolvidos !== undefined) {
     const rc = respostaContatos(contatos_resolvidos, porOrg.get(organizacao_id) ?? [], r?.empresa || 'empresa');
-    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+    avisos.push(...rc.avisos); confirmar_contato = comOrg(rc.confirmar_contato, organizacao_id, r?.empresa); if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
    } else if (r?.contato_ambiguo) avisos.push('Há mais de uma pessoa com esse nome na empresa: contato não vinculado; diga o nome completo.');
    if (at.responsavel_id) mensagem += paraQuem(r?.responsavel_nome ?? at.nome);
    return json({ ok: true, salvo: true, ...r, mensagem, avisos, confirmar_contato });
@@ -111,7 +112,9 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   if (body.acao === 'completar_contato') {
    const falta = faltaCompletarContato(body);
    if (falta) return recusar(falta);
-   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id, ...dados } = body;
+   const { acao: _a, ligacao_id: _l, rota_id: _r, organizacao_id: orgInformada, parada_id, ...dados } = body;
+   const organizacao_id = await resolverOrgContato(db, l.vendedor_id, orgInformada, parada_id);
+   if (!organizacao_id) return recusar('Use o organizacao_id que veio em confirmar_contato (ou o parada_id da visita).');
    const { avisos: avisosSql, ...r } = check(await db.rpc('julia_completar_contato', { p_ligacao: l.id, p_org: organizacao_id, p_dados: dados })) ?? {}; t.marcar('rpc_completar_contato');
    return json({ ok: true, salvo: true, ...r, mensagem: mensagemCompletarContato(r), avisos: [...avisos, ...(avisosSql ?? [])] });
   }
@@ -222,7 +225,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    // Banco com a trava (devolve contatos_resolvidos): fala o que ele decidiu. Antes da migração: aviso antigo de ambíguo.
    if (contatos_resolvidos !== undefined) {
     const rc = respostaContatos(contatos_resolvidos, existentes, empresa);
-    avisos.push(...rc.avisos); confirmar_contato = rc.confirmar_contato; if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
+    avisos.push(...rc.avisos); confirmar_contato = comOrg(rc.confirmar_contato, p.organizacao_id, empresa, p.id); if (rc.pergunta) mensagem = `${mensagem} ${rc.pergunta}`;
    } else if (body.visitada) avisos.push(...avisosContatos(body as Record<string, unknown>, existentes));
    return json({ ...result, salvo: true, empresa, mensagem, avisos, confirmar_contato, pendencias: pendencias(await recarregar()) });
   }

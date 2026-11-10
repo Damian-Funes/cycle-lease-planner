@@ -26,7 +26,7 @@ export const Schema = z.discriminatedUnion('acao', [
 
  z.object({ ...livre, ...relatoCampos, acao: z.literal('registrar_contato_cliente'), vendedor_nome: z.string().trim().min(2).max(100).optional(), organizacao_id: z.string().uuid(), contato_novo_confirmado: z.boolean().optional(), canal: z.enum(['telefone','whatsapp','visita','email','outro']), sacos_safra: z.number().finite().nonnegative().optional(), interesse: z.enum(['alto','medio','baixo']).optional(), objecoes: z.array(z.string().trim().min(1).max(500)).max(20).optional(), proximo_passo_data: dataISO.optional(), resultado: z.string().trim().min(10).max(4500) }).strip(),
  // Depois da confirmação em voz: contato existente OU pessoa nova (nunca os dois; checado também no SQL).
- z.object({ ...livre, acao: z.literal('completar_contato'), organizacao_id: z.string().uuid(), nome_falado: z.string().trim().min(2).max(200),
+ z.object({ ...livre, acao: z.literal('completar_contato'), organizacao_id: z.string().uuid().optional(), parada_id: z.string().uuid().optional(), nome_falado: z.string().trim().min(2).max(200),
   contato_existente: z.string().trim().min(2).max(200).optional(), contato_novo_confirmado: z.boolean().optional(),
   contato_nome: z.string().trim().min(3).max(200).optional(), contato_cargo: z.string().trim().min(1).max(200).optional(),
   contato_telefone: z.string().regex(/^\d{10,11}$/).optional(), papel: z.enum(['contato','decisor']).optional() }).strip(),
