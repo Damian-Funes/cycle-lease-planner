@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Check, ChevronsUpDown, Plus, Lock, ExternalLink } from "lucide-react";
@@ -41,6 +42,8 @@ export default function SeletorOrganizacao({
   const qc = useQueryClient();
   const { isAdmin } = useAuth();
   const [openOrg, setOpenOrg] = useState(false);
+  // iPad/celular: lista em tela de baixo para cima, com a busca no topo (popover abria para cima atrás do teclado).
+  const toque = useMemo(() => typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth <= 1024), []);
   const [openPes, setOpenPes] = useState(false);
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showPesModal, setShowPesModal] = useState(false);
@@ -96,6 +99,89 @@ export default function SeletorOrganizacao({
       {/* Linha 1: Organização */}
       <div className="space-y-1.5">
         <Label>Organização {disabled && <Lock className="inline w-3 h-3 ml-1" />}</Label>
+        {toque ? (
+          <>
+            <Button
+              onClick={() => setOpenOrg(true)}
+              variant="outline"
+              role="combobox"
+              disabled={disabled}
+              className="w-full justify-between font-normal"
+            >
+              <span className="truncate text-left">
+                {orgSelecionada ? (
+                  <>
+                    {orgSelecionada.nome}
+                    {orgSelecionada.nome_fantasia && (
+                      <span className="text-muted-foreground"> · {orgSelecionada.nome_fantasia}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Selecione uma organização…</span>
+                )}
+              </span>
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+            <Drawer open={openOrg && !disabled} onOpenChange={setOpenOrg} repositionInputs={false}>
+              <DrawerContent className="h-[92dvh] flex flex-col">
+                <DrawerHeader className="pb-2"><DrawerTitle>Selecionar organização</DrawerTitle></DrawerHeader>
+                <div className="flex-1 min-h-0 flex flex-col [&_[cmdk-root]]:flex [&_[cmdk-root]]:flex-col [&_[cmdk-root]]:h-full [&_[cmdk-root]]:min-h-0">
+            <Command
+              defaultValue={value.organizacao_id ?? undefined}
+              filter={(val, search) => {
+                const o = organizacoes.find((x) => x.id === val);
+                if (!o) return 0;
+                if (!search.trim()) return 1;
+                const sc = pontuarOrganizacao(o, search);
+                return sc > 0 ? Math.min(1, sc / 400) : 0;
+              }}
+            >
+              <CommandInput placeholder="Buscar por nome ou CNPJ…" />
+              <CommandList className={toque ? "max-h-none flex-1 overflow-y-auto overscroll-contain" : "max-h-[min(60vh,420px)]"}>
+                <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
+                <CommandGroup>
+                  {organizacoes.map((o) => (
+                    <CommandItem key={o.id} value={o.id} onSelect={() => selectOrg(o.id)} className={cn(toque && "py-3", value.organizacao_id === o.id && "bg-primary/10 font-medium text-primary")}>
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4 shrink-0 text-primary",
+                          value.organizacao_id === o.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate">
+                          {o.nome}
+                          {o.nome_fantasia && (
+                            <span className="text-muted-foreground"> · {o.nome_fantasia}</span>
+                          )}
+                        </span>
+                        {o.cnpj && (
+                          <span className="text-xs text-muted-foreground">CNPJ: {o.cnpj}</span>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+              <div className="border-t p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setOpenOrg(false);
+                    setShowOrgModal(true);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Criar nova organização
+                </Button>
+              </div>
+            </Command>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        ) : (
         <Popover open={openOrg && !disabled} onOpenChange={setOpenOrg}>
           <PopoverTrigger asChild>
             <Button
@@ -119,8 +205,9 @@ export default function SeletorOrganizacao({
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" side="bottom" avoidCollisions={false}>
             <Command
+              defaultValue={value.organizacao_id ?? undefined}
               filter={(val, search) => {
                 const o = organizacoes.find((x) => x.id === val);
                 if (!o) return 0;
@@ -130,14 +217,14 @@ export default function SeletorOrganizacao({
               }}
             >
               <CommandInput placeholder="Buscar por nome ou CNPJ…" />
-              <CommandList>
+              <CommandList className={toque ? "max-h-none flex-1 overflow-y-auto overscroll-contain" : "max-h-[min(60vh,420px)]"}>
                 <CommandEmpty>Nenhuma organização encontrada.</CommandEmpty>
                 <CommandGroup>
                   {organizacoes.map((o) => (
-                    <CommandItem key={o.id} value={o.id} onSelect={() => selectOrg(o.id)}>
+                    <CommandItem key={o.id} value={o.id} onSelect={() => selectOrg(o.id)} className={cn(toque && "py-3", value.organizacao_id === o.id && "bg-primary/10 font-medium text-primary")}>
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4",
+                          "mr-2 h-4 w-4 shrink-0 text-primary",
                           value.organizacao_id === o.id ? "opacity-100" : "opacity-0"
                         )}
                       />
@@ -172,6 +259,7 @@ export default function SeletorOrganizacao({
             </Command>
           </PopoverContent>
         </Popover>
+        )}
       </div>
 
       {/* Linha 2: Pessoa de contato */}
