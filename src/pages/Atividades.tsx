@@ -21,6 +21,12 @@ import * as Icons from "lucide-react";
 import { ChevronDown, ChevronRight, Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, List, CalendarDays, Video, AlertTriangle, Play, MoreHorizontal } from "lucide-react";
 import { useSyncingAtividade } from "@/hooks/useGoogleIntegration";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { startOfMonth, addMonths, setMonth } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
+import CalendarioMesMobile from "@/components/atividade/CalendarioMesMobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Menu, Search } from "lucide-react";
 import { format, isBefore, isToday, isTomorrow, addDays, startOfWeek, endOfWeek, addWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -97,10 +103,17 @@ export default function Atividades() {
     const v = q.get("visao");
     if (v === "lista" || v === "calendario") return v;
     if (q.get("atrasadas")) return "lista";
+    if (window.innerWidth < 768) return "calendario"; // celular: sempre Calendário mês
     const salvo = localStorage.getItem("atividades:visao");
     return salvo === "lista" || salvo === "calendario" ? salvo : "calendario";
   });
-  const setView = (v: Visao) => { setViewState(v); if (v !== "placar") localStorage.setItem("atividades:visao", v); };
+  const setView = (v: Visao) => { setViewState(v); if (v !== "placar" && window.innerWidth >= 768) localStorage.setItem("atividades:visao", v); };
+  const isMobile = useIsMobile();
+  const [mesMobile, setMesMobile] = useState(() => startOfMonth(new Date()));
+  const [menuMobile, setMenuMobile] = useState(false);
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [busca, setBusca] = useState("");
+  const [novoData, setNovoData] = useState<Date | undefined>(undefined);
   const [detalhe, setDetalhe] = useState<Atividade | null>(null);
 
   // Modais
@@ -340,44 +353,8 @@ export default function Atividades() {
     );
   };
 
-  return (
-    <div className="min-h-screen bg-muted/20">
-      <header className="bg-background border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4 mr-1" />Início</Button>
-          <h1 className="font-semibold text-lg">Atividades</h1>
-          <span className="text-sm text-muted-foreground">
-            <span className="text-destructive font-medium">{countAtrasadas} atrasadas</span> · <span>{countHoje} hoje</span>
-          </span>
-          <div className="ml-auto flex items-center gap-3">
-            <Tabs value={view} onValueChange={(v) => setView(v as any)}>
-              <TabsList className="h-8">
-                <TabsTrigger value="lista" className="text-xs gap-1 px-2"><List className="h-3.5 w-3.5" />Lista</TabsTrigger>
-                <TabsTrigger value="calendario" className="text-xs gap-1 px-2"><CalendarDays className="h-3.5 w-3.5" />Calendário</TabsTrigger>
-                {isAdmin && <TabsTrigger value="placar" className="text-xs gap-1 px-2"><AlertTriangle className="h-3.5 w-3.5" />Atrasadas</TabsTrigger>}
-              </TabsList>
-            </Tabs>
-            <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Ferramentas de admin" disabled={testando}>
-                    {testando ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={testarAssumirOrgs}><Play className="h-4 w-4 mr-2" />Testar aviso "assumir organizações"</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            <Button size="sm" onClick={() => setNovoModal(true)}><Plus className="h-4 w-4 mr-1" />Nova</Button>
-            <AppHeader />
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 py-4 grid grid-cols-[240px_1fr] gap-4">
-        <aside className="space-y-4">
+  const filtrosUI = (
+    <>
           <Card className="p-3 space-y-2">
             <h3 className="text-xs font-semibold uppercase text-muted-foreground">Período</h3>
             {[["tudo", "Tudo"], ["atrasadas", "Atrasadas"], ["hoje", "Hoje"], ["semana", "Esta semana"], ["proxima", "Próxima semana"]].map(([v, l]) => (
@@ -406,25 +383,11 @@ export default function Atividades() {
               </label>
             ))}
           </Card>
-        </aside>
+    </>
+  );
 
-        <main className="space-y-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : view === "placar" ? (
-            <PlacarAtividades
-              nomes={Object.fromEntries(profiles.map((p) => [p.user_id, p.nome || p.email]))}
-              onVerVendedor={(uid) => { setRespSel(uid); setPeriodo("atrasadas"); setView("lista"); }}
-            />
-          ) : view === "calendario" ? (
-            <AtividadesCalendar
-              atividades={filtradas}
-              tipos={tipos}
-              onSelectAtividade={(a) => setDetalhe(a as any)}
-              onConcluirRapido={(a) => setAcao({ a: a as any, tipo: "feito" })}
-              onCreateAt={() => setNovoModal(true)}
-            />
-          ) : filtradas.length === 0 ? (
+  const listaUI = (
+            filtradas.length === 0 ? (
             <Card className="p-12 text-center text-muted-foreground">Nenhuma atividade encontrada</Card>
           ) : (
             <Card className="overflow-hidden">
@@ -435,15 +398,15 @@ export default function Atividades() {
               <Section id="proxima" label="Próxima semana" emoji="📅" items={grupos.proxima} />
               <Section id="depois" label="Depois" emoji="⏳" items={grupos.depois} defaultOpen={false} />
             </Card>
-          )}
-        </main>
-      </div>
+          );
 
+  const modaisUI = (
+    <>
       {/* Modal Nova Atividade */}
-      <Dialog open={novoModal} onOpenChange={setNovoModal}>
+      <Dialog open={novoModal} onOpenChange={(o) => { setNovoModal(o); if (!o) setNovoData(undefined); }}>
         <DialogContent className="max-w-xl">
           <DialogHeader><DialogTitle>Nova atividade</DialogTitle></DialogHeader>
-          <NovaAtividadeQuickForm onSaved={() => { carregar(); setNovoModal(false); }} onClose={() => setNovoModal(false)} />
+          <NovaAtividadeQuickForm key={novoData?.toISOString() ?? "novo"} dataInicial={novoData} onSaved={() => { carregar(); setNovoModal(false); }} onClose={() => setNovoModal(false)} />
         </DialogContent>
       </Dialog>
 
@@ -504,6 +467,185 @@ export default function Atividades() {
         onDone={() => { setAcao(null); carregar(); }}
       />
       <ConcluirAtividadeDialog atividade={concluirAtiv} onClose={() => setConcluirAtiv(null)} onDone={() => { setConcluirAtiv(null); carregar(); }} />
+    </>
+  );
+
+  const termo = busca.trim().toLowerCase();
+  const resultadosBusca = termo.length < 2 ? [] : filtradas.filter((a) => {
+    const orgId = a.organizacao_id || (a.oportunidade_id ? opps[a.oportunidade_id]?.organizacao_id : null);
+    return [a.titulo, orgId ? orgs[orgId] : "", a.pessoa_id ? pessoasMap[a.pessoa_id]?.nome : ""].some((t) => (t || "").toLowerCase().includes(termo));
+  }).slice(0, 30);
+
+  if (isMobile) {
+    const hoje = new Date();
+    return (
+      <div className="flex h-[100dvh] flex-col bg-background">
+        <header className="flex items-center gap-1 border-b px-2 py-1.5">
+          <Button size="icon" variant="ghost" aria-label="Menu" onClick={() => setMenuMobile(true)}><Menu className="h-5 w-5" /></Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="px-2 text-lg font-semibold capitalize">
+                {format(mesMobile, "MMMM", { locale: ptBR })}{mesMobile.getFullYear() !== hoje.getFullYear() ? ` ${mesMobile.getFullYear()}` : ""}
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72" align="start">
+              <div className="mb-2 flex items-center justify-between">
+                <Button size="sm" variant="ghost" onClick={() => setMesMobile(addMonths(mesMobile, -12))}>‹</Button>
+                <span className="font-semibold">{mesMobile.getFullYear()}</span>
+                <Button size="sm" variant="ghost" onClick={() => setMesMobile(addMonths(mesMobile, 12))}>›</Button>
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <Button key={i} size="sm" variant={mesMobile.getMonth() === i ? "default" : "ghost"} className="capitalize"
+                    onClick={() => setMesMobile(setMonth(mesMobile, i))}>{format(new Date(2026, i, 1), "MMM", { locale: ptBR })}</Button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+          <div className="ml-auto flex items-center gap-1">
+            <Button size="icon" variant="ghost" aria-label="Buscar" onClick={() => setBuscaAberta(true)}><Search className="h-5 w-5" /></Button>
+            <Button size="icon" variant="outline" aria-label="Hoje" className="h-8 w-8 text-xs font-bold"
+              onClick={() => { setMesMobile(startOfMonth(hoje)); setView("calendario"); }}>{hoje.getDate()}</Button>
+            <AppHeader />
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="flex flex-1 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : view === "calendario" ? (
+          <CalendarioMesMobile
+            mes={mesMobile} onMes={setMesMobile}
+            atividades={filtradas} tipos={tipos}
+            onSelectAtividade={(a) => setDetalhe(a)}
+            onConcluirRapido={(a) => setAcao({ a, tipo: "feito" })}
+            onNovaNoDia={(d) => { const x = new Date(d); x.setHours(9, 0, 0, 0); setNovoData(x); setNovoModal(true); }}
+          />
+        ) : (
+          <div className="flex-1 overflow-y-auto p-2 pb-24">
+            {view === "placar" ? (
+              <PlacarAtividades
+                nomes={Object.fromEntries(profiles.map((p) => [p.user_id, p.nome || p.email]))}
+                onVerVendedor={(uid) => { setRespSel(uid); setPeriodo("atrasadas"); setView("lista"); }}
+              />
+            ) : listaUI}
+          </div>
+        )}
+
+        <Button aria-label="Nova atividade" onClick={() => { setNovoData(undefined); setNovoModal(true); }}
+          className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-20 h-14 w-14 rounded-2xl shadow-lg">
+          <Plus className="h-7 w-7" />
+        </Button>
+
+        <Sheet open={menuMobile} onOpenChange={setMenuMobile}>
+          <SheetContent side="left" className="w-[85vw] max-w-xs overflow-y-auto">
+            <SheetHeader><SheetTitle>Atividades</SheetTitle></SheetHeader>
+            <p className="mt-1 text-sm text-muted-foreground">
+              <span className="font-medium text-destructive">{countAtrasadas} atrasadas</span> · {countHoje} hoje
+            </p>
+            <div className="mt-4 space-y-4">
+              <Card className="space-y-1 p-3">
+                <h3 className="text-xs font-semibold uppercase text-muted-foreground">Visão</h3>
+                {([["calendario", "Calendário mês"], ["lista", "Lista"], ...(isAdmin ? [["placar", "Atrasadas do time"]] : [])] as [Visao, string][]).map(([v, l]) => (
+                  <button key={v} onClick={() => { setView(v); setMenuMobile(false); }}
+                    className={`w-full rounded px-2 py-1.5 text-left text-sm ${view === v ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>{l}</button>
+                ))}
+              </Card>
+              <Card className="space-y-3 p-3">
+                <div className="flex items-center justify-between"><Label htmlFor="scm">Concluídas</Label><Switch id="scm" checked={showConcluidas} onCheckedChange={setShowConcluidas} /></div>
+                <div className="flex items-center justify-between"><Label htmlFor="atm">Só atrasadas</Label><Switch id="atm" checked={periodo === "atrasadas"} onCheckedChange={(v) => setPeriodo(v ? "atrasadas" : "tudo")} /></div>
+              </Card>
+              {filtrosUI}
+              {isAdmin && <Button variant="ghost" size="sm" className="w-full justify-start" disabled={testando} onClick={testarAssumirOrgs}><Play className="mr-2 h-4 w-4" />Testar aviso "assumir organizações"</Button>}
+              <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => navigate("/")}><ArrowLeft className="mr-2 h-4 w-4" />Início</Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <Dialog open={buscaAberta} onOpenChange={setBuscaAberta}>
+          <DialogContent className="top-4 max-w-md translate-y-0">
+            <DialogHeader><DialogTitle>Buscar atividade</DialogTitle></DialogHeader>
+            <Input autoFocus value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Título, empresa ou pessoa (filtros atuais)" />
+            <div className="max-h-[60dvh] space-y-1 overflow-y-auto">
+              {termo.length >= 2 && resultadosBusca.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Nada encontrado nos filtros atuais.</p>}
+              {resultadosBusca.map((a) => (
+                <button key={a.id} className="w-full rounded border p-2 text-left hover:bg-muted"
+                  onClick={() => { setBuscaAberta(false); setMesMobile(startOfMonth(new Date(a.data_inicio))); setView("calendario"); setDetalhe(a); }}>
+                  <div className="truncate text-sm font-medium">{a.titulo}</div>
+                  <div className="text-xs text-muted-foreground">{format(new Date(a.data_inicio), "dd/MM/yyyy HH:mm")}</div>
+                </button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {modaisUI}
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-muted/20">
+      <header className="bg-background border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")}><ArrowLeft className="h-4 w-4 mr-1" />Início</Button>
+          <h1 className="font-semibold text-lg">Atividades</h1>
+          <span className="text-sm text-muted-foreground">
+            <span className="text-destructive font-medium">{countAtrasadas} atrasadas</span> · <span>{countHoje} hoje</span>
+          </span>
+          <div className="ml-auto flex items-center gap-3">
+            <Tabs value={view} onValueChange={(v) => setView(v as any)}>
+              <TabsList className="h-8">
+                <TabsTrigger value="lista" className="text-xs gap-1 px-2"><List className="h-3.5 w-3.5" />Lista</TabsTrigger>
+                <TabsTrigger value="calendario" className="text-xs gap-1 px-2"><CalendarDays className="h-3.5 w-3.5" />Calendário</TabsTrigger>
+                {isAdmin && <TabsTrigger value="placar" className="text-xs gap-1 px-2"><AlertTriangle className="h-3.5 w-3.5" />Atrasadas</TabsTrigger>}
+              </TabsList>
+            </Tabs>
+            <div className="flex items-center gap-2"><Switch checked={showConcluidas} onCheckedChange={setShowConcluidas} id="sc" /><Label htmlFor="sc" className="text-sm">Concluídas</Label></div>
+            {isAdmin && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" title="Ferramentas de admin" disabled={testando}>
+                    {testando ? <Loader2 className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={testarAssumirOrgs}><Play className="h-4 w-4 mr-2" />Testar aviso "assumir organizações"</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            <Button size="sm" onClick={() => setNovoModal(true)}><Plus className="h-4 w-4 mr-1" />Nova</Button>
+            <AppHeader />
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 py-4 grid grid-cols-[240px_1fr] gap-4">
+        <aside className="space-y-4">
+          {filtrosUI}
+        </aside>
+
+        <main className="space-y-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : view === "placar" ? (
+            <PlacarAtividades
+              nomes={Object.fromEntries(profiles.map((p) => [p.user_id, p.nome || p.email]))}
+              onVerVendedor={(uid) => { setRespSel(uid); setPeriodo("atrasadas"); setView("lista"); }}
+            />
+          ) : view === "calendario" ? (
+            <AtividadesCalendar
+              atividades={filtradas}
+              tipos={tipos}
+              onSelectAtividade={(a) => setDetalhe(a as any)}
+              onConcluirRapido={(a) => setAcao({ a: a as any, tipo: "feito" })}
+              onCreateAt={() => setNovoModal(true)}
+            />
+          ) : listaUI}
+        </main>
+      </div>
+
+      {modaisUI}
     </div>
   );
 }
