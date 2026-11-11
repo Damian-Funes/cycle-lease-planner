@@ -111,7 +111,7 @@ INSERT INTO public.push_regras(prefixo,ativo,urgente,descricao) VALUES('parada_e
 
 -- ===== Parte 2 =====
 ALTER TABLE public.ligacoes_viagem DROP CONSTRAINT ligacoes_viagem_origem_check;
-ALTER TABLE public.ligacoes_viagem ADD CONSTRAINT ligacoes_viagem_origem_check CHECK (origem = ANY (ARRAY['inicial','retentativa','retorno','teste','faxina','manual','fechamento']));
+ALTER TABLE public.ligacoes_viagem ADD CONSTRAINT ligacoes_viagem_origem_check CHECK (origem = ANY (ARRAY['inicial','retentativa','retorno','teste','faxina','manual','entrada','fechamento']));
 
 CREATE OR REPLACE FUNCTION public.julia_reservar_ligacao(p_rota uuid,p_origem text,p_quando timestamptz,p_admin uuid DEFAULT NULL,p_teste boolean DEFAULT false)
 RETURNS public.ligacoes_viagem LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
