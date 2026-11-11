@@ -2993,6 +2993,7 @@ export type Database = {
           cnpj: string | null
           completada_em: string | null
           created_at: string
+          criada_pela_julia: boolean
           descartada_em: string | null
           descartada_por: string | null
           descarte_motivo: string | null
@@ -3025,6 +3026,7 @@ export type Database = {
           cnpj?: string | null
           completada_em?: string | null
           created_at?: string
+          criada_pela_julia?: boolean
           descartada_em?: string | null
           descartada_por?: string | null
           descarte_motivo?: string | null
@@ -3057,6 +3059,7 @@ export type Database = {
           cnpj?: string | null
           completada_em?: string | null
           created_at?: string
+          criada_pela_julia?: boolean
           descartada_em?: string | null
           descartada_por?: string | null
           descarte_motivo?: string | null
@@ -3792,12 +3795,14 @@ export type Database = {
           cidade: string | null
           concluida: boolean
           created_at: string
+          criada_por: string | null
           dia: string | null
           estado: string | null
           hotel_nome: string | null
           id: string
           informada_em: string | null
           latitude: number | null
+          ligacao_id: string | null
           longitude: number | null
           motivo_nao_visita: string | null
           objetivo: string | null
@@ -3805,6 +3810,7 @@ export type Database = {
           oportunidade_id: string | null
           ordem: number
           organizacao_id: string | null
+          origem: string
           relato: Json | null
           resultado: string | null
           rota_id: string
@@ -3817,12 +3823,14 @@ export type Database = {
           cidade?: string | null
           concluida?: boolean
           created_at?: string
+          criada_por?: string | null
           dia?: string | null
           estado?: string | null
           hotel_nome?: string | null
           id?: string
           informada_em?: string | null
           latitude?: number | null
+          ligacao_id?: string | null
           longitude?: number | null
           motivo_nao_visita?: string | null
           objetivo?: string | null
@@ -3830,6 +3838,7 @@ export type Database = {
           oportunidade_id?: string | null
           ordem?: number
           organizacao_id?: string | null
+          origem?: string
           relato?: Json | null
           resultado?: string | null
           rota_id: string
@@ -3842,12 +3851,14 @@ export type Database = {
           cidade?: string | null
           concluida?: boolean
           created_at?: string
+          criada_por?: string | null
           dia?: string | null
           estado?: string | null
           hotel_nome?: string | null
           id?: string
           informada_em?: string | null
           latitude?: number | null
+          ligacao_id?: string | null
           longitude?: number | null
           motivo_nao_visita?: string | null
           objetivo?: string | null
@@ -3855,6 +3866,7 @@ export type Database = {
           oportunidade_id?: string | null
           ordem?: number
           organizacao_id?: string | null
+          origem?: string
           relato?: Json | null
           resultado?: string | null
           rota_id?: string
@@ -3868,6 +3880,13 @@ export type Database = {
             columns: ["atividade_id"]
             isOneToOne: false
             referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_paradas_ligacao_id_fkey"
+            columns: ["ligacao_id"]
+            isOneToOne: false
+            referencedRelation: "ligacoes_viagem"
             referencedColumns: ["id"]
           },
           {
@@ -5871,6 +5890,10 @@ export type Database = {
         }[]
       }
       is_approved: { Args: { _user_id: string }; Returns: boolean }
+      julia_adicionar_parada: {
+        Args: { p_dados: Json; p_ligacao: string; p_rota: string }
+        Returns: Json
+      }
       julia_buscar_organizacao: {
         Args: {
           p_cidade?: string
