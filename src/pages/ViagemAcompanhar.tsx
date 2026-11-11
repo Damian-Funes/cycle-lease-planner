@@ -76,7 +76,7 @@ export default function ViagemAcompanhar() {
               <ul className="divide-y">{h.paradas.map((p) => (
                 <li key={p.id} className="py-2 text-sm flex gap-2">
                   <span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${p.visitada ? "bg-primary" : "bg-destructive"}`} />
-                  <div><span className="font-medium">{nome(p)}</span>
+                  <div><span className="font-medium">{nome(p)}</span>{(p as { origem?: string }).origem === "julia" && <span className="ml-2 text-xs rounded px-1.5 py-0.5 bg-accent text-accent-foreground">fora da rota (Júlia)</span>}
                     <span className="text-muted-foreground"> · {p.visitada ? `Visitada — ${p.resultado}` : `Não visitada — ${p.motivo_nao_visita}`}</span>
                     {isAdmin && <RelatoVisitaResumo relato={p.relato} />}</div>
                 </li>))}
