@@ -56,7 +56,7 @@ END $function$;
 CREATE OR REPLACE FUNCTION public.julia_adicionar_parada(p_ligacao uuid, p_rota uuid, p_dados jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE l public.ligacoes_viagem; r public.rotas; hoje date:=(now() AT TIME ZONE 'America/Sao_Paulo')::date;
- d date; org uuid:=public.fn_uuid_seguro(p_dados->>'organizacao_id'); onome text; nome text:=nullif(btrim(p_dados->>'nome_empresa'),'');
+ d date; org uuid:=public.fn_uuid_seguro(p_dados->>'organizacao_id'); onome text; v_nome text:=nullif(btrim(p_dados->>'nome_empresa'),'');
  cid text:=nullif(btrim(p_dados->>'cidade'),''); uf text:=upper(nullif(btrim(p_dados->>'uf'),'')); criada boolean:=false;
  pid uuid; anterior text:=current_setting('request.jwt.claim.sub',true); vend text; a uuid;
 BEGIN
@@ -68,17 +68,17 @@ BEGIN
  IF d>hoje OR d<coalesce(r.data_inicio,r.data_rota) OR d>coalesce(r.data_fim,r.data_rota) THEN RAISE EXCEPTION 'O dia % não é um dia desta viagem até hoje.', to_char(d,'DD/MM'); END IF;
  PERFORM set_config('request.jwt.claim.sub',r.vendedor_id::text,true);
  IF org IS NOT NULL THEN
-  SELECT nome,cidade,estado INTO onome,cid,uf FROM public.organizacoes WHERE id=org;
+  SELECT o.nome,o.cidade,o.estado INTO onome,cid,uf FROM public.organizacoes o WHERE o.id=org;
   IF NOT FOUND THEN RAISE EXCEPTION 'Organização não encontrada.'; END IF;
  ELSE
-  IF nome IS NULL OR cid IS NULL OR uf !~ '^[A-Z]{2}$' THEN RAISE EXCEPTION 'Informe nome da empresa, cidade e UF.'; END IF;
+  IF v_nome IS NULL OR cid IS NULL OR uf !~ '^[A-Z]{2}$' THEN RAISE EXCEPTION 'Informe nome da empresa, cidade e UF.'; END IF;
   SELECT id,nome INTO org,onome FROM public.organizacoes
-   WHERE public.fn_nome_normalizado(nome)=public.fn_nome_normalizado(nome) AND public.fn_nome_normalizado(nome)=public.fn_nome_normalizado(julia_adicionar_parada.nome)
+   WHERE public.fn_nome_normalizado(organizacoes.nome)=public.fn_nome_normalizado(v_nome)
      AND upper(coalesce(estado,''))=uf AND public.fn_nome_normalizado(coalesce(cidade,''))=public.fn_nome_normalizado(cid)
      AND descartada_em IS NULL ORDER BY created_at LIMIT 1;
   IF org IS NULL THEN
    -- responsavel_id: trigger de criação usa o vendedor (claim acima); nunca admin.
-   INSERT INTO public.organizacoes(nome,cidade,estado,criada_pela_julia) VALUES(nome,cid,uf,true) RETURNING id,nome INTO org,onome;
+   INSERT INTO public.organizacoes(nome,cidade,estado,criada_pela_julia) VALUES(v_nome,cid,uf,true) RETURNING id,nome INTO org,onome;
    criada:=true;
   END IF;
  END IF;
@@ -107,7 +107,7 @@ END $$;
 REVOKE ALL ON FUNCTION public.julia_adicionar_parada(uuid,uuid,jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.julia_adicionar_parada(uuid,uuid,jsonb) TO service_role;
 
-INSERT INTO public.push_regras(prefixo,ativo,urgente) VALUES('parada_extra:',true,false) ON CONFLICT (prefixo) DO NOTHING;
+INSERT INTO public.push_regras(prefixo,ativo,urgente,descricao) VALUES('parada_extra:',true,false,'Admins: Júlia adicionou parada fora da rota') ON CONFLICT (prefixo) DO NOTHING;
 
 -- ===== Parte 2 =====
 ALTER TABLE public.ligacoes_viagem DROP CONSTRAINT ligacoes_viagem_origem_check;
