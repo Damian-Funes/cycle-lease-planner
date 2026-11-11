@@ -1,4 +1,4 @@
--- PROPOSTA (não aplicada). Aplicar só com OK explícito do CEO, após teste em BEGIN…ROLLBACK.
+-- APLICADA em 11/11/2026 com OK do CEO (testada antes em transação revertida).
 -- Parte 1: Júlia adiciona parada fora da rota. Parte 2: retorno não some com religar manual + ligação de fechamento.
 
 -- ===== Parte 1 =====
@@ -95,7 +95,7 @@ BEGIN
   RETURNING id INTO pid;
  PERFORM set_config('app.julia_parada_extra','off',true);
  PERFORM set_config('request.jwt.claim.sub',coalesce(anterior,''),true);
- SELECT coalesce(nullif(btrim(nome),''),'Vendedor') INTO vend FROM public.profiles WHERE user_id=r.vendedor_id;
+ SELECT coalesce(initcap(nullif(btrim(nome),'')),'Vendedor') INTO vend FROM public.profiles WHERE user_id=r.vendedor_id;
  FOR a IN SELECT user_id FROM public.user_roles WHERE role='admin' LOOP
   INSERT INTO public.notificacoes(user_id,tipo,chave,titulo,texto,link,rota_id)
    VALUES(a,'julia_viagem','parada_extra:'||pid,'Parada adicionada fora da rota: '||onome||' por '||coalesce(vend,'Vendedor'),
@@ -111,7 +111,7 @@ INSERT INTO public.push_regras(prefixo,ativo,urgente,descricao) VALUES('parada_e
 
 -- ===== Parte 2 =====
 ALTER TABLE public.ligacoes_viagem DROP CONSTRAINT ligacoes_viagem_origem_check;
-ALTER TABLE public.ligacoes_viagem ADD CONSTRAINT ligacoes_viagem_origem_check CHECK (origem = ANY (ARRAY['inicial','retentativa','retorno','teste','faxina','manual','fechamento']));
+ALTER TABLE public.ligacoes_viagem ADD CONSTRAINT ligacoes_viagem_origem_check CHECK (origem = ANY (ARRAY['inicial','retentativa','retorno','teste','faxina','manual','entrada','fechamento']));
 
 CREATE OR REPLACE FUNCTION public.julia_reservar_ligacao(p_rota uuid,p_origem text,p_quando timestamptz,p_admin uuid DEFAULT NULL,p_teste boolean DEFAULT false)
 RETURNS public.ligacoes_viagem LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
