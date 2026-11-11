@@ -1,4 +1,4 @@
--- PROPOSTA (não aplicada). Aplicar só com OK explícito do CEO, após teste em BEGIN…ROLLBACK.
+-- APLICADA em 11/11/2026 com OK do CEO (testada antes em transação revertida).
 -- Parte 1: Júlia adiciona parada fora da rota. Parte 2: retorno não some com religar manual + ligação de fechamento.
 
 -- ===== Parte 1 =====
