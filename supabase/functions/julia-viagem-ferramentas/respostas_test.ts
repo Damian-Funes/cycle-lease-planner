@@ -12,3 +12,11 @@ Deno.test('ja_registradas_hoje lista só paradas informadas hoje', () => {
   assertEquals(fraseJaRegistradas(r), 'Já registrado hoje: visita na Corteva (Ibiporã).');
   assertEquals(fraseJaRegistradas([]), '');
 });
+
+import { retornoConfirmado } from './respostas.ts';
+Deno.test('retorno cancelado devolvido pelo banco não é "ok"', () => {
+  const q = '2026-11-10T22:00:00.000Z';
+  assertEquals(retornoConfirmado({ status: 'cancelada', agendada_para: '2026-11-10 22:00:00+00' }, q), false);
+  assertEquals(retornoConfirmado({ status: 'agendada', agendada_para: '2026-11-10 22:00:00+00' }, q), true);
+  assertEquals(retornoConfirmado({ status: 'agendada', agendada_para: '2026-11-10 23:00:00+00' }, q), false);
+});

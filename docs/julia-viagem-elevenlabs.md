@@ -468,3 +468,42 @@ ORGANIZAÇÃO INCOMPLETA (depois de fechar o dia, opcional, no máximo 1 por lig
 
 ### Faxina semanal (preparada, DESLIGADA)
 Estrutura pronta: `ligacoes_viagem.origem = 'faxina'` (sem viagem) e `faxina_config` (dia, hora, 1 organização por ligação, `ativo = false`). As ferramentas acima já gravam com origem `faxina` quando a ligação for desse tipo. Não há agendamento nem disparo; ativar exige aprovação e uma função de ligação própria.
+
+## Ferramenta `adicionar_parada` (visita fora da rota)
+
+Formato de export da ElevenLabs (properties como array). Copie a URL e o header iguais às outras ferramentas.
+
+```json
+{
+  "type": "webhook",
+  "name": "adicionar_parada",
+  "description": "Adiciona na viagem uma visita que não estava planejada. Use quando o vendedor citar visita a empresa que não está em listar_pendentes. Devolve parada_id para chamar registrar_visita em seguida.",
+  "api_schema": {
+    "url": "https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viagem-ferramentas",
+    "method": "POST",
+    "request_headers": [{ "type": "secret", "name": "x-julia-secret", "secret_id": "<JULIA_TOOL_SECRET>" }],
+    "request_body_schema": {
+      "type": "object",
+      "description": "",
+      "required": ["ligacao_id", "rota_id", "acao"],
+      "properties": [
+        { "id": "ligacao_id", "type": "string", "value_type": "dynamic_variable", "dynamic_variable": "ligacao_id", "description": "", "required": true },
+        { "id": "rota_id", "type": "string", "value_type": "dynamic_variable", "dynamic_variable": "rota_id", "description": "", "required": true },
+        { "id": "acao", "type": "string", "value_type": "constant", "constant_value": "adicionar_parada", "description": "", "required": true },
+        { "id": "organizacao_id", "type": "string", "value_type": "llm_prompt", "description": "ID devolvido por buscar_organizacao, depois que o vendedor confirmou a empresa. Nunca inventar. Deixe vazio se a empresa não existe no CRM.", "required": false },
+        { "id": "nome_empresa", "type": "string", "value_type": "llm_prompt", "description": "Só quando buscar_organizacao não achou: nome da empresa como o vendedor falou.", "required": false },
+        { "id": "cidade", "type": "string", "value_type": "llm_prompt", "description": "Cidade da empresa nova (obrigatória com nome_empresa).", "required": false },
+        { "id": "uf", "type": "string", "value_type": "llm_prompt", "description": "UF com 2 letras maiúsculas, ex.: RS (obrigatória com nome_empresa).", "required": false },
+        { "id": "dia", "type": "string", "value_type": "llm_prompt", "description": "Dia da visita AAAA-MM-DD. Omita se foi hoje. Pode ser um dia anterior desta viagem.", "required": false },
+        { "id": "visitada", "type": "boolean", "value_type": "llm_prompt", "description": "true se visitou (padrão).", "required": false }
+      ]
+    }
+  }
+}
+```
+
+### Trecho de prompt
+
+> **Visita fora da rota.** Se o vendedor contar que visitou uma empresa que não está em listar_pendentes: chame buscar_organizacao com o nome (e cidade/UF se ele disser), confirme com ele qual é, e chame adicionar_parada com o organizacao_id (e o dia, se não foi hoje). Se não achar a empresa, pergunte cidade e UF e chame adicionar_parada com nome_empresa, cidade e uf. Em seguida chame registrar_visita com o parada_id devolvido, fazendo o debrief normal. Se adicionar_parada disser que a empresa já estava na viagem, use o mesmo parada_id. Nunca peça para o vendedor usar o app.
+
+> **Retorno.** Só confirme o horário do retorno se agendar_retorno responder salvo. Se der erro, diga que o administrador vai ligar.

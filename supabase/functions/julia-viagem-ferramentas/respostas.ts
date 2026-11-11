@@ -33,3 +33,13 @@ export function fraseErro(msg: unknown) {
 }
 
 export { jaRegistradasHoje, fraseJaRegistradas, type JaRegistrada } from '../_shared/jaRegistradas.ts';
+
+/** Retorno só vale se a linha devolvida ficou 'agendada' no horário pedido. */
+export function retornoConfirmado(l: { status?: string; agendada_para?: string } | null | undefined, quando: string) {
+ return !!l && l.status === 'agendada' && !!l.agendada_para && new Date(l.agendada_para).getTime() === new Date(quando).getTime();
+}
+export function mensagemParadaExtra(r: { empresa?: string; ja_existia?: boolean; organizacao_criada?: boolean; dia?: string } | null | undefined) {
+ const empresa = r?.empresa ?? 'a empresa'; const dia = r?.dia ? ` no dia ${r.dia.split('-').reverse().slice(0, 2).join('/')}` : '';
+ if (r?.ja_existia) return `${empresa} já estava na viagem${dia}. Agora registre a visita com esse parada_id.`;
+ return `Adicionei ${empresa}${dia} na viagem${r?.organizacao_criada ? ' como empresa nova' : ''}. Agora registre a visita com esse parada_id.`;
+}
