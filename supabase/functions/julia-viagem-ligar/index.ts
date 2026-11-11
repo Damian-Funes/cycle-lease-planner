@@ -1,3 +1,4 @@
+import { precisaLigacaoFechamento } from './fechamento.ts';
 import { z } from 'npm:zod@3';
 import { montarPendencias } from '../_shared/pendenciasDia.ts';
 import { montarVariaveis } from '../_shared/variaveisLigacao.ts';
@@ -142,6 +143,11 @@ export async function handler(req: Request) {
           const l = await reservar(r.id,'inicial',new Date(horario).toISOString());
           check(await db.from('ligacoes_viagem').update({ status: 'aguardando_escolha' }).eq('id',l.id).eq('status','agendada'));
           await enviarContato(db,r.vendedor_id,r.id,data);
+        } else {
+          // Já houve ligação hoje (inicial/manual de manhã) e o dia segue aberto sem retorno: liga de novo, uma vez.
+          const ls = check(await db.from('ligacoes_viagem').select('origem,status,teste,created_at,updated_at').eq('vendedor_id',r.vendedor_id).eq('data_ref',data)) ?? [];
+          const inicioFim = `${data}T${String(parametros.contato_hora).slice(0,5)}:00-03:00`;
+          if (precisaLigacaoFechamento(ls, inicioFim)) await reservar(r.id,'fechamento',agora.toISOString());
         }
       } catch { falhas.push(r.id); }
     }
