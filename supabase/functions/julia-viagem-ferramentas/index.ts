@@ -15,7 +15,7 @@ import { carregarEquipe, resolverAtribuicao } from '../_shared/vendedores.ts';
 import { dataExtenso, montarPendencias } from '../_shared/pendenciasDia.ts';
 import { conferirFechamento } from '../_shared/notificacoesViagem.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
-import { fraseErro, mensagemPernoite, mensagemRetorno, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
+import { fraseErro, mensagemParadaExtra, mensagemPernoite, mensagemRetorno, retornoConfirmado, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
 const falha = (error: unknown, status = 400) => json({ salvo: false, error: fraseErro(error) }, status);
 Deno.serve(async req => {
  const t = new Cronometro();
@@ -40,7 +40,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
  try {
   const original = await req.json(); t.marcar('json');
   if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
-  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','registrar_dia_sem_visita','agendar_retorno','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
+  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','registrar_dia_sem_visita','agendar_retorno','adicionar_parada','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
   const { data } = horarioBRT();
   // ElevenLabs mal configurado (constante acao errada): corpo com dados de completar vira completar_organizacao.
   if (pareceCompletar(original)) {
@@ -203,7 +203,21 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
    const quando = horarioRetorno(data,body.horario,new Date()); if (!quando) return recusar('Confira o campo horário: escolha um horário futuro de hoje até 22h.');
    if (l.teste) return recusar('Teste manual não agenda retorno automático.');
    const next = check(await db.rpc('julia_reservar_ligacao',{ p_rota: l.rota_id, p_origem: 'retorno', p_quando: quando }));
+   // Só confirma se o retorno ficou de fato agendado no horário pedido (antes, um retorno cancelado voltava como "ok").
+   if (!retornoConfirmado(next, quando)) { console.warn('julia-viagem-ferramentas retorno_nao_gravado', JSON.stringify({ status: next?.status ?? null })); return falha('Não consegui agendar o retorno; avise que o admin vai ligar.', 409); }
    return json({ ok: true, salvo: true, mensagem: mensagemRetorno(next.agendada_para), avisos, agendada_para: next.agendada_para });
+  }
+  if (body.acao === 'adicionar_parada') {
+   if (!body.organizacao_id && !(body.nome_empresa && body.cidade && body.uf)) return recusar('Informe organizacao_id (de buscar_organizacao) ou nome_empresa, cidade e uf.');
+   const dia = body.dia ?? data;
+   if (dia > data || dia < c.rota.data_inicio || dia > c.rota.data_fim) return recusar(`O dia ${dia.split('-').reverse().join('/')} não é um dia desta viagem até hoje.`);
+   const r = check(await db.rpc('julia_adicionar_parada', { p_ligacao: l.id, p_rota: l.rota_id, p_dados: { ...body, dia } }));
+   const orgIds = r?.organizacao_id ? [r.organizacao_id] : [];
+   const [rotaNova, porOrg, situacoes] = await Promise.all([recarregar(), pessoasDasOrgs(orgIds), carregarSituacoes(db, orgIds)]);
+   const contatos = contatosOrganizacao(porOrg.get(r?.organizacao_id));
+   const ja_sabemos = montarJaSabemos(situacoes.get(r?.organizacao_id ?? ''), porOrg.get(r?.organizacao_id));
+   const mensagem = [mensagemParadaExtra(r), fraseContatos(contatos), fraseJaSabemos(ja_sabemos)].filter(Boolean).join(' ');
+   return json({ ok: true, salvo: true, parada_id: r?.parada_id, empresa: r?.empresa, organizacao_id: r?.organizacao_id, ja_existia: !!r?.ja_existia, mensagem, avisos, contatos, ja_sabemos, pendencias: pendencias(rotaNova) });
   }
   if(body.acao==='registrar_visita' && !(body.visitada?body.resultado:body.motivo)) return recusar(body.visitada ? 'Informe o campo resultado da visita.' : 'Informe o campo motivo da não visita.');
   if(body.acao==='registrar_visita') {

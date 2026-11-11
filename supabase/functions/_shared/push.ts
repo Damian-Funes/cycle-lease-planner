@@ -20,6 +20,7 @@ export const REGRAS_PADRAO: RegraPush[] = [
   { prefixo: 'pend:', ativo: false, urgente: false },            // só sininho
   { prefixo: 'resumo:', ativo: false, urgente: false },          // só sininho
   { prefixo: 'fechou:', ativo: true, urgente: false },           // admins: vendedor fechou o dia (respeita silêncio)
+  { prefixo: 'parada_extra:', ativo: true, urgente: false },    // admins: Júlia adicionou parada fora da rota
   { prefixo: 'naofechou:', ativo: true, urgente: false },        // admins: 22h não fechou (chega às 7h)
 ];
 
