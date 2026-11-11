@@ -95,7 +95,7 @@ BEGIN
   RETURNING id INTO pid;
  PERFORM set_config('app.julia_parada_extra','off',true);
  PERFORM set_config('request.jwt.claim.sub',coalesce(anterior,''),true);
- SELECT coalesce(nullif(btrim(nome),''),'Vendedor') INTO vend FROM public.profiles WHERE user_id=r.vendedor_id;
+ SELECT coalesce(initcap(nullif(btrim(nome),'')),'Vendedor') INTO vend FROM public.profiles WHERE user_id=r.vendedor_id;
  FOR a IN SELECT user_id FROM public.user_roles WHERE role='admin' LOOP
   INSERT INTO public.notificacoes(user_id,tipo,chave,titulo,texto,link,rota_id)
    VALUES(a,'julia_viagem','parada_extra:'||pid,'Parada adicionada fora da rota: '||onome||' por '||coalesce(vend,'Vendedor'),
