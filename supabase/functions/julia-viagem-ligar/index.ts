@@ -147,7 +147,8 @@ export async function handler(req: Request) {
           // Já houve ligação hoje (inicial/manual de manhã) e o dia segue aberto sem retorno: liga de novo, uma vez.
           const ls = check(await db.from('ligacoes_viagem').select('origem,status,teste,created_at,updated_at').eq('vendedor_id',r.vendedor_id).eq('data_ref',data)) ?? [];
           const inicioFim = `${data}T${String(parametros.contato_hora).slice(0,5)}:00-03:00`;
-          if (precisaLigacaoFechamento(ls, inicioFim)) await reservar(r.id,'fechamento',agora.toISOString());
+          // Antes da SQL aprovada a origem 'fechamento' não existe: falha silenciosa, sem marcar a viagem como erro.
+          if (precisaLigacaoFechamento(ls, inicioFim)) await reservar(r.id,'fechamento',agora.toISOString()).catch(e => console.warn('fechamento_indisponivel', e instanceof Error ? e.message : ''));
         }
       } catch { falhas.push(r.id); }
     }
