@@ -60,6 +60,7 @@ export default function ComissaoCard() {
   const [todos, setTodos] = useState(false);
   const [salvando, setSalvando] = useState<string | null>(null);
   if (isLoading) return <Card className="p-5 text-sm text-muted-foreground">Carregando comissões…</Card>;
+  if (data === null) return <Card className="p-5 text-sm text-muted-foreground">Não foi possível carregar as comissões agora.</Card>;
   if (!data || data.lista.length === 0) return <Card className="p-5 text-sm text-muted-foreground">Nenhum orçamento aberto ou fechado no ano para calcular comissão.</Card>;
 
   const r = resumoComissao(data.lista);
