@@ -12,7 +12,7 @@ import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, 
 import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, orgsParadasPendentes, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
 import { carregarSituacoes, fraseJaSabemos, montarJaSabemos } from '../_shared/jaSabemos.ts';
 import { carregarEquipe, resolverAtribuicao } from '../_shared/vendedores.ts';
-import { dataExtenso, montarPendencias } from '../_shared/pendenciasDia.ts';
+import { dataExtenso, extrasConfirmados, montarPendencias, PREFIXO_EXTRAS, textoExtras } from '../_shared/pendenciasDia.ts';
 import { conferirFechamento } from '../_shared/notificacoesViagem.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemParadaExtra, mensagemPernoite, mensagemRetorno, retornoConfirmado, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';

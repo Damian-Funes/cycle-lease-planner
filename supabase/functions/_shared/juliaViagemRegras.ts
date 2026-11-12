@@ -13,8 +13,9 @@ export function horarioRetorno(data: string, horario: string, agora: Date): stri
   const t = new Date(`${data}T${horario}:00-03:00`);
   return Number.isFinite(t.getTime()) && t > agora && horarioBRT(agora).data === data ? t.toISOString() : null;
 }
-export function podeTentar(tentativas: number, origem: "inicial" | "retentativa" | "retorno", anteriores: string[], hora: string) {
-  return tentativas < 3 && hora < "22:00" && !anteriores.includes(origem);
+/** Limite de tentativas automáticas; só a nova tentativa após caixa postal pode ser a 4ª. */
+export function podeTentar(tentativas: number, origem: "inicial" | "retentativa" | "retorno" | "retentativa_retorno", anteriores: string[], hora: string) {
+  return tentativas < (origem === "retentativa_retorno" ? 4 : 3) && hora < "22:00" && !anteriores.includes(origem);
 }
 export function janelaCron(hora: string) {
   return (hora >= "15:50" && hora <= "22:00") || (hora >= "09:00" && hora <= "09:10");
@@ -24,6 +25,6 @@ export function janelaCron(hora: string) {
  */
 export const MOTIVO_NADA_PENDENTE = "Nada pendente nesta viagem hoje.";
 export function motivoNaoDiscar(pendencias: { tipo: string }[], manualAdmin: boolean): string | null {
-  const relevantes = manualAdmin ? pendencias : pendencias.filter(p => p.tipo !== "nota_hotel" && p.tipo !== "organizacao_incompleta");
+  const relevantes = manualAdmin ? pendencias : pendencias.filter(p => p.tipo !== "nota_hotel" && p.tipo !== "organizacao_incompleta" && p.tipo !== "confirmar_extras");
   return relevantes.length ? null : MOTIVO_NADA_PENDENTE;
 }

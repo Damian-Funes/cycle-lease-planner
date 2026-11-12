@@ -15,7 +15,8 @@ export function mensagemVisita(empresa: string, visitada: boolean, atividadeId?:
   return atividadeId ? `Visita da ${empresa} salva. Próximo passo criado na agenda para ${ddmm(data)}.` : `Visita da ${empresa} salva.`;
 }
 
-export function mensagemPernoite(b: { tipo: string; hotel_nome?: string; cidade?: string }) {
+export function mensagemPernoite(b: { tipo: string; hotel_nome?: string; cidade?: string; pago_pela_empresa?: boolean; valor?: number }) {
+  if (b.tipo === 'hotel' && b.pago_pela_empresa && !b.valor) return `Pernoite no ${b.hotel_nome}${b.cidade ? ` (${b.cidade})` : ''} salvo como pago pela empresa; o financeiro confirma o valor pela nota. Falta a foto da nota.`;
   if (b.tipo === 'hotel') return `Pernoite no ${b.hotel_nome}${b.cidade ? ` (${b.cidade})` : ''} salvo; falta a foto da nota.`;
   if (b.tipo === 'voltou_base') return 'Pernoite salvo: voltou para a base.';
   return `Pernoite${b.cidade ? ` em ${b.cidade}` : ''} sem custo salvo.`;
