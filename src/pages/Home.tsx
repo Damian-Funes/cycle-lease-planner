@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 import CrmWidgets from "@/components/CrmWidgets";
-import ComissaoCard from "@/components/ComissaoCard";
+import { useComissao } from "@/components/ComissaoCard";
+import { resumoComissao } from "@/lib/comissao";
 import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
 import { SMARTCYCLE_ATIVO } from "@/config/features";
 import { useRotasAlertas } from '@/hooks/useRotasAlertas';
@@ -14,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { viagensEmAndamento } from '@/lib/viagemDados';
 import { hojeRota, paradaInformada } from '@/lib/rotasFluxo';
-import { BellRing } from "lucide-react";
+import { BellRing, Coins } from "lucide-react";
 import { useMinhasInscricoes } from "@/pages/AtivarNotificacoes";
 
 const allCards = [
@@ -161,6 +162,8 @@ export default function Home() {
   const incompletasTotal = incompletas?.total ?? 0;
   const { data: inscricoes } = useMinhasInscricoes();
   // Só aparece quando a tabela já existe (null = servidor ainda sem push) e não há aparelho ativo.
+  const comissao = useComissao();
+  const emJogo = comissao.data && comissao.data.lista.length ? resumoComissao(comissao.data.lista).emJogo : null;
   const semPush = Array.isArray(inscricoes) && !inscricoes.some((i) => i.ativo);
   return (
     <div className="min-h-screen bg-muted/20">
@@ -207,7 +210,6 @@ export default function Home() {
           </Card>); })()}
 
         <section className="space-y-4">
-          <ComissaoCard />
           <ProximaReuniaoWidget />
           <h2 className="text-lg font-semibold">Visão geral</h2>
           <CrmWidgets />
@@ -247,6 +249,17 @@ export default function Home() {
               </Card>
             );
           })}
+          {comissao.pode && (
+            <Card onClick={() => navigate("/comissoes")} className="p-6 cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group relative">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                <Coins className="w-6 h-6" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">Comissões</h3>
+              <p className="text-sm text-muted-foreground">
+                {emJogo !== null ? <><span className="font-semibold text-primary">{emJogo.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })}</span> em jogo</> : "Quanto você ganha fechando seus orçamentos"}
+              </p>
+            </Card>
+          )}
         </div>
         </section>
       </main>

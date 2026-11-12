@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import type { AppRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { alternarClienteAntigo, clienteAntigo, paraComissao, porVendedor, resumoComissao, type LinhaOrcamento } from "@/lib/comissao";
 
@@ -15,7 +16,7 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const COLUNAS = "id,numero_orcamento,nome_cliente,subtotal,desconto_tipo,desconto_valor,status,updated_at,responsavel_id,organizacao_id,organizacoes(id,tags,responsavel_id)";
 type Org = { id: string; tags: string[] | null; responsavel_id: string | null };
 
-export const permissoesComissao = (hasAnyRole: (r: any[]) => boolean) => {
+export const permissoesComissao = (hasAnyRole: (r: AppRole[]) => boolean) => {
   const gestor = hasAnyRole(["admin", "gerente_comercial"]);
   const vendedor = hasAnyRole(["comercial", "rtv"]);
   return { gestor, vendedor, pode: gestor || vendedor };

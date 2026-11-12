@@ -55,6 +55,7 @@ const ConfiguracoesIntegracoes = lazy(() => import("./pages/ConfiguracoesIntegra
 const ConfiguracoesMontagem = lazy(() => import("./pages/ConfiguracoesMontagem"));
 const ConfiguracoesFormasPagamento = lazy(() => import("./pages/ConfiguracoesFormasPagamento"));
 const ConfiguracoesNotificacoes = lazy(() => import("./pages/ConfiguracoesNotificacoes"));
+const Comissoes = lazy(() => import("./pages/Comissoes"));
 const Diagnostico = lazy(() => import("./pages/Diagnostico"));
 const ConfiguracoesViagens = lazy(() => import("./pages/ConfiguracoesViagens"));
 const ConfiguracoesWhatsapp = lazy(() => import("./pages/ConfiguracoesWhatsapp"));
@@ -108,6 +109,7 @@ const App = () => (
               <Route path="/crm" element={<ProtectedRoute><Crm /></ProtectedRoute>} />
               <Route path="/crm/deal/:id" element={<ProtectedRoute><DealDetalhe /></ProtectedRoute>} />
               <Route path="/atividades" element={<ProtectedRoute><Atividades /></ProtectedRoute>} />
+              <Route path="/comissoes" element={<ProtectedRoute><RequireRole roles={["admin", "gerente_comercial", "comercial", "rtv"]}><Comissoes /></RequireRole></ProtectedRoute>} />
               <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               <Route path="/julia/motivos-perda" element={<ProtectedRoute><JuliaMotivosPerda /></ProtectedRoute>} />
               <Route path="/layouts" element={<ProtectedRoute><Layouts /></ProtectedRoute>} />
