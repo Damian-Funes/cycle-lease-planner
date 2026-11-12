@@ -2381,13 +2381,16 @@ export type Database = {
           created_at: string
           data_fechamento_prevista: string | null
           data_fechamento_real: string | null
+          etapa_anterior_id: string | null
           etapa_id: string
           id: string
           motivo_perda: string | null
+          multinacional_desde: string | null
           notas: string | null
           observacoes: string | null
           ordem_coluna: number | null
           organizacao_id: string
+          pipeline_anterior_id: string | null
           pipeline_id: string
           probabilidade: number
           proposta_id: string | null
@@ -2404,13 +2407,16 @@ export type Database = {
           created_at?: string
           data_fechamento_prevista?: string | null
           data_fechamento_real?: string | null
+          etapa_anterior_id?: string | null
           etapa_id: string
           id?: string
           motivo_perda?: string | null
+          multinacional_desde?: string | null
           notas?: string | null
           observacoes?: string | null
           ordem_coluna?: number | null
           organizacao_id: string
+          pipeline_anterior_id?: string | null
           pipeline_id: string
           probabilidade?: number
           proposta_id?: string | null
@@ -2427,13 +2433,16 @@ export type Database = {
           created_at?: string
           data_fechamento_prevista?: string | null
           data_fechamento_real?: string | null
+          etapa_anterior_id?: string | null
           etapa_id?: string
           id?: string
           motivo_perda?: string | null
+          multinacional_desde?: string | null
           notas?: string | null
           observacoes?: string | null
           ordem_coluna?: number | null
           organizacao_id?: string
+          pipeline_anterior_id?: string | null
           pipeline_id?: string
           probabilidade?: number
           proposta_id?: string | null
@@ -2446,6 +2455,20 @@ export type Database = {
           valor_estimado?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "oportunidades_etapa_anterior_id_fkey"
+            columns: ["etapa_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "etapas_pipeline"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oportunidades_etapa_anterior_id_fkey"
+            columns: ["etapa_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "v_relatorio_tempo_etapa"
+            referencedColumns: ["etapa_id"]
+          },
           {
             foreignKeyName: "oportunidades_etapa_id_fkey"
             columns: ["etapa_id"]
@@ -2482,6 +2505,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "oportunidades_pipeline_anterior_id_fkey"
+            columns: ["pipeline_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "oportunidades_pipeline_id_fkey"
             columns: ["pipeline_id"]
             isOneToOne: false
@@ -2501,6 +2531,139 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "propostas_sem_valores"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamento_envios: {
+        Row: {
+          atividade_id: string | null
+          cobrar_em: string | null
+          created_at: string
+          criado_por: string | null
+          enviado_em: string
+          id: string
+          motivo: string | null
+          multinacional_id: string
+          numero_base: string
+          oportunidade_id: string | null
+          orcamento_id: string
+          situacao: string
+          updated_at: string
+        }
+        Insert: {
+          atividade_id?: string | null
+          cobrar_em?: string | null
+          created_at?: string
+          criado_por?: string | null
+          enviado_em?: string
+          id?: string
+          motivo?: string | null
+          multinacional_id: string
+          numero_base: string
+          oportunidade_id?: string | null
+          orcamento_id: string
+          situacao?: string
+          updated_at?: string
+        }
+        Update: {
+          atividade_id?: string | null
+          cobrar_em?: string | null
+          created_at?: string
+          criado_por?: string | null
+          enviado_em?: string
+          id?: string
+          motivo?: string | null
+          multinacional_id?: string
+          numero_base?: string
+          oportunidade_id?: string | null
+          orcamento_id?: string
+          situacao?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_envios_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_multinacional_id_fkey"
+            columns: ["multinacional_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_multinacional_id_fkey"
+            columns: ["multinacional_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_situacao_atual"
+            referencedColumns: ["organizacao_id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_multinacional_id_fkey"
+            columns: ["multinacional_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dias_montagem_sugerido"
+            referencedColumns: ["orcamento_id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_orcamento_montagem"
+            referencedColumns: ["orcamento_id"]
           },
         ]
       }
@@ -5392,6 +5555,74 @@ export type Database = {
           },
         ]
       }
+      vw_multinacionais_paradas: {
+        Row: {
+          cliente_final: string | null
+          cobrar_em: string | null
+          dias_desde_envio: number | null
+          dias_parado: number | null
+          envio_id: string | null
+          multinacional: string | null
+          multinacional_desde: string | null
+          multinacional_id: string | null
+          numero_base: string | null
+          oportunidade_id: string | null
+          responsavel_id: string | null
+          situacao: string | null
+          titulo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamento_envios_multinacional_id_fkey"
+            columns: ["multinacional_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_multinacional_id_fkey"
+            columns: ["multinacional_id"]
+            isOneToOne: false
+            referencedRelation: "organizacao_situacao_atual"
+            referencedColumns: ["organizacao_id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_multinacional_id_fkey"
+            columns: ["multinacional_id"]
+            isOneToOne: false
+            referencedRelation: "organizacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "oportunidades_sem_valores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamento_envios_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "v_oportunidades_kanban_sem_valores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_orcamento_montagem: {
         Row: {
           alimentacao: number | null
@@ -5735,6 +5966,10 @@ export type Database = {
         }[]
       }
       fn_data_segura: { Args: { _t: string }; Returns: string }
+      fn_definir_cliente_final: {
+        Args: { _cliente_final_id: string; _oportunidade_id: string }
+        Returns: number
+      }
       fn_dias_uteis_entre: {
         Args: { _ate: string; _de: string }
         Returns: number
@@ -5744,6 +5979,19 @@ export type Database = {
         Returns: number
       }
       fn_edicao_ate_1: { Args: { a: string; b: string }; Returns: boolean }
+      fn_enviar_multinacional: {
+        Args: {
+          _cobrar_em?: string
+          _multinacional_id: string
+          _orcamento_id: string
+        }
+        Returns: string
+      }
+      fn_envio_situacao: {
+        Args: { _envio_id: string; _motivo?: string; _situacao: string }
+        Returns: undefined
+      }
+      fn_etapa: { Args: { _etapa: string; _pipeline: string }; Returns: string }
       fn_gravar_perfil: {
         Args: {
           p_executado_por?: string
@@ -5798,8 +6046,16 @@ export type Database = {
           travado: boolean
         }[]
       }
+      fn_multinacionais: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
       fn_nome_normalizado: { Args: { t: string }; Returns: string }
       fn_num_seguro: { Args: { _t: string }; Returns: number }
+      fn_numero_base: { Args: { _n: string }; Returns: string }
       fn_oportunidade_rotting: { Args: { opp_id: string }; Returns: string }
       fn_orcamento_travado: { Args: { _user: string }; Returns: boolean }
       fn_organizacao_descartar: {
@@ -5882,6 +6138,10 @@ export type Database = {
       fn_tel_digitos: { Args: { _t: string }; Returns: string }
       fn_tel_valido: { Args: { _t: string }; Returns: boolean }
       fn_uuid_seguro: { Args: { _t: string }; Returns: string }
+      fn_voltar_negociacao_direta: {
+        Args: { _oportunidade_id: string }
+        Returns: undefined
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
