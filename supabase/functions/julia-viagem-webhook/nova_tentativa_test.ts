@@ -12,3 +12,9 @@ Deno.test('conversou e gravou → não agenda', () => eq(precisaNovaTentativa({ 
 Deno.test('inicial na caixa postal não usa esta regra', () => eq(precisaNovaTentativa({ ...base, origem: 'inicial', agora: as('18:00') }), null));
 Deno.test('a própria nova tentativa não gera outra', () => eq(precisaNovaTentativa({ ...base, origem: 'retentativa_retorno', agora: as('20:30') }), null));
 Deno.test('limite: 4ª automática só para retentativa_retorno', () => { eq(podeTentar(3, 'retentativa_retorno', [], '20:30'), true); eq(podeTentar(3, 'retorno', [], '20:30'), false); eq(podeTentar(4, 'retentativa_retorno', [], '20:30'), false); });
+import { montarPendencias } from '../_shared/pendenciasDia.ts';
+import { motivoNaoDiscar } from '../_shared/juliaViagemRegras.ts';
+const renan = (pernoites: { id: string; noite: string; tipo: string; gasto_id: null }[]) => ({ id: 'r', data_inicio: '2026-11-08', data_fim: '2026-11-13', pernoites, gastos: [],
+  paradas: [{ id: 'a', visitada: true, dia: '2026-11-11', organizacao_id: 'o', relato: null }] });
+Deno.test('na hora de discar a nova tentativa: pernoite pendente → liga', () => eq(motivoNaoDiscar(montarPendencias(renan([]), '2026-11-11'), false), null));
+Deno.test('na hora de discar a nova tentativa: dia fechado → não liga', () => eq(motivoNaoDiscar(montarPendencias(renan([{ id: 'p', noite: '2026-11-11', tipo: 'sem_custo', gasto_id: null }]), '2026-11-11'), false) !== null, true));
