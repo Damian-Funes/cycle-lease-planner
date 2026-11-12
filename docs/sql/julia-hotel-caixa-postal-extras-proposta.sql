@@ -154,7 +154,7 @@ BEGIN
  END IF;
  SELECT count(*) INTO n FROM public.ligacoes_viagem WHERE vendedor_id=r.vendedor_id AND data_ref=d AND teste=false AND origem<>'manual';
  -- Só a nova tentativa após caixa postal pode ser a 4ª automática do dia.
- IF NOT p_teste AND p_origem<>'fechamento' AND n>=CASE WHEN p_origem='retentativa_retorno' THEN 4 ELSE 3 END THEN RAISE EXCEPTION 'Máximo de tentativas automáticas por dia.'; END IF;
+ IF NOT p_teste AND p_origem<>'fechamento' AND n>=(CASE WHEN p_origem='retentativa_retorno' THEN 4 ELSE 3 END) THEN RAISE EXCEPTION 'Máximo de tentativas automáticas por dia.'; END IF;
  INSERT INTO public.ligacoes_viagem(rota_id,vendedor_id,data_ref,tentativa,origem,agendada_para,solicitado_por,teste)
   VALUES(r.id,r.vendedor_id,d,CASE WHEN p_teste THEN 1 ELSE (SELECT coalesce(max(tentativa),0)+1 FROM public.ligacoes_viagem WHERE vendedor_id=r.vendedor_id AND data_ref=d AND teste=false) END,p_origem,p_quando,p_admin,p_teste) RETURNING * INTO l;
  RETURN l;
