@@ -54,9 +54,11 @@ alter table public.orcamento_envios enable row level security;
 create policy envios_select on public.orcamento_envios for select to authenticated
   using (exists (select 1 from public.orcamentos o where o.id = orcamento_id));
 create policy envios_insert on public.orcamento_envios for insert to authenticated
-  with check (exists (select 1 from public.orcamentos o where o.id = orcamento_id));
+  with check (public.has_any_role(auth.uid(), array['admin','gerente_comercial','comercial','rtv']::app_role[])
+    and exists (select 1 from public.orcamentos o where o.id = orcamento_id));
 create policy envios_update on public.orcamento_envios for update to authenticated
-  using (exists (select 1 from public.orcamentos o where o.id = orcamento_id));
+  using (public.has_any_role(auth.uid(), array['admin','gerente_comercial','comercial','rtv']::app_role[])
+    and exists (select 1 from public.orcamentos o where o.id = orcamento_id));
 
 create or replace function public.fn_envios_validar() returns trigger
 language plpgsql set search_path = public as $$
@@ -125,9 +127,14 @@ begin
   from orcamentos where id = o.id
   returning id into v_nova;
 
-  insert into atividades (tipo, titulo, data_atividade, responsavel_id, organizacao_id, oportunidade_id)
-  values ('tarefa', 'Cobrar retorno da ' || v_multi || ' sobre ' || v_base, _cobrar_em,
-          coalesce(o.responsavel_id, auth.uid()), o.organizacao_id, o.oportunidade_id)
+  insert into atividades (tipo, tipo_id, titulo, descricao, data_atividade, data_inicio,
+                          responsavel_id, organizacao_id, oportunidade_id, concluida, evento_automatico)
+  values ('tarefa', (select id from tipos_atividade where nome = 'Tarefa' limit 1),
+          'Cobrar retorno da ' || v_multi || ' sobre ' || v_base,
+          'Orçamento enviado à ' || v_multi || ' (versão ' || v_base || '-V' || v_prox || ')',
+          (_cobrar_em + time '09:00') at time zone 'America/Sao_Paulo',
+          (_cobrar_em + time '09:00') at time zone 'America/Sao_Paulo',
+          coalesce(o.responsavel_id, auth.uid()), o.organizacao_id, o.oportunidade_id, false, false)
   returning id into v_ativ;
 
   insert into orcamento_envios (oportunidade_id, orcamento_id, numero_base, multinacional_id, cobrar_em, atividade_id)
