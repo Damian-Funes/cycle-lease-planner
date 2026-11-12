@@ -1,5 +1,5 @@
 -- APLICADA em 12/11/2026 (OK do CEO 12/11 19:03). Orçamentos com multinacionais, vários envios por negócio.
--- Aplicar só após OK explícito do CEO. Testar antes em BEGIN … ROLLBACK (059 e São Francisco).
+-- Testada antes em BEGIN … ROLLBACK (059 e São Francisco).
 -- Comissão: fn_comissao_orcamentos NÃO muda. As versões de envio mantêm organizacao_id = cliente final,
 -- então "última versão por número + organização" já conta o negócio 1 vez. O "via BASF, CTVA" é lido
 -- de orcamento_envios pelo app.
