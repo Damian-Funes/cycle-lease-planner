@@ -39,3 +39,41 @@ describe("comissão sobre o custo (regras do CEO)", () => {
     expect([r.garantidoAno, r.emJogo]).toEqual([4000, 0]);
   });
 });
+
+import { lerFiltro, resumoFiltrado, FILTRO_PADRAO } from "./comissao";
+import { ehServico, itensSemCusto } from "./itensSemCusto";
+const f = (p: Partial<typeof FILTRO_PADRAO>) => ({ ...FILTRO_PADRAO, ...p });
+describe("filtros da página de comissões", () => {
+  const l = [o({ numero: "ORC-1", cliente: "Sementes Aurora", valor: 1000 }), o({ numero: "ORC-2", cliente: "BASF", valor: 2000, vendedor_id: "m" }),
+    o({ numero: "ORC-3", status: "aprovado", valor: 500, atualizado_em: "2026-03-01T00:00:00Z" }), o({ numero: "ORC-4", valor: 700, atualizado_em: "2025-05-01T00:00:00Z" })];
+  it("busca por cliente sem acento muda o em jogo", () => expect(resumoFiltrado(l, f({ busca: "aurora" }), agora).emJogo).toBe(1000));
+  it("busca por número", () => expect(resumoFiltrado(l, f({ busca: "orc-2" }), agora).linhas.map(x => x.numero)).toEqual(["ORC-2"]));
+  it("vendedor filtra os totais", () => expect(resumoFiltrado(l, f({ vendedor: "m" }), agora).emJogo).toBe(2000));
+  it("Ganhos zera o em jogo e este ano traz o ganho de março", () => {
+    const r = resumoFiltrado(l, f({ status: "ganhos", periodo: "ano" }), agora);
+    expect([r.emJogo, r.garantido]).toEqual([0, 500]);
+  });
+  it("90 dias corta o ganho de março; tudo traz o aberto de 2025", () => {
+    expect(resumoFiltrado(l, f({ status: "todos" }), agora).garantido).toBe(0);
+    expect(resumoFiltrado(l, f({ periodo: "tudo" }), agora).emJogo).toBe(3700);
+  });
+  it("filtro salvo inválido volta ao padrão", () => {
+    expect(lerFiltro("{quebrado")).toEqual(FILTRO_PADRAO);
+    expect(lerFiltro(JSON.stringify({ status: "x", periodo: "ano" })).periodo).toBe("ano");
+  });
+});
+describe("itens sem custo", () => {
+  it("palavras de serviço do CEO (com acento) viram Serviços/frete", () => {
+    expect(["FRETE", "MÃO DE OBRA", "DESMONTAGEM", "MUNCK", "Locação de guindaste", "REVISÃO"].every(t => ehServico(t))).toBe(true);
+    expect(ehServico("CAIXA DE RECEBIMENTO 1.6 TN-LSB130")).toBe(false);
+  });
+  it("avulso conta, item do cadastro não; agrupa e ordena por nº de orçamentos", () => {
+    const cad = "11111111-1111-1111-1111-111111111111";
+    const r = itensSemCusto([
+      { id: "a", numero: "ORC2026-059-V4", itens: [{ equipamento_id: "avulso-1789604717466", descricao: "CAIXA DE RECEBIMENTO 1.6 TN-LSB130", codigo: "CAIXA - 1.6TN LSB130" }, { equipamento_id: cad, descricao: "X" }] },
+      { id: "b", numero: "ORC-2", itens: [{ equipamento_id: "avulso-2", descricao: "MUNCK", codigo: "120398" }, { equipamento_id: "avulso-3", descricao: "MUNCK", codigo: "120398" }] },
+      { id: "c", numero: "ORC-3", itens: [{ equipamento_id: "avulso-4", descricao: "MUNCK", codigo: "120398" }] },
+    ], new Set([cad]));
+    expect(r.map(i => [i.descricao, i.orcamentos.length, i.servico])).toEqual([["MUNCK", 2, true], ["CAIXA DE RECEBIMENTO 1.6 TN-LSB130", 1, false]]);
+  });
+});
