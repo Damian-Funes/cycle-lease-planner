@@ -79,6 +79,17 @@ language sql immutable set search_path = public as $$
   select regexp_replace(coalesce(_n,''), '-V\d+$', '', 'i')
 $$;
 
+-- Lista de multinacionais para qualquer vendedor (só id e nome; a RLS de organizacoes
+-- esconde as que não são do estado dele).
+create or replace function public.fn_multinacionais()
+returns table(id uuid, nome text) language sql stable security definer set search_path = public as $$
+  select o.id, o.nome from organizacoes o
+  where o.segmento = 'MULTINACIONAIS' and is_approved(auth.uid())
+  order by o.nome
+$$;
+revoke execute on function public.fn_multinacionais() from public, anon;
+grant execute on function public.fn_multinacionais() to authenticated;
+
 create or replace function public.fn_etapa(_pipeline text, _etapa text) returns uuid
 language sql stable set search_path = public as $$
   select e.id from etapas_pipeline e join pipelines p on p.id = e.pipeline_id
@@ -95,7 +106,7 @@ declare
 begin
   select * into o from orcamentos where id = _orcamento_id;
   if not found then raise exception 'Orçamento não encontrado ou sem permissão'; end if;
-  select nome into v_multi from organizacoes where id = _multinacional_id;
+  select m.nome into v_multi from fn_multinacionais() m where m.id = _multinacional_id;
   if v_multi is null then raise exception 'Multinacional não encontrada'; end if;
   if _multinacional_id = o.organizacao_id then
     raise exception 'A multinacional não pode ser o próprio cliente final';
@@ -260,7 +271,7 @@ select e.id envio_id, e.oportunidade_id, op.titulo, op.responsavel_id, e.numero_
        (current_date - e.enviado_em::date) dias_desde_envio,
        (current_date - greatest(e.updated_at, coalesce(op.ultima_atividade_em, e.updated_at))::date) dias_parado
 from orcamento_envios e
-join organizacoes m on m.id = e.multinacional_id
+left join public.fn_multinacionais() m on m.id = e.multinacional_id
 left join oportunidades op on op.id = e.oportunidade_id
 left join organizacoes cf on cf.id = op.organizacao_id
 where e.situacao in ('enviado','negociando');
