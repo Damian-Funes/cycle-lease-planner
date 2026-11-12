@@ -513,14 +513,14 @@ Formato de export da ElevenLabs (properties como array). Copie a URL e o header 
 Acrescente este item em `request_body_schema.properties` da ferramenta `registrar_pernoite`:
 
 ```json
-{ "id": "pago_pela_empresa", "type": "boolean", "value_type": "llm_prompt", "description": "true quando o vendedor disser que o hotel foi reservado ou pago pela empresa/financeiro e ele não sabe o valor. Nesse caso não envie valor.", "required": false }
+{ "id": "pago_pela_empresa", "type": "boolean", "value_type": "llm_prompt", "description": "true quando o vendedor, por conta própria, disser que a empresa/financeiro reservou ou pagou o hotel, ou que não sabe o valor por isso. Nunca pergunte se foi a empresa que reservou ou pagou. Com true, não envie valor.", "required": false }
 ```
 
 E troque a description de `valor` para: `"Valor real da diária em reais. Obrigatório para hotel, exceto quando pago_pela_empresa=true."`
 
 Prompt:
 
-> Se for hotel e o vendedor não souber o valor, pergunte uma vez: "Foi a empresa que reservou ou pagou?". Se sim, registre com pago_pela_empresa=true, sem valor, e diga: "Anotei, o financeiro confirma o valor pela nota. Só não esquece de mandar a foto da nota." Nunca invente valor.
+> **Hotel.** Pergunte o valor normalmente, uma vez. Nunca pergunte "foi a empresa que reservou ou pagou?". Se o vendedor disser por conta própria que a empresa/financeiro reservou ou pagou, ou que não sabe o valor por isso, registre direto com pago_pela_empresa=true, sem valor, sem insistir e sem voltar ao assunto, e diga só: "Anotei, o financeiro confirma o valor pela nota. Manda a foto da nota pelo CRM depois." Nunca invente valor.
 
 ## Ferramenta `confirmar_extras` ("visitou mais alguém?")
 
