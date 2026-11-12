@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useViaMultinacional } from "@/hooks/useMultinacionais";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -104,6 +105,7 @@ const ROTTING_MAP: Record<RottingStatus, { border: string; emoji: string; label:
 
 function OpCard({ op, etapa, hideValor }: { op: Oportunidade; etapa?: Etapa; hideValor?: boolean }) {
   const navigate = useNavigate();
+  const via = useViaMultinacional().data?.porNegocio.get(op.id);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: op.id,
     data: { type: "card", op },
@@ -154,6 +156,7 @@ function OpCard({ op, etapa, hideValor }: { op: Oportunidade; etapa?: Etapa; hid
       </TooltipProvider>
 
       <div className="font-semibold text-sm leading-snug mb-1 line-clamp-2 pr-5">{op.titulo}</div>
+      {via && <div className="text-[11px] text-muted-foreground mb-1 truncate">{via}</div>}
       {op.organizacao_nome && (
         <Link
           to={`/organizacoes/${op.organizacao_id}`}
