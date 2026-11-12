@@ -5,6 +5,8 @@ import { Coins, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ItensSemCustoBloco from "@/components/comissao/ItensSemCusto";
+import { useViaMultinacional } from "@/hooks/useMultinacionais";
+import { numeroBase } from "@/lib/comissao";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -78,6 +80,7 @@ export default function ComissaoCard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { data, chave, gestor, isLoading } = useComissao();
+  const via = useViaMultinacional().data?.porOrcamento;
   const [todos, setTodos] = useState(false);
   const [salvando, setSalvando] = useState<string | null>(null);
   const [filtroSalvo, mudar] = useFiltroSalvo(user?.id);
@@ -173,7 +176,7 @@ export default function ComissaoCard() {
                 <div key={o.id} className="rounded-md border p-3 space-y-2">
                   <button onClick={() => navigate(`/orcamento?load=${o.id}`)} className="w-full text-left">
                     <p className="font-medium truncate">{o.cliente || o.numero}</p>
-                    <p className="text-xs text-muted-foreground">{o.numero}{ganho ? " · ganho" : ""}</p>
+                    <p className="text-xs text-muted-foreground">{o.numero}{ganho ? " · ganho" : ""}{via?.get(`${numeroBase(o.numero)}|${o.organizacao_id ?? ""}`) ? ` · ${via.get(`${numeroBase(o.numero)}|${o.organizacao_id ?? ""}`)}` : ""}</p>
                     <p className="text-sm text-muted-foreground">{brl(o.venda)} · {gestor && o.vendedor_nome ? `${o.vendedor_nome} ${ganho ? "ganhou" : "ganha"}` : ganho ? "você ganhou" : "você ganha"} <span className="font-semibold text-primary">{brl(o.ganha)}</span></p>
                   </button>
                   {org && (
@@ -208,6 +211,11 @@ export default function ComissaoCard() {
           </div>
         )}
 
+        {gestor && (
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/multinacionais")}>
+            Negócios parados com multinacionais
+          </Button>
+        )}
         {gestor && <ItensSemCustoBloco orcamentos={ultimas} />}
         <p className="text-xs text-muted-foreground">Estimativa: 4% sobre o custo dos equipamentos, 5% para cliente antigo. Desconto não muda a comissão.</p>
       </Card>
