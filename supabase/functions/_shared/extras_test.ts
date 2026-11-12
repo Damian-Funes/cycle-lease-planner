@@ -5,7 +5,7 @@ const rota = (extras: string[] | null | undefined) => ({ id: 'r', data_inicio: '
   paradas: [{ id: 'a', visitada: true, dia: '2026-11-11', organizacao_id: 'o', relato: { proximo_passo_data: '2026-11-20', contato_nome: 'x', sacos_safra: 1, equipamento_atual: 'x', problema_principal: 'x', interesse: 'alto', concorrente: 'x' } }] });
 const tem = (extras: string[] | null | undefined, completo = true) => montarPendencias(rota(extras), '2026-11-11', { completo }).some(p => p.tipo === 'confirmar_extras');
 Deno.test('pergunta uma vez no dia com visita informada', () => eq(tem([]), true));
-Deno.test('já respondeu hoje → não pergunta de novo', () => eq(tem(extrasConfirmados([textoExtras('2026-11-11', 'nao')])), true === false));
+Deno.test('já respondeu hoje → não pergunta de novo', () => eq(tem(extrasConfirmados([textoExtras('2026-11-11', 'nao')])), false));
 Deno.test('resposta de outro dia não conta', () => eq(tem(['2026-11-10']), true));
 Deno.test('sem leitura do diário → não pergunta', () => eq(tem(null), false));
 Deno.test('fora do modo completo (cron) não aparece', () => eq(tem([], false), false));
