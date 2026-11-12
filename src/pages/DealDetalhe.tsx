@@ -30,6 +30,7 @@ import DealPropostasOrcamentos from "@/components/DealPropostasOrcamentos";
 import JuliaHistorico from "@/components/JuliaHistorico";
 import DiagnosticoResumo from "@/components/capacidade/DiagnosticoResumo";
 import SemPermissao from "@/components/SemPermissao";
+import EnviosMultinacional from "@/components/multinacional/EnviosMultinacional";
 import { useAuth } from "@/hooks/useAuth";
 import { Lock } from "lucide-react";
 import { SMARTCYCLE_ATIVO } from "@/config/features";
@@ -693,6 +694,9 @@ export default function DealDetalhe() {
               </div>
             </CardContent>
           </Card>
+
+          <EnviosMultinacional dealId={deal.id} onChange={carregar}
+            noFunilMultinacionais={pipelines.find(p => p.id === deal.pipeline_id)?.nome === "Multinacionais"} />
 
           <Tabs defaultValue="atividades">
             <TabsList className="flex w-full justify-start overflow-x-auto">
