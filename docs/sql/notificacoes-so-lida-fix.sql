@@ -1,3 +1,4 @@
+-- APLICADA em 12/11/2026.
 -- OK do CEO em 12/11/2026. Trava "só marcar como lida" vale só para escrita direta do usuário
 -- (PostgREST roda como role authenticated/anon). Funções SECURITY DEFINER do sistema
 -- (ex.: fn_atividade_resolver_notificacoes) rodam como o dono e passam a poder resolver.
