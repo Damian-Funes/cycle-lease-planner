@@ -28,8 +28,8 @@
 - Push (PushAlert) loads only on crmls.com.br via index.html; which notifications push is decided by `push_regras` key prefixes mirrored in `_shared/push.ts`, and only a real INSERT marks `push_status=pendente`, so upserts never resend.
 - Public views use `security_invoker=true`; legacy dossiê/perfil-IA functions, trigger functions and unused views are executable only by service_role, so the anon key never reads data without RLS.
 - Past-day trip pendings (nights without pernoite, days without visits) come only from `montarPendencias` and activate only when `rota_dias_sem_visita` loads, so voice never asks for what the DB cannot yet store; admin day-closing notices (`fechou:`/`caiu:`/`naofechou:`) are built by pure `_shared/fechamentoDia.ts`.
-- Júlia's off-route stops are created only by service-only SQL `julia_adicionar_parada` (origem='julia', transaction-local `app.julia_parada_extra` skips reapproval and keeps the reported day); voice then reuses registrar_visita unchanged.
-- Manual redial replaces only calls due ≤15 min; retorno/fechamento rows are reactivated, and a retorno is confirmed only if really `agendada` at that time.
+- Júlia's off-route stops come only from service-only SQL `julia_adicionar_parada` (`app.julia_parada_extra` skips reapproval, keeps the day); then registrar_visita as usual.
+- Manual redial replaces only calls due ≤15 min; a retorno is confirmed only if really `agendada`.
 - Company-paid hotel is a `rota_gastos` row with `pago_pela_empresa=true` and null value; finance must fill it before trip conclusion.
 - Voicemail/no-answer on retorno/fechamento schedules one `retentativa_retorno` (+30 min, ≤22h) via pure `precisaNovaTentativa`, the only allowed 4th automatic call. "Visited anyone else?" is a daily `rota_diario` entry so `confirmar_extras` is asked once and never makes the cron dial.
 - Commission: SQL `fn_comissao_orcamentos` returns amount, never cost; pure rules in `src/lib/comissao.ts`, latest version per number+org.
