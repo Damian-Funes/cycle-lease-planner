@@ -7,7 +7,7 @@ ALTER TABLE public.rota_gastos ADD COLUMN IF NOT EXISTS pago_pela_empresa boolea
 ALTER TABLE public.rota_gastos ALTER COLUMN valor DROP NOT NULL;
 ALTER TABLE public.rota_gastos DROP CONSTRAINT IF EXISTS rota_gastos_valor_check;
 ALTER TABLE public.rota_gastos ADD CONSTRAINT rota_gastos_valor_check CHECK (
- (valor IS NULL AND pago_pela_empresa AND categoria='hotel') OR (valor > 0 AND valor < 100000));
+ (valor IS NULL AND pago_pela_empresa AND categoria='hotel') OR (valor IS NOT NULL AND valor > 0 AND valor < 100000));
 
 CREATE OR REPLACE FUNCTION public.julia_registrar_voz(p_ligacao uuid, p_rota uuid, p_acao text, p_dados jsonb)
  RETURNS jsonb
