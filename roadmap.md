@@ -87,3 +87,5 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] sw.js, manifest, script por domínio, tela Ativar notificações, edge function push-enviar, testes.
 - [ ] Aplicar docs/sql/push-pushalert-proposta.sql (aguarda aprovação do CEO).
 - [ ] Segredo PUSHALERT_API_KEY (CEO cadastra).
+- [x] Júlia: hotel pago pela empresa + nova tentativa após caixa postal (aplicado 12/11)
+- [ ] Card de comissão — código pronto; aguarda OK do CEO para aplicar docs/sql/comissao-card-proposta.sql
