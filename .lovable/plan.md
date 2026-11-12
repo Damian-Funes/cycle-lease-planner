@@ -1,62 +1,47 @@
-# Comissão sobre o custo, calculada no banco
+# Orçamentos com multinacionais (BASF, Syngenta, CTVA…)
 
-## Conferência feita (dados reais, São Francisco / Murilo)
-Custo atual × quantidade × 4%, última versão de cada orçamento: 064-V7 58.294,51 · 065-V3 84.866,16 · 066 2.354,42 · 072 73.081,73 · 073 63.913,54. Bate exatamente com o esperado. Todos os itens têm `equipamento_id` e custo.
+## O que encontrei hoje
+- Funis: `pipelines` (Orçamentos, Reforma, SmartCycle) + `etapas_pipeline`; negócio = `oportunidades` (pipeline_id, etapa_id, status, ultima_atividade_em, responsavel_id); histórico em `historico_oportunidade`.
+- Orçamento tem UM cliente só: `organizacao_id` + `nome_cliente` (e endereço/CNPJ copiados). O PDF imprime `CLIENTE: <nome_cliente>`.
+- Multinacionais já identificáveis por `organizacoes.segmento='MULTINACIONAIS'` (BASF x2, Syngenta x2, CTVA, LongPing, Biotrigo, Incotec).
+- **142 orçamentos abertos (42 negócios) estão gravados com a multinacional como cliente** — o cliente final não está registrado em lugar nenhum. Ex.: ORC2026-059 V1–V4/V6/V7 = BASF, V5 = CTVA (outro negócio), V8 = Priori.
 
-## Antes / depois
+## Antes → depois
 | | Antes | Depois |
 |---|---|---|
-| Base | venda (subtotal − desconto) | soma de quantidade × custo atual dos itens |
-| Desconto | reduzia a comissão | não altera |
-| Quem calcula | navegador | função no banco; o navegador só recebe a comissão pronta |
-| Em jogo | soma de todos os abertos pela venda | soma de todos os abertos pelo custo, 1 por orçamento (última versão de cada número, como já é) |
-| Item sem custo | — | conta 0; admin/gerente vê "X itens sem custo" |
+| Orçamento | 1 cliente | "Enviado para" (= `organizacao_id`, como hoje) + "Cliente final" (novo `cliente_final_id`; vazio = igual ao enviado para) |
+| PDF | CLIENTE: BASF | "À BASF Agricultural Solutions — Projeto: Sementes São Francisco, Rio Verde/GO" (sem cliente final, igual hoje) |
+| Negócio | fica em "Orçamento Enviado"/Negociação | Botão "Passar para multinacional" → funil "Multinacionais" + atividade de cobrança |
+| Comissão | taxa pelo cliente do orçamento | taxa/"cliente antigo" pelo cliente final (fallback: enviado para); card mostra "via BASF" |
+| Admin | — | Lista "Parados com multinacionais" por dias, do mais parado |
 
-Percentuais iguais: 4% padrão, 5% com a tag `cliente_antigo`, seminovo 2% desligado.
+Escolha: manter `organizacao_id` como "Enviado para" para não quebrar PDF, buscas, Júlia, permissões e as 142 linhas existentes; só acrescenta o cliente final.
 
-## SQL proposto (`docs/sql/comissao-custo-proposta.sql`, aplicar só depois do OK do CEO)
-```sql
-create or replace function public.fn_comissao_orcamentos()
-returns table (orcamento_id uuid, numero_orcamento text, nome_cliente text,
-  organizacao_id uuid, responsavel_id uuid, status text, updated_at timestamptz,
-  cliente_antigo boolean, taxa numeric, comissao numeric, itens_sem_custo int)
-language sql stable security definer set search_path = public as $$
-  with eu as (select auth.uid() uid,
-     public.has_role(auth.uid(),'admin') or public.has_role(auth.uid(),'gerente_comercial') gestor)
-  select o.id, o.numero_orcamento, o.nome_cliente, o.organizacao_id, o.responsavel_id,
-         o.status, o.updated_at,
-         coalesce('cliente_antigo' = any(org.tags), false),
-         case when 'cliente_antigo' = any(org.tags) then 0.05 else 0.04 end,
-         round(coalesce(c.custo,0) * case when 'cliente_antigo' = any(org.tags) then 0.05 else 0.04 end, 2),
-         case when (select gestor from eu) then coalesce(c.sem_custo,0) else 0 end
-  from orcamentos o
-  cross join eu
-  left join organizacoes org on org.id = o.organizacao_id
-  left join lateral (
-    select sum(coalesce(public.fn_num_seguro(i->>'quantidade'),0) * coalesce(e.valor_custo,0)) custo,
-           count(*) filter (where e.valor_custo is null or e.valor_custo <= 0)::int sem_custo
-    from jsonb_array_elements(coalesce(o.itens,'[]'::jsonb)) i
-    left join equipamentos e on e.id = public.fn_uuid_seguro(i->>'equipamento_id')
-  ) c on true
-  where eu.uid is not null
-    and o.status in ('rascunho','enviado','aprovado')
-    and (eu.gestor or o.responsavel_id = eu.uid);
-$$;
-revoke all on function public.fn_comissao_orcamentos() from public, anon;
-grant execute on function public.fn_comissao_orcamentos() to authenticated;
-```
-Obs.: `organizacoes.tags` é `text[]` (conferido no banco), não jsonb; por isso o teste correto é `'cliente_antigo' = any(org.tags)`, como acima. (Confirmo na implementação as assinaturas de `fn_num_seguro`/`fn_uuid_seguro` e os status de "ganho" usados hoje pelo card.) Só devolve a comissão final por orçamento, nunca custo nem item a item. Teste antes em transação revertida com o Murilo (só os dele) e com um admin (todos).
+## Botões (vendedor e admin)
+- **Passar para multinacional**: escolhe a multinacional (sugere segmento MULTINACIONAIS primeiro, busca em todas), cliente final (pré-preenchido com o cliente atual) e data de cobrança (+60 dias). Cria nova versão do mesmo número (Vn+1) com enviado para = multinacional e cliente final mantido; move o negócio para "Enviado à multinacional"; cria atividade "Cobrar retorno da <multi> sobre <orçamento>".
+- **Voltar para negociação direta**: nova versão com enviado para = cliente final; negócio volta ao funil/etapa de antes (guardados no negócio; se não houver, Orçamentos › Negociação).
+- Funil novo "Multinacionais": Enviado à multinacional → Multinacional negociando → Cliente final definido → Ganho → Perdido.
 
-## Mudanças no app (sem SQL extra)
-- `src/lib/comissao.ts`: `resumoComissao` passa a receber a comissão pronta; `ultimasVersoes` continua (064-V7 é a única versão do 064 considerada). Sem agrupamento por cliente.
-- Testes novos em `comissao.test.ts` com os 5 valores da São Francisco: Em jogo = 282.510,36 (soma dos 5); 5% com tag; desconto não muda nada.
-- `ComissaoCard` e o cartão do menu chamam `rpc('fn_comissao_orcamentos')`; mostram "X itens sem custo" só para gestor. Fica um texto curto "comissão sobre o custo dos equipamentos".
+## Casos existentes (sem quebrar nada)
+- Nada é alterado automaticamente: as 142 linhas continuam válidas (cliente final vazio = vale o enviado para, comissão igual a hoje).
+- Admin ganha a fila "Orçamentos enviados a multinacional sem cliente final" agrupada por negócio, para escolher o cliente final uma vez (grava em todas as versões abertas do negócio) e opcionalmente mover para o funil novo.
+- ORC2026-059: BASF (V1–V7 exceto V5) e CTVA (V5) entram nessa fila; V8 Priori não é multinacional e fica como está. A regra de "última versão por número + organização" da comissão continua, agora usando o cliente final quando existir.
 
-## Congelar o custo na aprovação (fica para depois)
-Simples: coluna `orcamentos.comissao_congelada numeric` + trigger que grava o valor quando o status vira aprovado/ganho; a função usa `coalesce(comissao_congelada, cálculo atual)`. Já existe `fn_congelar_ao_aprovar` que pode receber isso. Custo de esforço: 1 coluna + ~10 linhas.
+## Visão do CEO
+Em /comissoes (admin) ou no CRM: tabela "Multinacionais paradas" — negócio, vendedor, multinacional, cliente final, dias desde a entrada no funil e dias desde a última movimentação, ordenada do mais parado, com atalho para o negócio.
+
+## SQL proposto (docs/sql/orcamentos-multinacional-proposta.sql — só após OK do CEO)
+- `orcamentos.cliente_final_id uuid null references organizacoes(id)`.
+- `oportunidades`: `multinacional_id`, `multinacional_desde timestamptz`, `pipeline_anterior_id`, `etapa_anterior_id`.
+- INSERT do pipeline "Multinacionais" + 5 etapas.
+- `fn_passar_multinacional(orcamento_id, multinacional_id, cliente_final_id, cobrar_em)` e `fn_voltar_negociacao_direta(orcamento_id)` (security invoker, respeitam RLS atual; transação única: versão + negócio + atividade + histórico).
+- `fn_comissao_orcamentos`: taxa e cliente antigo via `coalesce(cliente_final_id, organizacao_id)` e agrupamento pela mesma chave; devolve também `enviado_para_nome`.
+- View `vw_multinacionais_paradas` (security_invoker) com os dias.
+- Testado antes em BEGIN…ROLLBACK com o 059 e São Francisco.
 
 ## Riscos
-- Custo atual muda ⇒ comissão dos abertos (e dos ganhos, até congelar) muda junto.
-- "Já garantido no ano" também fica pela base de custo atual até existir o congelamento.
-- Opções do mesmo cliente somam juntas no "Em jogo" (decisão do CEO).
-- A função é security definer: a regra de quem vê o quê passa a estar nela (testada nos dois papéis).
+- Versão nova por troca de destinatário aumenta o número de versões (é o pedido do CEO).
+- RLS: vendedor só cria versão/move negócio se já pode hoje; se o negócio for de outro, o botão falha (mostrar aviso).
+- Escolher o cliente final errado nos legados muda a taxa (4%/5%) daquele orçamento.
+- Pipeline novo aparece nos filtros/telas de funil já existentes; checar que relatórios por pipeline não somem com esses negócios.
+- Júlia e PDF antigos continuam lendo `organizacao_id` = enviado para (comportamento atual).
