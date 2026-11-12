@@ -29,31 +29,26 @@ Prazo: antes das 17h (BRT). Hoje são 14h30 BRT.
 | Dossiê / cadência | `dossies_sementeiras`: 11 de 145 empresas, legado. Interações: 40. | Pouco confiável → "a confirmar na auditoria trimestral" |
 | Trava CRM | `fn_minha_trava_orcamento` (a mesma do Novo orçamento) | Reaproveitar |
 
-## 2. Regras (versão simplificada do CEO)
+## 2. Regras (finais do CEO, fixas, sem penalidade)
 
-| Tipo | Máximo | Garantido (com atividade vencida) |
-|---|---|---|
-| Cliente novo | 4% da venda | 0,5% |
-| Cliente recorrente (já comprou) | 5% da venda | 0,5% |
-| Seminovo | 2% | 2% (sempre) |
+- Cliente novo: 4% do valor de venda.
+- Cliente recorrente (já comprou antes): 5%.
+- Seminovo: 2%.
+- Só conta quando o orçamento vira ganho (status aprovado). Os orçamentos abertos aparecem como "em jogo".
 
-- A comissão só vale quando o orçamento vira ganho (status aprovado). Os abertos aparecem como potencial.
-- **Com atividade vencida:** novo e recorrente caem para 0,5%. O card mostra "resolva X atividades vencidas para não perder R$ Y". Y = máximo − garantido dos abertos.
-- **Deixam de existir:** escala de desconto, mix, dossiê, cadência, anuidade, manutenção e upgrade.
+Não entram: atividade vencida, garantido 0,5%, aviso de "pode perder", desconto, mix, dossiê, cadência e serviços.
 
 ## 3. Como o card aparece (celular primeiro)
 
 ```text
-Sua comissão em jogo
-R$ 4.200 garantidos · até R$ 33.600
-Top 3: Sementes X — R$ 840 mil — você ganha até R$ 33.600
-Resolva 3 atividades vencidas para não perder R$ 29.400
+Sua comissão em jogo: R$ 33.600
+Top 3: Sementes X — R$ 840 mil — você ganha R$ 33.600
 Já garantido em 2026: R$ 18.300 (3 fechados)
 ```
 
-- O vendedor vê só os dele. O admin vê o total e a lista por vendedor.
+- O vendedor vê só os dele; o admin vê o total e a lista por vendedor.
 - Conta só a última versão de cada orçamento, aberto e mexido nos últimos 90 dias.
-- A base é a venda (subtotal − desconto), sem frete e sem montagem. Nunca aparece custo.
+- A base é a venda (subtotal − desconto), sem frete e sem montagem. O card nunca mostra custo.
 
 ## 4. Mudanças no banco (proposta em `docs/sql/comissao-card-proposta.sql`, aplicar só após OK do CEO)
 
@@ -72,7 +67,7 @@ Já garantido em 2026: R$ 18.300 (3 fechados)
 
 ## Detalhes técnicos
 
-- As regras ficam em uma função pura `src/lib/comissao.ts`, com testes Vitest de um caso por regra: 4%/5%/2%, gate 0,5%, seminovo sem gate, versões e filtro de 90 dias.
+- As regras ficam em uma função pura `src/lib/comissao.ts`, com testes Vitest de um caso por regra: 4%/5%/2%, versões e filtro de 90 dias.
 - Os dados vêm da RPC `fn_comissao_base`. O componente `ComissaoCard` entra na Home acima dos widgets do CRM.
 - Antes da migração, o card fica escondido (checa se a RPC existe).
 - Uma regra nova em AGENTS.md: a comissão é calculada por função pura sobre dados sem custo vindos de RPC filtrada por vendedor.
