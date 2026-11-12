@@ -85,3 +85,11 @@ Deno.test('acao listar com dados de completar é reconhecida como completar', ()
  assert(!pareceCompletar({ ...ids, acao: 'listar_organizacoes_incompletas' }));
  assert(!pareceCompletar({ ...ids, acao: 'listar_organizacoes_incompletas', organizacao_id: '44444444-4444-4444-8444-444444444444' }));
 });
+Deno.test('registrar_pernoite aceita hotel pago pela empresa sem valor', () => {
+ const body = Schema.parse(normalizarBody({ ...ids, acao: 'registrar_pernoite', tipo: 'hotel', cidade: 'Goiânia', uf: 'go', hotel_nome: 'Hotel Santos Dumont', pago_pela_empresa: true }));
+ assert(body.acao === 'registrar_pernoite' && body.pago_pela_empresa === true && body.valor === undefined && body.uf === 'GO');
+});
+Deno.test('confirmar_extras aceita só sim/nao', () => {
+ assert(Schema.parse({ ...ids, acao: 'confirmar_extras', resposta: 'nao' }).acao === 'confirmar_extras');
+ assert(!Schema.safeParse({ ...ids, acao: 'confirmar_extras', resposta: 'talvez' }).success);
+});
