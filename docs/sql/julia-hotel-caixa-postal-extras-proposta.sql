@@ -1,4 +1,4 @@
--- PROPOSTA (NÃO APLICADA) — Júlia: hotel pago pela empresa sem valor + nova tentativa após caixa postal.
+-- APLICADA em 12/11/2026 (OK do CEO 12/11 13:58). Júlia: hotel pago pela empresa sem valor + nova tentativa após caixa postal.
 -- Aplicar só após OK explícito do CEO. Testar antes em BEGIN … ROLLBACK (Murilo 11/11, Renan 11/11).
 -- "Visitou mais alguém?" (confirmar_extras) não precisa de SQL: grava no diário da viagem.
 

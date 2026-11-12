@@ -3751,9 +3751,10 @@ export type Database = {
           data: string
           descricao: string | null
           id: string
+          pago_pela_empresa: boolean
           rota_id: string
           updated_at: string
-          valor: number
+          valor: number | null
         }
         Insert: {
           arquivo_path?: string | null
@@ -3763,9 +3764,10 @@ export type Database = {
           data: string
           descricao?: string | null
           id?: string
+          pago_pela_empresa?: boolean
           rota_id: string
           updated_at?: string
-          valor: number
+          valor?: number | null
         }
         Update: {
           arquivo_path?: string | null
@@ -3775,9 +3777,10 @@ export type Database = {
           data?: string
           descricao?: string | null
           id?: string
+          pago_pela_empresa?: boolean
           rota_id?: string
           updated_at?: string
-          valor?: number
+          valor?: number | null
         }
         Relationships: [
           {

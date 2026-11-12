@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useAtividadesBadge } from "@/hooks/useAtividadesBadge";
 import { useOrganizacoesIncompletas } from "@/hooks/useOrganizacoesIncompletas";
 import CrmWidgets from "@/components/CrmWidgets";
+import ComissaoCard from "@/components/ComissaoCard";
 import ProximaReuniaoWidget from "@/components/ProximaReuniaoWidget";
 import { SMARTCYCLE_ATIVO } from "@/config/features";
 import { useRotasAlertas } from '@/hooks/useRotasAlertas';
@@ -206,6 +207,7 @@ export default function Home() {
           </Card>); })()}
 
         <section className="space-y-4">
+          <ComissaoCard />
           <ProximaReuniaoWidget />
           <h2 className="text-lg font-semibold">Visão geral</h2>
           <CrmWidgets />
