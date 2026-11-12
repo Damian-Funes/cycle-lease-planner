@@ -68,7 +68,10 @@ async function preloadLogo(): Promise<string | null> {
   });
 }
 
-function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | null) {
+/** Envio a uma multinacional: o PDF é endereçado a ela e cita o cliente final como projeto. */
+export type EnvioPdf = { destinatario: string; projeto: string };
+
+function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | null, envio?: EnvioPdf) {
   const pageW = doc.internal.pageSize.getWidth();
 
   if (logoDataUrl) {
@@ -89,7 +92,9 @@ function addHeader(doc: jsPDF, params: OrcamentoParams, logoDataUrl: string | nu
   const rightLines: string[] = [
     `NÚMERO: ${params.numeroOrcamento || "—"}`,
     `DATA: ${new Date().toLocaleDateString("pt-BR")}`,
-    `CLIENTE: ${clienteNome}`,
+    ...(envio
+      ? [`À: ${toTitleCase(envio.destinatario)}`, `PROJETO: ${envio.projeto}`]
+      : [`CLIENTE: ${clienteNome}`]),
   ];
   if (params.clienteEndereco) rightLines.push(`ENDEREÇO: ${toTitleCase(params.clienteEndereco)}`);
   if (params.clienteTelefone) rightLines.push(`TEL: ${normalizePhone(params.clienteTelefone)}`);
@@ -137,7 +142,7 @@ const baseStyles = { fontSize: 9, cellPadding: 3 };
 const headStyles = { fillColor: GREEN as any, textColor: WHITE as any, fontStyle: "bold" as const, fontSize: 9 };
 const altRowStyles = { fillColor: [249, 250, 251] as any };
 
-export async function generateOrcamentoPdf(params: OrcamentoParams) {
+export async function generateOrcamentoPdf(params: OrcamentoParams, envio?: EnvioPdf) {
   // Resolve nome do cliente via organização se estiver vazio ou "—"
   const rawName = (params.clientName || "").trim();
   if ((!rawName || rawName === "—" || rawName === "-") && params.organizacao_id) {
@@ -169,7 +174,7 @@ export async function generateOrcamentoPdf(params: OrcamentoParams) {
   const desconto = calcDescontoAplicado(subtotal, params.descontoTipo, params.descontoValor);
   const total = calcTotal(params);
 
-  addHeader(doc, params, logoDataUrl);
+  addHeader(doc, params, logoDataUrl, envio);
   let y = getLastY(doc) + 12;
 
   doc.setFontSize(10);

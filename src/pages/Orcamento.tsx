@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Equipamento } from "@/lib/equipamentos";
 import { OrcamentoParams, ItemOrcamento, DEFAULT_ORCAMENTO, calcSubtotal, calcDescontoAplicado, calcTotal } from "@/lib/orcamento";
-import { generateOrcamentoPdf } from "@/lib/generateOrcamentoPdf";
+import { generateOrcamentoPdf, type EnvioPdf } from "@/lib/generateOrcamentoPdf";
+import { cabecalhoEnvio } from "@/lib/multinacional";
 import PropostasUnificadasModal from "@/components/PropostasUnificadasModal";
 import NovaPropostaButton from "@/components/NovaPropostaButton";
 import ItemAvulsoModal from "@/components/ItemAvulsoModal";
@@ -31,6 +32,23 @@ import { cn } from "@/lib/utils";
 
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/** Se esta versão foi enviada a uma multinacional, o PDF sai endereçado a ela, citando o cliente final. */
+async function envioDoPdf(orcamentoId: string): Promise<EnvioPdf | undefined> {
+  try {
+    const { data: env } = await supabase.from("orcamento_envios").select("multinacional_id").eq("orcamento_id", orcamentoId).maybeSingle();
+    if (!env) return undefined;
+    const [{ data: multis }, { data: orc }] = await Promise.all([
+      supabase.rpc("fn_multinacionais"),
+      supabase.from("orcamentos").select("nome_cliente, organizacoes(nome, cidade, estados(sigla))").eq("id", orcamentoId).maybeSingle(),
+    ]);
+    const multi = (multis ?? []).find((m: { id: string }) => m.id === env.multinacional_id) as { nome: string } | undefined;
+    if (!multi) return undefined;
+    const org = (orc as any)?.organizacoes;
+    const c = cabecalhoEnvio(multi.nome, org?.nome || (orc as any)?.nome_cliente || "", org?.cidade, org?.estados?.sigla);
+    return { destinatario: c.destinatario, projeto: c.projeto };
+  } catch { return undefined; }
 }
 
 export default function Orcamento() {
@@ -586,7 +604,7 @@ export default function Orcamento() {
         };
       }
     }
-    await generateOrcamentoPdf(pdfParams);
+    await generateOrcamentoPdf(pdfParams, savedId ? await envioDoPdf(savedId) : undefined);
   }
 
   return (
