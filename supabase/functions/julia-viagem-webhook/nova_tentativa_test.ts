@@ -1,0 +1,14 @@
+import { precisaNovaTentativa } from '../_shared/juliaWebhook.ts';
+import { podeTentar } from '../_shared/juliaViagemRegras.ts';
+const eq = (a: unknown, b: unknown) => { if (a !== b) throw new Error(`${a} !== ${b}`); };
+const as = (hhmm: string) => new Date(`2026-11-11T${hhmm}:00-03:00`);
+const base = { origem: 'retorno', naoAtendeu: false, motivo: 'voicemail_detection', duracao_s: 12, gravou: false };
+Deno.test('Renan: retorno 20h caiu na caixa postal → nova tentativa 20:30', () => eq(precisaNovaTentativa({ ...base, agora: as('20:00') }), as('20:30').toISOString()));
+Deno.test('caixa postal às 21:45 → não agenda (passaria das 22h)', () => eq(precisaNovaTentativa({ ...base, agora: as('21:45') }), null));
+Deno.test('às 21:30 ainda agenda para 22:00', () => eq(precisaNovaTentativa({ ...base, agora: as('21:30') }), as('22:00').toISOString()));
+Deno.test('fechamento não atendido → agenda', () => eq(precisaNovaTentativa({ ...base, origem: 'fechamento', motivo: 'no-answer', naoAtendeu: true, duracao_s: 0, agora: as('19:00') }), as('19:30').toISOString()));
+Deno.test('caiu em 15 s sem gravar → agenda', () => eq(precisaNovaTentativa({ ...base, motivo: 'client disconnected', agora: as('19:00') }), as('19:30').toISOString()));
+Deno.test('conversou e gravou → não agenda', () => eq(precisaNovaTentativa({ ...base, motivo: 'end_call tool', duracao_s: 240, gravou: true, agora: as('19:00') }), null));
+Deno.test('inicial na caixa postal não usa esta regra', () => eq(precisaNovaTentativa({ ...base, origem: 'inicial', agora: as('18:00') }), null));
+Deno.test('a própria nova tentativa não gera outra', () => eq(precisaNovaTentativa({ ...base, origem: 'retentativa_retorno', agora: as('20:30') }), null));
+Deno.test('limite: 4ª automática só para retentativa_retorno', () => { eq(podeTentar(3, 'retentativa_retorno', [], '20:30'), true); eq(podeTentar(3, 'retorno', [], '20:30'), false); eq(podeTentar(4, 'retentativa_retorno', [], '20:30'), false); });

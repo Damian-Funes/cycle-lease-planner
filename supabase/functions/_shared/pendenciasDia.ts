@@ -1,7 +1,7 @@
 export type TipoPendenciaDia =
   | "parada_pendente" | "pernoite_noite" | "nota_hotel"
   | "proximo_passo_sem_data" | "levantamento_incompleto" | "parada_sem_empresa" | "paradas_restantes"
-  | "organizacao_incompleta" | "dia_sem_registro";
+  | "organizacao_incompleta" | "dia_sem_registro" | "confirmar_extras";
 export interface PendenciaDia { tipo: TipoPendenciaDia; id: string; titulo: string; detalhe: string }
 type Relato = Record<string, unknown> | null | undefined;
 export interface ParadaPendencia {
@@ -16,6 +16,14 @@ export interface ContextoPendencias {
   gastos: { id: string; arquivo_path: string | null }[];
   /** Dias marcados "sem visita" (deslocamento/folga). Ausente = schema antigo: dias anteriores não são cobrados. */
   dias_sem_visita?: { dia: string }[] | null;
+  /** Dias em que o vendedor já respondeu "visitou mais alguém?". Ausente/null = não perguntar (leitura falhou ou fora da Júlia). */
+  extras_confirmados?: string[] | null;
+}
+export const PREFIXO_EXTRAS = "Júlia — extras ";
+export const textoExtras = (dia: string, resposta: "sim" | "nao") => `${PREFIXO_EXTRAS}${dia}: ${resposta}`;
+/** Dias AAAA-MM-DD já respondidos, a partir dos textos do diário. */
+export function extrasConfirmados(textos: string[]): string[] {
+  return textos.map(t => t.startsWith(PREFIXO_EXTRAS) ? t.slice(PREFIXO_EXTRAS.length, PREFIXO_EXTRAS.length + 10) : "").filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
 }
 const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 /** "domingo, 08/11" a partir de AAAA-MM-DD. */
@@ -96,6 +104,11 @@ export function montarPendencias(contexto: ContextoPendencias, data: string, opc
   }
   if (data >= contexto.data_fim && contexto.paradas.some(p => p.visitada == null)) {
     itens.push({ tipo: "paradas_restantes", id: contexto.id, titulo: "Informe as paradas que faltam antes de encerrar", detalhe: `${contexto.paradas.filter(p => p.visitada == null).length} parada(s) sem informação` });
+  }
+  // Uma vez por dia, depois de ao menos uma parada do dia informada: "visitou mais alguém que não estava na rota?".
+  const extras = contexto.extras_confirmados;
+  if (Array.isArray(extras) && !extras.includes(data) && contexto.paradas.some(p => p.dia === data && p.visitada != null && p.tipo !== "pernoite")) {
+    itens.push({ tipo: "confirmar_extras", id: data, titulo: "Perguntar se visitou mais alguém fora da rota", detalhe: "Pergunte uma vez; se sim, buscar_organizacao → adicionar_parada → registrar_visita" });
   }
   const oi = opcoes.organizacaoIncompleta;
   if (oi) {

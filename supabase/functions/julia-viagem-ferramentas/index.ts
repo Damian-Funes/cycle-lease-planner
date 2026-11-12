@@ -12,7 +12,7 @@ import { mensagemBusca, mensagemCompletar, mensagemIncompleta, mensagemVinculo, 
 import { avisosContatos, contatosOrganizacao, contatosParadas, fraseContatos, orgsParadasPendentes, respostaContatos, type PessoaContato } from '../_shared/contatosOrg.ts';
 import { carregarSituacoes, fraseJaSabemos, montarJaSabemos } from '../_shared/jaSabemos.ts';
 import { carregarEquipe, resolverAtribuicao } from '../_shared/vendedores.ts';
-import { dataExtenso, montarPendencias } from '../_shared/pendenciasDia.ts';
+import { dataExtenso, extrasConfirmados, montarPendencias, PREFIXO_EXTRAS, textoExtras } from '../_shared/pendenciasDia.ts';
 import { conferirFechamento } from '../_shared/notificacoesViagem.ts';
 import { jaRegistradasHoje, fraseJaRegistradas } from './respostas.ts';
 import { fraseErro, mensagemParadaExtra, mensagemPernoite, mensagemRetorno, retornoConfirmado, mensagemVisita, nomeEmpresa, visitaRepetida } from './respostas.ts';
@@ -40,7 +40,7 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
  try {
   const original = await req.json(); t.marcar('json');
   if (original && typeof original === 'object' && !Array.isArray(original)) chaves = Object.keys(original);
-  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','registrar_dia_sem_visita','agendar_retorno','adicionar_parada','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
+  if (original && typeof original === 'object' && 'acao' in original && ['listar_pendentes','registrar_visita','registrar_pernoite','registrar_dia_sem_visita','agendar_retorno','adicionar_parada','confirmar_extras','buscar_organizacao','vincular_organizacao','listar_organizacoes_incompletas','completar_organizacao','completar_contato',...ACOES_SO_LIVRES].includes(String(original.acao))) acao = String(original.acao);
   const { data } = horarioBRT();
   // ElevenLabs mal configurado (constante acao errada): corpo com dados de completar vira completar_organizacao.
   if (pareceCompletar(original)) {
@@ -152,14 +152,22 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   }
  const recarregar = async () => { const r = await carregarRota(db, l.rota_id); t.marcar('recarregar_rota'); return r; };
   // Fonte única: a Júlia cobra o mesmo que vira notificação depois.
-  const pendencias = (rota: typeof c.rota) => { const p = montarPendencias(rota, data, { completo: true }); t.marcar('montarPendencias'); return p; };
+  // Respostas a "visitou mais alguém?" ficam no diário ("Júlia — extras AAAA-MM-DD: sim|nao"); falha ao ler só omite a pergunta.
+  const lerExtras = async () => { const r = await db.from('rota_diario').select('texto').eq('rota_id', l.rota_id).like('texto', `${PREFIXO_EXTRAS}%`); return r.error ? null : extrasConfirmados((r.data ?? []).map(x => x.texto)); };
+  let extras = await lerExtras(); t.marcar('extras');
+  const pendencias = (rota: typeof c.rota) => { const p = montarPendencias({ ...rota, extras_confirmados: extras }, data, { completo: true }); t.marcar('montarPendencias'); return p; };
   // Uma organização incompleta por ligação, priorizada pela proximidade da viagem (falha aqui nunca derruba a ligação).
   const orgIncompleta = async (): Promise<OrgIncompleta | null> => (!orgPri || orgPri.error) ? null : ((orgPri.data ?? [])[0] as OrgIncompleta | undefined) ?? null;
+  if (body.acao === 'confirmar_extras') {
+   if (!extras?.includes(data)) check(await db.from('rota_diario').insert({ rota_id: l.rota_id, autor_id: l.vendedor_id, texto: textoExtras(data, body.resposta) }));
+   extras = [...(extras ?? []), data];
+   return json({ ok: true, salvo: true, mensagem: body.resposta === 'sim' ? 'Anotado: houve visita fora da rota.' : 'Anotado: nenhuma visita fora da rota hoje.', avisos, pendencias: pendencias(c.rota) });
+  }
   if (body.acao === 'listar_pendentes') {
    const [oi, situacoes] = await Promise.all([orgIncompleta(), carregarSituacoes(db, orgsParadasPendentes(c.rota.paradas))]); t.marcar('ja_sabemos');
    const ja = jaRegistradasHoje(c.rota.paradas, data);
    const frase = fraseJaRegistradas(ja);
-   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias(c.rota, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja, contatos_paradas: contatosParadas(c.rota.paradas, situacoes) });
+   return json({ ok: true, salvo: true, mensagem: frase ? `Pendências atualizadas. ${frase}` : 'Pendências atualizadas.', avisos, pendencias: montarPendencias({ ...c.rota, extras_confirmados: extras }, data, { completo: true, organizacaoIncompleta: oi }), ja_registradas_hoje: ja, contatos_paradas: contatosParadas(c.rota.paradas, situacoes) });
   }
   if (body.acao === 'listar_organizacoes_incompletas') {
    const oi = await orgIncompleta();
@@ -248,7 +256,9 @@ async function atender(req: Request, t: Cronometro): Promise<Response> {
   }
   if(body.acao==='registrar_pernoite') {
    if(body.tipo!=='voltou_base' && (!body.cidade || !body.uf)) return recusar('Informe os campos cidade e UF.');
-   if(body.tipo==='hotel' && (!body.hotel_nome || !body.valor)) return recusar('Informe os campos hotel e valor real.');
+   if(body.tipo==='hotel' && !body.hotel_nome) return recusar('Informe o campo hotel_nome.');
+   if(body.tipo==='hotel' && !body.valor && !body.pago_pela_empresa) return recusar('Informe o valor real ou, se a empresa reservou/pagou, pago_pela_empresa=true.');
+   if(body.tipo==='hotel' && body.pago_pela_empresa) delete body.valor;
    if(body.tipo!=='hotel' && !body.observacao) return recusar('Informe o campo observação com a justificativa.');
    const noite = body.noite ?? data;
    if (noite > data || noite < c.rota.data_inicio || noite >= c.rota.data_fim) return recusar(`A noite ${noite.split('-').reverse().join('/')} não é uma noite desta viagem até hoje.`);

@@ -1,6 +1,6 @@
 import { z } from 'npm:zod@3';
 import { admins, check, corsHeaders, dbAdmin, erro, json, notificar } from '../_shared/juliaViagem.ts';
-import { assinaturaValida, ligacaoInterrompida, motivoAssinatura } from '../_shared/juliaWebhook.ts';
+import { assinaturaValida, ligacaoInterrompida, motivoAssinatura, precisaNovaTentativa } from '../_shared/juliaWebhook.ts';
 import { extrairCusto } from '../_shared/gastoJulia.ts';
 import { pendenciasFechamento, tituloCaiu } from '../_shared/fechamentoDia.ts';
 import { notificarResumoAdmins, sincronizarNotificacoes } from '../_shared/notificacoesViagem.ts';
@@ -36,10 +36,10 @@ Deno.serve(async req => {
   if(custo.creditos!=null){ const u=await db.from('ligacoes_viagem').update({custo_creditos:custo.creditos}).eq('conversation_id',event.data.conversation_id); if(u.error) console.warn('julia-viagem-webhook custo_falhou', u.error.code); }
   // "O que faltou": nunca derruba o webhook.
   try {
-   const l=check(await db.from('ligacoes_viagem').select('id,rota_id,vendedor_id,data_ref,status,teste,created_at').eq('conversation_id',event.data.conversation_id).maybeSingle());
+   const l=check(await db.from('ligacoes_viagem').select('id,rota_id,vendedor_id,data_ref,status,teste,created_at,origem').eq('conversation_id',event.data.conversation_id).maybeSingle());
    if(l && !l.teste && l.rota_id){
     const s=await sincronizarNotificacoes(db,l.rota_id,l.data_ref);
-    let status=l.status;
+    let status=l.status; let gravouAlgo=false;
     if(status==='concluida'){
      const desde=l.created_at;
      const [d,p,o]=await Promise.all([
@@ -47,7 +47,7 @@ Deno.serve(async req => {
       db.from('rota_pernoites').select('id',{count:'exact',head:true}).eq('rota_id',l.rota_id).gte('created_at',desde),
       db.from('organizacao_levantamentos').select('id',{count:'exact',head:true}).eq('rota_id',l.rota_id).in('origem',['julia','faxina']).gte('created_at',desde),
      ]);
-     const gravou=[d,p,o].some(r=>(r.count ?? 0)>0);
+     const gravou=[d,p,o].some(r=>(r.count ?? 0)>0); gravouAlgo=gravou;
      const paradaPendente=((s.rota?.paradas ?? []) as {visitada:boolean|null}[]).some(x=>x.visitada==null);
      const meta=event.data.metadata as Record<string,unknown>|undefined;
      const motivo=String(meta?.termination_reason ?? event.data.failure_reason ?? '');
@@ -60,6 +60,9 @@ Deno.serve(async req => {
      }
     }
     if(status==='concluida') await notificarResumoAdmins(db,l.id,s.rota,l.data_ref);
+    // Caixa postal/não atendeu no retorno ou fechamento: UMA nova tentativa em ~30 min (a checagem de pendências na hora de discar decide).
+    const quando=precisaNovaTentativa({origem:l.origem,naoAtendeu,motivo:String((event.data.metadata as Record<string,unknown>|undefined)?.termination_reason ?? event.data.failure_reason ?? ''),duracao_s:Math.round(event.data.metadata?.call_duration_secs ?? 0),gravou:gravouAlgo,agora:new Date()});
+    if(quando){ const rr=await db.rpc('julia_reservar_ligacao',{p_rota:l.rota_id,p_origem:'retentativa_retorno',p_quando:quando}); if(rr.error) console.warn('julia-viagem-webhook nova_tentativa', rr.error.message); }
    }
   } catch(e){ console.warn('julia-viagem-webhook notificacoes', e instanceof Error ? e.message : 'erro'); }
   return json(result);

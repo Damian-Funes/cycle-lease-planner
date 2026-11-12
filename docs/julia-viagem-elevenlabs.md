@@ -507,3 +507,50 @@ Formato de export da ElevenLabs (properties como array). Copie a URL e o header 
 > **Visita fora da rota.** Se o vendedor contar que visitou uma empresa que não está em listar_pendentes: chame buscar_organizacao com o nome (e cidade/UF se ele disser), confirme com ele qual é, e chame adicionar_parada com o organizacao_id (e o dia, se não foi hoje). Se não achar a empresa, pergunte cidade e UF e chame adicionar_parada com nome_empresa, cidade e uf. Em seguida chame registrar_visita com o parada_id devolvido, fazendo o debrief normal. Se adicionar_parada disser que a empresa já estava na viagem, use o mesmo parada_id. Nunca peça para o vendedor usar o app.
 
 > **Retorno.** Só confirme o horário do retorno se agendar_retorno responder salvo. Se der erro, diga que o administrador vai ligar.
+
+## `registrar_pernoite`: hotel pago pela empresa (sem valor)
+
+Acrescente este item em `request_body_schema.properties` da ferramenta `registrar_pernoite`:
+
+```json
+{ "id": "pago_pela_empresa", "type": "boolean", "value_type": "llm_prompt", "description": "true quando o vendedor disser que o hotel foi reservado ou pago pela empresa/financeiro e ele não sabe o valor. Nesse caso não envie valor.", "required": false }
+```
+
+E troque a description de `valor` para: `"Valor real da diária em reais. Obrigatório para hotel, exceto quando pago_pela_empresa=true."`
+
+Prompt:
+
+> Se for hotel e o vendedor não souber o valor, pergunte uma vez: "Foi a empresa que reservou ou pagou?". Se sim, registre com pago_pela_empresa=true, sem valor, e diga: "Anotei, o financeiro confirma o valor pela nota. Só não esquece de mandar a foto da nota." Nunca invente valor.
+
+## Ferramenta `confirmar_extras` ("visitou mais alguém?")
+
+```json
+{
+  "type": "webhook",
+  "name": "confirmar_extras",
+  "description": "Grava a resposta do vendedor à pergunta 'Visitou mais alguém hoje que não estava na rota?'. Use só quando listar_pendentes trouxer a pendência confirmar_extras.",
+  "api_schema": {
+    "url": "https://sycqtlxoidsbsvrsvqes.supabase.co/functions/v1/julia-viagem-ferramentas",
+    "method": "POST",
+    "request_headers": [{ "type": "secret", "name": "x-julia-secret", "secret_id": "<JULIA_TOOL_SECRET>" }],
+    "request_body_schema": {
+      "type": "object",
+      "description": "",
+      "required": ["ligacao_id", "rota_id", "acao", "resposta"],
+      "properties": [
+        { "id": "ligacao_id", "type": "string", "value_type": "dynamic_variable", "dynamic_variable": "ligacao_id", "description": "", "required": true },
+        { "id": "rota_id", "type": "string", "value_type": "dynamic_variable", "dynamic_variable": "rota_id", "description": "", "required": true },
+        { "id": "acao", "type": "string", "value_type": "constant", "constant_value": "confirmar_extras", "description": "", "required": true },
+        { "id": "resposta", "type": "string", "value_type": "llm_prompt", "description": "\"sim\" se visitou alguém fora da rota (depois de registrar essas visitas), \"nao\" se não visitou.", "required": true }
+      ]
+    }
+  }
+}
+```
+
+Prompt:
+
+> Antes de encerrar o fechamento do dia, se a pendência confirmar_extras aparecer, pergunte uma única vez: "Visitou mais alguém hoje que não estava na rota?".
+> - Se não: chame confirmar_extras com resposta "nao" e siga para o encerramento.
+> - Se sim: para cada empresa, chame buscar_organizacao (nome + cidade). Com a empresa identificada, chame adicionar_parada (com organizacao_id, ou nome_empresa+cidade+uf se não existir). Depois chame registrar_visita com o parada_id devolvido. No fim, chame confirmar_extras com resposta "sim".
+> - Nunca pergunte isso duas vezes no mesmo dia nem antes de resolver as paradas da rota.
