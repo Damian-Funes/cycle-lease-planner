@@ -1,4 +1,4 @@
-# Comissão sobre o custo, calculada no banco, sem inflar "Em jogo"
+# Comissão sobre o custo, calculada no banco
 
 ## Conferência feita (dados reais, São Francisco / Murilo)
 Custo atual × quantidade × 4%, última versão de cada orçamento: 064-V7 58.294,51 · 065-V3 84.866,16 · 066 2.354,42 · 072 73.081,73 · 073 63.913,54. Bate exatamente com o esperado. Todos os itens têm `equipamento_id` e custo.
@@ -9,7 +9,7 @@ Custo atual × quantidade × 4%, última versão de cada orçamento: 064-V7 58.2
 | Base | venda (subtotal − desconto) | soma de quantidade × custo atual dos itens |
 | Desconto | reduzia a comissão | não altera |
 | Quem calcula | navegador | função no banco; o navegador só recebe a comissão pronta |
-| Em jogo | soma todos os abertos (São Francisco ≈ R$ 282 mil) | 1 por cliente, o de maior comissão (São Francisco = R$ 84.866,16 do 065-V3); os outros aparecem abaixo como "outras opções", sem somar |
+| Em jogo | soma de todos os abertos pela venda | soma de todos os abertos pelo custo, 1 por orçamento (última versão de cada número, como já é) |
 | Item sem custo | — | conta 0; admin/gerente vê "X itens sem custo" |
 
 Percentuais iguais: 4% padrão, 5% com a tag `cliente_antigo`, seminovo 2% desligado.
@@ -45,19 +45,18 @@ $$;
 revoke all on function public.fn_comissao_orcamentos() from public, anon;
 grant execute on function public.fn_comissao_orcamentos() to authenticated;
 ```
-(Confirmo na implementação as assinaturas de `fn_num_seguro`/`fn_uuid_seguro` e os status de "ganho" usados hoje pelo card.) Só devolve a comissão final por orçamento, nunca custo nem item a item. Teste antes em transação revertida com o Murilo (só os dele) e com um admin (todos).
+Obs.: `organizacoes.tags` é `text[]` (conferido no banco), não jsonb; por isso o teste correto é `'cliente_antigo' = any(org.tags)`, como acima. (Confirmo na implementação as assinaturas de `fn_num_seguro`/`fn_uuid_seguro` e os status de "ganho" usados hoje pelo card.) Só devolve a comissão final por orçamento, nunca custo nem item a item. Teste antes em transação revertida com o Murilo (só os dele) e com um admin (todos).
 
 ## Mudanças no app (sem SQL extra)
-- `src/lib/comissao.ts`: `resumoComissao` passa a receber a comissão pronta; nova regra pura de agrupamento por cliente (organização, senão nome normalizado): conta o maior, o resto vira `outrasOpcoes`. `ultimasVersoes` continua (064-V7 é a única versão do 064 considerada).
-- Testes novos em `comissao.test.ts` com os 5 valores da São Francisco: Em jogo = 84.866,16; 4 outras opções; 5% com tag; desconto não muda nada.
-- `ComissaoCard` e o cartão do menu chamam `rpc('fn_comissao_orcamentos')`; mostram "outras opções" abaixo do principal e "X itens sem custo" só para gestor. Fica um texto curto "comissão sobre o custo dos equipamentos".
+- `src/lib/comissao.ts`: `resumoComissao` passa a receber a comissão pronta; `ultimasVersoes` continua (064-V7 é a única versão do 064 considerada). Sem agrupamento por cliente.
+- Testes novos em `comissao.test.ts` com os 5 valores da São Francisco: Em jogo = 282.510,36 (soma dos 5); 5% com tag; desconto não muda nada.
+- `ComissaoCard` e o cartão do menu chamam `rpc('fn_comissao_orcamentos')`; mostram "X itens sem custo" só para gestor. Fica um texto curto "comissão sobre o custo dos equipamentos".
 
-## Congelar o custo na aprovação (só proposta, não fazer agora)
+## Congelar o custo na aprovação (fica para depois)
 Simples: coluna `orcamentos.comissao_congelada numeric` + trigger que grava o valor quando o status vira aprovado/ganho; a função usa `coalesce(comissao_congelada, cálculo atual)`. Já existe `fn_congelar_ao_aprovar` que pode receber isso. Custo de esforço: 1 coluna + ~10 linhas.
 
 ## Riscos
 - Custo atual muda ⇒ comissão dos abertos (e dos ganhos, até congelar) muda junto.
 - "Já garantido no ano" também fica pela base de custo atual até existir o congelamento.
-- Agrupar por cliente pode esconder um projeto realmente diferente do mesmo cliente (ele aparece como "outra opção", não some).
-- Clientes sem organização são agrupados por nome; grafias diferentes não se juntam.
+- Opções do mesmo cliente somam juntas no "Em jogo" (decisão do CEO).
 - A função é security definer: a regra de quem vê o quê passa a estar nela (testada nos dois papéis).
