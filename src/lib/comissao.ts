@@ -1,16 +1,46 @@
-// Card de comissão: regras fixas do CEO, sem penalidade. Base vem de fn_comissao_base (sem custo).
+// Card de comissão: regras fixas do CEO, sem penalidade. Dados vêm só de orçamentos (sem custo) + tag da organização.
 export type OrcamentoComissao = {
   id: string; numero: string; cliente: string | null; venda: number; status: string;
   atualizado_em: string; vendedor_id: string | null; vendedor_nome?: string | null;
-  recorrente: boolean; seminovo: boolean;
+  organizacao_id?: string | null; recorrente: boolean; seminovo?: boolean;
 };
+/** Linha crua de `orcamentos` (somente colunas de venda; nunca custo). */
+export type LinhaOrcamento = {
+  id: string; numero_orcamento: string | null; nome_cliente: string | null; subtotal: number | null;
+  desconto_tipo: string | null; desconto_valor: number | null; status: string | null; updated_at: string;
+  responsavel_id: string | null; organizacao_id: string | null;
+};
+
 export const TAXA = { novo: 0.04, recorrente: 0.05, seminovo: 0.02 } as const;
+/** Seminovo (2%) fica pronto no cálculo, desligado até existir onde marcar. */
+export const SEMINOVO_ATIVO = false;
+export const TAG_CLIENTE_ANTIGO = "cliente_antigo";
 const ABERTOS = new Set(["rascunho", "enviado"]);
 export const DIAS_EM_JOGO = 90;
 
-export const taxa = (o: Pick<OrcamentoComissao, "recorrente" | "seminovo">) =>
-  o.seminovo ? TAXA.seminovo : o.recorrente ? TAXA.recorrente : TAXA.novo;
-export const comissao = (o: OrcamentoComissao) => Math.round(Math.max(0, Number(o.venda) || 0) * taxa(o) * 100) / 100;
+export const clienteAntigo = (tags: string[] | null | undefined) => (tags ?? []).includes(TAG_CLIENTE_ANTIGO);
+/** Marca/desmarca "cliente antigo" preservando as demais tags. */
+export const alternarClienteAntigo = (tags: string[] | null | undefined, marcar: boolean) => {
+  const sem = (tags ?? []).filter(t => t !== TAG_CLIENTE_ANTIGO);
+  return marcar ? [...sem, TAG_CLIENTE_ANTIGO] : sem;
+};
+
+/** Venda = subtotal − desconto (sem frete e sem montagem). */
+export function vendaDe(l: Pick<LinhaOrcamento, "subtotal" | "desconto_tipo" | "desconto_valor">) {
+  const sub = Number(l.subtotal) || 0, d = Number(l.desconto_valor) || 0;
+  return Math.max(0, sub - (l.desconto_tipo === "valor" ? d : sub * d / 100));
+}
+
+export const paraComissao = (l: LinhaOrcamento, tags: string[] | null | undefined, vendedorNome?: string | null): OrcamentoComissao => ({
+  id: l.id, numero: l.numero_orcamento ?? l.id, cliente: l.nome_cliente, venda: vendaDe(l), status: l.status ?? "",
+  atualizado_em: l.updated_at, vendedor_id: l.responsavel_id, vendedor_nome: vendedorNome ?? null,
+  organizacao_id: l.organizacao_id, recorrente: clienteAntigo(tags), seminovo: false,
+});
+
+export const taxa = (o: Pick<OrcamentoComissao, "recorrente" | "seminovo">, seminovoAtivo = SEMINOVO_ATIVO) =>
+  seminovoAtivo && o.seminovo ? TAXA.seminovo : o.recorrente ? TAXA.recorrente : TAXA.novo;
+export const comissao = (o: OrcamentoComissao, seminovoAtivo = SEMINOVO_ATIVO) =>
+  Math.round(Math.max(0, Number(o.venda) || 0) * taxa(o, seminovoAtivo) * 100) / 100;
 export const numeroBase = (n: string) => n.replace(/-V\d+$/i, "");
 
 /** Só a versão mais recente de cada número de orçamento. */
@@ -33,6 +63,7 @@ export function resumoComissao(lista: OrcamentoComissao[], agora = new Date()) {
   return {
     emJogo: abertos.reduce((s, o) => s + o.ganha, 0),
     qtdAbertos: abertos.length,
+    abertos,
     top3: abertos.slice(0, 3),
     garantidoAno: ganhos.reduce((s, o) => s + comissao(o), 0),
     qtdGanhos: ganhos.length,

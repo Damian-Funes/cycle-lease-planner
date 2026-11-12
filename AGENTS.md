@@ -32,4 +32,4 @@
 - Religar manual only replaces calls due now (≤15 min); retorno/fechamento rows are reactivated instead of returned stale, and tools confirm a retorno only when the row is really `agendada` at the requested time.
 - Hotel paid by the company is a `rota_gastos` row with `pago_pela_empresa=true` and null value; trip conclusion requires finance to fill the value, so the night closes by voice without inventing costs.
 - Voicemail/no-answer on retorno/fechamento schedules one `retentativa_retorno` (+30 min, ≤22h) from the webhook via the pure `precisaNovaTentativa`; it is the only origin allowed as 4th automatic call. The "visited anyone else?" answer is a daily `rota_diario` entry read into `extras_confirmados` so `confirmar_extras` is asked once and never makes the cron dial.
-- Commission: pure `src/lib/comissao.ts` on cost-free `fn_comissao_base` rows.
+- Commission: pure `src/lib/comissao.ts`, sale-only columns; old client = org tag.
