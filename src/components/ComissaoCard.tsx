@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import type { AppRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { alternarClienteAntigo, clienteAntigo, paraComissao, porVendedor, resumoComissao, type LinhaOrcamento } from "@/lib/comissao";
 
@@ -15,19 +16,20 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 const COLUNAS = "id,numero_orcamento,nome_cliente,subtotal,desconto_tipo,desconto_valor,status,updated_at,responsavel_id,organizacao_id,organizacoes(id,tags,responsavel_id)";
 type Org = { id: string; tags: string[] | null; responsavel_id: string | null };
 
-export default function ComissaoCard() {
-  const { user, hasAnyRole } = useAuth();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
+export const permissoesComissao = (hasAnyRole: (r: AppRole[]) => boolean) => {
   const gestor = hasAnyRole(["admin", "gerente_comercial"]);
   const vendedor = hasAnyRole(["comercial", "rtv"]);
-  const [todos, setTodos] = useState(false);
-  const [salvando, setSalvando] = useState<string | null>(null);
-  const chave = ["comissao-card", user?.id, gestor];
+  return { gestor, vendedor, pode: gestor || vendedor };
+};
 
-  const { data } = useQuery({
+// Mesma consulta para o resumo do menu da Home e para a página /comissoes.
+export function useComissao() {
+  const { user, hasAnyRole } = useAuth();
+  const { gestor, pode } = permissoesComissao(hasAnyRole);
+  const chave = ["comissao-card", user?.id, gestor];
+  const query = useQuery({
     queryKey: chave,
-    enabled: !!user && (gestor || vendedor),
+    enabled: !!user && pode,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       let q = supabase.from("orcamentos").select(COLUNAS).in("status", ["rascunho", "enviado", "aprovado"]).limit(1000);
@@ -48,7 +50,19 @@ export default function ComissaoCard() {
       return { lista: linhas.map(l => paraComissao(l, l.organizacoes?.tags, l.responsavel_id ? nomes.get(l.responsavel_id) : null)), orgs };
     },
   });
-  if (!data || data.lista.length === 0) return null;
+  return { ...query, chave, gestor, pode };
+}
+
+export default function ComissaoCard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { data, chave, gestor, isLoading } = useComissao();
+  const [todos, setTodos] = useState(false);
+  const [salvando, setSalvando] = useState<string | null>(null);
+  if (isLoading) return <Card className="p-5 text-sm text-muted-foreground">Carregando comissões…</Card>;
+  if (data === null) return <Card className="p-5 text-sm text-muted-foreground">Não foi possível carregar as comissões agora.</Card>;
+  if (!data || data.lista.length === 0) return <Card className="p-5 text-sm text-muted-foreground">Nenhum orçamento aberto ou fechado no ano para calcular comissão.</Card>;
 
   const r = resumoComissao(data.lista);
   const vendedores = gestor ? porVendedor(data.lista).filter(v => v.emJogo > 0 || v.garantidoAno > 0) : [];
