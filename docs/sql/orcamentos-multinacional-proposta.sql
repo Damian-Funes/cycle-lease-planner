@@ -125,8 +125,8 @@ begin
   from orcamentos where id = o.id
   returning id into v_nova;
 
-  insert into atividades (titulo, data_vencimento, responsavel_id, organizacao_id, oportunidade_id)
-  values ('Cobrar retorno da ' || v_multi || ' sobre ' || v_base, _cobrar_em,
+  insert into atividades (tipo, titulo, data_atividade, responsavel_id, organizacao_id, oportunidade_id)
+  values ('tarefa', 'Cobrar retorno da ' || v_multi || ' sobre ' || v_base, _cobrar_em,
           coalesce(o.responsavel_id, auth.uid()), o.organizacao_id, o.oportunidade_id)
   returning id into v_ativ;
 
