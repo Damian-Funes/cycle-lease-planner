@@ -203,7 +203,7 @@ begin
     pipeline_id = coalesce(op.pipeline_anterior_id, (select id from pipelines where nome = 'Orçamentos')),
     etapa_id = coalesce(op.etapa_anterior_id, fn_etapa('Orçamentos','Negociação')),
     pipeline_anterior_id = null, etapa_anterior_id = null, multinacional_desde = null,
-    ultima_atividade_em = now()
+    status = 'aberta', data_fechamento_real = null, ultima_atividade_em = now()
   where id = _oportunidade_id;
 end $$;
 
