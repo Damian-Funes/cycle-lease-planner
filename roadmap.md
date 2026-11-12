@@ -94,3 +94,4 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Função no banco (teste revertido Murilo/admin, aplicar).
 - [x] Versões por número + cliente; avulsos sem custo.
 - [x] Card usando a função + testes.
+- [x] Corrigir trava de notificações que impedia concluir atividade (aplicado).
