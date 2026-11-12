@@ -9,11 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { AppRole } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { alternarClienteAntigo, clienteAntigo, paraComissao, porVendedor, resumoComissao, type LinhaOrcamento } from "@/lib/comissao";
+import { alternarClienteAntigo, clienteAntigo, paraComissao, porVendedor, resumoComissao, type LinhaComissao } from "@/lib/comissao";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-// Só colunas de venda: o card nunca lê custo.
-const COLUNAS = "id,numero_orcamento,nome_cliente,subtotal,desconto_tipo,desconto_valor,status,updated_at,responsavel_id,organizacao_id,organizacoes(id,tags,responsavel_id)";
 type Org = { id: string; tags: string[] | null; responsavel_id: string | null };
 
 export const permissoesComissao = (hasAnyRole: (r: AppRole[]) => boolean) => {
@@ -32,11 +30,10 @@ export function useComissao() {
     enabled: !!user && pode,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      let q = supabase.from("orcamentos").select(COLUNAS).in("status", ["rascunho", "enviado", "aprovado"]).limit(1000);
-      if (!gestor) q = q.eq("responsavel_id", user!.id);
-      const { data, error } = await q;
+      // A comissão vem pronta do banco (sobre o custo); o navegador nunca lê custo.
+      const { data, error } = await supabase.rpc("fn_comissao_orcamentos" as never);
       if (error) return null;
-      const linhas = (data ?? []) as unknown as (LinhaOrcamento & { organizacoes: Org | null })[];
+      const linhas = (data ?? []) as unknown as LinhaComissao[];
       const nomes = new Map<string, string>();
       if (gestor) {
         const ids = [...new Set(linhas.map(l => l.responsavel_id).filter(Boolean))] as string[];
@@ -46,8 +43,12 @@ export function useComissao() {
         }
       }
       const orgs = new Map<string, Org>();
-      for (const l of linhas) if (l.organizacoes) orgs.set(l.organizacoes.id, l.organizacoes);
-      return { lista: linhas.map(l => paraComissao(l, l.organizacoes?.tags, l.responsavel_id ? nomes.get(l.responsavel_id) : null)), orgs };
+      const orgIds = [...new Set(linhas.map(l => l.organizacao_id).filter(Boolean))] as string[];
+      for (let i = 0; i < orgIds.length; i += 200) {
+        const { data: os } = await supabase.from("organizacoes").select("id,tags,responsavel_id").in("id", orgIds.slice(i, i + 200));
+        for (const o of (os ?? []) as Org[]) orgs.set(o.id, o);
+      }
+      return { lista: linhas.map(l => paraComissao(l, l.responsavel_id ? nomes.get(l.responsavel_id) : null)), orgs };
     },
   });
   return { ...query, chave, gestor, pode };
@@ -119,6 +120,10 @@ export default function ComissaoCard() {
         </div>
       )}
 
+      {gestor && r.itensSemCusto > 0 && (
+        <p className="text-xs text-destructive">{r.itensSemCusto} {r.itensSemCusto === 1 ? "item sem custo" : "itens sem custo"} (contam R$ 0 na comissão)</p>
+      )}
+
       <div className="rounded-md bg-muted/50 p-3">
         <p className="text-sm text-muted-foreground">Já garantido em {new Date().getFullYear()}</p>
         <p className="text-lg font-semibold">{brl(r.garantidoAno)} <span className="text-sm font-normal text-muted-foreground">({r.qtdGanhos} fechado(s))</span></p>
@@ -135,7 +140,7 @@ export default function ComissaoCard() {
           ))}
         </div>
       )}
-      <p className="text-xs text-muted-foreground">Estimativa: 4% sobre a venda, 5% para cliente antigo. Paga só com pedido assinado.</p>
+      <p className="text-xs text-muted-foreground">Estimativa: 4% sobre o custo dos equipamentos, 5% para cliente antigo. Desconto não muda a comissão. Paga só com pedido assinado.</p>
     </Card>
   );
 }

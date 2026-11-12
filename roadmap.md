@@ -89,3 +89,8 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [ ] Segredo PUSHALERT_API_KEY (CEO cadastra).
 - [x] Júlia: hotel pago pela empresa + nova tentativa após caixa postal (aplicado 12/11)
 - [x] Card de comissão (sem SQL; cliente antigo via tag; seminovo desligado)
+
+# Comissão sobre custo
+- [x] Função no banco (teste revertido Murilo/admin, aplicar).
+- [x] Versões por número + cliente; avulsos sem custo.
+- [x] Card usando a função + testes.
