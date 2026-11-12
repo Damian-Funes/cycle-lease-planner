@@ -29,61 +29,50 @@ Prazo: antes das 17h (BRT). Hoje são 14h30 BRT.
 | Dossiê / cadência | `dossies_sementeiras`: 11 de 145 empresas, legado. Interações: 40. | Pouco confiável → "a confirmar na auditoria trimestral" |
 | Trava CRM | `fn_minha_trava_orcamento` (a mesma do Novo orçamento) | Reaproveitar |
 
-## 2. Regras como ficam no card
+## 2. Regras (versão simplificada do CEO)
 
-- **Máquina nova** (itens máquina + periférico + telemetria):
-  - Fixo: 0,5%, sempre.
-  - Preço: 1,5% com preço cheio · 1,2% com desconto até 1,5% · 0,8% com desconto até 3%. Acima de 3% ganha 0% e aparece o aviso "acima da política".
-  - Mix completo: 1,0% se o orçamento tem máquina, periférico e telemetria.
-  - Dossiê + cadência (0,7% + 0,3% = 1,0%): sempre aparece como **"a confirmar na auditoria trimestral"**. Entra no máximo possível, nunca no mínimo.
-  - Recorrente: os mesmos degraus, com teto de 4,5% no variável. A proposta é escalar proporcionalmente (×4,5/3,5). **Confirmar com o CEO** como os 1,0 p.p. extras se dividem.
-  - Atividade vencida: o variável zera e só o fixo 0,5% continua.
-- **Anuidade / manutenção / upgrade:** 1% fixo para o vendedor, por item.
-- **Orçamento misto:** cada item entra na sua regra (máquina ou serviço).
-- **Seminovo e SmartCycle:** ignorados.
+| Tipo | Máximo | Garantido (com atividade vencida) |
+|---|---|---|
+| Cliente novo | 4% da venda | 0,5% |
+| Cliente recorrente (já comprou) | 5% da venda | 0,5% |
+| Seminovo | 2% | 2% (sempre) |
+
+- A comissão só vale quando o orçamento vira ganho (status aprovado). Os abertos aparecem como potencial.
+- **Com atividade vencida:** novo e recorrente caem para 0,5%. O card mostra "resolva X atividades vencidas para não perder R$ Y". Y = máximo − garantido dos abertos.
+- **Deixam de existir:** escala de desconto, mix, dossiê, cadência, anuidade, manutenção e upgrade.
 
 ## 3. Como o card aparece (celular primeiro)
 
 ```text
 Sua comissão em jogo
-R$ 4.200 certos se fechar · até R$ 33.600
-(12 orçamentos ativos nos últimos 90 dias)
-
-Top 3
-Sementes X — R$ 840 mil — você ganha até R$ 36.900
-  - sem telemetria: -R$ 8.400
-  - desconto de 2%: -R$ 2.520
-  ...
+R$ 4.200 garantidos · até R$ 33.600
+Top 3: Sementes X — R$ 840 mil — você ganha até R$ 33.600
+Resolva 3 atividades vencidas para não perder R$ 29.400
 Já garantido em 2026: R$ 18.300 (3 fechados)
 ```
 
-- **Antes:** a tela inicial não mostra comissão.
-- **Depois:** o vendedor vê só os dele. O admin vê o total e a lista por vendedor.
-- **Com atividade vencida:** aparece a faixa "Atividades vencidas: variável zerado — resolva para voltar a ganhar até R$ X", com link para /atividades.
-- **Filtro do "em jogo":** só a última versão de cada orçamento, aberto e mexido nos últimos 90 dias. Hoje 96 versões abertas passaram desse prazo.
+- O vendedor vê só os dele. O admin vê o total e a lista por vendedor.
+- Conta só a última versão de cada orçamento, aberto e mexido nos últimos 90 dias.
+- A base é a venda (subtotal − desconto), sem frete e sem montagem. Nunca aparece custo.
 
 ## 4. Mudanças no banco (proposta em `docs/sql/comissao-card-proposta.sql`, aplicar só após OK do CEO)
 
-1. `equipamentos.tipo_comercial`: maquina | periferico | telemetria | anuidade | manutencao | upgrade | seminovo. Só o admin define. A tela do Catálogo ganha esse seletor.
-2. `organizacoes.cliente_desde` (date, só admin/gerente). Recorrente = tem `cliente_desde` anterior ao orçamento **ou** já teve orçamento aprovado antes.
-3. A função `fn_comissao_base()` (security definer) devolve, por orçamento, só o que a comissão usa:
-   - número, cliente, venda, preço cheio e desconto efetivo;
-   - tipos de item presentes e se o cliente é recorrente;
-   - status, data e vendedor.
-   - **Nunca devolve custo.** O vendedor recebe só os dele; o admin recebe todos.
+1. `organizacoes.cliente_desde` (date, só admin/gerente). Recorrente = preenchido antes do orçamento **ou** já tem orçamento aprovado anterior.
+2. `orcamentos.seminovo` (boolean, padrão false), marcado no orçamento. Hoje não existe nenhum dado de seminovo.
+3. A função `fn_comissao_base()` (security definer) devolve só número, cliente, venda, status, data, vendedor, recorrente e seminovo.
+   - **Nunca devolve custo.**
+   - O vendedor recebe só os dele; o admin recebe todos.
 
 ## 5. Riscos
 
-- **Custo visível hoje:** a regra atual de leitura de `equipamentos` deixa o papel comercial ler `valor_custo`. Isso contraria "custo só admin vê". Proponho tratar em item separado (exige ajuste nas telas que leem o catálogo).
-- **Mix completo inalcançável:** sem item de telemetria no catálogo, ninguém atinge o mix e o card mostraria "−1%" em todos os orçamentos. Proposta: enquanto não houver telemetria cadastrada, o mix fica como "a confirmar".
-- **Recorrente sub-contado:** o histórico do CRM é curto, então quase todo cliente sairia como "Novas" até o admin preencher `cliente_desde`.
-- **Números desanimadores:** mostrar primeiro o máximo possível e o que falta, nunca "você perdeu". A frase do zerado é sempre acompanhada do caminho para recuperar.
-- **Expectativa de pagamento:** o rodapé diz "Estimativa. Paga só com pedido assinado; dossiê e cadência confirmados na auditoria trimestral."
-- **Desconto acima de 3%** (7 orçamentos hoje): aparece como "fora da política" e não ganha a parte de preço.
+- **Recorrente sub-contado:** o histórico do CRM é curto, então quase todos sairiam como "novo" até o admin preencher `cliente_desde`.
+- **Custo visível hoje:** a leitura atual de `equipamentos` deixa o papel comercial ler `valor_custo`. Proponho tratar em um item separado.
+- **"Em jogo" inflado:** orçamentos velhos ou duplicados por versão inflariam o valor. O filtro de 90 dias e a regra da última versão resolvem.
+- **Expectativa de pagamento:** o rodapé diz "Estimativa; paga só com pedido assinado."
 
 ## Detalhes técnicos
 
-- As regras ficam em uma função pura `src/lib/comissao.ts`, com testes Vitest de um caso por regra: degraus de desconto, mix, gate, recorrente, serviço 1%, versões e filtro de 90 dias.
+- As regras ficam em uma função pura `src/lib/comissao.ts`, com testes Vitest de um caso por regra: 4%/5%/2%, gate 0,5%, seminovo sem gate, versões e filtro de 90 dias.
 - Os dados vêm da RPC `fn_comissao_base`. O componente `ComissaoCard` entra na Home acima dos widgets do CRM.
 - Antes da migração, o card fica escondido (checa se a RPC existe).
 - Uma regra nova em AGENTS.md: a comissão é calculada por função pura sobre dados sem custo vindos de RPC filtrada por vendedor.
