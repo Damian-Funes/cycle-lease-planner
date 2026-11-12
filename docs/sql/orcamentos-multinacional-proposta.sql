@@ -7,15 +7,16 @@
 begin;
 
 -- 1) Funil Multinacionais
-insert into public.pipelines (id, nome)
-select gen_random_uuid(), 'Multinacionais'
+insert into public.pipelines (nome, descricao, ordem, ativo)
+select 'Multinacionais', 'Orçamentos levados por multinacionais ao cliente final',
+       (select coalesce(max(ordem),0)+1 from public.pipelines), true
 where not exists (select 1 from public.pipelines where nome = 'Multinacionais');
 
-insert into public.etapas_pipeline (pipeline_id, nome, ordem)
-select p.id, e.nome, e.ordem
+insert into public.etapas_pipeline (pipeline_id, nome, ordem, e_final, e_ganho)
+select p.id, e.nome, e.ordem, e.fim, e.ganho
 from public.pipelines p
-cross join (values ('Enviado à multinacional',1),('Multinacional negociando',2),
-                   ('Cliente final definido',3),('Ganho',4),('Perdido',5)) e(nome,ordem)
+cross join (values ('Enviado à multinacional',1,false,false),('Multinacional negociando',2,false,false),
+                   ('Cliente final definido',3,false,false),('Ganho',4,true,true),('Perdido',5,true,false)) e(nome,ordem,fim,ganho)
 where p.nome = 'Multinacionais'
   and not exists (select 1 from public.etapas_pipeline x where x.pipeline_id = p.id and x.nome = e.nome);
 
@@ -180,7 +181,10 @@ begin
       when exists (select 1 from orcamento_envios where oportunidade_id = e.oportunidade_id
                    and situacao = 'negociando') then 'Multinacional negociando'
       else 'Enviado à multinacional' end;
-    update oportunidades set etapa_id = fn_etapa('Multinacionais', v_etapa), ultima_atividade_em = now()
+    update oportunidades set etapa_id = fn_etapa('Multinacionais', v_etapa), ultima_atividade_em = now(),
+      status = case v_etapa when 'Ganho' then 'ganha' when 'Perdido' then 'perdida' else 'aberta' end,
+      data_fechamento_real = case when v_etapa in ('Ganho','Perdido') then current_date else null end,
+      motivo_perda = case when v_etapa = 'Perdido' then coalesce(_motivo, 'Multinacionais não fecharam') else motivo_perda end
     where id = e.oportunidade_id
       and pipeline_id = (select id from pipelines where nome = 'Multinacionais');
   end if;
