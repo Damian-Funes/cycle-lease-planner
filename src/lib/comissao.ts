@@ -84,3 +84,45 @@ export function porVendedor(lista: OrcamentoComissao[], agora = new Date()) {
   return [...g.entries()].map(([id, l]) => ({ id, nome: l[0].vendedor_nome ?? "Sem responsável", ...resumoComissao(l, agora) }))
     .sort((a, b) => b.emJogo - a.emJogo);
 }
+
+// ---- Filtros da página /comissoes ----
+export type FiltroComissao = { busca: string; status: "abertos" | "ganhos" | "todos"; vendedor: string; periodo: "90d" | "ano" | "tudo" };
+export const FILTRO_PADRAO: FiltroComissao = { busca: "", status: "abertos", vendedor: "todos", periodo: "90d" };
+export function lerFiltro(raw: string | null | undefined): FiltroComissao {
+  try {
+    const v = JSON.parse(raw ?? "null") ?? {};
+    return {
+      busca: typeof v.busca === "string" ? v.busca : "",
+      status: ["abertos", "ganhos", "todos"].includes(v.status) ? v.status : FILTRO_PADRAO.status,
+      vendedor: typeof v.vendedor === "string" && v.vendedor ? v.vendedor : "todos",
+      periodo: ["90d", "ano", "tudo"].includes(v.periodo) ? v.periodo : FILTRO_PADRAO.periodo,
+    };
+  } catch { return { ...FILTRO_PADRAO }; }
+}
+
+/** Aplica o filtro sobre as últimas versões; totais (em jogo / garantido) refletem o filtro. */
+export function resumoFiltrado(lista: OrcamentoComissao[], f: FiltroComissao, agora = new Date()) {
+  const busca = normalizar(f.busca);
+  const limite = new Date(agora.getTime() - DIAS_EM_JOGO * 86400000).toISOString();
+  const ano = String(agora.getFullYear());
+  const base = ultimasVersoes(lista).filter(o =>
+    (!busca || normalizar(o.cliente).includes(busca) || normalizar(o.numero).includes(busca)) &&
+    (f.vendedor === "todos" || (o.vendedor_id ?? "—") === f.vendedor) &&
+    (f.periodo === "tudo" || (f.periodo === "ano" ? o.atualizado_em.slice(0, 4) === ano : o.atualizado_em >= limite)));
+  const comGanho = (l: OrcamentoComissao[]) => l.map(o => ({ ...o, ganha: comissao(o) })).sort((a, b) => b.ganha - a.ganha);
+  const abertos = f.status === "ganhos" ? [] : comGanho(base.filter(o => ABERTOS.has(o.status)));
+  const ganhos = f.status === "abertos" ? [] : comGanho(base.filter(o => o.status === "aprovado"));
+  const g = new Map<string, { id: string; nome: string; emJogo: number; garantido: number }>();
+  for (const o of [...abertos, ...ganhos]) {
+    const k = o.vendedor_id ?? "—";
+    const v = g.get(k) ?? { id: k, nome: o.vendedor_nome || "Sem responsável", emJogo: 0, garantido: 0 };
+    if (o.status === "aprovado") v.garantido += o.ganha; else v.emJogo += o.ganha;
+    g.set(k, v);
+  }
+  return {
+    emJogo: abertos.reduce((s, o) => s + o.ganha, 0), garantido: ganhos.reduce((s, o) => s + o.ganha, 0),
+    abertos, ganhos, linhas: [...abertos, ...ganhos].sort((a, b) => b.ganha - a.ganha),
+    porVendedor: [...g.values()].sort((a, b) => b.emJogo + b.garantido - a.emJogo - a.garantido),
+    itensSemCusto: [...abertos, ...ganhos].reduce((s, o) => s + (o.itens_sem_custo ?? 0), 0),
+  };
+}
