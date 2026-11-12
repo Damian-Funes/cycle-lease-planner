@@ -41,7 +41,7 @@ export default function ComissaoCard() {
         <div className="space-y-2">
           <p className="text-sm font-medium">Feche estes primeiro</p>
           {r.top3.map(o => (
-            <button key={o.id} onClick={() => navigate(`/orcamento?id=${o.id}`)} className="w-full text-left rounded-md border p-3 hover:bg-muted/50">
+            <button key={o.id} onClick={() => navigate(`/orcamento?load=${o.id}`)} className="w-full text-left rounded-md border p-3 hover:bg-muted/50">
               <p className="font-medium truncate">{o.cliente || o.numero}</p>
               <p className="text-sm text-muted-foreground">{brl(o.venda)} · {gestor && o.vendedor_nome ? `${o.vendedor_nome} ganha` : "você ganha"} <span className="font-semibold text-primary">{brl(o.ganha)}</span></p>
             </button>
