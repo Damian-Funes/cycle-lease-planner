@@ -5702,6 +5702,22 @@ export type Database = {
         Args: { _nome: string; _org: string }
         Returns: Record<string, unknown>
       }
+      fn_comissao_orcamentos: {
+        Args: never
+        Returns: {
+          cliente_antigo: boolean
+          comissao: number
+          itens_sem_custo: number
+          nome_cliente: string
+          numero_orcamento: string
+          orcamento_id: string
+          organizacao_id: string
+          responsavel_id: string
+          status: string
+          updated_at: string
+          venda: number
+        }[]
+      }
       fn_conversas_para_perfil: {
         Args: { p_min_mensagens?: number }
         Returns: {
