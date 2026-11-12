@@ -1,47 +1,56 @@
-# Orçamentos com multinacionais (BASF, Syngenta, CTVA…)
+# Orçamentos com multinacionais — várias por negócio
 
-## O que encontrei hoje
-- Funis: `pipelines` (Orçamentos, Reforma, SmartCycle) + `etapas_pipeline`; negócio = `oportunidades` (pipeline_id, etapa_id, status, ultima_atividade_em, responsavel_id); histórico em `historico_oportunidade`.
-- Orçamento tem UM cliente só: `organizacao_id` + `nome_cliente` (e endereço/CNPJ copiados). O PDF imprime `CLIENTE: <nome_cliente>`.
-- Multinacionais já identificáveis por `organizacoes.segmento='MULTINACIONAIS'` (BASF x2, Syngenta x2, CTVA, LongPing, Biotrigo, Incotec).
-- **142 orçamentos abertos (42 negócios) estão gravados com a multinacional como cliente** — o cliente final não está registrado em lugar nenhum. Ex.: ORC2026-059 V1–V4/V6/V7 = BASF, V5 = CTVA (outro negócio), V8 = Priori.
+## O que existe hoje
+- Funis: `pipelines` (Orçamentos, Reforma, SmartCycle) + `etapas_pipeline`; negócio = `oportunidades` (pipeline, etapa, status, ultima_atividade_em); histórico em `historico_oportunidade`.
+- Orçamento tem 1 cliente: `organizacao_id` + `nome_cliente` copiado; o PDF imprime `CLIENTE: <nome_cliente>`.
+- Multinacionais: `organizacoes.segmento='MULTINACIONAIS'` (BASF x2, Syngenta x2, CTVA, LongPing, Biotrigo, Incotec).
+- 142 orçamentos abertos (42 negócios) estão com a multinacional como cliente; o cliente final não está em lugar nenhum. ORC2026-059: BASF (V1–V4, V6, V7, negócio A), CTVA (V5, negócio B), Priori (V8, negócio A).
+
+## Modelo novo
+```text
+Negócio (cliente final) ── Orçamento ORC-059 (organizacao_id = cliente final)
+                          └─ Envios
+                              ├─ BASF  · versão V7 · enviado 01/10 · cobrar 30/11 · negociando
+                              └─ CTVA  · versão V5 · enviado 15/10 · cobrar 14/12 · enviado
+```
+- O orçamento e o negócio passam a ser SEMPRE do cliente final (`organizacao_id`).
+- Cada envio = uma multinacional + a versão/PDF endereçado a ela + data de envio + data para cobrar + situação (enviado / negociando / venceu / perdeu).
 
 ## Antes → depois
 | | Antes | Depois |
 |---|---|---|
-| Orçamento | 1 cliente | "Enviado para" (= `organizacao_id`, como hoje) + "Cliente final" (novo `cliente_final_id`; vazio = igual ao enviado para) |
-| PDF | CLIENTE: BASF | "À BASF Agricultural Solutions — Projeto: Sementes São Francisco, Rio Verde/GO" (sem cliente final, igual hoje) |
-| Negócio | fica em "Orçamento Enviado"/Negociação | Botão "Passar para multinacional" → funil "Multinacionais" + atividade de cobrança |
-| Comissão | taxa pelo cliente do orçamento | taxa/"cliente antigo" pelo cliente final (fallback: enviado para); card mostra "via BASF" |
-| Admin | — | Lista "Parados com multinacionais" por dias, do mais parado |
+| Para quem vai | 1 cliente | Cliente final + lista de envios (0..N multinacionais) |
+| PDF | CLIENTE: BASF | PDF do envio: "À BASF Agricultural Solutions — Projeto: Sementes São Francisco, Rio Verde/GO"; PDF direto igual hoje |
+| Botão | — | "Enviar para multinacional" (repetível) e "Voltar para negociação direta" — vendedor e admin |
+| Funil | Orçamentos | Negócio com envio ativo vai para "Multinacionais", aparece 1 vez com "via BASF, CTVA" |
+| Comissão | soma por versão | 1 vez por cliente final + número; card mostra "via BASF, CTVA" |
+| Ganho | — | 1 envio "venceu" → negócio ganho, demais envios viram "perdeu" automaticamente |
+| CEO | — | Parados por negócio e, abrindo, por multinacional (dias desde envio / última movimentação) |
 
-Escolha: manter `organizacao_id` como "Enviado para" para não quebrar PDF, buscas, Júlia, permissões e as 142 linhas existentes; só acrescenta o cliente final.
+## Fluxos
+- **Enviar para multinacional**: escolhe a multinacional (sugere segmento MULTINACIONAIS), data de cobrança (+60 dias). Cria nova versão do mesmo número (mesmo cliente final, itens iguais), o registro de envio apontando para ela, atividade "Cobrar retorno da <multi> sobre <orçamento>" e, no 1º envio, move o negócio para "Enviado à multinacional" (guarda funil/etapa anteriores). Mesma multinacional já com envio aberto: recusa (evita duplicata).
+- **Mudar situação do envio**: negociando / venceu / perdeu. Venceu → demais envios "perdeu", negócio vai para Ganho.
+- **Voltar para negociação direta**: fecha os envios abertos como "perdeu" (motivo "voltou para direto"), negócio volta ao funil/etapa anterior (sem anterior: Orçamentos › Negociação).
+- Funil "Multinacionais": Enviado à multinacional → Multinacional negociando → Cliente final definido → Ganho → Perdido. A etapa acompanha o envio mais avançado.
 
-## Botões (vendedor e admin)
-- **Passar para multinacional**: escolhe a multinacional (sugere segmento MULTINACIONAIS primeiro, busca em todas), cliente final (pré-preenchido com o cliente atual) e data de cobrança (+60 dias). Cria nova versão do mesmo número (Vn+1) com enviado para = multinacional e cliente final mantido; move o negócio para "Enviado à multinacional"; cria atividade "Cobrar retorno da <multi> sobre <orçamento>".
-- **Voltar para negociação direta**: nova versão com enviado para = cliente final; negócio volta ao funil/etapa de antes (guardados no negócio; se não houver, Orçamentos › Negociação).
-- Funil novo "Multinacionais": Enviado à multinacional → Multinacional negociando → Cliente final definido → Ganho → Perdido.
-
-## Casos existentes (sem quebrar nada)
-- Nada é alterado automaticamente: as 142 linhas continuam válidas (cliente final vazio = vale o enviado para, comissão igual a hoje).
-- Admin ganha a fila "Orçamentos enviados a multinacional sem cliente final" agrupada por negócio, para escolher o cliente final uma vez (grava em todas as versões abertas do negócio) e opcionalmente mover para o funil novo.
-- ORC2026-059: BASF (V1–V7 exceto V5) e CTVA (V5) entram nessa fila; V8 Priori não é multinacional e fica como está. A regra de "última versão por número + organização" da comissão continua, agora usando o cliente final quando existir.
-
-## Visão do CEO
-Em /comissoes (admin) ou no CRM: tabela "Multinacionais paradas" — negócio, vendedor, multinacional, cliente final, dias desde a entrada no funil e dias desde a última movimentação, ordenada do mais parado, com atalho para o negócio.
+## Casos existentes (142)
+- Nada muda sozinho. Admin ganha a fila "Enviados a multinacional sem cliente final", por negócio: escolhe o cliente final uma vez → o orçamento passa a ser do cliente final e cada multinacional que aparece nas versões vira um envio (apontando para a última versão dela), situação "enviado".
+- 059: se BASF e CTVA disputam a mesma sementeira, o admin escolhe o mesmo cliente final nos dois negócios e eles podem ser unidos (o negócio B vira envio CTVA do negócio A; B fica arquivado, não apagado). V8 Priori: se Priori é o cliente final, vira o cliente final do negócio A.
+- Enquanto não tratados, comissão e telas seguem como hoje.
 
 ## SQL proposto (docs/sql/orcamentos-multinacional-proposta.sql — só após OK do CEO)
-- `orcamentos.cliente_final_id uuid null references organizacoes(id)`.
-- `oportunidades`: `multinacional_id`, `multinacional_desde timestamptz`, `pipeline_anterior_id`, `etapa_anterior_id`.
-- INSERT do pipeline "Multinacionais" + 5 etapas.
-- `fn_passar_multinacional(orcamento_id, multinacional_id, cliente_final_id, cobrar_em)` e `fn_voltar_negociacao_direta(orcamento_id)` (security invoker, respeitam RLS atual; transação única: versão + negócio + atividade + histórico).
-- `fn_comissao_orcamentos`: taxa e cliente antigo via `coalesce(cliente_final_id, organizacao_id)` e agrupamento pela mesma chave; devolve também `enviado_para_nome`.
-- View `vw_multinacionais_paradas` (security_invoker) com os dias.
-- Testado antes em BEGIN…ROLLBACK com o 059 e São Francisco.
+- Tabela `orcamento_envios`: id, oportunidade_id, orcamento_id (versão enviada), numero_base, multinacional_id, enviado_em, cobrar_em, situacao (enviado|negociando|venceu|perdeu, validada por trigger), motivo, atividade_id, criado_por, created_at, updated_at; índice único parcial (oportunidade_id, multinacional_id) onde situação aberta. GRANT authenticated/service_role, RLS espelhando quem pode ver/editar o orçamento.
+- `oportunidades`: `pipeline_anterior_id`, `etapa_anterior_id`, `multinacional_desde`.
+- Pipeline "Multinacionais" + 5 etapas.
+- Funções transacionais: `fn_enviar_multinacional`, `fn_envio_situacao` (venceu fecha os outros), `fn_voltar_negociacao_direta`, `fn_definir_cliente_final` (fila dos legados, só admin/gerente).
+- `fn_comissao_orcamentos`: ignora a versão de envio na contagem (mesmo número + cliente final = 1 linha) e devolve `via` (nomes das multinacionais com envio aberto).
+- View `vw_multinacionais_paradas` (security_invoker): por negócio e por envio, dias desde envio e desde última movimentação.
+- Testes em BEGIN…ROLLBACK com 059 e São Francisco: 2 envios no mesmo negócio, comissão 1 vez, venceu fecha o outro, voltar para direto.
 
 ## Riscos
-- Versão nova por troca de destinatário aumenta o número de versões (é o pedido do CEO).
-- RLS: vendedor só cria versão/move negócio se já pode hoje; se o negócio for de outro, o botão falha (mostrar aviso).
-- Escolher o cliente final errado nos legados muda a taxa (4%/5%) daquele orçamento.
-- Pipeline novo aparece nos filtros/telas de funil já existentes; checar que relatórios por pipeline não somem com esses negócios.
-- Júlia e PDF antigos continuam lendo `organizacao_id` = enviado para (comportamento atual).
+- Mudar `organizacao_id` dos legados para o cliente final muda quem "vê" o orçamento por organização e a taxa (4%/5%); feito só pela fila, com confirmação.
+- Unir negócios (059 A/B) mexe em atividades/histórico de B; proposta: mover só os envios e arquivar B.
+- Versões extras por envio aumentam a lista de versões.
+- Vendedor só envia/move o que já pode editar hoje (RLS atual); se não puder, aviso na tela.
+- Relatórios por funil passam a ver esses negócios no funil novo.
+- Júlia continua lendo `organizacao_id` (agora o cliente final) — é o comportamento desejado, mas muda o que ela fala nos legados tratados.
