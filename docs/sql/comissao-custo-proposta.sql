@@ -1,3 +1,4 @@
+-- APLICADA em 12/11/2026.
 -- Comissão sobre o CUSTO (aprovada pelo CEO em 12/11/2026).
 -- Devolve por orçamento só a comissão pronta (nunca custo nem item a item).
 -- Vendedor: só os dele. Admin/gerente_comercial: todos.
