@@ -32,4 +32,4 @@
 - Manual redial replaces only calls due ≤15 min; retorno/fechamento rows are reactivated, and a retorno is confirmed only if really `agendada` at that time.
 - Hotel paid by the company is a `rota_gastos` row with `pago_pela_empresa=true` and null value; trip conclusion requires finance to fill the value, so the night closes by voice without inventing costs.
 - Voicemail/no-answer on retorno/fechamento schedules one `retentativa_retorno` (+30 min, ≤22h) from the webhook via the pure `precisaNovaTentativa`; it is the only origin allowed as 4th automatic call. The "visited anyone else?" answer is a daily `rota_diario` entry read into `extras_confirmados` so `confirmar_extras` is asked once and never makes the cron dial.
-- Commission: SQL `fn_comissao_orcamentos` returns final amount (never cost); `src/lib/comissao.ts` pure rules, latest version per base number + org (or name+owner).
+- Commission: SQL `fn_comissao_orcamentos` returns amount, never cost; pure rules in `src/lib/comissao.ts`, latest version per number+org.
