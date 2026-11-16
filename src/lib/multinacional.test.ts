@@ -33,3 +33,22 @@ describe("multinacionais", () => {
     expect(g[1].envios.map(e => e.envio_id)).toEqual(["a", "b"]);
   });
 });
+
+import { clienteADefinir, deveSugerirClienteFinal, mensagemErroEnvio } from "./multinacional";
+describe("cliente final a definir", () => {
+  it("negócio em nome de multinacional fica a definir", () => {
+    expect(clienteADefinir("MULTINACIONAIS")).toBe(true);
+    expect(clienteADefinir("SEMENTEIRA")).toBe(false);
+    expect(clienteADefinir(null)).toBe(false);
+  });
+  it("sugere cliente final na etapa própria ou quando um envio vence", () => {
+    expect(deveSugerirClienteFinal(true, "Cliente final definido", [])).toBe(true);
+    expect(deveSugerirClienteFinal(true, "Enviado à multinacional", ["perdeu", "venceu"])).toBe(true);
+    expect(deveSugerirClienteFinal(true, "Enviado à multinacional", ["enviado"])).toBe(false);
+    expect(deveSugerirClienteFinal(false, "Cliente final definido", ["venceu"])).toBe(false);
+  });
+  it("troca erro técnico por mensagem amigável", () => {
+    expect(mensagemErroEnvio("Já existe envio aberto para CTVA PROTEÇÃO DE CULTIVOS LTDA")).toContain("aguardando retorno");
+    expect(mensagemErroEnvio("A multinacional não pode ser o próprio cliente final")).not.toContain("próprio cliente final");
+  });
+});
