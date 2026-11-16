@@ -1,83 +1,64 @@
-# Enviar para multinacional quando o orçamento está em nome dela (caso ORC2026-056)
+# Cliente final opcional ("a definir") nos envios para multinacionais
 
 ## Antes / depois
 | Antes | Depois |
 |---|---|
-| Negócio em nome da CTVA → "Enviar para CTVA" dá erro técnico e trava | O diálogo pede primeiro o "Cliente final (quem vai usar a máquina)" e faz tudo numa ação |
-| Só admin/gerente define o cliente final (pela fila) | Também o vendedor responsável pelo negócio; admin continua em qualquer um |
-| Mensagens técnicas do banco | Mensagens amigáveis em português |
+| ORC2026-056 (em nome da CTVA) → enviar para CTVA dá erro e trava | Envia normalmente; o negócio fica com "Cliente final: a definir" e vai para o funil Multinacionais |
+| Cliente final obrigatório para tratar legado | Opcional: só é pedido quando aparece (etapa "Cliente final definido" ou envio "venceu") |
+| Só admin/gerente define o cliente final | Também o vendedor responsável pelo negócio |
+| Comissão de negócio em nome de multinacional podia usar as etiquetas dela | A definir = 4%; definido = regra de cliente antigo do cliente final |
+| Fila "Sem cliente final" com botão de ação | Só lista de consulta |
 
-## Diálogo "Enviar para multinacional" (negócio em nome de multinacional)
-1. Texto de ajuda: "Este orçamento está em nome da CTVA. Informe para qual cliente final é o projeto. Se a própria CTVA é quem vai comprar e usar a máquina, feche este diálogo — não é envio para multinacional." (nome da multinacional dinâmico).
-2. Campo obrigatório "Cliente final (quem vai usar a máquina)": busca só empresas não multinacionais + "+ cadastrar nova" (nome, cidade, UF). A nova empresa é cadastrada pela regra normal (admin fica sem responsável, como sempre).
-3. Depois: multinacional (pré-selecionada com a do orçamento), versão e data de cobrança (+60).
-4. "Enviar" chama uma única função no banco. Negócios normais continuam com o diálogo atual, sem mudança.
+## Como fica
+- **"A definir"** = o orçamento continua em nome de uma multinacional. Nada novo para guardar; o `organizacao_id` não é trocado no envio.
+- **Enviar para multinacional**: sem campo de cliente final. Funciona para a própria multinacional do orçamento (056 → CTVA gera a V4 enviada à CTVA, tarefa de cobrança, funil Multinacionais) e para outras.
+- **Definir cliente final** (botão no bloco Multinacionais do negócio, sempre visível enquanto "a definir"): busca empresas não multinacionais ou "+ cadastrar nova" (nome, cidade, UF). Quando o negócio entra em "Cliente final definido" ou um envio é marcado "venceu", o diálogo abre sozinho como sugestão (pode fechar com "Depois").
+- Ao definir: as versões em nome das multinacionais passam ao cliente final, cada multinacional vira envio (se ainda não for), e a etapa atual do funil **não** é alterada.
+- **Mostrar** "Cliente final: a definir" no bloco do negócio, no cartão do funil e nas linhas de Comissões.
+- **Fila**: aba "Sem cliente final" lista os negócios a definir (com link para o negócio), sem botão de ação.
 
-## O que acontece ao enviar
-- Todas as versões do negócio em nome de multinacionais passam para o cliente final (mesma lógica de hoje da fila).
-- Cada multinacional antiga vira um envio (como já faz a fila).
-- Se a multinacional escolhida é a mesma do orçamento (056 → CTVA): não cria versão nova (o PDF já foi para ela); só grava a data de cobrança nesse envio e cria a tarefa "Cobrar retorno da CTVA sobre ORC2026-056".
-- Se for outra (ex.: BASF): cria a nova versão e o envio normal, como hoje.
-- Negócio vai para Multinacionais › Enviado à multinacional. Comissão segue o cliente final.
-
-## Mensagens amigáveis
-- Sem cliente final: "Informe o cliente final (quem vai usar a máquina)."
-- Já enviado: "Este orçamento já está com a <multi> aguardando retorno."
-- Sem permissão: "Só o vendedor responsável por este negócio ou um admin pode fazer isso."
-- Cliente final inválido: "Escolha uma empresa que não seja multinacional."
-- Outros erros: "Não foi possível enviar agora. Tente de novo." (detalhe técnico só no console).
-
-## Teste (transação revertida, depois do OK)
-ORC2026-056 (responsável é admin): cliente final de teste + CTVA → versões movidas, 1 envio CTVA com data e tarefa, sem versão nova; repetir com BASF → nova versão; vendedor não responsável recusado; vendedor responsável aceito (simulado). Nada fica gravado.
-
-## SQL proposto (docs/sql/multinacional-cliente-final-vendedor.sql, aplicar só após OK)
+## SQL proposto (docs/sql/multinacional-cliente-final-opcional.sql — só após OK do CEO)
 ```sql
--- 1) Permissão: admin, gerente ou responsável pelo negócio
-create or replace function public.fn_definir_cliente_final(_oportunidade_id uuid, _cliente_final_id uuid)
-returns integer ... -- corpo igual ao atual, trocando a checagem por:
-  if not (has_role(auth.uid(),'admin') or has_role(auth.uid(),'gerente_comercial')
-          or exists (select 1 from oportunidades where id = _oportunidade_id and responsavel_id = auth.uid())) then
-    raise exception 'SEM_PERMISSAO';
-  end if;
-  -- e 'Cliente final inválido' passa a 'CLIENTE_FINAL_INVALIDO'
+-- 1) Envio não exige cliente final: remove a trava "própria multinacional"
+create or replace function public.fn_enviar_multinacional(_orcamento_id uuid, _multinacional_id uuid,
+  _cobrar_em date default current_date + 60) returns uuid ...
+  -- corpo atual, SEM o bloco:
+  --   if _multinacional_id = o.organizacao_id then raise exception 'A multinacional não pode ser o próprio cliente final';
+  -- (a versão nova mantém o organizacao_id atual: cliente final ou a própria multinacional = "a definir")
 
--- 2) Ação única
-create or replace function public.fn_enviar_multinacional_com_cliente_final(
-  _orcamento_id uuid, _cliente_final_id uuid, _multinacional_id uuid, _cobrar_em date default current_date + 60)
-returns uuid language plpgsql security invoker set search_path = public as $$
-declare o orcamentos%rowtype; v_env orcamento_envios%rowtype; v_multi text; v_ativ uuid;
-begin
-  select * into o from orcamentos where id = _orcamento_id;
-  if not found or o.oportunidade_id is null then raise exception 'SEM_NEGOCIO'; end if;
-  perform fn_definir_cliente_final(o.oportunidade_id, _cliente_final_id);
-  select * into v_env from orcamento_envios
-   where oportunidade_id = o.oportunidade_id and multinacional_id = _multinacional_id
-     and situacao in ('enviado','negociando');
-  if found then                      -- mesma multinacional do legado: sem versão nova
-    select nome into v_multi from fn_multinacionais() where id = _multinacional_id;
-    insert into atividades (tipo, tipo_id, titulo, descricao, data_atividade, data_inicio,
-      responsavel_id, organizacao_id, oportunidade_id, concluida, evento_automatico)
-    values ('tarefa', (select id from tipos_atividade where nome='Tarefa' limit 1),
-      'Cobrar retorno da '||v_multi||' sobre '||v_env.numero_base, 'Orçamento enviado à '||v_multi,
-      (_cobrar_em + time '09:00') at time zone 'America/Sao_Paulo',
-      (_cobrar_em + time '09:00') at time zone 'America/Sao_Paulo',
-      coalesce(o.responsavel_id, auth.uid()), _cliente_final_id, o.oportunidade_id, false, false)
-    returning id into v_ativ;
-    update orcamento_envios set cobrar_em = _cobrar_em, atividade_id = v_ativ where id = v_env.id;
-    return v_env.id;
+-- 2) Definir cliente final: vendedor responsável também; não mexe na etapa se já está no funil
+create or replace function public.fn_definir_cliente_final(_oportunidade_id uuid, _cliente_final_id uuid) ...
+  if not (has_role(auth.uid(),'admin') or has_role(auth.uid(),'gerente_comercial')
+          or exists (select 1 from oportunidades where id=_oportunidade_id and responsavel_id=auth.uid())) then
+    raise exception 'Só o vendedor responsável pelo negócio ou um admin pode definir o cliente final';
   end if;
-  return fn_enviar_multinacional(_orcamento_id, _multinacional_id, _cobrar_em);
-end $$;
-revoke all on function public.fn_enviar_multinacional_com_cliente_final(uuid,uuid,uuid,date) from public, anon;
-grant execute on function public.fn_enviar_multinacional_com_cliente_final(uuid,uuid,uuid,date) to authenticated;
+  -- (resto igual) ... e no update de oportunidades:
+  update oportunidades set organizacao_id = _cliente_final_id,
+    pipeline_anterior_id = case when pipeline_id = v_pipe_multi then pipeline_anterior_id else pipeline_id end,
+    etapa_anterior_id    = case when pipeline_id = v_pipe_multi then etapa_anterior_id    else etapa_id end,
+    etapa_id    = case when pipeline_id = v_pipe_multi then etapa_id else fn_etapa('Multinacionais','Enviado à multinacional') end,
+    pipeline_id = v_pipe_multi,
+    multinacional_desde = coalesce(multinacional_desde, now())
+  where id = _oportunidade_id;
+
+-- 3) Comissão: a definir = 4%; nova coluna cliente_a_definir (drop + create, mesmas permissões)
+drop function public.fn_comissao_orcamentos();
+create function public.fn_comissao_orcamentos() returns table(..., cliente_a_definir boolean) ...
+  -- cliente_antigo só vale se coalesce(org.segmento,'') <> 'MULTINACIONAIS'
+  -- cliente_a_definir = coalesce(org.segmento,'') = 'MULTINACIONAIS'
+revoke all on function public.fn_comissao_orcamentos() from public, anon;
+grant execute on function public.fn_comissao_orcamentos() to authenticated;
 ```
-O erro "A multinacional não pode ser o próprio cliente final" continua no banco como proteção; a tela passa a evitá-lo.
+
+## Teste (transação revertida, nada gravado)
+ORC2026-056: enviar V3 → CTVA sem erro; V4 criada em nome da CTVA; envio aberto; tarefa; negócio em Multinacionais › Enviado; comissão 4% e "a definir". Repetir CTVA → "já existe envio aberto". Etapa → "Cliente final definido", definir cliente final de teste como vendedor responsável (simulado) → versões passam ao cliente, etapa continua "Cliente final definido", comissão passa a seguir as etiquetas dele; vendedor não responsável é recusado.
 
 ## Riscos
-- Vendedor responsável agora pode mover TODAS as versões do negócio para o cliente final — é o mesmo que ele já pode ao editar o negócio.
-- A busca de empresas segue a visibilidade por estado: se o cliente final for de outro estado e o vendedor não o vê, ele cadastra outro (duplicata). Mitigação: aviso "verifique se já existe" ao cadastrar.
-- Execução da função de definir passa a aceitar vendedor; testado que vendedor de outro negócio é recusado.
+- Negócios "a definir" ficam no nome da multinacional: a visibilidade por estado continua a da multinacional (vendedor só vê se for o responsável — regra atual).
+- Mudar o retorno da função de comissão exige recriá-la; o app já publicado lê só colunas antigas, então não quebra.
+- Vendedor responsável passa a poder mover as versões para o cliente final (mesmo poder que já tem de editar o negócio).
 
 ## Detalhes técnicos
-- `EnviosMultinacional.tsx`: detectar segmento MULTINACIONAIS da organização do negócio; novo bloco de cliente final (busca + cadastro inline); mapear códigos de erro em `src/lib/multinacional.ts` (`mensagemErroEnvio`, com teste).
-- Fila "Sem cliente final" passa a usar os mesmos textos amigáveis.
+- `EnviosMultinacional.tsx`: remove a exigência; adiciona "Cliente final: a definir" + diálogo `DefinirClienteFinal` (busca/cadastro), aberto automaticamente na etapa "Cliente final definido" ou após "venceu".
+- `ComissaoCard`, `Crm.tsx` (cartão): rótulo "a definir"; `Multinacionais.tsx`: fila só leitura, reaproveitando o diálogo a partir do negócio.
+- `src/lib/multinacional.ts`: `clienteADefinir(segmento)` e `deveSugerirClienteFinal(etapa, situacoes)`, com testes; `src/lib/comissao.ts`: regra 4% para "a definir", com teste.
