@@ -74,3 +74,24 @@ export function agruparParados(linhas: LinhaParada[], hoje = new Date()): Negoci
     };
   }).sort((a, b) => b.dias_parado - a.dias_parado || (b.dias_no_funil ?? 0) - (a.dias_no_funil ?? 0));
 }
+
+export const SEGMENTO_MULTINACIONAIS = "MULTINACIONAIS";
+/** Negócio/orçamento ainda em nome de uma multinacional = cliente final "a definir". */
+export const clienteADefinir = (segmento?: string | null) => (segmento ?? "").trim().toUpperCase() === SEGMENTO_MULTINACIONAIS;
+
+/** Sugere preencher o cliente final quando ele "aparece": etapa própria ou algum envio venceu. */
+export function deveSugerirClienteFinal(aDefinir: boolean, etapaNome: string | null | undefined, situacoes: string[]) {
+  if (!aDefinir) return false;
+  return etapaNome === "Cliente final definido" || situacoes.includes("venceu");
+}
+
+/** Traduz erros do banco em mensagens para o vendedor. */
+export function mensagemErroEnvio(msg?: string | null) {
+  const m = (msg ?? "").replace(/^.*?ERROR:\s*/, "");
+  if (/Já existe envio aberto para (.+)/i.test(m)) return `Este orçamento já está com a ${nomeCurto(m.match(/para (.+)$/i)![1])} aguardando retorno.`;
+  if (/próprio cliente final/i.test(m)) return "Este orçamento está em nome da própria multinacional. Peça ao admin para liberar o envio sem cliente final.";
+  if (/vendedor responsável|Só admin/i.test(m)) return "Só o vendedor responsável por este negócio ou um admin pode fazer isso.";
+  if (/não seja multinacional|Cliente final inválido/i.test(m)) return "Escolha uma empresa que não seja multinacional.";
+  if (/não encontrad|permiss/i.test(m)) return "Você não tem acesso a este orçamento.";
+  return "Não foi possível concluir agora. Tente de novo.";
+}

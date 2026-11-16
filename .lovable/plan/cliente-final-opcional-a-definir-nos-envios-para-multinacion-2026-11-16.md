@@ -62,3 +62,9 @@ ORC2026-056: enviar V3 → CTVA sem erro; V4 criada em nome da CTVA; envio abert
 - `EnviosMultinacional.tsx`: remove a exigência; adiciona "Cliente final: a definir" + diálogo `DefinirClienteFinal` (busca/cadastro), aberto automaticamente na etapa "Cliente final definido" ou após "venceu".
 - `ComissaoCard`, `Crm.tsx` (cartão): rótulo "a definir"; `Multinacionais.tsx`: fila só leitura, reaproveitando o diálogo a partir do negócio.
 - `src/lib/multinacional.ts`: `clienteADefinir(segmento)` e `deveSugerirClienteFinal(etapa, situacoes)`, com testes; `src/lib/comissao.ts`: regra 4% para "a definir", com teste.
+
+## Resultado do teste já feito (revertido, nada gravado)
+- 056 → CTVA sem erro: V4 enviada em nome da CTVA, funil Multinacionais › Enviado, 1 tarefa de cobrança.
+- Comissão "a definir" 4% (056/V2 R$ 52.996,91; V3/V4 R$ 61.558,25); repetir CTVA recusado.
+- Definir cliente final na etapa "Cliente final definido": 4 versões passam ao cliente, etapa mantida, envio CTVA registrado, deixa de ser "a definir".
+- Vendedor não responsável recusado. SQL completo em docs/sql/multinacional-cliente-final-opcional.sql; aguardando OK do CEO para aplicar.

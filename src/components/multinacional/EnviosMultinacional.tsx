@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Globe2, Undo2, Send, FileText } from "lucide-react";
@@ -13,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useListaMultinacionais } from "@/hooks/useMultinacionais";
-import { SITUACOES_ENVIO, dataCobrancaPadrao, envioAberto, nomeCurto, rotuloSituacao } from "@/lib/multinacional";
+import { SITUACOES_ENVIO, clienteADefinir, dataCobrancaPadrao, deveSugerirClienteFinal, envioAberto, mensagemErroEnvio, nomeCurto, rotuloSituacao } from "@/lib/multinacional";
+import DefinirClienteFinal from "./DefinirClienteFinal";
 
 type Envio = {
   id: string; orcamento_id: string; numero_base: string; multinacional_id: string; enviado_em: string;
@@ -22,7 +23,7 @@ type Envio = {
 type Orc = { id: string; numero_orcamento: string; created_at: string; status: string };
 
 const fmtData = (d?: string | null) => d ? new Date(d.length === 10 ? `${d}T12:00:00` : d).toLocaleDateString("pt-BR") : "—";
-const erro = (e: { message?: string } | null) => (e?.message ?? "").replace(/^.*?ERROR:\s*/, "") || "Não foi possível concluir.";
+const erro = (e: { message?: string } | null) => { if (e) console.error(e); return mensagemErroEnvio(e?.message); };
 
 export default function EnviosMultinacional({ dealId, noFunilMultinacionais, onChange }: {
   dealId: string; noFunilMultinacionais: boolean; onChange: () => void;
@@ -33,14 +34,17 @@ export default function EnviosMultinacional({ dealId, noFunilMultinacionais, onC
   const { data, isLoading } = useQuery({
     queryKey: chave,
     queryFn: async () => {
-      const [env, orcs] = await Promise.all([
+      const [env, orcs, neg] = await Promise.all([
         supabase.from("orcamento_envios")
           .select("id, orcamento_id, numero_base, multinacional_id, enviado_em, cobrar_em, situacao, motivo, orcamentos(numero_orcamento)")
           .eq("oportunidade_id", dealId).order("enviado_em", { ascending: false }),
         supabase.from("orcamentos").select("id, numero_orcamento, created_at, status")
           .eq("oportunidade_id", dealId).order("created_at", { ascending: false }),
+        supabase.from("oportunidades").select("organizacoes(nome, segmento), etapas_pipeline!oportunidades_etapa_id_fkey(nome)").eq("id", dealId).maybeSingle(),
       ]);
-      return { envios: (env.data ?? []) as unknown as Envio[], orcs: (orcs.data ?? []) as Orc[] };
+      const n = neg.data as unknown as { organizacoes: { nome: string; segmento: string | null } | null; etapas_pipeline: { nome: string } | null } | null;
+      return { envios: (env.data ?? []) as unknown as Envio[], orcs: (orcs.data ?? []) as Orc[],
+        aDefinir: clienteADefinir(n?.organizacoes?.segmento), etapa: n?.etapas_pipeline?.nome ?? null };
     },
   });
   const nomes = useMemo(() => new Map((multis.data ?? []).map(m => [m.id, m.nome])), [multis.data]);
@@ -54,6 +58,13 @@ export default function EnviosMultinacional({ dealId, noFunilMultinacionais, onC
   const [orcSel, setOrcSel] = useState("");
   const [cobrar, setCobrar] = useState(dataCobrancaPadrao());
   const [busy, setBusy] = useState(false);
+  const [cliDlg, setCliDlg] = useState(false);
+  const aDefinir = !!data?.aDefinir;
+  const sugerir = deveSugerirClienteFinal(aDefinir, data?.etapa, envios.map(e => e.situacao));
+  useEffect(() => {
+    const k = `cf-sugerido:${dealId}`;
+    if (sugerir && !sessionStorage.getItem(k)) { sessionStorage.setItem(k, "1"); setCliDlg(true); }
+  }, [sugerir, dealId]);
 
   const recarregar = () => { qc.invalidateQueries({ queryKey: chave }); qc.invalidateQueries({ queryKey: ["multinacionais-via"] }); qc.invalidateQueries({ queryKey: ["comissao-card"] }); onChange(); };
 
@@ -97,6 +108,12 @@ export default function EnviosMultinacional({ dealId, noFunilMultinacionais, onC
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {aDefinir && (
+          <div className="rounded-md bg-muted px-3 py-2 flex items-center justify-between gap-2">
+            <p className="text-sm"><span className="text-muted-foreground">Cliente final:</span> <b>a definir</b></p>
+            <Button size="sm" variant="outline" onClick={() => setCliDlg(true)}>Definir cliente final</Button>
+          </div>
+        )}
         {envios.length === 0 && <p className="text-sm text-muted-foreground">Nenhum envio. Use o botão quando uma multinacional levar este orçamento ao cliente final.</p>}
         {envios.map(e => (
           <div key={e.id} className="rounded-md border p-3 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -157,6 +174,7 @@ export default function EnviosMultinacional({ dealId, noFunilMultinacionais, onC
         </DialogContent>
       </Dialog>
 
+      <DefinirClienteFinal dealId={dealId} open={cliDlg} onOpenChange={setCliDlg} sugestao={sugerir} onDone={recarregar} />
       <AlertDialog open={voltar} onOpenChange={setVoltar}>
         <AlertDialogContent>
           <AlertDialogHeader>

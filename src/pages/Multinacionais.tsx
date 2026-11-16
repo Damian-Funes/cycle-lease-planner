@@ -111,36 +111,12 @@ function FilaLegado() {
     },
   });
   const nomes = useNomesVendedores([...new Set((data?.grupos ?? []).map(g => g.responsavel_id).filter(Boolean))] as string[]).data;
-  const [alvo, setAlvo] = useState<Grupo | null>(null);
-  const [busca, setBusca] = useState("");
-  const [escolhido, setEscolhido] = useState<{ id: string; nome: string } | null>(null);
-  const [salvando, setSalvando] = useState(false);
-  const opcoes = useQuery({
-    queryKey: ["cliente-final-busca", busca],
-    enabled: busca.trim().length >= 2,
-    queryFn: async () => {
-      const { data } = await supabase.from("organizacoes").select("id, nome, cidade, segmento")
-        .ilike("nome", `%${busca.trim()}%`).or("segmento.is.null,segmento.neq.MULTINACIONAIS").order("nome").limit(8);
-      return data ?? [];
-    },
-  });
-  const confirmar = async () => {
-    if (!alvo || !escolhido) return;
-    setSalvando(true);
-    const { error } = await supabase.rpc("fn_definir_cliente_final", { _oportunidade_id: alvo.oportunidade_id, _cliente_final_id: escolhido.id });
-    setSalvando(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`Cliente final: ${escolhido.nome}. As multinacionais viraram envios.`);
-    setAlvo(null);
-    ["multinacionais-fila", "multinacionais-parados", "multinacionais-via", "comissao-card"].forEach(k => qc.invalidateQueries({ queryKey: [k] }));
-  };
-
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando…</p>;
   const grupos = data?.grupos ?? [];
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
-        Orçamentos antigos gravados com a multinacional como cliente. Escolha o cliente final de cada negócio: o orçamento passa a ser dele e cada multinacional vira um envio. Nada é apagado.
+        Negócios em nome de uma multinacional, com cliente final "a definir". Só para consulta: o cliente final é preenchido no próprio negócio quando aparecer.
       </p>
       {grupos.length === 0 && <p className="text-sm text-muted-foreground">Nenhum negócio pendente.</p>}
       {grupos.map(g => (
@@ -149,36 +125,10 @@ function FilaLegado() {
             <Link to={`/crm/deal/${g.oportunidade_id}`} className="font-medium text-primary hover:underline line-clamp-2">{g.titulo}</Link>
             <p className="text-xs text-muted-foreground truncate">{textoVia(g.multis)} · {g.versoes} versão(ões){g.responsavel_id && nomes?.get(g.responsavel_id) ? ` · ${nomes.get(g.responsavel_id)}` : ""}</p>
           </div>
-          <Button size="sm" variant="outline" onClick={() => { setAlvo(g); setBusca(""); setEscolhido(null); }}>Definir cliente final</Button>
         </Card>
       ))}
       {!!data?.semNegocio && <p className="text-xs text-muted-foreground">{data.semNegocio} orçamento(s) sem negócio vinculado não entram na fila.</p>}
 
-      <Dialog open={!!alvo} onOpenChange={o => !o && setAlvo(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Cliente final de {alvo?.titulo}</DialogTitle></DialogHeader>
-          <div className="space-y-2">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input value={busca} onChange={e => { setBusca(e.target.value); setEscolhido(null); }} placeholder="Nome da empresa (cliente final)" className="pl-8" autoFocus />
-            </div>
-            <div className="space-y-1 max-h-64 overflow-y-auto">
-              {(opcoes.data ?? []).map(o => (
-                <button key={o.id} onClick={() => setEscolhido({ id: o.id, nome: o.nome })}
-                  className={`w-full text-left rounded-md border px-3 py-2 text-sm ${escolhido?.id === o.id ? "border-primary bg-primary/5" : ""}`}>
-                  <span className="font-medium">{o.nome}</span>{o.cidade ? <span className="text-muted-foreground"> · {o.cidade}</span> : null}
-                </button>
-              ))}
-              {busca.trim().length >= 2 && opcoes.isSuccess && (opcoes.data ?? []).length === 0 && <p className="text-xs text-muted-foreground">Nenhuma empresa encontrada.</p>}
-            </div>
-            {escolhido && <p className="text-xs text-muted-foreground">Todas as versões de {alvo && textoVia(alvo.multis).replace("via ", "")} deste negócio passam para <b>{escolhido.nome}</b> (a comissão segue a regra do cliente final).</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setAlvo(null)}>Cancelar</Button>
-            <Button onClick={confirmar} disabled={!escolhido || salvando}>{salvando ? "Salvando…" : "Confirmar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -199,7 +149,7 @@ export default function Multinacionais() {
         <Tabs defaultValue="parados">
           <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="parados">Parados</TabsTrigger>
-            <TabsTrigger value="fila">Sem cliente final</TabsTrigger>
+            <TabsTrigger value="fila">Cliente final a definir</TabsTrigger>
           </TabsList>
           <TabsContent value="parados" className="mt-4"><Parados /></TabsContent>
           <TabsContent value="fila" className="mt-4"><FilaLegado /></TabsContent>
