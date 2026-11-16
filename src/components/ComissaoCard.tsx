@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import ItensSemCustoBloco from "@/components/comissao/ItensSemCusto";
 import { useViaMultinacional } from "@/hooks/useMultinacionais";
 import { numeroBase } from "@/lib/comissao";
+import { clienteADefinir } from "@/lib/multinacional";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ import { toast } from "sonner";
 import { alternarClienteAntigo, clienteAntigo, FILTRO_PADRAO, lerFiltro, paraComissao, resumoFiltrado, ultimasVersoes, type FiltroComissao, type LinhaComissao } from "@/lib/comissao";
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-type Org = { id: string; tags: string[] | null; responsavel_id: string | null };
+type Org = { id: string; tags: string[] | null; responsavel_id: string | null; segmento: string | null };
 
 export const permissoesComissao = (hasAnyRole: (r: AppRole[]) => boolean) => {
   const gestor = hasAnyRole(["admin", "gerente_comercial"]);
@@ -50,7 +51,7 @@ export function useComissao() {
       const orgs = new Map<string, Org>();
       const orgIds = [...new Set(linhas.map(l => l.organizacao_id).filter(Boolean))] as string[];
       for (let i = 0; i < orgIds.length; i += 200) {
-        const { data: os } = await supabase.from("organizacoes").select("id,tags,responsavel_id").in("id", orgIds.slice(i, i + 200));
+        const { data: os } = await supabase.from("organizacoes").select("id,tags,responsavel_id,segmento").in("id", orgIds.slice(i, i + 200));
         for (const o of (os ?? []) as Org[]) orgs.set(o.id, o);
       }
       return { lista: linhas.map(l => paraComissao(l, l.responsavel_id ? nomes.get(l.responsavel_id) : null)), orgs };
@@ -175,7 +176,7 @@ export default function ComissaoCard() {
               return (
                 <div key={o.id} className="rounded-md border p-3 space-y-2">
                   <button onClick={() => navigate(`/orcamento?load=${o.id}`)} className="w-full text-left">
-                    <p className="font-medium truncate">{o.cliente || o.numero}</p>
+                    <p className="font-medium truncate">{clienteADefinir(org?.segmento) ? "Cliente final: a definir" : (o.cliente || o.numero)}</p>
                     <p className="text-xs text-muted-foreground">{o.numero}{ganho ? " · ganho" : ""}{via?.get(`${numeroBase(o.numero)}|${o.organizacao_id ?? ""}`) ? ` · ${via.get(`${numeroBase(o.numero)}|${o.organizacao_id ?? ""}`)}` : ""}</p>
                     <p className="text-sm text-muted-foreground">{brl(o.venda)} · {gestor && o.vendedor_nome ? `${o.vendedor_nome} ${ganho ? "ganhou" : "ganha"}` : ganho ? "você ganhou" : "você ganha"} <span className="font-semibold text-primary">{brl(o.ganha)}</span></p>
                   </button>
