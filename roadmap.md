@@ -95,3 +95,6 @@ Verificação: cinco testes unitários e testes isolados no navegador com dados 
 - [x] Versões por número + cliente; avulsos sem custo.
 - [x] Card usando a função + testes.
 - [x] Corrigir trava de notificações que impedia concluir atividade (aplicado).
+
+## Futuro
+- [ ] Gravar conversa com cliente — adiado pelo CEO em 16/11; avaliar com Fireflies
