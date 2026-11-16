@@ -5936,6 +5936,7 @@ export type Database = {
       fn_comissao_orcamentos: {
         Args: never
         Returns: {
+          cliente_a_definir: boolean
           cliente_antigo: boolean
           comissao: number
           itens_sem_custo: number

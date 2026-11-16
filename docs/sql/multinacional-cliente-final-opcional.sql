@@ -1,5 +1,5 @@
--- PROPOSTA (não aplicada). Cliente final opcional ("a definir") nos envios para multinacionais.
--- Aplicar só após OK do CEO.
+-- APLICADA em 16/11/2026 (OK do CEO Damian 16/11 14:48). Cliente final opcional ("a definir").
+-- Testada antes em BEGIN … ROLLBACK com o ORC2026-056.
 
 -- 1) Envio não exige cliente final (sem a trava "própria multinacional")
 create or replace function public.fn_enviar_multinacional(_orcamento_id uuid, _multinacional_id uuid, _cobrar_em date default (current_date + 60))

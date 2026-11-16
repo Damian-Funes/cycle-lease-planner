@@ -33,4 +33,4 @@
 - Company-paid hotel is a `rota_gastos` row with `pago_pela_empresa=true` and null value; finance must fill it before trip conclusion.
 - Voicemail/no-answer on retorno/fechamento schedules one `retentativa_retorno` (+30 min, ≤22h) via pure `precisaNovaTentativa`, the only allowed 4th automatic call. "Visited anyone else?" is a daily `rota_diario` entry so `confirmar_extras` is asked once and never makes the cron dial.
 - Commission: SQL `fn_comissao_orcamentos` returns amount, never cost; pure rules in `src/lib/comissao.ts`, latest version per number+org.
-- Multinational deals belong to the final client; each multinational is an `orcamento_envios` row (own version), changed only by SQL `fn_*multinacional`/`fn_envio_situacao`/`fn_definir_cliente_final`, so commission counts once.
+- Multinational deals: final client is optional ("a definir" = still in the multinational's name); each multinational is an `orcamento_envios` row, changed only by SQL `fn_*multinacional`/`fn_envio_situacao`/`fn_definir_cliente_final`.
